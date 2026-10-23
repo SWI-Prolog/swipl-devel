@@ -268,6 +268,8 @@ static bool	mono_index_build(idg_node *src);
 static void	mono_index_release(idg_node *src);
 #undef LDFUNC_DECLARATIONS
 
+static idg_mdep *idg_mdeps(idg_node *child, idg_node *parent);
+
 #define WL_IS_SPECIAL(wl)  (((intptr_t)(wl)) & 0x1)
 #define WL_IS_WORKLIST(wl) ((wl) && !WL_IS_SPECIAL(wl))
 
@@ -6931,19 +6933,18 @@ tt_has_modified_dependencies(DECL_LD trie *atrie)
 
   if ( (n=atrie->data.IDG) &&
        LD->transaction.predicates )
-  { TablePP deps;
+  { idg_set_enum en;
+    idg_node *dep;
 
-    if ( (deps=n->dependent) )
-    { FOR_TABLE(deps, n, v)
-      { idg_node *dep = key2ptr(n);
-	trie *strie = dep->atrie;
+    idg_set_enum_init(&en, &n->dependent);
+    while( (dep=idg_set_next(&en)) )
+    { trie *strie = dep->atrie;
 
-	if ( strie->data.worklist == WL_DYNAMIC &&
-	     lookupHTablePW(LD->transaction.predicates,
-			    strie->data.predicate) )
-	{ found = true;
-	  break;
-	}
+      if ( strie->data.worklist == WL_DYNAMIC &&
+	   lookupHTablePW(LD->transaction.predicates,
+			  strie->data.predicate) )
+      { found = true;
+	break;
       }
     }
   }
@@ -7019,33 +7020,32 @@ tt_mono_status(DECL_LD trie *atrie)
   mono_dep_status status = {0};
 
   if ( (an=atrie->data.IDG) )
-  { TablePP deps;
+  { idg_set_enum en;
+    idg_node *dep;
 
     DEBUG(MSG_TABLING_TRANSACTION,
 	  print_answer_table(atrie, "tt_mono_status()"));
 
-    if ( (deps=an->dependent) )
-    { FOR_TABLE(deps, dn, v)
-      { idg_node *dep = key2ptr(dn);
-	trie *strie = (trie *)dep->atrie;
+    idg_set_enum_init(&en, &an->dependent);
+    while( (dep=idg_set_next(&en)) )
+    { trie *strie = (trie *)dep->atrie;
 
-	if ( strie->data.worklist == WL_DYNAMIC )
-	{ idg_mdep *mdep;
+      if ( strie->data.worklist == WL_DYNAMIC )
+      { idg_mdep *mdep;
 
-	  DEBUG(MSG_TABLING_TRANSACTION,
-		print_answer_table(strie, "Dynamic dependency"));
+	DEBUG(MSG_TABLING_TRANSACTION,
+	      print_answer_table(strie, "Dynamic dependency"));
 
-	  if ( (mdep=lookupHTablePP(dep->affected, an)) )
-	    lg_clauses(mdep, &status);
-	} else
-	{ if ( dep->falsecount > 0 ||
-	       dep->force_reeval )
-	    status.invalid_dep_tables++;
-	}
+	if ( (mdep=idg_mdeps(dep, an)) )
+	  lg_clauses(mdep, &status);
+      } else
+      { if ( dep->falsecount > 0 ||
+	     dep->force_reeval )
+	  status.invalid_dep_tables++;
+      }
 
-	if ( status.invalid_dep_tables )
-	  break;
-      };
+      if ( status.invalid_dep_tables )
+	break;
     }
   }
 
@@ -7350,20 +7350,44 @@ idg_new(trie *atrie)
   return n;
 }
 
+/* Where replaced blocks of the edge sets of n go: NULL if only this
+   thread accesses them.  See pl-idgset.h.
+*/
+
+static inline idg_set_block **
+idg_lingering(idg_node *n)
+{ if ( n->concurrent || ison(n->atrie, TRIE_ISSHARED) )
+    return &n->lingering;
+
+  return NULL;
+}
+
+/* The chain of monotonic dependencies of the edge child->parent or NULL */
+
+static inline idg_mdep *
+idg_mdeps(idg_node *child, idg_node *parent)
+{ GET_LD
+  TablePP t;
+
+  if ( (t=child->mono_deps) )
+    return lookupHTablePP(t, parent);
+
+  return NULL;
+}
+
+static void	idg_free_affected(void *p, void *ctx);
+static void	idg_free_dependent(void *p, void *ctx);
+
 static void
 idg_clean_affected(idg_node *node)
-{ TablePP table;
-
-  if ( (table=node->affected) )
-    clearHTablePP(table);
+{ idg_set_clear(&node->affected, idg_free_affected, node,
+		idg_lingering(node));
 }
 
 static void
 idg_clean_dependent(idg_node *node)
-{ TablePP table;
-
-  if ( (table=node->dependent) )
-    clearHTablePP(table);
+{ idg_set_clear(&node->dependent, idg_free_dependent, node,
+		idg_lingering(node));
 }
 
 
@@ -7381,15 +7405,14 @@ static void
 idg_destroy(idg_node *node)
 { TablePP table;
 
-  if ( (table=node->affected) )
-  { node->affected = NULL;
-    destroyHTablePP(table);
-  }
-  if ( (table=node->dependent) )
-  { node->dependent = NULL;
+  idg_clean_affected(node);
+  idg_clean_dependent(node);
+  if ( (table=node->mono_deps) )
+  { node->mono_deps = NULL;
     destroyHTablePP(table);
   }
   mono_index_release(node);
+  idg_set_free_lingering(&node->lingering);
 
   PL_free(node);
 }
@@ -7421,26 +7444,40 @@ free_mdep_chain(idg_node *child)
   return child;
 }
 
+/* Free the monotonic dependencies of the edge child->parent */
+
 static void
-idg_free_affected(table_key_t n, table_value_t v)
-{ idg_node *child  = val2ptr(v);
-  idg_node *parent = key2ptr(n);
+idg_free_mdeps(idg_node *child, idg_node *parent)
+{ GET_LD
+  idg_mdep *mdep;
 
-  child = free_mdep_chain(child);
+  if ( child->mono_deps &&
+       (mdep=deleteHTablePP(child->mono_deps, parent)) )
+    free_mdep_chain((idg_node*)mdep);
+}
 
-  assert(parent->dependent);
-  if ( !deleteHTablePP(parent->dependent, child) )
+/* The edge child->parent is removed from child->affected (p is the
+   parent) and parent->dependent (p is the child).  Remove the other
+   half.
+*/
+
+static void
+idg_free_affected(void *p, void *ctx)
+{ idg_node *parent = p;
+  idg_node *child  = ctx;
+
+  idg_free_mdeps(child, parent);
+  if ( !idg_set_delete(&parent->dependent, child, idg_lingering(parent)) )
     Sdprintf("OOPS: idg_free_affected() failed to delete backlink\n");
 }
 
 static void
-idg_free_dependent(table_key_t n, table_value_t v)
-{ idg_node *parent = val2ptr(v);
-  idg_node *child  = key2ptr(n);
+idg_free_dependent(void *p, void *ctx)
+{ idg_node *child  = p;
+  idg_node *parent = ctx;
 
-  assert(child->affected);
-  if ( (child=deleteHTablePP(child->affected, parent)) )
-    free_mdep_chain(child);
+  if ( idg_set_delete(&child->affected, parent, idg_lingering(child)) )
+    idg_free_mdeps(child, parent);
   else
     Sdprintf("OOPS: idg_free_dependent() failed to delete backlink\n");
 }
@@ -7546,18 +7583,18 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
   if ( ison(parent->atrie, TRIE_ISSHARED) &&
        isoff(child->atrie, TRIE_ISSHARED) )
     return idg_dependency_error(parent, child);
+  if ( ison(child->atrie, TRIE_ISSHARED) &&	/* our private parent */
+       isoff(parent->atrie, TRIE_ISSHARED) &&	/* gets a shared child */
+       !parent->concurrent )
+    parent->concurrent = true;
 
-  if ( !(t=child->affected) )
-  { t = newHTablePP(4);
-    t->free_symbol = idg_free_affected;
-    if ( !COMPARE_AND_SWAP_PTR(&child->affected, NULL, t) )
-    { destroyHTablePP(t);
-      t = child->affected;
-    }
-  }
+  idg_set_add(&child->affected, parent, idg_lingering(child));
   if ( dep )
-  { idg_mdep *mdep0 = addHTablePP(t, parent, child); /* chain old dependency */
+  { idg_mdep *mdep0 = idg_mdeps(child, parent); /* chain old dependency */
     idg_mdep *mdep;
+
+    if ( !mdep0 )
+      mdep0 = (idg_mdep*)child;			/* a chain ends in the child */
 
     switch( child->mono_index ? mono_index_find(child, parent, dep, &mdep)
 			      : find_dep(mdep0, dep, &mdep) )
@@ -7582,7 +7619,17 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 	}
 	child->mono_dep_seen = true;
 	mdep->next.any = mdep0;
-	updateHTablePP(t, parent, mdep);
+	if ( !(t=child->mono_deps) )
+	{ t = newHTablePP(4);
+	  if ( !COMPARE_AND_SWAP_PTR(&child->mono_deps, NULL, t) )
+	  { destroyHTablePP(t);
+	    t = child->mono_deps;
+	  }
+	}
+	if ( mdep0 == (idg_mdep*)child )
+	  addHTablePP(t, parent, mdep);
+	else
+	  updateHTablePP(t, parent, mdep);
 	break;
       default:
 	return false;				   /* resource error */
@@ -7594,19 +7641,9 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 	 lookupHTablePW(LD->transaction.predicates,
 			child->atrie->data.predicate) )
       parent->tt_new_dep = true;
-  } else
-  { addHTablePP(t, parent, child);
   }
 
-  if ( !(t=parent->dependent) )
-  { t = newHTablePP(4);
-    t->free_symbol = idg_free_dependent;
-    if ( !COMPARE_AND_SWAP_PTR(&parent->dependent, NULL, t) )
-    { destroyHTablePP(t);
-      t = parent->dependent;
-    }
-  }
-  addHTablePP(t, child, parent);
+  idg_set_add(&parent->dependent, child, idg_lingering(parent));
 
   return true;
 }
@@ -7885,8 +7922,8 @@ PRED_IMPL("$idg_reset_current", 0, idg_reset_current, 0)
 
 typedef struct idg_edge_state
 { trie *	atrie;
-  TablePP	table;
-  TableEnum	tenum;
+  const idg_set *set;
+  idg_set_enum	en;
   atom_t	dir;
   int		fixed_dir;
   int		allocated;
@@ -7911,21 +7948,20 @@ retry:
     return true;
   }
 
-  table_key_t k;
-  table_value_t v;
-  if ( advanceTableEnum(state->tenum, &k, &v) )
-  { idg_node *n = key2ptr(k);
+  idg_node *n;
+  if ( (n=idg_set_next(&state->en)) )
+  { idg_node *self = state->atrie->data.IDG;
     idg_mdep *mdep;
 
-    if ( state->lazy )			/* Lazy requires reverse lookup */
-    { GET_LD
-      mdep = lookupHTablePP(n->affected, state->atrie->data.IDG);
-    } else
-    { mdep = val2ptr(v);
-    }
+    if ( state->dir == ATOM_affected )	/* edge self->n */
+      mdep = idg_mdeps(self, n);
+    else if ( state->lazy )		/* edge n->self */
+      mdep = idg_mdeps(n, self);
+    else
+      mdep = NULL;
 
     state->dependencies = NULL;
-    if ( mdep->magic == IDG_MDEP_MAGIC )
+    if ( mdep )
     { state->dependencies = mdep;
       state->force_reeval = n->force_reeval;
     }
@@ -7933,13 +7969,13 @@ retry:
     state->deptrie_symbol = trie_symbol(n->atrie);
     return true;
   } else
-  { freeTableEnum(state->tenum);
-    state->tenum = NULL;
+  { if ( !state->fixed_dir && state->dir == ATOM_affected )
+    { idg_node *self = state->atrie->data.IDG;
 
-    if ( !state->fixed_dir && state->dir == ATOM_affected )
-    { if ( (state->table = state->atrie->data.IDG->dependent) )
+      if ( !idg_set_is_empty(&self->dependent) )
       { state->dir = ATOM_dependent;
-	state->tenum = newTableEnumPP(state->table);
+	state->set = &self->dependent;
+	idg_set_enum_init(&state->en, state->set);
 	goto retry;
       }
     }
@@ -7950,9 +7986,7 @@ retry:
 
 static void
 free_idg_edge_state(idg_edge_state *state)
-{ if ( state->tenum )
-    freeTableEnum(state->tenum);
-  if ( state->allocated )
+{ if ( state->allocated )
     freeForeignState(state, sizeof(*state));
 }
 
@@ -7997,7 +8031,7 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
 	if ( status )			/* '$idg_false_edge'/3 */
 	{ state->lazy    = false;
 	  state->dir     = ATOM_dependent;
-	  state->table   = state->atrie->data.IDG->dependent;
+	  state->set     = &state->atrie->data.IDG->dependent;
 	} else
 	{ state->monotonic = true;
 	  if ( answers )		/* '$idg_mono_affects_lazy'/5 */
@@ -8005,18 +8039,22 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
 	      return false;
 	    state->lazy    = true;
 	    state->dir     = ATOM_dependent;
-	    state->table   = state->atrie->data.IDG->dependent;
+	    state->set     = &state->atrie->data.IDG->dependent;
 	  } else			/* '$idg_mono_affects[_eager]'/3 */
 	  { state->lazy    = false;
 	    state->dir     = ATOM_affected;
-	    state->table   = state->atrie->data.IDG->affected;
+	    state->set     = &state->atrie->data.IDG->affected;
 	  }
 	}
       } else if ( PL_is_variable(dir) )
-      { if ( (state->table = state->atrie->data.IDG->affected) )
+      { idg_node *self = state->atrie->data.IDG;
+
+	if ( !idg_set_is_empty(&self->affected) )
 	{ state->dir = ATOM_affected;
-	} else if ( (state->table = state->atrie->data.IDG->dependent) )
+	  state->set = &self->affected;
+	} else if ( !idg_set_is_empty(&self->dependent) )
 	{ state->dir = ATOM_dependent;
+	  state->set = &self->dependent;
 	  if ( !PL_unify_atom(dir, ATOM_dependent) )
 	    return false;
 	  state->fixed_dir = true;
@@ -8025,24 +8063,24 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
       } else if ( PL_get_atom_ex(dir, &state->dir) )
       { state->fixed_dir = true;
 	if ( state->dir == ATOM_affected )
-	  state->table = state->atrie->data.IDG->affected;
+	  state->set = &state->atrie->data.IDG->affected;
 	else if ( state->dir == ATOM_dependent )
-	  state->table = state->atrie->data.IDG->dependent;
+	  state->set = &state->atrie->data.IDG->dependent;
 	else
 	  return PL_domain_error("idg_edge_dir", dir);
       }
 
-      if ( !state->table )
+      if ( !state->set || idg_set_is_empty(state->set) )
 	return false;
 
       if ( PL_is_variable(To) )
-      { state->tenum = newTableEnumPP(state->table);
+      { idg_set_enum_init(&state->en, state->set);
 	if ( advance_idg_edge_state(state) )
 	  break;
 	free_idg_edge_state(state);
 	return false;
       } else if ( get_trie(To, &to) )
-      { return !!lookupHTablePP(state->table, to->data.IDG);
+      { return to->data.IDG && idg_set_contains(state->set, to->data.IDG);
       }
     }
     case FRG_REDO:
@@ -8313,7 +8351,8 @@ other way to detect this situation.
 typedef struct idg_propagate_state
 { size_t modified;
   trie *incomplete;				/* hit an incomplete trie */
-  TableEnum en;
+  idg_node *child;				/* node whose affected we walk */
+  idg_set_enum en;
   segstack  stack;
   idg_node  *buf[100];
 } idg_propagate_state;
@@ -8347,13 +8386,11 @@ idg_changed_loop(DECL_LD idg_propagate_state *state, int flags)
 { typedef struct idg_node *IDGNode;
 
   for(;;)
-  { table_key_t k;
-    table_value_t v;
-    idg_node *next;
+  { idg_node *next;
+    idg_node *n;
 
-    while( advanceTableEnum(state->en, &k, &v) )
-    { idg_node *n = key2ptr(k);
-
+    while( (n=idg_set_next(&state->en)) )
+    {
       DEBUG(MSG_TABLING_IDG_CHANGED,
 	    print_answer_table(
 		n->atrie,
@@ -8372,7 +8409,7 @@ idg_changed_loop(DECL_LD idg_propagate_state *state, int flags)
 		  "  Monotonic to incremental evaluation (I)"));
 
 	if ( n->monotonic && !n->force_reeval )
-	{ mdep_empty_queues(val2ptr(v));
+	{ mdep_empty_queues(idg_mdeps(state->child, n));
 	  force_reeval(n);
 	}
 	continue;
@@ -8388,14 +8425,14 @@ idg_changed_loop(DECL_LD idg_propagate_state *state, int flags)
 		  n->atrie,
 		  "  Monotonic to incremental evaluation (II)"));
 
-	  mdep_empty_queues(val2ptr(v));
+	  mdep_empty_queues(idg_mdeps(state->child, n));
 	  force_reeval(n);
 	  idg_propagate_change(n, IDG_PROPAGATE_FORCE);
 	}
 
 	if ( ATOMIC_INC(&n->falsecount) == 1 )
 	{ TRIE_STAT_INC(n, invalidated);
-	  if ( n->affected )
+	  if ( !idg_set_is_empty(&n->affected) )
 	  { if ( !pushSegStack(&state->stack, n, IDGNode) )
 	      outOfCore();
 	  }
@@ -8418,18 +8455,16 @@ idg_changed_loop(DECL_LD idg_propagate_state *state, int flags)
 		       "from another thread\n");
 	  }
 #endif
-	  if ( n->affected )
+	  if ( !idg_set_is_empty(&n->affected) )
 	  { if ( !pushSegStack(&state->stack, n, IDGNode) )
 	      outOfCore();
 	  }
 	}
       }
     }
-    freeTableEnum(state->en);
-
     if ( popSegStack(&state->stack, &next, IDGNode) )
-    { assert(next->affected);
-      state->en = newTableEnumPP(next->affected);
+    { state->child = next;
+      idg_set_enum_init(&state->en, &next->affected);
     } else
       break;
   }
@@ -8438,7 +8473,7 @@ idg_changed_loop(DECL_LD idg_propagate_state *state, int flags)
 
 static trie *
 idg_propagate_change(idg_node *n, int flags)
-{ if ( n->affected )
+{ if ( !idg_set_is_empty(&n->affected) )
   { GET_LD
     idg_propagate_state state;
 
@@ -8449,7 +8484,8 @@ idg_propagate_change(idg_node *n, int flags)
     state.modified = 0;
     state.incomplete = NULL;
     initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
-    state.en = newTableEnumPP(n->affected);
+    state.child = n;
+    idg_set_enum_init(&state.en, &n->affected);
     idg_changed_loop(&state, flags);
     clearSegStack(&state.stack);
 
@@ -8473,11 +8509,9 @@ change_incomplete_error(trie *atrie)
 
 static int
 idg_need_invalidated(idg_node *n)
-{ TablePP t;
-
-  if ( n->atrie->data.worklist == WL_DYNAMIC ||
+{ if ( n->atrie->data.worklist == WL_DYNAMIC ||
        (n->monotonic && !n->lazy) )
-    return (t=n->affected) && t->size > 0;
+    return !idg_set_is_empty(&n->affected);
 
   return true;
 }
@@ -8806,11 +8840,11 @@ mono_index_build(DECL_LD idg_node *src)
   src->mono_index = t;
   src->mono_index_deps = newHTablePP(4);
 
-  if ( src->affected )
+  if ( src->mono_deps )
   { table_key_t k;
     table_value_t v;
 
-    en = newTableEnumPP(src->affected);
+    en = newTableEnumPP(src->mono_deps);
     while(advanceTableEnum(en, &k, &v))
     { idg_node *parent = key2ptr(k);
       idg_mdep *mdep = val2ptr(v);
@@ -9061,17 +9095,14 @@ affected table is not updated.
 static int
 mono_idg_changed(trie *atrie, word answer)
 { idg_node *sn = atrie->data.IDG;
-  TablePP aff;
 
-  if ( sn && (aff=sn->affected) )
-  { table_key_t k;
-    table_value_t v;
-    TableEnum en;
+  if ( sn )
+  { idg_set_enum en;
+    idg_node *dn;
 
-    en = newTableEnumPP(aff);
-    while( advanceTableEnum(en, &k, &v) )
-    { idg_node *dn = key2ptr(k);
-      idg_mdep *mdep = val2ptr(v);
+    idg_set_enum_init(&en, &sn->affected);
+    while( (dn=idg_set_next(&en)) )
+    { idg_mdep *mdep = idg_mdeps(sn, dn);
       int nonempty = 0;
 
       if ( dn->force_reeval )		/* Already marked as invalid */
@@ -9101,7 +9132,6 @@ mono_idg_changed(trie *atrie, word answer)
 	  return false;
       }
     }
-    freeTableEnum(en);
   }
 
   return true;
@@ -9291,46 +9321,41 @@ that have already been deleted.
 
 static void
 prune_deleted_mdeps(idg_node *idg)
-{ if ( idg->affected )
-  { TableEnum en = newTableEnumPP(idg->affected);
-    table_key_t k;
-    table_value_t v;
+{ idg_set_enum en;
+  idg_node *dn;
 
-    while(advanceTableEnum(en, &k, &v))
-    { idg_node *dn = key2ptr(k);
-      idg_mdep *mdep = val2ptr(v);
+  idg_set_enum_init(&en, &idg->affected);
+  while( (dn=idg_set_next(&en)) )
+  { idg_mdep *mdep = idg_mdeps(idg, dn);
 
-      if ( dn->force_reeval )			/* Invalidated; no queue */
-      { dn->falsecount++;			/* see mono_idg_changed() */
-	continue;
-      }
-      if ( !dn->lazy )				/* eager: no queue */
-	continue;
-
-      while( mdep && mdep->magic == IDG_MDEP_MAGIC )
-      { if ( mdep->queue )
-	{ word *base = baseBuffer(mdep->queue, word);
-	  word *top  = topBuffer(mdep->queue, word);
-	  word *out  = base;
-
-	  for(; base < top; base++)
-	  { if ( isAtom(*base) )
-	    { *out++ = *base;
-	    } else
-	    { trie_node *an = word2ptr(trie_node *, *base);
-
-	      if ( an->value )
-		*out++ = *base;
-	    }
-	  }
-	  mdep->queue->top = (void*)out;
-	}
-
-	mdep = mdep->next.dep;
-      }
+    if ( dn->force_reeval )			/* Invalidated; no queue */
+    { dn->falsecount++;				/* see mono_idg_changed() */
+      continue;
     }
+    if ( !dn->lazy )				/* eager: no queue */
+      continue;
 
-    freeTableEnum(en);
+    while( mdep && mdep->magic == IDG_MDEP_MAGIC )
+    { if ( mdep->queue )
+      { word *base = baseBuffer(mdep->queue, word);
+	word *top  = topBuffer(mdep->queue, word);
+	word *out  = base;
+
+	for(; base < top; base++)
+	{ if ( isAtom(*base) )
+	  { *out++ = *base;
+	  } else
+	  { trie_node *an = word2ptr(trie_node *, *base);
+
+	    if ( an->value )
+	      *out++ = *base;
+	  }
+	}
+	mdep->queue->top = (void*)out;
+      }
+
+      mdep = mdep->next.dep;
+    }
   }
 }
 
@@ -9370,7 +9395,7 @@ Otherwise it returns the found invalid dependency.
 
 typedef struct mono_scc_state
 { idg_node *idg;				/* current node */
-  TableEnum en;					/* Enum on its dependencies */
+  idg_set_enum en;				/* Enum on its dependencies */
   TablePW visited;				/* IDGNode -> bool */
   segstack  stack;				/* agenda */
   idg_node  *buf[100];
@@ -9415,14 +9440,12 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
 { typedef struct idg_node *IDGNode;
 
   for(;;)
-  { table_key_t k;
-    table_value_t v;
+  { idg_node *dep;
 
-    while(advanceTableEnum(state->en, &k, &v))
-    { idg_node *dep = key2ptr(k);
-      idg_mdep *mdep;
+    while( (dep=idg_set_next(&state->en)) )
+    { idg_mdep *mdep;
 
-      if ( (mdep=lookupHTablePP(dep->affected, state->idg)) &&
+      if ( (mdep=idg_mdeps(dep, state->idg)) &&
 	   !mdep_is_empty(mdep) )
       { DEBUG(MSG_TABLING_MONOTONIC,
 	      print_answer_table(dep->atrie, "  queued answers"));
@@ -9436,7 +9459,7 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
 	  return dep;
 	}
 
-	if ( dep->lazy && dep->dependent && dep->dependent->size > 0 &&
+	if ( dep->lazy && !idg_set_is_empty(&dep->dependent) &&
 	     !lookupHTablePW(state->visited, dep) )
 	{ if ( !pushSegStack(&state->stack, dep, IDGNode) )
 	    outOfCore();
@@ -9445,11 +9468,8 @@ mono_scc_is_complete_loop(DECL_LD mono_scc_state *state)
       }
     }
 
-    freeTableEnum(state->en);
-    state->en = NULL;
-
     if ( popSegStack(&state->stack, &state->idg, IDGNode) )
-    { state->en = newTableEnumPP(state->idg->dependent);
+    { idg_set_enum_init(&state->en, &state->idg->dependent);
     } else
       break;
   }
@@ -9466,7 +9486,7 @@ mono_scc_is_complete(DECL_LD idg_node *idg)
 { DEBUG(MSG_TABLING_MONOTONIC,
 	print_answer_table(idg->atrie, "Checking completeness of monotonic SCC"));
 
-  if ( idg->falsecount && idg->dependent && idg->dependent->size > 0 )
+  if ( idg->falsecount && !idg_set_is_empty(&idg->dependent) )
   { mono_scc_state state;
     idg_node *invalid;
 
@@ -9475,10 +9495,8 @@ mono_scc_is_complete(DECL_LD idg_node *idg)
     addHTablePW(state.visited, idg, true);
     initSegStack(&state.stack, sizeof(idg_node*), sizeof(state.buf), state.buf);
 
-    state.en = newTableEnumPP(idg->dependent);
+    idg_set_enum_init(&state.en, &idg->dependent);
     invalid = mono_scc_is_complete_loop(&state);
-    if ( state.en )
-      freeTableEnum(state.en);
 
     clearSegStack(&state.stack);
     if ( !invalid )
@@ -9503,21 +9521,17 @@ static int
 has_queued_answers(DECL_LD idg_node *idg)
 { int queued = false;
 
-  if ( idg->dependent && idg->dependent->size > 0 )
-  { TableEnum en = newTableEnumPP(idg->dependent);
-    table_key_t k;
-    table_value_t v;
+  { idg_set_enum en;
+    idg_node *dep;
 
-    while( !queued && advanceTableEnum(en, &k, &v) )
-    { idg_node *dep = key2ptr(k);
-      idg_mdep *mdep;
+    idg_set_enum_init(&en, &idg->dependent);
+    while( !queued && (dep=idg_set_next(&en)) )
+    { idg_mdep *mdep;
 
-      if ( (mdep=lookupHTablePP(dep->affected, idg)) &&
+      if ( (mdep=idg_mdeps(dep, idg)) &&
 	   !mdep_is_empty(mdep) )
 	queued = true;
     }
-
-    freeTableEnum(en);
   }
 
   return queued;
@@ -9539,15 +9553,12 @@ invalid_dependencies(DECL_LD term_t deps, idg_node *idg, size_t *count)
   term_t tail = 0;
   size_t cnt = 0;
 
-  if ( idg->dependent && idg->dependent->size > 0 )
-  { TableEnum en = newTableEnumPP(idg->dependent);
-    table_key_t k;
-    table_value_t v;
+  { idg_set_enum en;
+    idg_node *dep;
 
-    while(advanceTableEnum(en, &k, &v))
-    { idg_node *dep = key2ptr(k);
-
-      if ( dep->falsecount > 0 )
+    idg_set_enum_init(&en, &idg->dependent);
+    while( (dep=idg_set_next(&en)) )
+    { if ( dep->falsecount > 0 )
       { cnt++;
 
 	if ( (dep->monotonic && !dep->force_reeval && has_queued_answers(dep)) ||
@@ -9559,13 +9570,10 @@ invalid_dependencies(DECL_LD term_t deps, idg_node *idg, size_t *count)
 
 	  if ( !PL_unify_list(tail, head, tail) ||
 	       !PL_unify_atom(head, trie_symbol(dep->atrie)) )
-	  { freeTableEnum(en);
 	    return false;
-	  }
 	}
       }
     }
-    freeTableEnum(en);
   }
 
   *count = cnt;

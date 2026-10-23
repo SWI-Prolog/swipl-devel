@@ -4174,14 +4174,15 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 #endif
       } else if ( (idg=trie->data.IDG) )
       { if ( name == ATOM_idg_affected_count )
-	{ return PL_unify_int64(arg, idg->affected ? idg->affected->size : 0);
+	{ return PL_unify_int64(arg, idg_set_size(&idg->affected));
 	} else if ( name == ATOM_idg_dependent_count )
-	{ return PL_unify_int64(arg, idg->dependent ? idg->dependent->size : 0);
+	{ return PL_unify_int64(arg, idg_set_size(&idg->dependent));
 	} else if ( name == ATOM_idg_size )
 	{ size_t size = sizeof(*idg);
 
-	  if ( idg->affected )  size += sizeofTablePP(idg->affected);
-	  if ( idg->dependent ) size += sizeofTablePP(idg->dependent);
+	  size += idg_set_sizeof(&idg->affected);
+	  size += idg_set_sizeof(&idg->dependent);
+	  if ( idg->mono_deps ) size += sizeofTablePP(idg->mono_deps);
 
 	  return PL_unify_int64(arg, size);
 	}

@@ -37,6 +37,7 @@
 #ifndef _PL_TABLING_H
 #define _PL_TABLING_H
 #include "pl-trie.h"
+#include "pl-idgset.h"
 
 typedef enum
 { CLUSTER_ANSWERS,
@@ -201,11 +202,22 @@ typedef struct delay_info
 #define IDG_NODE_MAGIC 0x347e54d2
 #define IDG_MDEP_MAGIC 0x745af3b0
 
+/* The edges child->parent are in child->affected and parent->dependent.
+   For a monotonic dependency, child->mono_deps maps the parent to the
+   chain of idg_mdep structures of the edge.  The chain ends in the
+   child.  `concurrent` is set if other threads may modify the edge sets,
+   i.e., the node is shared or has an edge to a shared node.  See
+   pl-idgset.h.
+*/
+
 typedef struct idg_node
 { int           magic;			/* IDG_NODE_MAGIC */
+  bool		concurrent;		/* Other threads modify the sets */
   trie	       *atrie;			/* answer trie */
-  TablePP	affected;		/* parent IDG nodes */
-  TablePP	dependent;		/* child IDG nodes */
+  idg_set	affected;		/* parent IDG nodes */
+  idg_set	dependent;		/* child IDG nodes */
+  idg_set_block *lingering;		/* replaced blocks of both sets */
+  TablePP	mono_deps;		/* parent -> idg_mdep chain */
   size_t	answer_count;		/* #answers in previous complete state */
   unsigned	new_answer : 1;		/* Update generated a new answer */
   unsigned	reevaluating : 1;	/* currently re-evaluating */
