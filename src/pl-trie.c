@@ -4125,13 +4125,20 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       } else if ( name == ATOM_size )
       { trie_stats stats;
 	stat_trie(trie, &stats);
-	if ( stats.nodes != trie->node_count )
-	  Sdprintf("OOPS: trie_property/2: counted %zd nodes, admin says %zd\n",
-		   (size_t)stats.nodes, (size_t)trie->node_count);
-	if ( stats.values != trie->value_count &&
-	     isoff(trie, TRIE_DISCARDED) )	/* values are in the clause */
-	  Sdprintf("OOPS: trie_property/2: counted %zd values, admin says %zd\n",
-		   (size_t)stats.values, (size_t)trie->value_count);
+	/* Only a private trie of this thread cannot change while we count.
+	   Other tries may get nodes and values while we walk them, e.g.,
+	   when inspecting the tables of another thread. */
+	if ( trie->alloc_pool && trie->alloc_pool == LD->tabling.node_pool )
+	{ if ( stats.nodes != trie->node_count )
+	    Sdprintf("OOPS: trie_property/2: counted %zd nodes, "
+		     "admin says %zd\n",
+		     (size_t)stats.nodes, (size_t)trie->node_count);
+	  if ( stats.values != trie->value_count &&
+	       isoff(trie, TRIE_DISCARDED) )	/* values are in the clause */
+	    Sdprintf("OOPS: trie_property/2: counted %zd values, "
+		     "admin says %zd\n",
+		     (size_t)stats.values, (size_t)trie->value_count);
+	}
 	// assert(stats.nodes  == trie->node_count);
 	// assert(stats.values == trie->value_count);
 	return PL_unify_int64(arg, stats.bytes);
