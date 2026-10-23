@@ -222,6 +222,7 @@ static void	print_answer_table(trie *atrie, const char *msg, ...);
 #endif
 static int	simplify_component(tbl_component *scc);
 static void	idg_destroy(idg_node *node);
+static void	idg_release_registry(PL_local_data_t *ld);
 static void	idg_reset(idg_node *node);
 static int	idg_init_variant(trie *atrie, Definition def, term_t variant);
 static void	reeval_complete(trie *atrie);
@@ -2920,6 +2921,8 @@ clearThreadTablingData(PL_local_data_t *ld, bool exit)
   reset_newly_created_worklists(ld->tabling.component, WLFS_KEEP_COMPLETE);
   clear_variant_table(&ld->tabling.variant_table, &ld->tabling.start_nodes);
   free_tbl_free_objects(ld, exit);
+  if ( exit )
+    idg_release_registry(ld);
 }
 
 
@@ -7342,12 +7345,38 @@ merge_tabling_trail(tbl_trail *into, tbl_trail *from)
 static idg_node *
 idg_new(trie *atrie)
 { idg_node *n = PL_malloc(sizeof(*n));
+  idg_registry *reg;
 
   memset(n, 0, sizeof(*n));
   n->magic = IDG_NODE_MAGIC;
   n->atrie = atrie;
 
+#ifdef O_PLMT
+  if ( ison(atrie, TRIE_ISSHARED) )
+  { reg = GD->tabling.idg_registry;
+  } else
+#endif
+  { GET_LD
+
+    if ( !(reg=LD->tabling.idg_registry) )
+      reg = LD->tabling.idg_registry = idg_registry_new();
+  }
+  n->registry = reg;
+  n->registry_index = idg_registry_add(reg, n);
+
   return n;
+}
+
+/* The IDG nodes of the thread described by ld are released */
+
+static void
+idg_release_registry(PL_local_data_t *ld)
+{ idg_registry *reg;
+
+  if ( (reg=ld->tabling.idg_registry) )
+  { ld->tabling.idg_registry = NULL;
+    idg_registry_release(reg);
+  }
 }
 
 /* Where replaced blocks of the edge sets of n go: NULL if only this
@@ -7402,6 +7431,13 @@ idg_reset(idg_node *node)
 }
 
 static void
+idg_free_node(void *ptr, void *ctx)
+{ (void)ctx;
+
+  PL_free(ptr);
+}
+
+static void
 idg_destroy(idg_node *node)
 { TablePP table;
 
@@ -7413,8 +7449,9 @@ idg_destroy(idg_node *node)
   }
   mono_index_release(node);
   idg_set_free_lingering(&node->lingering);
+  idg_registry_delete(node->registry, node->registry_index);
 
-  PL_free(node);
+  idg_free_or_defer(idg_free_node, node, NULL);
 }
 
 /* Free the monotonic dependencies of one (child, parent) edge, the chain
@@ -8554,6 +8591,89 @@ idg_changed(trie *atrie, int flags)
   }
 
   return true;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Inspecting the IDG of another thread.  idg_reader_registry() enters the
+reader section (see pl-idgset.h) and finds the registry of the IDG nodes
+of a thread, or of the shared tables if `thread` is `shared`.  The
+caller must call idg_reader_exit().  *reg is NULL if the thread has no
+IDG nodes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define idg_reader_registry(thread, reg) \
+	LDFUNC(idg_reader_registry, thread, reg)
+
+static bool
+idg_reader_registry(DECL_LD term_t thread, idg_registry **reg)
+{ atom_t a;
+
+  *reg = NULL;
+#ifdef O_PLMT
+  if ( PL_get_atom(thread, &a) && a == ATOM_shared )
+  { idg_reader_enter();
+    *reg = GD->tabling.idg_registry;
+    return true;
+  } else
+  { int tid;
+    PL_thread_info_t *info;
+    PL_local_data_t *ld;
+
+    if ( !PL_get_thread_id_ex(thread, &tid) )
+      return false;
+    idg_reader_enter();
+    PL_LOCK(L_THREAD);
+    if ( (info=GD->thread.threads[tid]) &&
+	 (ld=acquire_ldata(info)) )
+    { *reg = ld->tabling.idg_registry;
+      release_ldata(ld);
+    }
+    PL_UNLOCK(L_THREAD);
+    return true;
+  }
+#else
+  (void)a;
+  if ( !PL_get_thread_id_ex(thread, &(int){0}) )
+    return false;
+  idg_reader_enter();
+  *reg = LD->tabling.idg_registry;
+  return true;
+#endif
+}
+
+/** '$idg_thread_summary'(+Thread, -Nodes, -Edges)
+ *
+ * Nodes is the number of IDG nodes of Thread and Edges the number of
+ * edges from them to the nodes they affect.  Thread may be `shared`
+ * for the IDG nodes of the shared tables.  This may be called for any
+ * thread.
+ */
+
+static
+PRED_IMPL("$idg_thread_summary", 3, idg_thread_summary, 0)
+{ PRED_LD
+  idg_registry *reg;
+  size_t nodes = 0, edges = 0;
+
+  if ( !idg_reader_registry(A1, &reg) )
+    return false;
+  if ( reg )
+  { size_t count = idg_registry_count(reg);
+
+    for(size_t i=0; i<count; i++)
+    { idg_node *n = idg_registry_get(reg, i);
+
+      if ( n )
+      { nodes++;
+	edges += idg_set_size(&n->affected);
+      }
+    }
+  }
+  idg_reader_exit();
+
+  return ( PL_unify_int64(A2, nodes) &&
+	   PL_unify_int64(A3, edges) );
 }
 
 
@@ -11340,7 +11460,9 @@ initTabling(void)
 #ifdef O_PLMT
   initSimpleMutex(&GD->tabling.mutex, "L_SHARED_TABLING");
   cv_init(&GD->tabling.cvar, NULL);
+  GD->tabling.idg_registry = idg_registry_new();
 #endif
+  initIDGReaders();
 
   LD->tabling.restraint.max_table_subgoal_size_action  = ATOM_error;
   LD->tabling.restraint.max_table_subgoal_size	       = (size_t)-1;
@@ -11451,6 +11573,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_reset_current",        0, idg_reset_current,        0)
   PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
   PRED_DEF("$idg_changed",              1, idg_changed,              0)
+  PRED_DEF("$idg_thread_summary",       3, idg_thread_summary,       0)
   PRED_DEF("$idg_falsecount",           2, idg_falsecount,           0)
   PRED_DEF("$idg_forced",               1, idg_forced,               0)
   PRED_DEF("$idg_set_falsecount",       2, idg_set_falsecount,       0)

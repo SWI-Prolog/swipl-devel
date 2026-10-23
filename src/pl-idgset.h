@@ -105,4 +105,50 @@ idg_set_is_empty(const idg_set *set)
 { return idg_set_size(set) == 0;
 }
 
+		 /*******************************
+		 *	 EXTERNAL READERS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Another thread may inspect the IDG of a thread, e.g., to show it.  Such a
+reader calls idg_reader_enter() before and idg_reader_exit() after
+following any IDG pointer.  While there are readers, IDG nodes, the
+blocks of their edge sets and answer tries are not freed but kept on a
+list that the last reader frees.  Writers first unpublish what they free
+and then call idg_free_or_defer(), which frees at once if there are no
+readers.
+
+The IDG nodes of a thread are in its idg_registry; those of shared tables
+in a global one.  A reader finds the registry of another thread through
+acquire_ldata() and enters the reader section before releasing the
+thread's data.  A registry is kept alive by its thread and its nodes.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define IDG_REG_BASE_BITS 6		/* first block holds 64 slots */
+#define IDG_REG_BLOCKS	  32
+
+typedef struct idg_registry
+{ int		references;		/* the thread and the nodes */
+  size_t	count;			/* slots in use (high water) */
+  size_t	free;			/* first free slot+1 (0: none) */
+#ifdef O_PLMT
+  simpleMutex	mutex;			/* serializes writers */
+#endif
+  uintptr_t    *blocks[IDG_REG_BLOCKS]; /* node or (next free+1)<<1|1 */
+} idg_registry;
+
+typedef void (*idg_free_func)(void *ptr, void *ctx);
+
+void	idg_free_or_defer(idg_free_func func, void *ptr, void *ctx);
+void	idg_reader_enter(void);
+void	idg_reader_exit(void);
+
+idg_registry *idg_registry_new(void);
+size_t	idg_registry_add(idg_registry *reg, void *node);
+void	idg_registry_delete(idg_registry *reg, size_t index);
+void	idg_registry_release(idg_registry *reg);
+void   *idg_registry_get(const idg_registry *reg, size_t index);
+size_t	idg_registry_count(const idg_registry *reg);
+void	initIDGReaders(void);
+
 #endif /*_PL_IDGSET_H*/

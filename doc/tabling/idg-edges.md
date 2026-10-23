@@ -1,7 +1,7 @@
 # Edges of the incremental dependency graph
 
-Status: phase 1 implemented (compact edge sets).  Phase 2 (reading the
-IDG from another thread) is planned.
+Status: implemented: compact edge sets and reading the IDG from another
+thread.
 
 ## Measurement
 
@@ -60,9 +60,31 @@ the IDG set operations taking 814 samples where `addHTable` and
     many dependencies grows a new block from scratch.  Keeping the block
     did not seem needed given the timings.
 
-## Planned: reading the IDG from another thread
+## Implemented: reading the IDG from another thread
 
-An external reader increments a global counter before walking and
-decrements it after.  A writer that frees a block or an IDG node first
-publishes the new state, then checks the counter and, if non-zero, puts
-the memory on a lingering list that the last reader frees.
+An external reader calls `idg_reader_enter()` and `idg_reader_exit()`
+around following IDG pointers (src/pl-idgset.h).  Freeing an edge-set
+block, an IDG node or the struct of an answer trie goes through
+`idg_free_or_defer()`: the writer has unpublished the object, issues a
+full barrier and frees at once if there are no readers.  Otherwise the
+object goes on a list, under a mutex, that the last reader frees.  The
+reader increments the counter and issues a full barrier before reading
+any pointer, so a writer that sees no readers frees nothing a reader can
+reach.
+
+The variant table of another thread cannot be walked safely: deleting a
+variant frees trie nodes and blocks at once.  So the IDG nodes are also
+kept in a registry: a chunked array of node pointers per thread and one
+for the shared tables.  A registry is allocated outside `LD` and kept
+alive by its thread and its nodes, as nodes may be destroyed after the
+thread exited.  A reader finds the registry of a thread through
+`acquire_ldata()` and enters the reader section before releasing it.
+
+`'$idg_thread_summary'(+Thread, -Nodes, -Edges)` is the first reader.
+On Pharos it reads 465,392 nodes and 7.3M edges in 0.02 seconds while
+the analysis runs.  Running the analysis with a reader every 0.2 s,
+every 2 s or none took 47.0, 47.2 and 47.0 s CPU; the instruction
+count is the same as before the registry (529.8G vs 529.7G).
+tests/tabling/test_idg_sets.pl reads the IDG of a thread that keeps
+changing it; under ASan, disabling the deferral makes it report a heap
+use-after-free.

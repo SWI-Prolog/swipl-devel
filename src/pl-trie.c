@@ -235,13 +235,27 @@ trie_create(alloc_pool *pool)
 }
 
 
+/* An external IDG reader may still read the fields of an answer trie
+   it reached through an IDG node (see pl-idgset.h).
+*/
+
+static void
+free_trie_struct(void *ptr, void *ctx)
+{ trie *trie = ptr;
+
+  free_to_pool(ctx, trie, sizeof(*trie));
+}
+
 static void
 trie_destroy(trie *trie)
 { DEBUG(MSG_TRIE_GC, Sdprintf("Destroying trie %p\n", trie));
   trie->magic = TRIE_CMAGIC;
   trie_empty(trie);
   free_lingering_blocks(trie);
-  free_to_pool(trie->alloc_pool, trie, sizeof(*trie));
+  if ( ison(trie, TRIE_ISTABLE) )
+    idg_free_or_defer(free_trie_struct, trie, trie->alloc_pool);
+  else
+    free_to_pool(trie->alloc_pool, trie, sizeof(*trie));
 }
 
 

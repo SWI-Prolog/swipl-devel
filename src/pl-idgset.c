@@ -130,8 +130,16 @@ new_block(unsigned capacity)
 }
 
 static void
+free_block_now(void *ptr, void *ctx)
+{ idg_set_block *b = ptr;
+  (void)ctx;
+
+  freeHeap(b, sizeof_block(b->capacity, b->index_bits));
+}
+
+static void
 free_block(idg_set_block *b)
-{ freeHeap(b, sizeof_block(b->capacity, b->index_bits));
+{ idg_free_or_defer(free_block_now, b, NULL);
 }
 
 /* A block was replaced or removed from its set.  If others may read
@@ -433,4 +441,257 @@ idg_set_next(idg_set_enum *e)
   }
 
   return NULL;
+}
+
+
+		 /*******************************
+		 *	 EXTERNAL READERS	*
+		 *******************************/
+
+/* See pl-idgset.h.  The writer unpublishes, issues a full barrier and
+   reads `readers`; a reader increments `readers`, issues a full barrier
+   and reads the pointers.  So, if a writer sees no readers, no reader
+   can see what it frees.  If it sees readers, it decides under the
+   mutex, as does the last reader that takes the deferred objects.
+*/
+
+typedef struct idg_deferred
+{ struct idg_deferred *next;
+  idg_free_func	free;
+  void	       *ptr;
+  void	       *ctx;
+} idg_deferred;
+
+#ifdef O_PLMT
+
+static struct
+{ int		readers;		/* active external readers */
+  idg_deferred *deferred;		/* freed while there are readers */
+  simpleMutex	mutex;
+} idg_readers;
+
+void
+initIDGReaders(void)
+{ simpleMutexInit(&idg_readers.mutex);
+}
+
+void
+idg_free_or_defer(idg_free_func func, void *ptr, void *ctx)
+{ MEMORY_BARRIER();
+  if ( idg_readers.readers )
+  { simpleMutexLock(&idg_readers.mutex);
+    if ( idg_readers.readers )
+    { idg_deferred *d = allocHeapOrHalt(sizeof(*d));
+
+      d->free = func;
+      d->ptr  = ptr;
+      d->ctx  = ctx;
+      d->next = idg_readers.deferred;
+      idg_readers.deferred = d;
+      simpleMutexUnlock(&idg_readers.mutex);
+      return;
+    }
+    simpleMutexUnlock(&idg_readers.mutex);
+  }
+
+  (*func)(ptr, ctx);
+}
+
+void
+idg_reader_enter(void)
+{ simpleMutexLock(&idg_readers.mutex);
+  idg_readers.readers++;
+  simpleMutexUnlock(&idg_readers.mutex);
+  MEMORY_BARRIER();
+}
+
+void
+idg_reader_exit(void)
+{ idg_deferred *d = NULL;
+
+  simpleMutexLock(&idg_readers.mutex);
+  if ( --idg_readers.readers == 0 )
+  { d = idg_readers.deferred;
+    idg_readers.deferred = NULL;
+  }
+  simpleMutexUnlock(&idg_readers.mutex);
+
+  while(d)
+  { idg_deferred *next = d->next;
+
+    (*d->free)(d->ptr, d->ctx);
+    freeHeap(d, sizeof(*d));
+    d = next;
+  }
+}
+
+#else /*O_PLMT*/
+
+void
+initIDGReaders(void)
+{
+}
+
+void
+idg_free_or_defer(idg_free_func func, void *ptr, void *ctx)
+{ (*func)(ptr, ctx);
+}
+
+void
+idg_reader_enter(void)
+{
+}
+
+void
+idg_reader_exit(void)
+{
+}
+
+#endif /*O_PLMT*/
+
+
+		 /*******************************
+		 *	      REGISTRY		*
+		 *******************************/
+
+/* Slot `index` is in block k at offset v-(BASE<<k), where v=index+BASE
+   and k is the most significant bit of v minus IDG_REG_BASE_BITS.
+*/
+
+#define IDG_REG_BASE ((size_t)1<<IDG_REG_BASE_BITS)
+#define IS_FREE_SLOT(v) ((v)&0x1)
+
+static inline unsigned
+reg_block(size_t index, size_t *offset)
+{ size_t v = index+IDG_REG_BASE;
+  unsigned k = MSB64((int64_t)v) - IDG_REG_BASE_BITS;
+
+  *offset = v - (IDG_REG_BASE<<k);
+  return k;
+}
+
+static inline size_t
+reg_block_size(unsigned k)
+{ return IDG_REG_BASE<<k;
+}
+
+#ifdef O_PLMT
+#define REG_LOCK(reg)	simpleMutexLock(&(reg)->mutex)
+#define REG_UNLOCK(reg)	simpleMutexUnlock(&(reg)->mutex)
+#else
+#define REG_LOCK(reg)	(void)0
+#define REG_UNLOCK(reg)	(void)0
+#endif
+
+idg_registry *
+idg_registry_new(void)
+{ idg_registry *reg = allocHeapOrHalt(sizeof(*reg));
+
+  memset(reg, 0, sizeof(*reg));
+  reg->references = 1;
+#ifdef O_PLMT
+  simpleMutexInit(&reg->mutex);
+#endif
+
+  return reg;
+}
+
+static void
+free_registry_now(void *ptr, void *ctx)
+{ idg_registry *reg = ptr;
+  (void)ctx;
+
+  for(unsigned k=0; k<IDG_REG_BLOCKS; k++)
+  { if ( reg->blocks[k] )
+      freeHeap(reg->blocks[k], reg_block_size(k)*sizeof(uintptr_t));
+  }
+#ifdef O_PLMT
+  simpleMutexDelete(&reg->mutex);
+#endif
+  freeHeap(reg, sizeof(*reg));
+}
+
+/* Add node; returns its slot.  Adds a reference */
+
+size_t
+idg_registry_add(idg_registry *reg, void *node)
+{ size_t index, offset;
+  unsigned k;
+
+  REG_LOCK(reg);
+  if ( reg->free )
+  { index = reg->free-1;
+    k = reg_block(index, &offset);
+    reg->free = (size_t)(reg->blocks[k][offset]>>1);
+    reg->blocks[k][offset] = (uintptr_t)node;
+  } else
+  { index = reg->count;
+    k = reg_block(index, &offset);
+    if ( !reg->blocks[k] )
+    { size_t bytes = reg_block_size(k)*sizeof(uintptr_t);
+      uintptr_t *b = allocHeapOrHalt(bytes);
+
+      memset(b, 0, bytes);
+      MEMORY_RELEASE();
+      reg->blocks[k] = b;
+    }
+    reg->blocks[k][offset] = (uintptr_t)node;
+    MEMORY_RELEASE();
+    reg->count = index+1;
+  }
+  reg->references++;
+  REG_UNLOCK(reg);
+
+  return index;
+}
+
+/* Delete the node in slot `index`.  Drops a reference */
+
+void
+idg_registry_delete(idg_registry *reg, size_t index)
+{ size_t offset;
+  unsigned k = reg_block(index, &offset);
+
+  REG_LOCK(reg);
+  reg->blocks[k][offset] = ((uintptr_t)reg->free<<1)|0x1;
+  reg->free = index+1;
+  REG_UNLOCK(reg);
+  idg_registry_release(reg);
+}
+
+void
+idg_registry_release(idg_registry *reg)
+{ int left;
+
+  REG_LOCK(reg);
+  left = --reg->references;
+  REG_UNLOCK(reg);
+  if ( left == 0 )
+    idg_free_or_defer(free_registry_now, reg, NULL);
+}
+
+size_t
+idg_registry_count(const idg_registry *reg)
+{ size_t count = reg->count;
+
+  MEMORY_ACQUIRE();
+  return count;
+}
+
+/* The node in slot `index` or NULL if the slot is free */
+
+void *
+idg_registry_get(const idg_registry *reg, size_t index)
+{ size_t offset;
+  unsigned k = reg_block(index, &offset);
+  const uintptr_t *b = reg->blocks[k];
+  uintptr_t v;
+
+  if ( !b )
+    return NULL;
+  v = b[offset];
+  if ( IS_FREE_SLOT(v) )
+    return NULL;
+
+  return (void*)v;
 }

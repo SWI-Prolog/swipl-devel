@@ -218,6 +218,8 @@ typedef struct idg_node
   idg_set	dependent;		/* child IDG nodes */
   idg_set_block *lingering;		/* replaced blocks of both sets */
   TablePP	mono_deps;		/* parent -> idg_mdep chain */
+  struct idg_registry *registry;	/* registry we are in */
+  size_t	registry_index;		/* our slot in it */
   size_t	answer_count;		/* #answers in previous complete state */
   unsigned	new_answer : 1;		/* Update generated a new answer */
   unsigned	reevaluating : 1;	/* currently re-evaluating */

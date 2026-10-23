@@ -45,11 +45,13 @@ The edges of an IDG node are kept in a set that is a single pointer for
 one edge, a linear block for a few and a hashed block for many (see
 src/pl-idgset.h).  These tests create nodes with many edges in both
 directions, invalidate and re-evaluate them and delete edges by
-abolishing tables.
+abolishing tables.  The unit idg_reader reads the IDG of a thread from
+another thread while that thread modifies it.
 */
 
 test_idg_sets :-
-    run_tests([ idg_sets
+    run_tests([ idg_sets,
+                idg_reader
               ]).
 
 :- dynamic([d/1], [incremental(true)]).
@@ -124,3 +126,74 @@ test(single_edge, Count == 1) :-
     edges(d(_), affected, Count).
 
 :- end_tests(idg_sets).
+
+%   own_summary(-Nodes, -Edges)
+%
+%   Count the IDG nodes and affected edges of this thread from its
+%   variant table.
+
+own_summary(Nodes, Edges) :-
+    '$tbl_local_variant_table'(VT),
+    aggregate_all(count-sum(E),
+                  ( trie_gen(VT, _, T),
+                    '$idg_falsecount'(T, _),     % has an IDG node
+                    aggregate_all(count, '$idg_edge'(T, affected, _), E)
+                  ),
+                  Nodes-Edges).
+
+%   modify(+Deadline)
+%
+%   Keep changing the IDG of this thread until Deadline.
+
+modify(Deadline) :-
+    get_time(Now),
+    (   Now > Deadline
+    ->  true
+    ;   fill(50),
+        add_fact(3),
+        forall(between(1, 25, I), p(I)),
+        forall(between(26, 50, I), abolish_table_subgoals(p(I))),
+        q(50),
+        retract(d(3)),
+        modify(Deadline)
+    ).
+
+read_idg(Thread, Deadline, Reads0, Reads) :-
+    get_time(Now),
+    (   Now > Deadline
+    ->  Reads = Reads0
+    ;   '$idg_thread_summary'(Thread, Nodes, Edges),
+        assertion((Nodes >= 0, Edges >= 0)),
+        Reads1 is Reads0+1,
+        read_idg(Thread, Deadline, Reads1, Reads)
+    ).
+
+:- begin_tests(idg_reader).
+
+test(summary, Outside == Inside) :-
+    thread_self(Me),
+    thread_create(( fill(100),
+                    own_summary(N, E),
+                    thread_send_message(Me, inside(N-E)),
+                    thread_get_message(done)
+                  ), Id),
+    thread_get_message(inside(Inside)),
+    '$idg_thread_summary'(Id, N1, E1),
+    Outside = N1-E1,
+    thread_send_message(Id, done),
+    thread_join(Id).
+test(concurrent, true(Reads > 0)) :-
+    get_time(Now),
+    Deadline is Now+1.5,
+    thread_create(modify(Deadline), Id),
+    read_idg(Id, Deadline, 0, Reads),
+    thread_join(Id).
+test(exited, Nodes-Edges == 0-0) :-
+    thread_create(fill(10), Id),
+    thread_join(Id),
+    catch('$idg_thread_summary'(Id, Nodes, Edges), _, (Nodes-Edges = 0-0)).
+test(shared, true) :-
+    '$idg_thread_summary'(shared, Nodes, Edges),
+    integer(Nodes), integer(Edges).
+
+:- end_tests(idg_reader).
