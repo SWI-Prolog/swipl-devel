@@ -175,6 +175,8 @@ typedef struct
 #define	claim_answer_table(atrie, clrefp, flags)	LDFUNC(claim_answer_table, atrie, clrefp, flags)
 #define	table_status_reeval_wait(atrie)			LDFUNC(table_status_reeval_wait, atrie)
 #define	tripwire_answers_for_subgoal(wl)		LDFUNC(tripwire_answers_for_subgoal, wl)
+#define	tripwire_incomplete_subgoals(def)		LDFUNC(tripwire_incomplete_subgoals, def)
+#define	tripwire_scc_subgoals(wl, size0)		LDFUNC(tripwire_scc_subgoals, wl, size0)
 #define	generalise_answer_substitution(spec, gen)	LDFUNC(generalise_answer_substitution, spec, gen)
 #define	new_mdep(t)					LDFUNC(new_mdep, t)
 #define	tt_has_modified_dependencies(atrie)		LDFUNC(tt_has_modified_dependencies, atrie)
@@ -244,6 +246,8 @@ static int	add_answer_count_restraint(void);
 static int	add_radial_restraint(void);
 static int	tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire);
 static int	tbl_pred_tripwire(Definition def, atom_t action, atom_t wire);
+static bool	tripwire_incomplete_subgoals(Definition def);
+static bool	tripwire_scc_subgoals(worklist *wl, size_t size0);
 static idg_mdep *new_mdep(term_t t);
 static void	free_mdep(idg_mdep *mdep);
 static void	mdep_empty_queue(idg_mdep *mdep, size_t del);
@@ -417,14 +421,43 @@ free_tbl_free_objects(PL_local_data_t *ld, bool closed)
 		 *	     COMPONENTS		*
 		 *******************************/
 
+/* LD->tabling.active_components counts the components with status
+   SCC_ACTIVE and LD->tabling.incomplete_tables the worklists in their
+   `created_worklists`, such that another thread can read how many
+   tables are incomplete (see '$tbl_incomplete'/3).
+*/
+
 static tbl_component *
 new_component(void)
-{ tbl_component *c = tbl_alloc(TBL_FREE_COMPONENT, sizeof(*c));
+{ GET_LD
+  tbl_component *c = tbl_alloc(TBL_FREE_COMPONENT, sizeof(*c));
 
   memset(c, 0, sizeof(*c));
-  c->magic = COMPONENT_MAGIC;
+  c->magic = COMPONENT_MAGIC;		/* status is SCC_ACTIVE */
+  LD->tabling.active_components++;
 
   return c;
+}
+
+static void
+set_component_status(tbl_component *c, scc_status status)
+{ GET_LD
+
+  if ( c->status == SCC_ACTIVE && status != SCC_ACTIVE )
+  { assert(LD->tabling.active_components > 0);
+    LD->tabling.active_components--;
+  } else if ( c->status != SCC_ACTIVE && status == SCC_ACTIVE )
+  { LD->tabling.active_components++;
+  }
+  c->status = status;
+}
+
+static void
+uncount_created_worklists(PL_local_data_t *ld, worklist_set *wls)
+{ size_t n = entriesBuffer(&wls->members, worklist*);
+
+  assert(ld->tabling.incomplete_tables >= n);
+  ld->tabling.incomplete_tables -= n;
 }
 
 #define FC_DESTROY	0x0001
@@ -475,7 +508,11 @@ free_component(tbl_component *c, int flags)
     if ( c->delay_worklists )
       free_worklist_set(c->delay_worklists, WLFS_FREE_NONE);
     if ( c->created_worklists )
+    { uncount_created_worklists(LD, c->created_worklists);
       free_worklist_set(c->created_worklists, WLFS_FREE_ALL);
+    }
+    if ( c->status == SCC_ACTIVE )
+      set_component_status(c, SCC_COMPLETED);
     if ( c->children )
       push_component_set(&stack, c->children);
     if ( c->merged )
@@ -677,7 +714,7 @@ merge_one_component(tbl_component *c, tbl_component *m)
   merge_worklists(&c->created_worklists, &m->created_worklists);
   merge_worklists(&c->delay_worklists, &m->delay_worklists);
 
-  m->status = SCC_MERGED;
+  set_component_status(m, SCC_MERGED);
 }
 
 		 /*******************************
@@ -811,8 +848,11 @@ reset_global_worklist(tbl_component *c)
 
 static void
 add_newly_created_worklist(worklist *wl)
-{ tbl_component *c = wl->component;
+{ GET_LD
+  tbl_component *c = wl->component;
   worklist_set *wls;
+
+  LD->tabling.incomplete_tables++;
 
   if ( !(wls=c->created_worklists) )
   { wls	= c->created_worklists = tbl_alloc(TBL_FREE_WORKLIST_SET,
@@ -824,11 +864,13 @@ add_newly_created_worklist(worklist *wl)
 }
 
 static void
-reset_newly_created_worklists(tbl_component *c, int flags)
+reset_newly_created_worklists(PL_local_data_t *ld, tbl_component *c,
+			      int flags)
 { worklist_set *wls;
 
   if ( c && (wls = c->created_worklists) )
   { c->created_worklists = NULL;
+    uncount_created_worklists(ld, wls);
     free_worklist_set(wls, flags);
   }
 }
@@ -2937,7 +2979,7 @@ retry:
 void
 clearThreadTablingData(PL_local_data_t *ld, bool exit)
 { reset_global_worklist(ld->tabling.component);
-  reset_newly_created_worklists(ld->tabling.component, WLFS_KEEP_COMPLETE);
+  reset_newly_created_worklists(ld, ld->tabling.component, WLFS_KEEP_COMPLETE);
   clear_variant_table(&ld->tabling.variant_table, &ld->tabling.start_nodes);
   free_tbl_free_objects(ld, exit);
   if ( exit )
@@ -3912,7 +3954,10 @@ print_worklist(const char *prefix, worklist *wl)
 static int
 unify_fresh(DECL_LD term_t t, trie *atrie, Definition def, int create)
 { if ( create )
-  { tbl_component *scc = tbl_create_subcomponent(atrie);
+  { if ( !tripwire_incomplete_subgoals(def) )
+      return false;
+
+    tbl_component *scc = tbl_create_subcomponent(atrie);
     worklist *wl = tbl_add_worklist(atrie, scc);
 
     if ( wl )
@@ -4016,8 +4061,12 @@ unify_table_status(DECL_LD term_t t, trie *trie, Definition def, int create)
       { DEBUG(MSG_TABLING_WORK,
 	      Sdprintf("Merging into %p (current = %p)\n",
 		       wl->component, LD->tabling.component));
+	size_t size0 = wls_size(wl->component->created_worklists);
+
 	merge_component(wl->component);
 	LD->tabling.component = wl->component;
+	if ( !tripwire_scc_subgoals(wl, size0) )
+	  return false;
       }
 
       return PL_unify_pointer(t, wl);
@@ -6100,8 +6149,8 @@ table_complete_all(DECL_LD term_t scc, term_t status, term_t cl,
 	complete_worklist(wl, destroy);
       }
     }
-    reset_newly_created_worklists(c, WLFS_FREE_NONE);
-    c->status = SCC_COMPLETED;
+    reset_newly_created_worklists(LD, c, WLFS_FREE_NONE);
+    set_component_status(c, SCC_COMPLETED);
     if ( rc && leader_stays )		/* compiled by unify_leader_clause() */
       trie_maybe_discard_nodes(leader);
     c->inferences = LD->statistics.inferences - c->inferences;
@@ -6209,7 +6258,7 @@ table_discard_all(DECL_LD tbl_component *c)
   { tbl_component *parent = c->parent;
 
     if ( c->created_worklists )
-      reset_newly_created_worklists(c, WLFS_DISCARD_INCOMPLETE);
+      reset_newly_created_worklists(LD, c, WLFS_DISCARD_INCOMPLETE);
     reset_global_worklist(c);
 
     LD->tabling.component = parent;
@@ -6291,7 +6340,7 @@ tbl_create_subcomponent(DECL_LD trie *leader)
     if ( !LD->tabling.component || LD->tabling.in_answer_completion )
       LD->tabling.component = new_component();
     else
-      LD->tabling.component->status = SCC_ACTIVE;
+      set_component_status(LD->tabling.component, SCC_ACTIVE);
     LD->tabling.component->leader = leader;
     LD->tabling.component->inferences = LD->statistics.inferences;
   } else
@@ -9229,6 +9278,44 @@ PRED_IMPL("$tbl_sdg", 3, tbl_sdg, 0)
 }
 
 
+/** '$tbl_incomplete'(+Thread, -Tables, -SCCs)
+ *
+ * Tables is the number of incomplete tables of Thread and SCCs the
+ * number of its active components.  Unlike '$tbl_sdg'/3 this may be
+ * called for any thread; the counters are read without stopping it.
+ */
+
+static
+PRED_IMPL("$tbl_incomplete", 3, tbl_incomplete, 0)
+{ PRED_LD
+  size_t tables = 0, sccs = 0;
+#ifdef O_PLMT
+  int tid;
+  PL_thread_info_t *info;
+  PL_local_data_t *ld;
+
+  if ( !PL_get_thread_id_ex(A1, &tid) )
+    return false;
+  PL_LOCK(L_THREAD);
+  if ( (info=GD->thread.threads[tid]) &&
+       (ld=acquire_ldata(info)) )
+  { tables = ld->tabling.incomplete_tables;
+    sccs   = ld->tabling.active_components;
+    release_ldata(ld);
+  }
+  PL_UNLOCK(L_THREAD);
+#else
+  if ( !PL_get_thread_id_ex(A1, &(int){0}) )
+    return false;
+  tables = LD->tabling.incomplete_tables;
+  sccs   = LD->tabling.active_components;
+#endif
+
+  return ( PL_unify_uint64(A2, tables) &&
+	   PL_unify_uint64(A3, sccs) );
+}
+
+
 static
 PRED_IMPL("$idg_changed", 1, idg_changed, 0)
 { trie *atrie;
@@ -11085,7 +11172,11 @@ tbl_is_restraint_flag(atom_t key)
 	   key == ATOM_max_table_answer_size_action ||
 	   key == ATOM_max_table_answer_size ||
 	   key == ATOM_max_answers_for_subgoal_action ||
-	   key == ATOM_max_answers_for_subgoal );
+	   key == ATOM_max_answers_for_subgoal ||
+	   key == ATOM_max_incomplete_subgoals_action ||
+	   key == ATOM_max_incomplete_subgoals ||
+	   key == ATOM_max_scc_subgoals_action ||
+	   key == ATOM_max_scc_subgoals );
 }
 
 
@@ -11112,6 +11203,14 @@ tbl_get_restraint_flag(DECL_LD term_t t, atom_t key)
     return unify_restraint(t, LD->tabling.restraint.max_table_answer_size);
   else if ( key == ATOM_max_answers_for_subgoal )
     return unify_restraint(t, LD->tabling.restraint.max_answers_for_subgoal);
+  else if ( key == ATOM_max_incomplete_subgoals_action )
+    return PL_unify_atom(t, LD->tabling.restraint.max_incomplete_subgoals_action);
+  else if ( key == ATOM_max_incomplete_subgoals )
+    return unify_restraint(t, LD->tabling.restraint.max_incomplete_subgoals);
+  else if ( key == ATOM_max_scc_subgoals_action )
+    return PL_unify_atom(t, LD->tabling.restraint.max_scc_subgoals_action);
+  else if ( key == ATOM_max_scc_subgoals )
+    return unify_restraint(t, LD->tabling.restraint.max_scc_subgoals);
   else
     return -1;
 }
@@ -11183,6 +11282,18 @@ tbl_set_restraint_flag(DECL_LD term_t t, atom_t key)
     return set_restraint(t, &LD->tabling.restraint.max_table_answer_size);
   else if ( key == ATOM_max_answers_for_subgoal )
     return set_restraint(t, &LD->tabling.restraint.max_answers_for_subgoal);
+  else if ( key == ATOM_max_incomplete_subgoals_action )
+    return set_restraint_action(
+	       t, key,
+	       &LD->tabling.restraint.max_incomplete_subgoals_action);
+  else if ( key == ATOM_max_incomplete_subgoals )
+    return set_restraint(t, &LD->tabling.restraint.max_incomplete_subgoals);
+  else if ( key == ATOM_max_scc_subgoals_action )
+    return set_restraint_action(
+	       t, key,
+	       &LD->tabling.restraint.max_scc_subgoals_action);
+  else if ( key == ATOM_max_scc_subgoals )
+    return set_restraint(t, &LD->tabling.restraint.max_scc_subgoals);
   else
     return -1;
 }
@@ -11297,6 +11408,38 @@ tbl_pred_tripwire(Definition def, atom_t action, atom_t wire)
 	   unify_definition(MODULE_user, av+2, def, 0, GP_QUALIFY) &&
 	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
 }
+
+/* The tripwires max_incomplete_subgoals and max_scc_subgoals.  They
+   trigger once when the limit is exceeded: the first before a table is
+   created that would exceed max_incomplete_subgoals, the second after
+   a merge that made the component of `wl` larger than max_scc_subgoals.
+*/
+
+static bool
+tripwire_incomplete_subgoals(DECL_LD Definition def)
+{ size_t limit = LD->tabling.restraint.max_incomplete_subgoals;
+
+  if ( limit != (size_t)-1 && def &&
+       LD->tabling.incomplete_tables == limit )
+    return tbl_pred_tripwire(def,
+			     LD->tabling.restraint.max_incomplete_subgoals_action,
+			     ATOM_max_incomplete_subgoals);
+
+  return true;
+}
+
+static bool
+tripwire_scc_subgoals(DECL_LD worklist *wl, size_t size0)
+{ size_t limit = LD->tabling.restraint.max_scc_subgoals;
+
+  if ( limit != (size_t)-1 && size0 <= limit &&
+       wls_size(wl->component->created_worklists) > limit )
+    return tbl_wl_tripwire(wl, LD->tabling.restraint.max_scc_subgoals_action,
+			   ATOM_max_scc_subgoals);
+
+  return true;
+}
+
 
 		 /*******************************
 		 *	    CONCURRENCY		*
@@ -12022,6 +12165,10 @@ initTabling(void)
   LD->tabling.restraint.max_table_answer_size	       = (size_t)-1;
   LD->tabling.restraint.max_answers_for_subgoal_action = ATOM_error;
   LD->tabling.restraint.max_answers_for_subgoal	       = (size_t)-1;
+  LD->tabling.restraint.max_incomplete_subgoals_action = ATOM_error;
+  LD->tabling.restraint.max_incomplete_subgoals	       = (size_t)-1;
+  LD->tabling.restraint.max_scc_subgoals_action	       = ATOM_error;
+  LD->tabling.restraint.max_scc_subgoals	       = (size_t)-1;
 
   LD->tabling.in_assert_propagation = false;
 
@@ -12031,6 +12178,10 @@ initTabling(void)
   setPrologFlag("max_table_subgoal_size",	  FT_INTEGER, (intptr_t)-1);
   setPrologFlag("max_table_answer_size",	  FT_INTEGER, (intptr_t)-1);
   setPrologFlag("max_answers_for_subgoal",	  FT_INTEGER, (intptr_t)-1);
+  setPrologFlag("max_incomplete_subgoals_action", FT_ATOM,    "error");
+  setPrologFlag("max_incomplete_subgoals",	  FT_INTEGER, (intptr_t)-1);
+  setPrologFlag("max_scc_subgoals_action",	  FT_ATOM,    "error");
+  setPrologFlag("max_scc_subgoals",		  FT_INTEGER, (intptr_t)-1);
   setPrologFlag("table_monotonic",		  FT_ATOM,    "eager");
 }
 
@@ -12105,6 +12256,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_scc_data",             2, tbl_scc_data,             0)
   PRED_DEF("$tbl_worklist_data",        2, tbl_worklist_data,        0)
   PRED_DEF("$tbl_sdg",                  3, tbl_sdg,                  0)
+  PRED_DEF("$tbl_incomplete",           3, tbl_incomplete,           0)
   PRED_DEF("$tbl_wkl_table",            2, tbl_wkl_table,	     0)
   PRED_DEF("$tbl_answer",               3, tbl_answer,            NDET)
   PRED_DEF("$tbl_answer_c",             4, tbl_answer_c,          NDET)

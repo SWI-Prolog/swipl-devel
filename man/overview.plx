@@ -2068,6 +2068,16 @@ segmentation, and unicode_property/2.
 Maximum integer value if integers are \emph{bounded}.  See also
 the flag \prologflag{bounded} and \secref{artypes}.
 
+    \prologflagitem{max_incomplete_subgoals}{integer}{rw}
+Limit the number of incomplete tables of a thread. The atom
+\const{infinite} clears the flag.  By default this flag is not defined.
+See \secref{tabling-restraint-incomplete} for details.
+
+    \prologflagitem{max_incomplete_subgoals_action}{atom}{rw}
+The action taken before a table is created that would exceed
+\prologflag{max_incomplete_subgoals}. Supported values are
+\const{error} (default), \const{warning} or \const{suspend}.
+
     \prologflagitem{max_integer_size}{integer}{rw}
 When this tripwire is set, memory allocation on behalf of big integers
 and rational numbers is limited to given number of bytes.  The minimum
@@ -2096,6 +2106,16 @@ Possible values are \const{error} (default), which throws a tripwire
 resource error and \const{float}, which converts the rational number
 into a floating point number. Note that rational numbers may exceed the
 range for floating point numbers.
+
+    \prologflagitem{max_scc_subgoals}{integer}{rw}
+Limit the number of incomplete tables in a strongly connected component
+(SCC). The atom \const{infinite} clears the flag.  By default this flag
+is not defined.  See \secref{tabling-restraint-incomplete} for details.
+
+    \prologflagitem{max_scc_subgoals_action}{atom}{rw}
+The action taken when an SCC grows beyond
+\prologflag{max_scc_subgoals}. Supported values are \const{error}
+(default), \const{warning} or \const{suspend}.
 
     \prologflagitem{max_table_answer_size}{integer}{rw}
 Limit the size of an answer substitution for tabling.  The atom

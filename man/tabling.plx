@@ -987,10 +987,11 @@ not finite and thus there is no guaranteed termination.
 
 This section describes \jargon{restraints}
 \cite{DBLP:conf/aaai/GrosofS13} that can be enforced to specific or all
-tabled predicates. Currently there are three defined restraints,
+tabled predicates. Currently there are five defined restraints,
 limiting (1) the size of (the arguments to) goals, (2) the size of the
-answer substitution added to a table and (3) the number of answers
-allowed in any table. If any of these events occurs we can specify the
+answer substitution added to a table, (3) the number of answers
+allowed in any table, (4) the number of incomplete tables and (5) the
+number of incomplete tables in a strongly connected component (SCC). If any of these events occurs we can specify the
 action taken. We distinguish two classes of actions. First, these events
 can trap a \jargon{tripwire} which can be handled using a hook or a
 predefined action such as raising an exception, printing a warning or
@@ -1178,6 +1179,25 @@ X = 1 ;
 p(1000000, X).
 \end{code}
 
+
+\subsection{Restraint incomplete tables}
+\label{sec:tabling-restraint-incomplete}
+
+A computation that keeps creating new tables before the old ones
+complete, e.g., calling variants on ever growing terms, may grow the
+number of incomplete tables or the size of their SCC without bound.
+The Prolog flag \prologflag{max_incomplete_subgoals} limits the number
+of incomplete tables of a thread: if a new table would exceed it, the
+tripwire \const{max_incomplete_subgoals} is trapped with the predicate
+as context.  The flag \prologflag{max_scc_subgoals} limits the number of
+tables in an SCC: if a call merges SCCs into one that exceeds it, the
+tripwire \const{max_scc_subgoals} is trapped with the table of the call
+as context.  These restraints only support the tripwire actions
+\const{error}, \const{warning} and \const{suspend}, set by the flags
+\prologflag{max_incomplete_subgoals_action} and
+\prologflag{max_scc_subgoals_action}.  With the action \const{suspend}
+and the IDE loaded, the break shows the incomplete tables (see \const{sdg_viewer} in
+\secref{idepreds}).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Tabling predicate reference}

@@ -720,6 +720,8 @@ struct PL_local_data
   struct
   { struct tbl_component *component;    /* active component */
     struct tbl_status *saved_status;	/* Hidden components (break, ...) */
+    size_t incomplete_tables;		/* # tables in created_worklists */
+    size_t active_components;		/* # components with SCC_ACTIVE */
     struct trie *variant_table;		/* Variant --> table */
     struct node_array *start_nodes;	/* Predicate start nodes in it */
     alloc_pool *node_pool;		/* Node allocation pool for tries */
@@ -742,6 +744,10 @@ struct PL_local_data
       size_t max_table_answer_size;
       atom_t max_answers_for_subgoal_action;
       size_t max_answers_for_subgoal;
+      atom_t max_incomplete_subgoals_action;
+      size_t max_incomplete_subgoals;
+      atom_t max_scc_subgoals_action;
+      size_t max_scc_subgoals;
     } restraint;
   } tabling;
 

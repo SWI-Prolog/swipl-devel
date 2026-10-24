@@ -49,7 +49,9 @@ depth in the component tree.
 */
 
 test_tbl_sdg :-
-    run_tests([ tbl_sdg
+    run_tests([ tbl_sdg,
+                tbl_incomplete,
+                tbl_tripwires
               ]).
 
 :- dynamic snapshot/1.
@@ -186,6 +188,8 @@ test(other_thread, [ true(length(Cs, 1)),
     thread_join(Id),
     strip(V0, V).
 
+:- end_tests(tbl_sdg).
+
 %   Wait until thread Id runs w/1: at most Tries times 0.1 sec.
 
 wait_for_table(Id, Tries, Cs, Ts, Es) :-
@@ -198,4 +202,134 @@ wait_for_table(Id, Tries, Cs, Ts, Es) :-
         wait_for_table(Id, Tries1, Cs, Ts, Es)
     ).
 
-:- end_tests(tbl_sdg).
+%   '$tbl_incomplete'/3 counts the incomplete tables and active
+%   components; counts/2 gives them for the calling thread.
+
+counts(Tables, SCCs) :-
+    thread_self(Me),
+    '$tbl_incomplete'(Me, Tables, SCCs).
+
+%   The counts in the snapshot of take/0 must agree with the SDG.
+
+:- dynamic counted/2.
+
+count :-
+    counts(T, S),
+    '$tbl_sdg'(Cs, Ts, _),
+    length(Cs, NC),
+    length(Ts, NT),
+    assertz(counted(T-S, NT-NC)).
+
+counted_in(Goal, Counts) :-
+    retractall(counted(_, _)),
+    abolish_all_tables,
+    ignore(Goal),
+    findall(C-SDG, retract(counted(C, SDG)), Counts).
+
+:- table cp/1, cq/1, cr/0, cs/0, cc1/1, cc2/1, ce/1.
+
+cp(X) :- cq(X).
+cp(1).
+cq(X) :- cp(X).
+cq(2) :- count.
+
+cr :- tnot(cs).
+cs :- tnot(cr), count.
+cs :- tnot(cr).
+
+cc1(X) :- cc2(X), cc1(X).
+cc1(2).
+cc2(X) :- cc2(X).
+cc2(1) :- count.
+
+ce(X) :- ce(X).
+ce(1) :- throw(oops).
+
+:- begin_tests(tbl_incomplete).
+
+test(positive, Counts == [(2-1)-(2-1)]) :-
+    counted_in(cp(_), Counts).
+test(negative, Counts == [(2-1)-(2-1)]) :-
+    counted_in(cr, Counts).
+test(child, Counts == [(2-2)-(2-2), (3-3)-(3-3)]) :-
+    counted_in(cc1(_), Counts).
+test(completed, T-S == 0-0) :-
+    counted_in(cp(_), _),
+    counts(T, S).
+test(exception, T-S == 0-0) :-
+    abolish_all_tables,
+    catch(ce(_), oops, true),
+    counts(T, S).
+test(other_thread, T-S == 1-1) :-
+    abolish_all_tables,
+    thread_create(w(_), Id),
+    wait_for_table(Id, 50, _, _, _),
+    '$tbl_incomplete'(Id, T, S),
+    thread_send_message(Id, go),
+    thread_join(Id).
+
+:- end_tests(tbl_incomplete).
+
+%   The tripwires max_incomplete_subgoals and max_scc_subgoals.  ch/1
+%   makes a chain of 11 incomplete tables, each a component of its own;
+%   lp/1 merges them into one component.
+
+:- table ch/1, lp/1.
+
+ch(N) :- N < 10, N1 is N+1, ch(N1).
+ch(10).
+
+lp(N) :- N < 10, N1 is N+1, lp(N1).
+lp(_) :- lp(0).
+
+%   with_restraint(+Flag, +Limit, :Goal)
+%
+%   Run Goal with the restraint Flag set to Limit, raising an error.
+
+with_restraint(Flag, Limit, Goal) :-
+    atom_concat(Flag, '_action', ActionFlag),
+    setup_call_cleanup(
+        ( set_prolog_flag(Flag, Limit),
+          set_prolog_flag(ActionFlag, error)
+        ),
+        Goal,
+        set_prolog_flag(Flag, infinite)).
+
+:- begin_tests(tbl_tripwires, [setup(abolish_all_tables)]).
+
+test(incomplete, error(resource_error(tripwire(max_incomplete_subgoals,
+                                               test_tbl_sdg:ch(_))))) :-
+    abolish_all_tables,
+    with_restraint(max_incomplete_subgoals, 3, ch(0)).
+test(incomplete_below, true) :-
+    abolish_all_tables,
+    with_restraint(max_incomplete_subgoals, 11, ch(0)).
+test(incomplete_clean, T-S == 0-0) :-
+    abolish_all_tables,
+    catch(with_restraint(max_incomplete_subgoals, 3, ch(0)), _, true),
+    counts(T, S),
+    ch(0).
+test(scc, error(resource_error(tripwire(max_scc_subgoals, _)))) :-
+    abolish_all_tables,
+    with_restraint(max_scc_subgoals, 5, lp(0)).
+test(scc_below, fail) :-
+    abolish_all_tables,
+    with_restraint(max_scc_subgoals, 11, lp(0)).
+test(scc_clean, T-S == 0-0) :-
+    abolish_all_tables,
+    catch(with_restraint(max_scc_subgoals, 5, lp(0)), _, true),
+    counts(T, S),
+    \+ lp(0).
+test(flags, Action-Limit == warning-7) :-
+    setup_call_cleanup(
+        ( set_prolog_flag(max_scc_subgoals_action, warning),
+          set_prolog_flag(max_scc_subgoals, 7)
+        ),
+        ( current_prolog_flag(max_scc_subgoals_action, Action),
+          current_prolog_flag(max_scc_subgoals, Limit)
+        ),
+        ( set_prolog_flag(max_scc_subgoals_action, error),
+          set_prolog_flag(max_scc_subgoals, infinite)
+        )).
+
+:- end_tests(tbl_tripwires).
