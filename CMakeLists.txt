@@ -45,15 +45,36 @@ elseif(MSVC OR
   set(DEFAULT_VMI_FUNCTIONS ON)
 elseif(CMAKE_C_COMPILER_ID STREQUAL GNU)
   include(CheckCSourceCompiles)
+# Mimic the VM: an indirect call through the code and five arguments,
+# the last one modified.  Some targets accept musttail but cannot
+# compile such calls: ppc64le (no indirect sibling calls) and s390x
+# (the fifth argument is in the callee-saved r6).  See #1553.
   check_c_source_compiles("
 #if !defined(__has_attribute) || !__has_attribute(musttail)
 #error no musttail
 #endif
-typedef int (*vmi_f)(int);
-static int g(int x);
-static vmi_f table[] = { g };
-static int g(int x) { if ( x > 10 ) return x; __attribute__((musttail)) return table[0](x+1); }
-int main(void) { return g(0) != 11; }" HAVE_C_MUSTTAIL)
+#if __has_attribute(preserve_none)
+#define CC __attribute__((preserve_none))
+#else
+#define CC
+#endif
+typedef void *Code;
+typedef CC Code (*vmi_f)(void *ld, Code *pc, void *fr, void *regs, char *argp);
+static __attribute__((noinline)) CC Code
+helper(void *ld, Code *pc, void *fr, void *regs, char *argp)
+{ if ( !*pc ) return pc;
+  __attribute__((musttail)) return ((vmi_f)*pc)(ld, pc+1, fr, regs, argp+8);
+}
+static __attribute__((noinline)) CC Code
+instr(void *ld, Code *pc, void *fr, void *regs, char *argp)
+{ if ( !*pc ) return pc;
+  __attribute__((musttail)) return helper(ld, pc, fr, regs, argp+8);
+}
+int main(void)
+{ char args[64];
+  Code code[] = { (Code)instr, (Code)instr, 0 };
+  return instr(0, code, 0, 0, args) != &code[2];
+}" HAVE_C_MUSTTAIL)
   if(HAVE_C_MUSTTAIL)
     set(DEFAULT_VMI_FUNCTIONS ON)
   else()
