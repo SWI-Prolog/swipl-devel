@@ -98,6 +98,7 @@ typedef struct tbl_component
 
 typedef struct tbl_status
 { tbl_component *scc;				/* The SCC we are working on */
+  struct tbl_status *prev;			/* Older saved status */
   int		 hsc;				/* We have an active SCC */
   int		 iac;				/* We are in answer completion */
   int		 iap;				/* We are in assert propagation */

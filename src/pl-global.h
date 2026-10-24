@@ -719,6 +719,7 @@ struct PL_local_data
 
   struct
   { struct tbl_component *component;    /* active component */
+    struct tbl_status *saved_status;	/* Hidden components (break, ...) */
     struct trie *variant_table;		/* Variant --> table */
     struct node_array *start_nodes;	/* Predicate start nodes in it */
     alloc_pool *node_pool;		/* Node allocation pool for tries */

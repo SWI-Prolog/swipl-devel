@@ -2170,6 +2170,8 @@ call_answer_completion(DECL_LD trie *atrie)
     int rc;
     tbl_component *scc_old = LD->tabling.component;
     int hsc = LD->tabling.has_scheduling_component;
+    tbl_status saved = { .scc  = scc_old,	/* for '$tbl_sdg'/3 */
+			 .prev = LD->tabling.saved_status };
 
     pred = _PL_predicate("answer_completion", 2, "$tabling",
 			 &GD->procedures.answer_completion2);
@@ -2181,6 +2183,7 @@ call_answer_completion(DECL_LD trie *atrie)
 	    PL_write_term(Serror, t, 999, PL_WRT_NEWLINE);
 	  });
 
+    LD->tabling.saved_status = &saved;
     LD->tabling.component = NULL;
     LD->tabling.has_scheduling_component = false;
     LD->tabling.in_answer_completion = true;
@@ -2190,6 +2193,7 @@ call_answer_completion(DECL_LD trie *atrie)
     LD->tabling.in_answer_completion = false;
     LD->tabling.has_scheduling_component = hsc;
     LD->tabling.component = scc_old;
+    LD->tabling.saved_status = saved.prev;
 
     PL_close_foreign_frame(fid);
     return rc;
@@ -2462,7 +2466,9 @@ save_tabling_status(tbl_status *state)
   state->hsc = LD->tabling.has_scheduling_component;
   state->iac = LD->tabling.in_answer_completion;
   state->iap = LD->tabling.in_assert_propagation;
+  state->prev = LD->tabling.saved_status;
 
+  LD->tabling.saved_status             = state;
   LD->tabling.component                = NULL;
   LD->tabling.has_scheduling_component = false;
   LD->tabling.in_answer_completion     = false;
@@ -2478,6 +2484,7 @@ restore_tabling_status(tbl_status *state)
   LD->tabling.has_scheduling_component = state->hsc;
   LD->tabling.in_answer_completion     = state->iac;
   LD->tabling.in_assert_propagation    = state->iap;
+  LD->tabling.saved_status             = state->prev;
 }
 
 
@@ -8961,6 +8968,267 @@ PRED_IMPL("$idg_predicate_edges", 3, idg_predicate_edges, 0)
 }
 
 
+/** '$tbl_sdg'(-Components, -Tables, -Edges)
+ *
+ * The subgoal dependency graph of the calling thread: its incomplete
+ * tables, the components they belong to and the calls between them.
+ * This includes the components hidden by a break or answer completion
+ * (see save_tabling_status()).  The worklists are owned by the thread,
+ * so another thread reads them using call_in_thread/2.
+ *
+ *   - Components is a list scc(SCC, Parent, Leader) of the active
+ *     components, where Parent is `null` for a root.
+ *   - Tables is a list table(Trie, Variant, SCC, Answers, Flags),
+ *     where Flags is a subset of `negative` (a suspended negation),
+ *     `pending` (in the worklist of its component), `executing` and
+ *     `delays` (it has delayed answers).
+ *   - Edges is a list edge(Caller, Callee, Sign, Count): Caller has
+ *     Count suspensions on the incomplete table Callee and Sign is
+ *     `positive`, or `negative` for tnot/1.
+ */
+
+typedef enum
+{ SDG_NULL = 0,
+  SDG_POSITIVE,
+  SDG_NEGATIVE,
+  SDG_PENDING,
+  SDG_EXECUTING,
+  SDG_DELAYS,
+  SDG_ATOMS
+} sdg_atom;
+
+static atom_t sdg_atoms[SDG_ATOMS];
+static functor_t FUNCTOR_sdg_scc3, FUNCTOR_sdg_table5, FUNCTOR_sdg_edge4,
+		 FUNCTOR_sdg_dependency5;
+
+static void
+sdg_init(void)
+{ static const char *names[SDG_ATOMS] =
+    { "null", "positive", "negative", "pending", "executing", "delays" };
+
+  if ( !FUNCTOR_sdg_dependency5 )
+  { for(int i=0; i<SDG_ATOMS; i++)
+      sdg_atoms[i] = PL_new_atom(names[i]);
+    FUNCTOR_sdg_scc3   = PL_new_functor(PL_new_atom("scc"), 3);
+    FUNCTOR_sdg_table5 = PL_new_functor(PL_new_atom("table"), 5);
+    FUNCTOR_sdg_edge4  = PL_new_functor(PL_new_atom("edge"), 4);
+    FUNCTOR_sdg_dependency5 = PL_new_functor(ATOM_dependency, 5);
+  }
+}
+
+/* Push the root of c, which is on the stack of components */
+
+static void
+sdg_push_root(segstack *stack, tbl_component *c)
+{ typedef struct tbl_component *Component;
+
+  for(; c->parent; c = c->parent)
+    ;
+  if ( !pushSegStack(stack, c, Component) )
+    outOfCore();
+}
+
+/* Collect the active components below the roots on `stack` in
+   `components` and their incomplete worklists in `tables`.
+*/
+
+static void
+sdg_collect(segstack *stack, pair_map *components, pair_map *tables)
+{ typedef struct tbl_component *Component;
+  tbl_component *c;
+
+  while( popSegStack(stack, &c, Component) )
+  { worklist **wls;
+    size_t nwl;
+    pair_count *e;
+
+    if ( c->status != SCC_ACTIVE )	/* merged or completed */
+      continue;
+    if ( (e=pair_map_get(components, (uintptr_t)c, 0))->count++ )
+      continue;				/* a root seen twice */
+    if ( c->children )
+    { tbl_component **bp = baseBuffer(&c->children->members, tbl_component*);
+      tbl_component **tp = topBuffer(&c->children->members, tbl_component*);
+
+      for(; bp < tp; bp++)
+      { if ( !pushSegStack(stack, *bp, Component) )
+	  outOfCore();
+      }
+    }
+
+    nwl = worklist_set_to_array(c->created_worklists, &wls);
+    for(size_t i=0; i<nwl; i++)
+    { if ( wls[i]->table )
+	(void)pair_map_get(tables, (uintptr_t)wls[i], 0);
+    }
+  }
+}
+
+#define sdg_count_edges(wl, tables, edges) \
+	LDFUNC(sdg_count_edges, wl, tables, edges)
+
+/* Count the suspensions on the callee wl.  A suspension is a
+   dependency/5 term whose 4th argument is the worklist of the caller.
+   We only accept callers that are in `tables`, so we never follow a
+   stale pointer.  The low bit of the callee marks a negative edge.
+*/
+
+static bool
+sdg_count_edges(DECL_LD worklist *wl, pair_map *tables, pair_map *edges)
+{ fid_t fid;
+  term_t t, a;
+
+  if ( !(fid=PL_open_foreign_frame()) )
+    return false;
+  t = PL_new_term_ref();
+  a = PL_new_term_ref();
+
+  for(cluster *c=wl->head; c; c=c->next)
+  { if ( c->type == CLUSTER_SUSPENSIONS )
+    { suspension *sp  = baseBuffer(&c->members, suspension);
+      suspension *top = topBuffer(&c->members, suspension);
+
+      for(; sp < top; sp++)
+      { void *caller;
+
+	if ( !PL_recorded(UNTNOT(sp->term), t) )
+	{ PL_close_foreign_frame(fid);
+	  return false;
+	}
+	if ( PL_is_functor(t, FUNCTOR_sdg_dependency5) &&
+	     _PL_get_arg(4, t, a) &&
+	     PL_get_pointer(a, &caller) &&
+	     pair_map_find(tables->entries, tables->size,
+			   (uintptr_t)caller, 0)->a )
+	  pair_map_get(edges, (uintptr_t)caller,
+		       (uintptr_t)wl|IS_TNOT(sp->term))->count++;
+	PL_rewind_foreign_frame(fid);
+      }
+    }
+  }
+
+  PL_close_foreign_frame(fid);
+  return true;
+}
+
+#define sdg_unify_table(t, wl) LDFUNC(sdg_unify_table, t, wl)
+
+static bool
+sdg_unify_table(DECL_LD term_t t, worklist *wl)
+{ trie *atrie = wl->table;
+  term_t av = PL_new_term_refs(6);
+  term_t flag = av+5;
+  struct { bool on; sdg_atom name; } flags[] =
+    { { !isEmptyBuffer(&wl->delays), SDG_DELAYS },
+      { wl->executing,               SDG_EXECUTING },
+      { wl->in_global_wl,            SDG_PENDING },
+      { wl->negative,                SDG_NEGATIVE }
+    };
+
+  if ( !( PL_put_atom(av+0, atrie->symbol) &&
+	  (!atrie->data.variant ||
+	   unify_trie_term(atrie->data.variant, NULL, av+1)) &&
+	  PL_put_pointer(av+2, wl->component) &&
+	  PL_put_int64(av+3, atrie->value_count) ) )
+    return false;
+  PL_put_nil(av+4);
+  for(size_t i=0; i<sizeof(flags)/sizeof(flags[0]); i++)
+  { if ( flags[i].on &&
+	 !( PL_put_atom(flag, sdg_atoms[flags[i].name]) &&
+	    PL_cons_list(av+4, flag, av+4) ) )
+      return false;
+  }
+
+  return ( PL_cons_functor_v(av+0, FUNCTOR_sdg_table5, av) &&
+	   PL_unify(t, av+0) );
+}
+
+static
+PRED_IMPL("$tbl_sdg", 3, tbl_sdg, 0)
+{ PRED_LD
+  typedef struct tbl_component *Component;
+  segstack stack;
+  Component buf[32];
+  pair_map components, tables, edges;
+  term_t tail = PL_new_term_ref();
+  term_t head = PL_new_term_ref();
+  term_t av   = PL_new_term_refs(4);
+  bool rc = true;
+
+  sdg_init();
+  initSegStack(&stack, sizeof(Component), sizeof(buf), buf);
+  pair_map_init(&components);
+  pair_map_init(&tables);
+  pair_map_init(&edges);
+
+  if ( LD->tabling.component )
+    sdg_push_root(&stack, LD->tabling.component);
+  for(tbl_status *s=LD->tabling.saved_status; s; s=s->prev)
+  { if ( s->scc )
+      sdg_push_root(&stack, s->scc);
+  }
+  sdg_collect(&stack, &components, &tables);
+  clearSegStack(&stack);
+
+  for(size_t i=0; rc && i<tables.size; i++)
+  { if ( tables.entries[i].a )
+      rc = sdg_count_edges((worklist*)tables.entries[i].a, &tables, &edges);
+  }
+
+  PL_put_term(tail, A1);
+  for(size_t i=0; rc && i<components.size; i++)
+  { tbl_component *c = (tbl_component*)components.entries[i].a;
+
+    if ( c )
+      rc = ( PL_unify_list(tail, head, tail) &&
+	     PL_put_pointer(av+0, c) &&
+	     (c->parent ? PL_put_pointer(av+1, c->parent)
+			: PL_put_atom(av+1, sdg_atoms[SDG_NULL])) &&
+	     (c->leader ? PL_put_atom(av+2, c->leader->symbol)
+			: PL_put_atom(av+2, sdg_atoms[SDG_NULL])) &&
+	     PL_cons_functor_v(av+0, FUNCTOR_sdg_scc3, av) &&
+	     PL_unify(head, av+0) );
+  }
+  rc = rc && PL_unify_nil(tail);
+
+  PL_put_term(tail, A2);
+  for(size_t i=0; rc && i<tables.size; i++)
+  { worklist *wl = (worklist*)tables.entries[i].a;
+
+    if ( wl )
+      rc = ( PL_unify_list(tail, head, tail) &&
+	     sdg_unify_table(head, wl) );
+  }
+  rc = rc && PL_unify_nil(tail);
+
+  PL_put_term(tail, A3);
+  for(size_t i=0; rc && i<edges.size; i++)
+  { pair_count *e = &edges.entries[i];
+
+    if ( e->a )
+    { worklist *caller = (worklist*)e->a;
+      worklist *callee = (worklist*)(e->b&~(uintptr_t)1);
+      sdg_atom sign = (e->b&1) ? SDG_NEGATIVE : SDG_POSITIVE;
+
+      rc = ( PL_unify_list(tail, head, tail) &&
+	     PL_put_atom(av+0, caller->table->symbol) &&
+	     PL_put_atom(av+1, callee->table->symbol) &&
+	     PL_put_atom(av+2, sdg_atoms[sign]) &&
+	     PL_put_int64(av+3, e->count) &&
+	     PL_cons_functor_v(av+0, FUNCTOR_sdg_edge4, av) &&
+	     PL_unify(head, av+0) );
+    }
+  }
+  rc = rc && PL_unify_nil(tail);
+
+  pair_map_free(&components);
+  pair_map_free(&tables);
+  pair_map_free(&edges);
+
+  return rc;
+}
+
+
 static
 PRED_IMPL("$idg_changed", 1, idg_changed, 0)
 { trie *atrie;
@@ -11836,6 +12104,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$tbl_scc",                  1, tbl_scc,                  0)
   PRED_DEF("$tbl_scc_data",             2, tbl_scc_data,             0)
   PRED_DEF("$tbl_worklist_data",        2, tbl_worklist_data,        0)
+  PRED_DEF("$tbl_sdg",                  3, tbl_sdg,                  0)
   PRED_DEF("$tbl_wkl_table",            2, tbl_wkl_table,	     0)
   PRED_DEF("$tbl_answer",               3, tbl_answer,            NDET)
   PRED_DEF("$tbl_answer_c",             4, tbl_answer_c,          NDET)

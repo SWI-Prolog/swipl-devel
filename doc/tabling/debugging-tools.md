@@ -1,6 +1,6 @@
 # Tools for debugging tabled programs
 
-Status: analysis; nothing implemented yet.
+Status: analysis; the kernel part of the live SDG (1 below) is implemented.
 
 What XSB and ErgoAI offer to inspect and explain a tabled computation,
 what SWI-Prolog lacks and where a graphical view would help.  XSB
@@ -166,3 +166,57 @@ In order of value for the effort:
 1 and 2 build directly on the dependency viewer (outside reader, xdot)
 and answer questions for which XSB only has text.  3 needs a separate
 design of the event hook.
+
+## Live SDG: design and status
+
+The worklists, suspensions and components of a thread are owned by
+that thread and change without locks, so unlike the IDG registry they
+cannot be read from another thread.  The viewer reads them using
+`call_in_thread/2`, which runs at a safe point of the thread.
+
+### Implemented
+
+`'$tbl_sdg'(-Components, -Tables, -Edges)` (`src/pl-tabling.c`)
+describes the SDG of the calling thread:
+
+  - `scc(SCC, Parent, Leader)` for the active components, from the
+    root(s) down through `children`.  Merged and completed components
+    are skipped; the worklists of a merged component moved to the
+    component it was merged into.
+  - `table(Trie, Variant, SCC, Answers, Flags)` for the worklists in
+    `created_worklists` of these components.  Flags are `negative`,
+    `pending` (in the component's worklist), `executing` and `delays`.
+  - `edge(Caller, Callee, Sign, Count)`, counted from the suspensions
+    in the worklist of Callee.  A suspension is a recorded
+    `dependency(SrcSkel, Cont, Skel, CallerWorklist, Delays)`; its TNOT
+    bit gives the Sign.  Only callers that are in Tables are accepted,
+    so a stale pointer is never followed.
+
+`break/0` (and so a tripwire `suspend`) and answer completion hide the
+current component by clearing `LD->tabling.component`.
+`save_tabling_status()` now links the saved state into
+`LD->tabling.saved_status`, so '$tbl_sdg'/3 finds the hidden
+components as well.  Answer events of monotonic tables also save the
+status, but they do not run inside an active component.
+
+Limitations:
+
+  - Edges come only from suspensions.  A call that is still running,
+    such as a parent component running the leader of a child, is on the
+    Prolog stack; the parent link of the component stands in for it.
+  - Decoding a suspension copies its whole continuation.  Should this
+    be too slow on large SDGs, `suspension` can store the caller's
+    worklist (8 bytes per suspension).
+
+### Open
+
+ 2. The viewer: an xdot pane modelled on the dependency viewer, per
+    predicate with expansion to variants; SCCs as clusters at variant
+    level (the variants of one predicate may be in different SCCs),
+    negative edges red and dashed, nodes sized by answers.
+ 3. Opened from the thread monitor, the Debug/Tabling menu and the
+    `suspend` tripwire.
+ 4. Counters of incomplete tables and active SCCs in `LD`, readable
+    without interrupting the thread, for the ErgoAI ratios over time
+    and for the tripwires `max_incomplete_subgoals` and
+    `max_scc_subgoals`, which SWI-Prolog lacks.
