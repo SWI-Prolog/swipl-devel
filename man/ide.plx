@@ -702,6 +702,12 @@ Open a little window to run Prolog queries from a GUI component.
 
     \termitem{thread_monitor}{}
 Open a graphical window indicating existing threads and their status.
+The diagram of a thread shows its stacks, private tables and CPU usage
+and, while it has incomplete tables, their number and the number of
+strongly connected components (SCCs) per incomplete table in percent.
+A few percent hints at badly structured rules, more than 30\% that
+keeps growing at recursion over growing terms.  The popup of a thread
+shows its incomplete tables (see \const{sdg_viewer}).
 
     \termitem{memory_viewer}{}
 Open a window that shows how Prolog uses its memory: per module and
@@ -730,6 +736,26 @@ module and, for the non-modular code in \const{user}, by file;
 clicking a group shows it as a box holding its parts.  Predicates and
 nodes that hold invalid tables are shown in red.  The browser shows the
 incremental dynamic predicates in italics.  Requires Graphviz.
+
+    \termitem{sdg_viewer}{}
+    \termitem{sdg_viewer}{+Thread}
+Open a window that shows the incomplete tables of a thread (default
+\const{main}): the subgoal dependency graph (SDG) that tells why a
+tabled computation does not complete.  At the level of variants the
+tables are shown in boxes for their strongly connected components
+(SCCs), nested as the SCCs are; at the level of predicates, used by
+default for more than 60 tables, clicking a predicate shows its tables.
+An edge from a table to another says that the first waits for answers of
+the second; edges of \predref{tnot}{1} are red and dashed.  Tables grow
+with their number of answers, the leader of an SCC has a double outline,
+a table with work left a thick one and one with conditional answers is
+yellow.  The thread is interrupted using call_in_thread/3 to read its
+tables.  The viewer is in the \textit{Tabling} submenu of the
+\textit{Debug} menu and in the popup of the thread monitor.  It also
+opens if a break starts while the thread has incomplete tables, such as
+a break of a tripwire (see \secref{tabling-restraints}) with action
+\const{suspend}, unless the setting \const{prolog_ide.tables_on_break}
+is \const{false}.  Requires Graphviz.
 
     \termitem{debug_monitor}{}
 Open a graphical front-end for the \pllib{debug} library that provides

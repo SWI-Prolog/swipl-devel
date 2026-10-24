@@ -1,6 +1,6 @@
 # Tools for debugging tabled programs
 
-Status: analysis; the kernel part of the live SDG (1 below) is implemented.
+Status: analysis; the live SDG (1 below) is implemented.
 
 What XSB and ErgoAI offer to inspect and explain a tabled computation,
 what SWI-Prolog lacks and where a graphical view would help.  XSB
@@ -120,14 +120,14 @@ currently robust enough to be recommended".
 | Representation               | SWI-Prolog                                                   |
 |------------------------------|--------------------------------------------------------------|
 | Forest log and its analysis  | missing; only `debug(tabling(_))` in debug builds           |
-| SDG                          | internal only (`'$tbl_scc_data'`, `'$tbl_worklist_data'`)   |
+| SDG                          | ahead: `'$tbl_sdg'/3` and the SDG viewer (from the menu, thread monitor or a break) |
 | IDG                          | ahead: `tidg`, `summarize_idg`, `'$idg_predicate_edges'/3` and the dependency viewer |
 | RDG                          | as text: `call_residual_program/2`, the toplevel residual program |
 | `explain_u_val`              | missing; the delay lists hold the information               |
 | Graph abstraction            | missing as a library; the dependency viewer does it for the IDG |
 | Tables and statistics        | present: `tdump`, `table_statistics`, `get_calls/3`, ...    |
 | SCC dump on exception        | missing                                                      |
-| Tripwires                    | `prolog:tripwire/2` and `suspend`, without a diagnosis      |
+| Tripwires                    | `prolog:tripwire/2` and `suspend`; `max_incomplete_subgoals` and `max_scc_subgoals` added; the break shows the SDG |
 | Terminyzer                   | missing                                                      |
 | Justification                | missing                                                      |
 
@@ -208,15 +208,54 @@ Limitations:
     be too slow on large SDGs, `suspension` can store the caller's
     worklist (8 bytes per suspension).
 
-### Open
+The viewer is `prolog_sdg_viewer` in xpce's
+`library(swi/pce_sdg_viewer)`, a pane of the IDE.  It takes a snapshot
+in a thread of its own (`call_in_thread/3` with a 5 second timeout)
+and shows it with xdot:
 
- 2. The viewer: an xdot pane modelled on the dependency viewer, per
-    predicate with expansion to variants; SCCs as clusters at variant
-    level (the variants of one predicate may be in different SCCs),
-    negative edges red and dashed, nodes sized by answers.
- 3. Opened from the thread monitor, the Debug/Tabling menu and the
-    `suspend` tripwire.
- 4. Counters of incomplete tables and active SCCs in `LD`, readable
-    without interrupting the thread, for the ErgoAI ratios over time
-    and for the tripwires `max_incomplete_subgoals` and
-    `max_scc_subgoals`, which SWI-Prolog lacks.
+  - At the level of variants the nodes are the tables and the clusters
+    the components, nested as the components are.  A component with a
+    single table and no children is just its table.
+  - At the level of predicates the nodes are predicates; clicking one
+    shows its tables as a cluster.  There are no component clusters
+    here, as the tables of a predicate may be in different components.
+    The level `auto` (default) shows variants up to 60 tables.
+  - Negative edges are red and dashed, tables grow with log10 of their
+    answers, a leader has a double outline, a table with work left
+    (`pending`) a thick one, one waited for by tnot/1 a red one and one
+    with conditional answers is yellow.
+
+It opens from the Debug/Tabling menu, the popup of the thread monitor
+and when a break starts in a thread with incomplete tables
+(`prolog:message_action(break(begin, _), _)` in `swi_ide.pl`).  That
+covers the tripwire action `suspend` without a new hook: the
+`prolog:tripwire/2` hook does not get the action, and break/0 announces
+itself after hiding the components, which '$tbl_sdg'/3 still finds.  A
+break interrupting a tabled computation opens it too.  The first break
+of a thread without a toplevel (level 0) prints no message and so does
+not open the viewer.
+
+Observed: for `win(X) :- move(X,Y), tnot(win(Y))`, a pair of tables in
+a negative loop also has a positive suspension in one direction.
+
+### Counters and tripwires
+
+`LD->tabling.incomplete_tables` counts the worklists in the
+`created_worklists` of the active components (+1 in
+`add_newly_created_worklist()`, -n where such a set is dropped: at
+completion, discard, `free_component()` and thread cleanup; a merge
+moves sets and keeps the count) and `LD->tabling.active_components`
+the components with status `SCC_ACTIVE` (`set_component_status()`).
+`'$tbl_incomplete'(Thread, Tables, SCCs)` reads them for any thread
+without stopping it.  The thread monitor plots the number of
+incomplete tables and the SCCs per incomplete table in percent.
+
+The flags `max_incomplete_subgoals` and `max_scc_subgoals` (with their
+`_action` flags: error, warning or suspend) are tripwires.  The first
+is checked before a new table is created in `unify_fresh()`, with the
+predicate as context; the second after a merge in
+`unify_table_status()`, with the table of the call as context.  Both
+are points where an exception is cleaned up by the leader as usual.
+Like the existing count tripwires they trigger once, when the limit is
+crossed.
+
