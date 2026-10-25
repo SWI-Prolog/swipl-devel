@@ -1896,6 +1896,13 @@ propagate_to_answer(spf_agenda *agenda, worklist *wl,
 answer_delays_on(answer, atrie) is true if `answer` still has a delay
 element that refers to the answer trie `atrie`, i.e., if `answer` belongs
 in the `delays` buffer of atrie's worklist.
+
+Only the elements of the delay sets  that are still alive count.  Removing
+a delay set (propagate_to_answer()) leaves its elements in `di->delays`.
+Counting these kept the answer  in the  `delays` buffer of a  table it no
+longer depends on, and if that table  has no answers simplify_component()
+propagated to it forever:  propagate_to_answer() finds nothing  to do and
+the answer is never dropped from the buffer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -1903,12 +1910,17 @@ answer_delays_on(trie_node *answer, trie *atrie)
 { delay_info *di;
 
   if ( DL_IS_DELAY_LIST(di=answer->data.delayinfo) )
-  { delay *d = baseBuffer(&di->delays, delay);
-    delay *z = topBuffer(&di->delays, delay);
+  { delay *db = baseBuffer(&di->delays, delay);
+    delay_set *ds, *dz;
 
-    for(; d < z; d++)
-    { if ( d->variant == atrie )
-	return true;
+    for(answer_delay_sets(di, &ds, &dz); ds < dz; ds++)
+    { delay *d = db+ds->offset;
+      delay *z = d+ds->size;
+
+      for(; d < z; d++)
+      { if ( d->variant == atrie )
+	  return true;
+      }
     }
   }
 
