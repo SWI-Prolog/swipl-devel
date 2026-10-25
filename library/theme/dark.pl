@@ -255,6 +255,8 @@ colour(thread_graph_global,             orange).
 colour(thread_graph_trail,              lime_green).
 colour(thread_graph_tables,             tomato).
 colour(thread_graph_cpu,                orchid).
+colour(thread_graph_incomplete,         deep_pink).
+colour(thread_graph_scc_ratio,          gold).
 colour(thread_cpu_idle,                 grey30).
 colour(thread_cpu_busy,                 lime_green).
 
