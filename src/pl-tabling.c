@@ -4170,10 +4170,78 @@ delayed_destroy_table(trie *atrie)
   return false;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A call to an incremental dynamic predicate from a table adds a dynamic
+pseudo table to the variant trie, whose IDG node records the tables that
+depend on this call variant.  Once no table depends on it the node is
+useless, but nothing used to remove it: abolishing tables per module or
+per subgoal left them all behind (only abolish_all_tables/0 reclaimed
+them by discarding the whole variant trie).
+
+orphan_dynamic_table() tells whether a private dynamic pseudo table has
+no dependent tables and may be deleted.  abolish_table() collects the
+dynamic children of a table before destroying it and deletes those that
+lost their last dependent with it.  It also deletes a dynamic pseudo
+table that is abolished directly if it is already an orphan.  Shared
+pseudo tables are left alone.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+orphan_dynamic_table(const trie *atrie)
+{ idg_node *n;
+
+  return ( atrie->data.worklist == WL_DYNAMIC &&
+	   atrie->data.variant &&
+	   isoff(atrie, TRIE_ISSHARED) &&
+	   (n=atrie->data.IDG) &&
+	   idg_set_is_empty(&n->affected) );
+}
+
+static void
+delete_dynamic_table(trie *atrie)
+{ trie *vtrie = get_trie_from_node(atrie->data.variant);
+
+  if ( is_variant_trie(vtrie) )
+    trie_delete(vtrie, atrie->data.variant, true);
+}
+
+static void
+collect_dynamic_children(trie *atrie, Buffer b)
+{ idg_node *n;
+
+  if ( (n=atrie->data.IDG) )
+  { idg_set_enum en;
+    idg_node *dep;
+
+    idg_set_enum_init(&en, &n->dependent);
+    while( (dep=idg_set_next(&en)) )
+    { trie *ctrie = dep->atrie;
+
+      if ( ctrie->data.worklist == WL_DYNAMIC &&
+	   isoff(ctrie, TRIE_ISSHARED) )
+	addBuffer(b, ctrie, trie*);
+    }
+  }
+}
+
+static void
+delete_orphan_dynamic_tables(Buffer b)
+{ trie **tp = baseBuffer(b, trie*);
+  trie **te = topBuffer(b, trie*);
+
+  for(; tp < te; tp++)
+  { if ( orphan_dynamic_table(*tp) )
+      delete_dynamic_table(*tp);
+  }
+}
+
 static bool
 abolish_table(trie *atrie)
 { if ( atrie->data.worklist == WL_DYNAMIC )
-    return true;		/* quickly ignore dynamic pseudo tables */
+  { if ( orphan_dynamic_table(atrie) )
+      delete_dynamic_table(atrie);
+    return true;
+  }
 
   if ( atrie->data.variant)
   { trie *vtrie = get_trie_from_node(atrie->data.variant);
@@ -4205,7 +4273,14 @@ abolish_table(trie *atrie)
       } else
 #endif
       { if ( !delayed_destroy_table(atrie) )
+	{ tmp_buffer b;
+
+	  initBuffer(&b);
+	  collect_dynamic_children(atrie, (Buffer)&b);
 	  trie_delete(vtrie, atrie->data.variant, true);
+	  delete_orphan_dynamic_tables((Buffer)&b);
+	  discardBuffer(&b);
+	}
       }
 
       return true;
