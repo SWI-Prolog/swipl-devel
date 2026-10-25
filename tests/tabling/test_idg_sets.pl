@@ -172,7 +172,7 @@ read_idg(Thread, Deadline, Reads0, Reads) :-
 
 :- begin_tests(idg_reader).
 
-test(summary, Outside == Inside) :-
+test(summary, [condition(threads), Outside == Inside]) :-
     thread_self(Me),
     thread_create(( fill(100),
                     own_summary(N, E),
@@ -184,13 +184,13 @@ test(summary, Outside == Inside) :-
     Outside = N1-E1,
     thread_send_message(Id, done),
     thread_join(Id).
-test(concurrent, true(Reads > 0)) :-
+test(concurrent, [condition(threads), true(Reads > 0)]) :-
     get_time(Now),
     Deadline is Now+1.5,
     thread_create(modify(Deadline), Id),
     read_idg(Id, Deadline, 0, Reads),
     thread_join(Id).
-test(exited, Nodes-Edges == 0-0) :-
+test(exited, [condition(threads), Nodes-Edges == 0-0]) :-
     thread_create(fill(10), Id),
     thread_join(Id),
     catch('$idg_thread_summary'(Id, Nodes, Edges), _, (Nodes-Edges = 0-0)).
@@ -216,7 +216,7 @@ test(predicate_edges_invalid, Invalid == 100) :-
     thread_self(Me),
     '$idg_predicate_edges'(Me, Nodes, _),
     memberchk(node(test_idg_sets:p/1, _, Invalid), Nodes).
-test(predicate_edges_outside, Outside == Inside) :-
+test(predicate_edges_outside, [condition(threads), Outside == Inside]) :-
     thread_self(Me),
     thread_create(( fill(100),
                     thread_self(Self),
@@ -246,8 +246,11 @@ test(predicate_edges_prolog, Edges == PrologEdges) :-
     msort(Pairs, Sorted),
     clumped(Sorted, Counted),
     findall(edge(F,T,C), member((F-T)-C, Counted), PrologEdges).
-test(shared, true) :-
+test(shared, condition(threads)) :-
     '$idg_thread_summary'(shared, Nodes, Edges),
     integer(Nodes), integer(Edges).
 
 :- end_tests(idg_reader).
+
+threads :-
+    current_prolog_flag(threads, true).
