@@ -686,3 +686,5 @@ prolog:message(xsb(file_loaded_into_mismatched_module(File, Module))) -->
     [ 'XSB: File ~p defines module ~p'-[File, Module] ].
 prolog:message(xsb(ignored(debug_ctl(Option, Value)))) -->
     [ 'XSB: debug_ctl(~p,~p) is not implemented'-[Option,Value] ].
+prolog:message(xsb(table_option_ignored(Option))) -->
+    [ 'XSB: table option ~p is ignored'-[Option] ].
