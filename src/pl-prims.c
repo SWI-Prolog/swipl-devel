@@ -6259,10 +6259,13 @@ swi_statistics(DECL_LD atom_t key, Number v)
     else
       v->value.i = 0;
   } else if (key == ATOM_shared_table_space_used)
-  { alloc_pool *pool;
+  {
+#ifdef O_PLMT
+    alloc_pool *pool;
     if ( (pool=GD->tabling.node_pool) )
       v->value.i = pool->size;
     else
+#endif
       v->value.i = 0;
   } else if (key == ATOM_erased_clauses)
     v->value.i = GD->clauses.erased;
