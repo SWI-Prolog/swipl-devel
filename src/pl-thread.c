@@ -2045,8 +2045,10 @@ system_thread_id(PL_thread_info_t *info)
 #ifdef PID_IDENTIFIES_THREAD
   return info->pid;
 #else
-#ifdef __WINDOWS__
+#if defined(__WINDOWS__)
   return info->w32id;
+#elif defined(__APPLE__)
+  return (intptr_t)info->mac_tid;
 #else
   return (intptr_t)info->tid;
 #endif
@@ -2070,6 +2072,8 @@ set_system_thread_id(PL_thread_info_t *info)
   info->pid = getpid();
 #elif defined(__WINDOWS__)
   info->w32id = GetCurrentThreadId();
+#elif defined(__APPLE__)
+  pthread_threadid_np(NULL, &info->mac_tid);
 #endif
 #endif /*O_PLMT*/
 }
@@ -7051,6 +7055,9 @@ detach_engine(PL_engine_t e)
 #endif
 #ifdef __WINDOWS__
   info->w32id = 0;
+#endif
+#ifdef __APPLE__
+  info->mac_tid = 0;
 #endif
   memset(&info->tid, 0, sizeof(info->tid));
 #endif

@@ -127,6 +127,9 @@ typedef struct _PL_thread_info_t
 #ifdef __WINDOWS__
   DWORD		    w32id;		/* Win32 thread HANDLE */
 #endif
+#ifdef __APPLE__
+  uint64_t	    mac_tid;		/* pthread_threadid_np() */
+#endif
 #endif
   struct PL_local_data  *thread_data;	/* The thread-local data  */
   module_t	    module;		/* Module for starting goal */

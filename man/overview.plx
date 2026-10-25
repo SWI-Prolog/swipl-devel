@@ -2444,7 +2444,9 @@ if the string stack depth hits the tripwire value. See
 Available in multithreaded version (see \secref{threads}) where the
 operating system provides system-wide integer thread identifiers. The
 integer is the thread identifier used by the operating system for the
-calling thread.  On Linux systems this is the PID of the thread.
+calling thread.  On Linux systems this is the PID of the thread.  On
+macOS it is the system-wide unique identifier returned by
+pthread_threadid_np().
 
     \prologflagitem{table_compile_threshold}{integer}{rw}
 Determines how the answers of a table are returned to the goal that
