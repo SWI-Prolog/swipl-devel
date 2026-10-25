@@ -145,6 +145,14 @@ atom_count(Prefix, N) :-
 set_di(N) :- retractall(di(_)), forall(between(1, N, I), assertz(di(I))).
 add_di(I) :- assertz(di(I)).
 
+%   Explicit atom-GC returns immediately if a background collection is
+%   active.  Stop the GC thread while testing immediate reclamation and
+%   restore its previous setting using the test cleanup handler.
+
+stop_gc_thread(Old) :-
+    current_prolog_flag(gc_thread, Old),
+    set_prolog_gc_thread(false).
+
 %   Abolish all tables and reclaim the erased clauses.  Clause GC only
 %   reclaims clauses erased before the current generation.
 
@@ -291,7 +299,10 @@ test(subsumptive, L == [su(3)]) :-
     assertion(N > 1),
     all(su(3), su(3), L).
 
-test(atom_keep_discarded) :-           % nodes discarded: clause owns atoms
+test(atom_keep_discarded,
+     [ setup(stop_gc_thread(Old)),
+       cleanup(set_prolog_gc_thread(Old))
+     ]) :-                            % nodes discarded: clause owns atoms
     abolish_and_gc,
     \+ \+ call_twice(ga(_), _),
     assertion(nodes(ga(_), 1)),
@@ -301,7 +312,10 @@ test(atom_keep_discarded) :-           % nodes discarded: clause owns atoms
     abolish_and_gc,
     atom_count(borrow_a_, N1),
     assertion(N1 == 0).
-test(atom_keep_deep) :-                 % compiled at completion
+test(atom_keep_deep,
+     [ setup(stop_gc_thread(Old)),
+       cleanup(set_prolog_gc_thread(Old))
+     ]) :-                            % compiled at completion
     abolish_and_gc,
     \+ \+ gal(_),
     assertion(nodes(gal(_), 1)),
@@ -311,7 +325,10 @@ test(atom_keep_deep) :-                 % compiled at completion
     abolish_and_gc,
     atom_count(borrow_l_, N1),          % AGC is conservative: stale stack
     assertion(N1 < 10).                 % cells may keep a few atoms
-test(atom_keep_reeval) :-               % clause discarded: nodes stay
+test(atom_keep_reeval,
+     [ setup(stop_gc_thread(Old)),
+       cleanup(set_prolog_gc_thread(Old))
+     ]) :-                            % clause discarded: nodes stay
     abolish_and_gc,
     set_di(200),
     \+ \+ call_twice(gi(_), _),
