@@ -1201,11 +1201,11 @@ valueExpression(DECL_LD term_t expr, number *n)
     return true;
   }
 
-/* Exception is guarded at PL_next_solution() anyway, but clang
-   crashes, at least on Linux and the Emscripten version.
+/* Exception is guarded at PL_next_solution() anyway.  Avoid setjmp()
+   here as it is costly on some systems (two system calls on macOS).
 */
 
-#if O_THROW && !__clang__
+#if O_THROW
   return evalExpression(expr, n);
 #else
   bool rc;
