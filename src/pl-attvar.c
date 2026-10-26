@@ -1210,8 +1210,16 @@ PRED_IMPL("$attv_unify", 2, attv_unify, 0)
   deRef(av);
 
   if ( isAttVar(*av) )
-  { TrailAssignment(av);
-    *av = linkValG(valTermRef(A2));
+  { Word v = valTermRef(A2);
+
+    deRef(v);
+    if ( v == av )			/* '$attv_unify'(X,X) */
+      return true;
+    word w = linkValG(v);		/* may shift the stacks */
+    av = valTermRef(A1);
+    deRef(av);
+    TrailAssignment(av);
+    *av = w;
     return true;
   }
   return PL_unify(A1, A2);

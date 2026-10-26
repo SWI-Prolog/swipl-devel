@@ -60,6 +60,11 @@ test(true_ndet, error(existence_error(procedure,_))) :-
     freeze(X, wake(X)),
     between(-2, 2, X).
 
+test(attv_unify_self, true) :-
+    put_attr(X, test_attvar, 1),
+    '$attv_unify'(X, X),
+    attvar(X).
+
 wake(2) :-
 	i_am_undefined.
 
