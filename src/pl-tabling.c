@@ -7531,11 +7531,24 @@ merge_tabling_trail(tbl_trail *into, tbl_trail *from)
 		 *	 IDG CONSTRUCTION	*
 		 *******************************/
 
+/* IDG nodes, their edge sets and the registry are allocated from the
+   pool of the answer trie, so they count as table space.  NULL if the
+   pool is exhausted, raising a resource error.
+*/
+
+static inline alloc_pool *
+idg_pool(const idg_node *n)
+{ return n->atrie->alloc_pool;
+}
+
 static idg_node *
 idg_new(trie *atrie)
-{ idg_node *n = PL_malloc(sizeof(*n));
+{ alloc_pool *pool = atrie->alloc_pool;
+  idg_node *n;
   idg_registry *reg;
 
+  if ( !(n = alloc_from_pool(pool, sizeof(*n))) )
+    return NULL;
   memset(n, 0, sizeof(*n));
   n->magic = IDG_NODE_MAGIC;
   n->atrie = atrie;
@@ -7550,8 +7563,11 @@ idg_new(trie *atrie)
     if ( !(reg=LD->tabling.idg_registry) )
       reg = LD->tabling.idg_registry = idg_registry_new();
   }
+  if ( (n->registry_index = idg_registry_add(reg, n, pool)) == (size_t)-1 )
+  { free_to_pool(pool, n, sizeof(*n));
+    return NULL;
+  }
   n->registry = reg;
-  n->registry_index = idg_registry_add(reg, n);
 
   return n;
 }
@@ -7599,13 +7615,13 @@ static void	idg_free_dependent(void *p, void *ctx);
 static void
 idg_clean_affected(idg_node *node)
 { idg_set_clear(&node->affected, idg_free_affected, node,
-		idg_lingering(node));
+		idg_lingering(node), idg_pool(node));
 }
 
 static void
 idg_clean_dependent(idg_node *node)
 { idg_set_clear(&node->dependent, idg_free_dependent, node,
-		idg_lingering(node));
+		idg_lingering(node), idg_pool(node));
 }
 
 
@@ -7621,9 +7637,7 @@ idg_reset(idg_node *node)
 
 static void
 idg_free_node(void *ptr, void *ctx)
-{ (void)ctx;
-
-  PL_free(ptr);
+{ free_to_pool(ctx, ptr, sizeof(idg_node));
 }
 
 static void
@@ -7637,10 +7651,10 @@ idg_destroy(idg_node *node)
     destroyHTablePP(table);
   }
   mono_index_release(node);
-  idg_set_free_lingering(&node->lingering);
+  idg_set_free_lingering(&node->lingering, idg_pool(node));
   idg_registry_delete(node->registry, node->registry_index);
 
-  idg_free_or_defer(idg_free_node, node, NULL);
+  idg_free_or_defer(idg_free_node, node, idg_pool(node));
 }
 
 /* Free the monotonic dependencies of one (child, parent) edge, the chain
@@ -7693,7 +7707,8 @@ idg_free_affected(void *p, void *ctx)
   idg_node *child  = ctx;
 
   idg_free_mdeps(child, parent);
-  if ( !idg_set_delete(&parent->dependent, child, idg_lingering(parent)) )
+  if ( !idg_set_delete(&parent->dependent, child, idg_lingering(parent),
+		       idg_pool(parent)) )
     Sdprintf("OOPS: idg_free_affected() failed to delete backlink\n");
 }
 
@@ -7702,7 +7717,8 @@ idg_free_dependent(void *p, void *ctx)
 { idg_node *child  = p;
   idg_node *parent = ctx;
 
-  if ( idg_set_delete(&child->affected, parent, idg_lingering(child)) )
+  if ( idg_set_delete(&child->affected, parent, idg_lingering(child),
+		      idg_pool(child)) )
   { trie *ctrie = child->atrie;
 
     idg_free_mdeps(child, parent);
@@ -7801,6 +7817,7 @@ mono_indexable(const idg_node *n)
 static int
 idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 { volatile TablePP t;
+  int added;
 
   DEBUG(MSG_TABLING_IDG,
 	{ term_t f = PL_new_term_ref();
@@ -7822,7 +7839,18 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
        !parent->concurrent )
     parent->concurrent = true;
 
-  idg_set_add(&child->affected, parent, idg_lingering(child));
+					/* both halves or neither */
+  if ( (added=idg_set_add(&child->affected, parent, idg_lingering(child),
+			  idg_pool(child))) < 0 )
+    return false;
+  if ( idg_set_add(&parent->dependent, child, idg_lingering(parent),
+		   idg_pool(parent)) < 0 )
+  { if ( added )
+      idg_set_delete(&child->affected, parent, idg_lingering(child),
+		     idg_pool(child));
+    return false;
+  }
+
   if ( dep )
   { idg_mdep *mdep0 = idg_mdeps(child, parent); /* chain old dependency */
     idg_mdep *mdep;
@@ -7877,8 +7905,6 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
       parent->tt_new_dep = true;
   }
 
-  idg_set_add(&parent->dependent, child, idg_lingering(parent));
-
   return true;
 }
 
@@ -7898,6 +7924,8 @@ idg_init_variant(DECL_LD trie *atrie, Definition def, term_t variant)
     if ( (def->tabling && ison(def->tabling, TP_MONOTONIC|TP_INCREMENTAL)) )
     { idg_node *n = idg_new(atrie);
 
+      if ( !n )
+	return false;
       if ( def->tabling )
       { if ( ison(def->tabling, TP_MONOTONIC) )
 	  n->monotonic = true;
@@ -8061,7 +8089,8 @@ trie_for_dynamic_predicate(DECL_LD Definition def, trie *ctrie, term_t variant)
       assert(!atrie->data.worklist || atrie->data.worklist == WL_GROUND);
       atrie->data.worklist = WL_DYNAMIC;
       atrie->data.predicate = def;
-      n = idg_new(atrie);
+      if ( !(n = idg_new(atrie)) )
+	return NULL;
       if ( !COMPARE_AND_SWAP_PTR(&atrie->data.IDG, NULL, n) )
 	idg_destroy(n);
     }
@@ -8080,9 +8109,7 @@ idg_add_dyncall(DECL_LD Definition def, trie *ctrie, term_t variant)
 { trie *atrie;
 
   if ( (atrie=trie_for_dynamic_predicate(def, ctrie, variant)) )
-  { idg_add_edge(atrie, ctrie);
-    return true;
-  }
+    return idg_add_edge(atrie, ctrie) != false;
 
   return false;
 }
@@ -8839,6 +8866,48 @@ idg_reader_registry(DECL_LD term_t thread, idg_registry **reg)
 #endif
 }
 
+/* Summarise the IDG nodes of the registry of thread (see
+   idg_reader_registry()).  bytes is the table space they use: the
+   nodes, the blocks of their edge sets and the slots of the registry.
+*/
+
+typedef struct idg_summary
+{ size_t	nodes;			/* # IDG nodes */
+  size_t	edges;			/* # edges to the nodes they affect */
+  size_t	bytes;			/* table space used */
+} idg_summary;
+
+#define idg_thread_summary(thread, sum) LDFUNC(idg_thread_summary, thread, sum)
+
+static bool
+idg_thread_summary(DECL_LD term_t thread, idg_summary *sum)
+{ idg_registry *reg;
+
+  memset(sum, 0, sizeof(*sum));
+  if ( !idg_reader_registry(thread, &reg) )
+    return false;
+  if ( reg )
+  { size_t count = idg_registry_count(reg);
+
+    sum->bytes = idg_registry_sizeof(reg);
+    for(size_t i=0; i<count; i++)
+    { idg_node *n = idg_registry_get(reg, i);
+
+      if ( n )
+      { sum->nodes++;
+	sum->edges += idg_set_size(&n->affected);
+	sum->bytes += ( sizeof(*n) +
+			idg_set_sizeof(&n->affected) +
+			idg_set_sizeof(&n->dependent) +
+			idg_set_lingering_sizeof(n->lingering) );
+      }
+    }
+  }
+  idg_reader_exit();
+
+  return true;
+}
+
 /** '$idg_thread_summary'(+Thread, -Nodes, -Edges)
  *
  * Nodes is the number of IDG nodes of Thread and Edges the number of
@@ -8850,27 +8919,27 @@ idg_reader_registry(DECL_LD term_t thread, idg_registry **reg)
 static
 PRED_IMPL("$idg_thread_summary", 3, idg_thread_summary, 0)
 { PRED_LD
-  idg_registry *reg;
-  size_t nodes = 0, edges = 0;
+  idg_summary sum;
 
-  if ( !idg_reader_registry(A1, &reg) )
-    return false;
-  if ( reg )
-  { size_t count = idg_registry_count(reg);
+  return ( idg_thread_summary(A1, &sum) &&
+	   PL_unify_int64(A2, sum.nodes) &&
+	   PL_unify_int64(A3, sum.edges) );
+}
 
-    for(size_t i=0; i<count; i++)
-    { idg_node *n = idg_registry_get(reg, i);
+/** '$idg_thread_space'(+Thread, -Bytes)
+ *
+ * Bytes is the table space used by the IDG of Thread: its nodes, the
+ * blocks of their edge sets and its registry.  Thread may be `shared`.
+ * This may be called for any thread.
+ */
 
-      if ( n )
-      { nodes++;
-	edges += idg_set_size(&n->affected);
-      }
-    }
-  }
-  idg_reader_exit();
+static
+PRED_IMPL("$idg_thread_space", 2, idg_thread_space, 0)
+{ PRED_LD
+  idg_summary sum;
 
-  return ( PL_unify_int64(A2, nodes) &&
-	   PL_unify_int64(A3, edges) );
+  return ( idg_thread_summary(A1, &sum) &&
+	   PL_unify_int64(A2, sum.bytes) );
 }
 
 
@@ -12333,6 +12402,7 @@ BeginPredDefs(tabling)
   PRED_DEF("$idg_edge",                 3, idg_edge,              NDET)
   PRED_DEF("$idg_changed",              1, idg_changed,              0)
   PRED_DEF("$idg_thread_summary",       3, idg_thread_summary,       0)
+  PRED_DEF("$idg_thread_space",         2, idg_thread_space,         0)
   PRED_DEF("$idg_predicate_edges",      3, idg_predicate_edges,      0)
   PRED_DEF("$idg_falsecount",           2, idg_falsecount,           0)
   PRED_DEF("$idg_forced",               1, idg_forced,               0)

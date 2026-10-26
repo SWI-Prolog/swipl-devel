@@ -46,12 +46,14 @@ one edge, a linear block for a few and a hashed block for many (see
 src/pl-idgset.h).  These tests create nodes with many edges in both
 directions, invalidate and re-evaluate them and delete edges by
 abolishing tables.  The unit idg_reader reads the IDG of a thread from
-another thread while that thread modifies it.
+another thread while that thread modifies it.  The unit idg_space checks
+that the IDG is part of the table space.
 */
 
 test_idg_sets :-
     run_tests([ idg_sets,
-                idg_reader
+                idg_reader,
+                idg_space
               ]).
 
 :- dynamic([d/1], [incremental(true)]).
@@ -254,3 +256,57 @@ test(shared, condition(threads)) :-
 
 threads :-
     current_prolog_flag(threads, true).
+
+
+		 /*******************************
+		 *            SPACE		*
+		 *******************************/
+
+:- dynamic e/1.
+:- table pi/1 as incremental.		% as p/1
+:- table pn/1.				% as pi/1, without IDG
+
+e(1).
+
+pi(I) :- d(X), X >= 0, I >= 0.
+pn(I) :- e(X), X >= 0, I >= 0.
+
+%   table_space(+Pred, +N, -Space, -IDGSize, -IDGSpace)
+%
+%   Space is the table space used by a fresh thread after calling
+%   Pred(1) ... Pred(N), IDGSize the size of the IDG nodes of these
+%   tables and IDGSpace the table space used by the IDG of the thread.
+
+table_space(Pred, N, Space, IDGSize, IDGSpace) :-
+    thread_create(table_space_(Pred, N), Id),
+    thread_join(Id, exited(r(Space, IDGSize, IDGSpace))).
+
+table_space_(Pred, N) :-
+    retractall(d(_)),
+    assertz(d(1)),
+    forall(between(1, N, I), call(Pred, I)),
+    statistics(table_space_used, Space),
+    '$tbl_variant_table'(VT),
+    aggregate_all(sum(Size),
+                  ( trie_gen(VT, _, T),
+                    trie_property(T, idg_size(Size))
+                  ), IDGSize),
+    thread_self(Me),
+    '$idg_thread_space'(Me, IDGSpace),
+    thread_exit(r(Space, IDGSize, IDGSpace)).
+
+:- begin_tests(idg_space, [condition(threads)]).
+
+test(in_table_space, [true(Extra >= IDGSize), true(IDGSize > 0)]) :-
+    table_space(pi, 1000, SpaceI, IDGSize, _),
+    table_space(pn, 1000, SpaceN, _, _),
+    Extra is SpaceI-SpaceN.
+test(idg_thread_space, [ true(IDGSpace >= IDGSize),
+                         true(Extra >= IDGSpace),
+                         NoIDG == 0
+                       ]) :-
+    table_space(pi, 1000, SpaceI, IDGSize, IDGSpace),
+    table_space(pn, 1000, SpaceN, _, NoIDG),
+    Extra is SpaceI-SpaceN.
+
+:- end_tests(idg_space).

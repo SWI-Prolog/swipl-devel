@@ -54,6 +54,10 @@ few hold thousands.  The set is a single word:
     index of 1<<index_bits uint32_t slots holding the position+1 of an
     entry (0: empty slot).
 
+Blocks are allocated from the table pool (alloc_pool) of the node that
+owns the set, so the IDG counts as table space.  Functions that modify
+a set get this pool.
+
 Readers do not lock.  Writers either own the set (the node is private and
 all nodes it is connected to are private) or pass `lingering`.  In that
 case writes lock a stripe that is selected on the set and replaced blocks
@@ -82,16 +86,19 @@ typedef struct idg_set_enum
   unsigned	 pos;			/* next position */
 } idg_set_enum;
 
-bool	idg_set_add(idg_set *set, void *p, idg_set_block **lingering);
+int	idg_set_add(idg_set *set, void *p, idg_set_block **lingering,
+		    struct alloc_pool *pool);
 bool	idg_set_delete(idg_set *set, const void *p,
-		       idg_set_block **lingering);
+		       idg_set_block **lingering, struct alloc_pool *pool);
 bool	idg_set_contains(const idg_set *set, const void *p);
 size_t	idg_set_size(const idg_set *set);
 size_t	idg_set_sizeof(const idg_set *set);
+size_t	idg_set_lingering_sizeof(const idg_set_block *b);
 void	idg_set_clear(idg_set *set,
 		      void (*func)(void *p, void *ctx), void *ctx,
-		      idg_set_block **lingering);
-void	idg_set_free_lingering(idg_set_block **lingering);
+		      idg_set_block **lingering, struct alloc_pool *pool);
+void	idg_set_free_lingering(idg_set_block **lingering,
+			       struct alloc_pool *pool);
 void   *idg_set_next(idg_set_enum *e);
 
 static inline void
@@ -131,6 +138,7 @@ typedef struct idg_registry
 { int		references;		/* the thread and the nodes */
   size_t	count;			/* slots in use (high water) */
   size_t	free;			/* first free slot+1 (0: none) */
+  struct alloc_pool *pool;		/* table pool the slots come from */
 #ifdef O_PLMT
   simpleMutex	mutex;			/* serializes writers */
 #endif
@@ -144,11 +152,13 @@ void	idg_reader_enter(void);
 void	idg_reader_exit(void);
 
 idg_registry *idg_registry_new(void);
-size_t	idg_registry_add(idg_registry *reg, void *node);
+size_t	idg_registry_add(idg_registry *reg, void *node,
+			 struct alloc_pool *pool);
 void	idg_registry_delete(idg_registry *reg, size_t index);
 void	idg_registry_release(idg_registry *reg);
 void   *idg_registry_get(const idg_registry *reg, size_t index);
 size_t	idg_registry_count(const idg_registry *reg);
+size_t	idg_registry_sizeof(const idg_registry *reg);
 void	initIDGReaders(void);
 
 #endif /*_PL_IDGSET_H*/

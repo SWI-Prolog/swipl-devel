@@ -89,6 +89,25 @@ tests/tabling/test_idg_sets.pl reads the IDG of a thread that keeps
 changing it; under ASan, disabling the deferral makes it report a heap
 use-after-free.
 
+## Implemented: the IDG is table space
+
+IDG nodes, the blocks of their edge sets (including lingering ones) and
+the slots of the registry are allocated from the table pool of the
+answer trie (`alloc_from_pool()`), so `table_space_used` and
+`shared_table_space_used` include them and the `table_space` limits
+apply.  Running out raises `resource_error(table_space)` from
+`idg_new()` or `idg_set_add()` instead of halting; `idg_add_child()`
+adds both halves of an edge or neither.  Not included: the
+`mono_deps` and `mono_index_deps` hash tables and the `idg_mdep`
+chains of monotonic tabling, which are still malloc'ed.
+
+On Pharos `table_space_used` should become about 620 MB instead of 221
+MB (221 + 403 MB from above; not measured), below the default limit of
+1 GB.
+`'$idg_thread_space'(+Thread, -Bytes)` tells the part used by the IDG;
+the memory viewer shows it and the call trie (the variant table) as
+parts of the tables of a pool.
+
 ## Implemented: summarizing the IDG per predicate
 
 `'$idg_predicate_edges'(+Thread, -Nodes, -Edges)` walks the registry of a

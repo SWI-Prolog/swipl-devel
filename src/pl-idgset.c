@@ -106,8 +106,13 @@ typedef void simpleMutex;
 		 *	       BLOCKS		*
 		 *******************************/
 
+/* Blocks are allocated from the pool of the table of the node that owns
+   the set, so they count as table space and are subject to its limit.
+   NULL if the pool is exhausted, raising a resource error.
+*/
+
 static idg_set_block *
-new_block(unsigned capacity)
+new_block(unsigned capacity, alloc_pool *pool)
 { unsigned bits = 0;
   idg_set_block *b;
   size_t bytes;
@@ -117,7 +122,8 @@ new_block(unsigned capacity)
       bits++;					/* per entry */
   }
   bytes = sizeof_block(capacity, bits);
-  b = allocHeapOrHalt(bytes);
+  if ( !(b = alloc_from_pool(pool, bytes)) )
+    return NULL;
   b->count      = 0;
   b->capacity   = capacity;
   b->dead       = 0;
@@ -132,14 +138,13 @@ new_block(unsigned capacity)
 static void
 free_block_now(void *ptr, void *ctx)
 { idg_set_block *b = ptr;
-  (void)ctx;
 
-  freeHeap(b, sizeof_block(b->capacity, b->index_bits));
+  free_to_pool(ctx, b, sizeof_block(b->capacity, b->index_bits));
 }
 
 static void
-free_block(idg_set_block *b)
-{ idg_free_or_defer(free_block_now, b, NULL);
+free_block(idg_set_block *b, alloc_pool *pool)
+{ idg_free_or_defer(free_block_now, b, pool);
 }
 
 /* A block was replaced or removed from its set.  If others may read
@@ -147,7 +152,7 @@ free_block(idg_set_block *b)
 */
 
 static void
-retire_block(idg_set_block *b, idg_set_block **lingering)
+retire_block(idg_set_block *b, idg_set_block **lingering, alloc_pool *pool)
 { if ( lingering )
   { idg_set_block *o;
 
@@ -156,19 +161,19 @@ retire_block(idg_set_block *b, idg_set_block **lingering)
       b->older = o;
     } while( !COMPARE_AND_SWAP_PTR(lingering, o, b) );
   } else
-  { free_block(b);
+  { free_block(b, pool);
   }
 }
 
 void
-idg_set_free_lingering(idg_set_block **lingering)
+idg_set_free_lingering(idg_set_block **lingering, alloc_pool *pool)
 { idg_set_block *b = *lingering;
 
   *lingering = NULL;
   while(b)
   { idg_set_block *o = b->older;
 
-    free_block(b);
+    free_block(b, pool);
     b = o;
   }
 }
@@ -231,12 +236,16 @@ append(idg_set_block *b, uintptr_t p)
   b->count = pos+1;
 }
 
-/* A larger copy of b.  Entries keep their position. */
+/* A larger copy of b.  Entries keep their position.  NULL if the pool
+   is exhausted.
+*/
 
 static idg_set_block *
-grow_block(const idg_set_block *b)
-{ idg_set_block *nb = new_block(b->capacity*2);
+grow_block(const idg_set_block *b, alloc_pool *pool)
+{ idg_set_block *nb = new_block(b->capacity*2, pool);
 
+  if ( !nb )
+    return NULL;
   memcpy(nb->entries, b->entries, b->count*sizeof(uintptr_t));
   nb->dead = b->dead;
   if ( nb->index_bits )
@@ -253,14 +262,17 @@ grow_block(const idg_set_block *b)
 		 *		API		*
 		 *******************************/
 
-/* Add p.  True if p was added, false if it was already in the set */
+/* Add p.  True if p was added, false if it was already in the set and
+   -1 if the pool is exhausted, raising a resource error.
+*/
 
-bool
-idg_set_add(idg_set *set, void *ptr, idg_set_block **lingering)
+int
+idg_set_add(idg_set *set, void *ptr, idg_set_block **lingering,
+	    alloc_pool *pool)
 { uintptr_t p = (uintptr_t)ptr;
   simpleMutex *m = lock_set(set, lingering);
   idg_set s = *set;
-  bool added = true;
+  int added = true;
 
   assert(!(p&IDG_SET_SINGLE));
   if ( !s )
@@ -269,12 +281,16 @@ idg_set_add(idg_set *set, void *ptr, idg_set_block **lingering)
   { if ( single_ptr(s) == p )
     { added = false;
     } else
-    { idg_set_block *b = new_block(4);
+    { idg_set_block *b = new_block(4, pool);
 
-      append(b, single_ptr(s));
-      append(b, p);
-      MEMORY_RELEASE();
-      *set = (idg_set)b;
+      if ( b )
+      { append(b, single_ptr(s));
+	append(b, p);
+	MEMORY_RELEASE();
+	*set = (idg_set)b;
+      } else
+      { added = -1;
+      }
     }
   } else
   { idg_set_block *b = set_block(s);
@@ -289,12 +305,16 @@ idg_set_add(idg_set *set, void *ptr, idg_set_block **lingering)
       }
     } else
     { if ( b->count == b->capacity )
-      { idg_set_block *nb = grow_block(b);
+      { idg_set_block *nb = grow_block(b, pool);
 
-	append(nb, p);
-	MEMORY_RELEASE();
-	*set = (idg_set)nb;
-	retire_block(b, lingering);
+	if ( nb )
+	{ append(nb, p);
+	  MEMORY_RELEASE();
+	  *set = (idg_set)nb;
+	  retire_block(b, lingering, pool);
+	} else
+	{ added = -1;
+	}
       } else
       { append(b, p);
       }
@@ -308,7 +328,8 @@ idg_set_add(idg_set *set, void *ptr, idg_set_block **lingering)
 /* Delete p.  True if p was in the set */
 
 bool
-idg_set_delete(idg_set *set, const void *ptr, idg_set_block **lingering)
+idg_set_delete(idg_set *set, const void *ptr, idg_set_block **lingering,
+	       alloc_pool *pool)
 { uintptr_t p = (uintptr_t)ptr;
   simpleMutex *m = lock_set(set, lingering);
   idg_set s = *set;
@@ -328,7 +349,7 @@ idg_set_delete(idg_set *set, const void *ptr, idg_set_block **lingering)
       deleted = true;
       if ( ++b->dead == b->count )	/* nothing left */
       { *set = 0;
-	retire_block(b, lingering);
+	retire_block(b, lingering, pool);
       }
     }
   }
@@ -382,6 +403,18 @@ idg_set_sizeof(const idg_set *set)
   return 0;
 }
 
+/* Bytes used by the blocks on a lingering list */
+
+size_t
+idg_set_lingering_sizeof(const idg_set_block *b)
+{ size_t size = 0;
+
+  for(; b; b = b->older)
+    size += sizeof_block(b->capacity, b->index_bits);
+
+  return size;
+}
+
 /* Empty the set, calling func(p, ctx) for each pointer it held.  The set
    is detached first, so func runs without holding the stripe and may
    modify other sets.
@@ -389,7 +422,7 @@ idg_set_sizeof(const idg_set *set)
 
 void
 idg_set_clear(idg_set *set, void (*func)(void *p, void *ctx), void *ctx,
-	      idg_set_block **lingering)
+	      idg_set_block **lingering, alloc_pool *pool)
 { simpleMutex *m = lock_set(set, lingering);
   idg_set s = *set;
 
@@ -410,7 +443,7 @@ idg_set_clear(idg_set *set, void (*func)(void *p, void *ctx), void *ctx,
 	  (*func)((void*)e, ctx);
       }
     }
-    retire_block(b, lingering);
+    retire_block(b, lingering, pool);
   }
 }
 
@@ -603,7 +636,8 @@ free_registry_now(void *ptr, void *ctx)
 
   for(unsigned k=0; k<IDG_REG_BLOCKS; k++)
   { if ( reg->blocks[k] )
-      freeHeap(reg->blocks[k], reg_block_size(k)*sizeof(uintptr_t));
+      free_to_pool(reg->pool, reg->blocks[k],
+		   reg_block_size(k)*sizeof(uintptr_t));
   }
 #ifdef O_PLMT
   simpleMutexDelete(&reg->mutex);
@@ -611,10 +645,15 @@ free_registry_now(void *ptr, void *ctx)
   freeHeap(reg, sizeof(*reg));
 }
 
-/* Add node; returns its slot.  Adds a reference */
+/* Add node; returns its slot.  Adds a reference.  The slots are
+   allocated from pool, the table pool of the nodes, so they count as
+   table space.  All nodes of a registry come from the same pool.
+   Returns (size_t)-1 if the pool is exhausted, raising a resource
+   error.
+*/
 
 size_t
-idg_registry_add(idg_registry *reg, void *node)
+idg_registry_add(idg_registry *reg, void *node, alloc_pool *pool)
 { size_t index, offset;
   unsigned k;
 
@@ -629,8 +668,14 @@ idg_registry_add(idg_registry *reg, void *node)
     k = reg_block(index, &offset);
     if ( !reg->blocks[k] )
     { size_t bytes = reg_block_size(k)*sizeof(uintptr_t);
-      uintptr_t *b = allocHeapOrHalt(bytes);
+      uintptr_t *b;
 
+      assert(!reg->pool || reg->pool == pool);
+      if ( !(b = alloc_from_pool(pool, bytes)) )
+      { REG_UNLOCK(reg);
+	return (size_t)-1;
+      }
+      reg->pool = pool;
       memset(b, 0, bytes);
       MEMORY_RELEASE();
       reg->blocks[k] = b;
@@ -676,6 +721,20 @@ idg_registry_count(const idg_registry *reg)
 
   MEMORY_ACQUIRE();
   return count;
+}
+
+/* Bytes used by the slots of the registry */
+
+size_t
+idg_registry_sizeof(const idg_registry *reg)
+{ size_t size = 0;
+
+  for(unsigned k=0; k<IDG_REG_BLOCKS; k++)
+  { if ( reg->blocks[k] )
+      size += reg_block_size(k)*sizeof(uintptr_t);
+  }
+
+  return size;
 }
 
 /* The node in slot `index` or NULL if the slot is free */
