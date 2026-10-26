@@ -65,5 +65,7 @@ test(cut_to_cleanup) :-
 	call_cleanup(between(1,2,_), assert(cl)),
 	prolog_cut_to(Chp),
 	retract(cl).
+test(loaded_unknown_source_file, fail) :-
+	'$source_file_property'('/no/such/source/file.pl', loaded, _).
 
 :- end_tests(misc).

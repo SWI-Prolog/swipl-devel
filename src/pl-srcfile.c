@@ -719,7 +719,7 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
     else if ( property == ATOM_from_state )
       rc = PL_unify_bool(A3, sf ? sf->from_state : false);
     else if ( property == ATOM_loaded )
-      rc = sf->ltime == 0.0 ? false : PL_unify_float(A3, sf->ltime);
+      rc = sf && sf->ltime != 0.0 ? PL_unify_float(A3, sf->ltime) : false;
     else
       rc = PL_domain_error("source_file_property", A2);
 
