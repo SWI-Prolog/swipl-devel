@@ -45,7 +45,9 @@ pseudo table to the  variant trie, whose IDG node records  which tables
 depend on  the call variant.  Once  the last of these  tables is  gone the
 node is useless.  Abolishing  tables per module or per subgoal  used to
 leave all of them behind, so a process that loads and abolishes many KBs
-kept growing.  Only abolish_all_tables/0 reclaimed them.
+kept growing.  Only abolish_all_tables/0 reclaimed them.  Reevaluation
+drops the edges of the calls it no longer makes; these nodes are
+reclaimed by a sweep after completing an evaluation.
 */
 
 test_incr_dyn_nodes :-
@@ -60,6 +62,12 @@ test_incr_dyn_nodes :-
 q(X) :- p(X), r(X).
 s(X) :- r(X).
 
+:- dynamic key/1 as incremental.
+:- dynamic val/1 as incremental.
+:- table kv/1 as incremental.
+
+kv(K) :- key(K), val(K).                % each reevaluation calls a new val(K)
+
 %   The number of dynamic pseudo tables in this thread's variant table.
 
 dyn_nodes(N) :-
@@ -73,6 +81,15 @@ dyn_nodes(N) :-
 fill :-
     abolish_all_tables,
     forall(between(1, 10, I), ( ignore(q(I)), ignore(s(I)) )).
+
+reeval_kv(Count) :-
+    abolish_all_tables,
+    forall(between(1, Count, I),
+           ( retractall(key(_)),
+             assertz(key(I)),
+             ignore(kv(_))
+           )),
+    retractall(key(_)).
 
 :- begin_tests(incr_dyn_nodes).
 
@@ -98,5 +115,8 @@ test(still_incremental,
     retract(test_incr_dyn_nodes:r(5)),
     \+ q(5),
     \+ s(5).
+test(reeval, true(N < 2000)) :-
+    reeval_kv(5000),
+    dyn_nodes(N).
 
 :- end_tests(incr_dyn_nodes).

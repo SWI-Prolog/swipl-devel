@@ -726,6 +726,7 @@ struct PL_local_data
     struct node_array *start_nodes;	/* Predicate start nodes in it */
     alloc_pool *node_pool;		/* Node allocation pool for tries */
     struct idg_registry *idg_registry;	/* IDG nodes of private tables */
+    size_t dyn_orphan_events;		/* Dynamic nodes that lost a dependent */
     int	has_scheduling_component;	/* A leader was created */
     int in_answer_completion;		/* Running answer completion */
     int in_assert_propagation;		/* Running propagate_assert/1 */

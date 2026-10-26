@@ -4252,6 +4252,17 @@ dynamic children of a table before destroying it and deletes those that
 lost their last dependent with it.  It also deletes a dynamic pseudo
 table that is abolished directly if it is already an orphan.  Shared
 pseudo tables are left alone.
+
+Tables also drop their edges to dynamic nodes without being abolished:
+reevaluation clears all edges of the table and only adds those of the
+calls it makes this time, and tables destroyed on completion or dropped
+as intermediate tables do not pass abolish_table().  Each removed edge
+that leaves a private dynamic node without dependents is counted in
+LD->tabling.dyn_orphan_events.  When a root component completes and
+this count reaches the number of variants, sweep_orphan_dynamic_tables()
+deletes all orphans.  The count overestimates as most nodes are adopted
+again by a reevaluation, but this keeps the amortized cost of a sweep
+constant per removed edge.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -4300,6 +4311,38 @@ delete_orphan_dynamic_tables(Buffer b)
   for(; tp < te; tp++)
   { if ( orphan_dynamic_table(*tp) )
       delete_dynamic_table(*tp);
+  }
+}
+
+#define DYN_ORPHAN_SWEEP_MIN 1024
+
+static void *
+collect_orphan_dynamic_table(trie_node *n, void *ctx)
+{ if ( n->value )
+  { trie *atrie = symbol_trie(word2atom(n->value));
+
+    if ( orphan_dynamic_table(atrie) )
+      addBuffer((Buffer)ctx, atrie, trie*);
+  }
+
+  return NULL;
+}
+
+#define sweep_orphan_dynamic_tables(_) LDFUNC(sweep_orphan_dynamic_tables, _)
+static void
+sweep_orphan_dynamic_tables(DECL_LD)
+{ trie *vtrie = LD->tabling.variant_table;
+
+  if ( vtrie &&
+       LD->tabling.dyn_orphan_events >= DYN_ORPHAN_SWEEP_MIN &&
+       LD->tabling.dyn_orphan_events >= vtrie->value_count )
+  { tmp_buffer b;
+
+    initBuffer(&b);
+    map_trie_node(&vtrie->root, collect_orphan_dynamic_table, &b);
+    delete_orphan_dynamic_tables((Buffer)&b);
+    discardBuffer(&b);
+    LD->tabling.dyn_orphan_events = 0;
   }
 }
 
@@ -6167,7 +6210,10 @@ table_complete_all(DECL_LD term_t scc, term_t status, term_t cl,
     if ( c->parent && LD->tabling.component == c )
       LD->tabling.component = c->parent;
     if ( !c->parent )
-      LD->tabling.has_scheduling_component = false;
+    { LD->tabling.has_scheduling_component = false;
+      if ( LD->tabling.active_components == 0 )
+	sweep_orphan_dynamic_tables();
+    }
 
     if ( !rc )
       return false;
@@ -7657,8 +7703,16 @@ idg_free_dependent(void *p, void *ctx)
   idg_node *parent = ctx;
 
   if ( idg_set_delete(&child->affected, parent, idg_lingering(child)) )
+  { trie *ctrie = child->atrie;
+
     idg_free_mdeps(child, parent);
-  else
+    if ( ctrie->data.worklist == WL_DYNAMIC &&
+	 isoff(ctrie, TRIE_ISSHARED) &&
+	 idg_set_is_empty(&child->affected) )
+    { GET_LD
+      LD->tabling.dyn_orphan_events++;	/* see sweep_orphan_dynamic_tables() */
+    }
+  } else
     Sdprintf("OOPS: idg_free_dependent() failed to delete backlink\n");
 }
 
