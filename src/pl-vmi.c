@@ -4989,7 +4989,7 @@ VMH(b_throw, 0, (), ())
   /* find the catching frame and try to rewrite the exception */
   for(int rewritten=0; rewritten<=1; rewritten++)
   { SAVE_REGISTERS(QID);
-    catchfr_ref = findCatcher(fid, FR, LD->choicepoints, exception_term);
+    catchfr_ref = findCatcher(FR, LD->choicepoints, exception_term);
     LOAD_REGISTERS(QID);
     DEBUG(MSG_THROW,
 	  { if ( catchfr_ref )

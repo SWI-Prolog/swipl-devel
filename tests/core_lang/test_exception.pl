@@ -78,5 +78,12 @@ test(non_unify, error(foo)) :-		% verifies error handling in
 					% foreignWakeup()
 	freeze(X, throw(error(foo, bar))),
 	X \= x.
+test(failing_catchers, R == outer(2)) :-	% catchers whose wakeup fails
+	put_attr(X, test_exception, no),
+	put_attr(Y, test_exception, no),
+	catch(catch(catch(throw(2), X, R = inner), Y, R = mid), E, R = outer(E)).
 
 :- end_tests(ex_coroutining).
+
+attr_unify_hook(no, _) :-
+	fail.

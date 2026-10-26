@@ -2083,12 +2083,12 @@ findCatcher() can do  GC/shift!  The  return   value  is  a  local-frame
 reference, so we can deal with relocation of the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define findCatcher(fid, fr, ch, ex) LDFUNC(findCatcher, fid, fr, ch, ex)
+#define findCatcher(fr, ch, ex) LDFUNC(findCatcher, fr, ch, ex)
 static term_t
-findCatcher(DECL_LD fid_t fid, LocalFrame fr, Choice ch, term_t ex0)
+findCatcher(DECL_LD LocalFrame fr, Choice ch, term_t ex0)
 { Definition catch3  = PROCEDURE_catch3->definition;
   term_t ex = PL_copy_term_ref(ex0);
-  term_t ex2 = 0;
+  term_t chref = consTermRef(ch);
   wakeup_state wstate;
 
   if ( !saveWakeup(&wstate, false) )
@@ -2100,23 +2100,30 @@ findCatcher(DECL_LD fid_t fid, LocalFrame fr, Choice ch, term_t ex0)
   while(fr)
   { if ( fr->predicate == catch3 &&
 	 isoff(fr, FR_CAUGHT) &&      /* not thrown from recover */
-	 (void*)fr <= (void*)ch )      /* not call-port of catch/3 */
+	 (void*)fr <= (void*)valTermRef(chref) ) /* not call-port of catch/3 */
     { int rc;
-      term_t tref, catcher;
+      term_t tref, catcher, ex2 = 0;
+      fid_t cfid;
 
       tref = consTermRef(fr);
+      if ( !(cfid = PL_open_foreign_frame()) )
+      { LD->outofstack = (Stack)&LD->stacks.local;
+	outOfStack(LD->outofstack, STACK_OVERFLOW_THROW);
+	assert(0);
+      }
+      fr = (LocalFrame)valTermRef(tref);
       catcher = consTermRef(argFrameP(fr, 1));
       DEBUG(MSG_THROW, Sdprintf("Unify ball for frame %ld\n", (long)tref));
       rc = PL_unify(catcher, ex);
       if ( rc )
-      { if ( !ex2 )
-	  ex2 = PL_new_term_ref();
+      { ex2 = PL_new_term_ref();
 	rc = foreignWakeup(ex2);
       }
       fr = (LocalFrame)valTermRef(tref);
 
       if ( rc )
       { DEBUG(MSG_THROW, Sdprintf("Unified for frame %ld\n", (long)tref));
+	PL_close_foreign_frame(cfid);
 	restoreWakeup(&wstate);
 	PL_put_term(exception_term, ex);
 	setLocal(fr, FR_CAUGHT);
@@ -2126,15 +2133,14 @@ findCatcher(DECL_LD fid_t fid, LocalFrame fr, Choice ch, term_t ex0)
 	{ DEBUG(MSG_THROW, Sdprintf("Exception from foreignWakeup()\n"));
 	  PL_raise_exception(ex2);
 	  PL_put_term(ex, exception_term);
-	  PL_put_variable(ex2);
-	  fr = (LocalFrame)valTermRef(tref);
 	} else if ( exception_term )
 	{ DEBUG(MSG_THROW, Sdprintf("Exception from PL_unify()\n"));
 	  PL_put_term(ex, exception_term);
 	}
       }
 
-      PL_rewind_foreign_frame(wstate.fid ? wstate.fid : fid);
+      PL_discard_foreign_frame(cfid);
+      fr = (LocalFrame)valTermRef(tref);
     }
 
     fr = fr->parent;
