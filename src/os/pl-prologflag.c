@@ -2329,8 +2329,12 @@ pl_prolog_flag5(DECL_LD term_t key, term_t value,
 	}
 
 	if ( e->scope == ATOM_local )
+	{ if ( !LD->prolog_flag.table )
+	  { freeHeap(e, sizeof(*e));
+	    fail;
+	  }
 	  e->table_enum = newTableEnumWP(LD->prolog_flag.table);
-	else
+	} else
 	  e->table_enum = newTableEnumWP(GD->prolog_flag.table);
 
 	break;
