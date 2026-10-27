@@ -11287,7 +11287,7 @@ reeval_complete_node(trie_node *n, void *ctx)
 
   if ( ison(n, TN_IDG_DELETED) )
   { clear(n, TN_IDG_DELETED);		/* not used by trie admin */
-    trie_delete(atrie, n, false);	/* TBD: can we prune? */
+    trie_delete(atrie, n, false);	/* pruned by reeval_complete() */
     if ( isoff(n, TN_IDG_UNCONDITIONAL) )
       simplify_answer(atrie->data.worklist, n, false);
     DEBUG(MSG_TABLING_IDG_REEVAL_NODE, action = "Not reappeared");
@@ -11331,9 +11331,12 @@ reeval_complete(trie *atrie)
 			     (size_t)(atrie->value_count - n->answer_count)));
 
     if ( same_answers )
-      idg_propagate_change(n, 0);
-    else
-      trie_discard_clause(atrie);
+    { idg_propagate_change(n, 0);
+    } else
+    { trie_discard_clause(atrie);
+      if ( !atrie->references )		/* remove the deleted answers */
+	prune_trie(atrie, &atrie->root, NULL, NULL);
+    }
 
     TRIE_STAT_INC(n, reevaluated);
 
