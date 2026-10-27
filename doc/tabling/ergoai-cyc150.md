@@ -154,6 +154,13 @@ per-entry numbers above.
    | solve case B, tables kept | 11.7 s, 88.7M inferences | 11.7 s, 88.7M inferences |
    | `abolish_all_tables` | 4.4 s | 2.6 s |
 
+   Of these, only `'$cand'/2` has clauses (490 rules of the core; the
+   cases add none); the three `\opposes` stores are empty but cause
+   3.5M dependency nodes.  ergoAIp (ergoAIstudio2 49eacd8) now declares
+   just the `\opposes` stores `abstract(0)`: table space 6.44 GB, RSS
+   11.15 GB.  `'$cand'/2` would save another 0.8 GB, but adding a
+   defeasible rule would then re-evaluate all `rcand/3` tables.
+
    Case B does not change these predicates, so the coarser dependency
    costs nothing here; a workflow that changes the rules would
    re-evaluate more.  About 1.2M dependency nodes remain, mostly
