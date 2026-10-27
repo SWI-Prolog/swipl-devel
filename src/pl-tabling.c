@@ -224,6 +224,10 @@ static void	print_answer_table(trie *atrie, const char *msg, ...);
 #endif
 static int	simplify_component(tbl_component *scc);
 static void	idg_destroy(idg_node *node);
+static void	idg_destroy_private(idg_node *node);
+static void	idg_clean_affected(idg_node *node);
+static void	idg_clean_dependent(idg_node *node);
+static void	idg_free_mdeps(idg_node *child, idg_node *parent);
 static void	idg_release_registry(PL_local_data_t *ld);
 static void	idg_reset(idg_node *node);
 static int	idg_init_variant(trie *atrie, Definition def, term_t variant);
@@ -2600,13 +2604,16 @@ variant_table(DECL_LD bool shared)
 }
 
 
+#define RAT_CLEANUP	0x1		/* Clearing the variant table */
+#define RAT_BULK	0x2		/* All private tables go */
+
 static void
-reset_answer_table(trie *atrie, int cleanup)
+reset_answer_table(trie *atrie, int flags)
 { worklist *wl;
   idg_node *n;
 
   if ( WL_IS_WORKLIST(wl=atrie->data.worklist) )
-  { if ( !isEmptyBuffer(&wl->delays) && !cleanup )
+  { if ( !isEmptyBuffer(&wl->delays) && !(flags&RAT_CLEANUP) )
       destroy_depending_worklists(wl);
     if ( wl->undefined )
       destroy_delay_info_worklist(wl);
@@ -2623,7 +2630,10 @@ reset_answer_table(trie *atrie, int cleanup)
     { idg_reset(n);
     } else
     { atrie->data.IDG = NULL;
-      idg_destroy(n);
+      if ( (flags&RAT_BULK) )
+	idg_destroy_private(n);
+      else
+	idg_destroy(n);
     }
   }
 
@@ -2641,7 +2651,8 @@ release_variant_table_node(trie *variant_table, trie_node *node)
   if ( node->value )
   { trie *atrie = symbol_trie(word2atom(node->value));
 
-    reset_answer_table(atrie, variant_table->magic == TRIE_CMAGIC);
+    reset_answer_table(atrie,
+		       variant_table->magic == TRIE_CMAGIC ? RAT_CLEANUP : 0);
     assert(atrie->data.variant == node);
     atrie->data.variant = NULL;
   }
@@ -2665,6 +2676,28 @@ it, destroy_delay_info() uses the answer trie from the delay element to
 remove this answer from its worklist and thus accesses freed memory.  We
 therefore first destroy the delay info of all tables, while the variant
 trie keeps all answer tries alive.
+
+A private variant table is torn down in bulk (abolish_all_tables/0 on
+ErgoAI's cyc150 took 28s for 12.9M tables, mostly cache misses):
+
+  - We empty the variant table, taking over its answer-trie atoms
+    (trie_empty_take()), and then reset the tables in the order of the
+    atom index, which is their creation order.  The atoms, the tries
+    and their IDG nodes were allocated in this order, so this causes
+    far fewer cache misses than the order of the variant table.  We
+    only release the atoms after resetting all tables.  This keeps the
+    answer tries alive, so we do not need the delay info pass (*), and
+    atom-GC does not run during the resets.
+  - The IDG edges of a private node connect to other private nodes of
+    this variant table, unless the node is `concurrent` (it has shared
+    children).  We first remove the edges of these rare nodes as
+    usual.  All other nodes free their edge sets without removing the
+    edge from the set of the other end (idg_destroy_private()), which
+    avoids touching the other node.
+  - The IDG registry of the thread holds exactly these nodes.  We
+    detach it before the resets and release it after, instead of
+    deleting the nodes one by one.  Readers of the registry (see
+    idg_reader_registry()) defer the freeing of the nodes.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void *
@@ -2683,8 +2716,118 @@ destroy_delay_info_table(trie_node *node, void *ctx)
 }
 
 
+static void *
+idg_unlink_concurrent_table(trie_node *node, void *ctx)
+{ (void)ctx;
+
+  if ( node->value )
+  { trie *atrie = symbol_trie(word2atom(node->value));
+    idg_node *n = atrie->data.IDG;
+
+    if ( n && n->concurrent )
+    { idg_clean_affected(n);
+      idg_clean_dependent(n);
+    }
+  }
+
+  return NULL;
+}
+
+typedef struct bulk_reset
+{ idg_registry *registry;		/* registry of the thread */
+  size_t	idg_nodes;		/* # nodes destroyed from it */
+  atom_t       *atoms;			/* answer-trie atoms */
+  size_t	count;			/* # in atoms */
+  size_t	size;			/* allocated size of atoms */
+} bulk_reset;
+
 static void
-clear_variant_table(trie **vtriep, node_array **startp)
+reset_table_bulk_atom(atom_t symbol, bulk_reset *br)
+{ trie *atrie = symbol_trie(symbol);
+  idg_node *n = atrie->data.IDG;
+
+  if ( n )
+  { if ( n->registry == br->registry )
+      br->idg_nodes++;
+    else				/* not expected */
+      idg_registry_delete(n->registry, n->registry_index);
+  }
+  reset_answer_table(atrie, RAT_CLEANUP|RAT_BULK);
+  atrie->data.variant = NULL;
+}
+
+/* Take the answer-trie atom `value` of the variant table into
+ * br->atoms (see trie_empty_take()).  br->atoms has room for all values
+ * of the variant table, so the realloc() is a precaution.  Without
+ * memory we reset the table immediately and release the atom.
+ */
+
+static void
+take_table_atom(word value, void *ctx)
+{ bulk_reset *br = ctx;
+  atom_t symbol = word2atom(value);
+
+  if ( br->count == br->size )
+  { size_t size = br->size ? br->size*2 : 1024;
+    atom_t *atoms = realloc(br->atoms, size*sizeof(atom_t));
+
+    if ( !atoms )
+    { reset_table_bulk_atom(symbol, br);
+      PL_unregister_atom(symbol);
+      return;
+    }
+    br->atoms = atoms;
+    br->size  = size;
+  }
+
+  br->atoms[br->count++] = symbol;
+}
+
+/* Sort the atoms by index using a bitmap: the indexes are unique and
+ * roughly dense.  Leaves the atoms unsorted if there is no memory.
+ */
+
+static void
+sort_table_atoms(bulk_reset *br)
+{ size_t lo = SIZE_MAX, hi = 0;
+  uint64_t *map;
+
+  if ( br->count < 2 )
+    return;
+  for(size_t i=0; i<br->count; i++)
+  { size_t idx = indexAtom(br->atoms[i]);
+
+    if ( idx < lo ) lo = idx;
+    if ( idx > hi ) hi = idx;
+  }
+
+  size_t words = (hi-lo)/64+1;
+  if ( (map=calloc(words, sizeof(*map))) )
+  { size_t n = 0;
+
+    for(size_t i=0; i<br->count; i++)
+    { size_t b = indexAtom(br->atoms[i])-lo;
+      map[b/64] |= (uint64_t)1<<(b%64);
+    }
+    for(size_t w=0; w<words; w++)
+    { for(uint64_t bits=map[w]; bits; bits &= bits-1)
+      { size_t idx = lo + w*64 + (size_t)__builtin_ctzll(bits);
+
+	br->atoms[n++] = ((atom_t)idx<<LMASK_BITS)|TAG_ATOM;
+      }
+    }
+    assert(n == br->count);
+    free(map);
+  }
+}
+
+/* Clear the variant table *vtriep and the start node cache *startp.
+ * `ld` is the owner of a private variant table or NULL for the shared
+ * one.
+ */
+
+static void
+clear_variant_table(PL_local_data_t *ld, trie **vtriep, node_array **startp)
 { trie *vtrie;
   node_array *sa;
 
@@ -2692,8 +2835,29 @@ clear_variant_table(trie **vtriep, node_array **startp)
   { vtrie->magic = TRIE_CMAGIC;
     if ( ison(vtrie, TRIE_ISSHARED) )
       release_trie(vtrie);			/* acquired in variant_table() */
-    map_trie_node(&vtrie->root, destroy_delay_info_table, NULL); /* (*) */
-    trie_empty(vtrie);
+    bulk_reset br = { .size = vtrie->value_count };
+
+    if ( ld && !vtrie->references && br.size &&
+	 (br.atoms = malloc(br.size*sizeof(atom_t))) )
+    { br.registry = ld->tabling.idg_registry;
+      if ( ld->tabling.concurrent_idg_nodes )
+	map_trie_node(&vtrie->root, idg_unlink_concurrent_table, NULL);
+      ld->tabling.idg_registry = NULL;
+      trie_empty_take(vtrie, take_table_atom, &br);
+      sort_table_atoms(&br);		/* creation order: fewer cache misses */
+      for(size_t i=0; i<br.count; i++)
+	reset_table_bulk_atom(br.atoms[i], &br);
+      if ( br.registry )		/* the nodes' and the thread's */
+	idg_registry_release_n(br.registry, br.idg_nodes+1);
+      for(size_t i=0; i<br.count; i++)
+	PL_unregister_atom(br.atoms[i]);
+      free(br.atoms);
+      ld->tabling.concurrent_idg_nodes = 0;
+      ld->tabling.dyn_orphan_events = 0;
+    } else
+    { map_trie_node(&vtrie->root, destroy_delay_info_table, NULL); /* (*) */
+      trie_empty(vtrie);
+    }
     PL_unregister_atom(vtrie->symbol);
     *vtriep = NULL;
   }
@@ -2980,7 +3144,7 @@ void
 clearThreadTablingData(PL_local_data_t *ld, bool exit)
 { reset_global_worklist(ld->tabling.component);
   reset_newly_created_worklists(ld, ld->tabling.component, WLFS_KEEP_COMPLETE);
-  clear_variant_table(&ld->tabling.variant_table, &ld->tabling.start_nodes);
+  clear_variant_table(ld, &ld->tabling.variant_table, &ld->tabling.start_nodes);
   free_tbl_free_objects(ld, exit);
   if ( exit )
     idg_release_registry(ld);
@@ -7685,6 +7849,36 @@ idg_destroy(idg_node *node)
   idg_free_or_defer(idg_free_node, node, idg_pool(node));
 }
 
+static void
+idg_free_mdeps_affected(void *p, void *ctx)
+{ idg_free_mdeps(ctx, p);
+}
+
+/* As idg_destroy() for a node whose neighbours are all destroyed with it
+ * (see clear_variant_table()).  We do not remove the edges from the
+ * sets of the neighbours, but we must free the monotonic dependencies
+ * of our edges to our parents.  The caller releases the registry.
+ */
+
+static void
+idg_destroy_private(idg_node *node)
+{ TablePP table;
+
+  idg_set_clear(&node->affected,
+		node->mono_deps ? idg_free_mdeps_affected : NULL, node,
+		idg_lingering(node), idg_pool(node));
+  idg_set_clear(&node->dependent, NULL, NULL,
+		idg_lingering(node), idg_pool(node));
+  if ( (table=node->mono_deps) )
+  { node->mono_deps = NULL;
+    destroyHTablePP(table);
+  }
+  mono_index_release(node);
+  idg_set_free_lingering(&node->lingering, idg_pool(node));
+
+  idg_free_or_defer(idg_free_node, node, idg_pool(node));
+}
+
 /* Free the monotonic dependencies of one (child, parent) edge, the chain
    ending in the child node.  Each key of the child's mono_index belongs
    to one parent, so it goes with its edge.
@@ -7865,7 +8059,9 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
   if ( ison(child->atrie, TRIE_ISSHARED) &&	/* our private parent */
        isoff(parent->atrie, TRIE_ISSHARED) &&	/* gets a shared child */
        !parent->concurrent )
-    parent->concurrent = true;
+  { parent->concurrent = true;
+    LD->tabling.concurrent_idg_nodes++;	/* see clear_variant_table() */
+  }
 
 					/* both halves or neither */
   if ( (added=idg_set_add(&child->affected, parent, idg_lingering(child),
@@ -12344,7 +12540,8 @@ cleanupTabling(void)
 { memset(fast_ret_functor, 0, sizeof(fast_ret_functor));
 
 #ifdef O_PLMT
-  clear_variant_table(&GD->tabling.variant_table, &GD->tabling.start_nodes);
+  clear_variant_table(NULL,
+		      &GD->tabling.variant_table, &GD->tabling.start_nodes);
 
   deleteSimpleMutex(&GD->tabling.mutex);
   cv_destroy(&GD->tabling.cvar);

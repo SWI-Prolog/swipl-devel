@@ -194,7 +194,13 @@ static PL_blob_t trie_blob =
 
 static trie_node       *new_trie_node(trie *trie, word key);
 static void		destroy_node(trie *trie, trie_node *n);
-static void		clear_node(trie *trie, trie_node *n, int flags);
+typedef struct value_taker
+{ void (*take)(word value, void *ctx);	/* takes over the value */
+  void *ctx;
+} value_taker;
+
+static void		clear_node(trie *trie, trie_node *n, int flags,
+				   const value_taker *vt);
 
 #define CN_DEALLOC	0x1		/* clear_node(): free the node */
 #define CN_ALL		0x2		/* clear_node(): the trie is cleared */
@@ -280,10 +286,10 @@ trie_discard_clause(trie *trie)
 
 
 static void
-trie_clear_nodes(trie *trie)
+clear_nodes(trie *trie, const value_taker *vt)
 { indirect_table *it = trie->indirects;
 
-  clear_node(trie, &trie->root, CN_ALL);	/* TBD: verify not accessed */
+  clear_node(trie, &trie->root, CN_ALL, vt); /* TBD: verify not accessed */
   free_lingering_blocks(trie);
   free_node_chunks(trie);
   if ( it && COMPARE_AND_SWAP_PTR(&trie->indirects, it, NULL) )
@@ -292,15 +298,42 @@ trie_clear_nodes(trie *trie)
 }
 
 
-void
-trie_empty(trie *trie)
+static void
+trie_clear_nodes(trie *trie)
+{ clear_nodes(trie, NULL);
+}
+
+
+static bool
+empty_trie(trie *trie, const value_taker *vt)
 { trie_discard_clause(trie);
 
   if ( !trie->references )
-  { trie_clear_nodes(trie);
+  { clear_nodes(trie, vt);
     trie->value_count = 0;
     clear(trie, TRIE_DISCARDABLE|TRIE_DISCARDED);
+    return true;
   }
+
+  return false;
+}
+
+void
+trie_empty(trie *trie)
+{ empty_trie(trie, NULL);
+}
+
+/* As trie_empty(), but instead of releasing the values and calling the
+ * release_node hook for them, pass each value to take(), which takes
+ * over its reference.  Returns false if the trie is in use and was not
+ * emptied.
+ */
+
+bool
+trie_empty_take(trie *trie, void (*take)(word value, void *ctx), void *ctx)
+{ value_taker vt = { .take = take, .ctx = ctx };
+
+  return empty_trie(trie, &vt);
 }
 
 
@@ -1315,14 +1348,20 @@ freeZombieTrieChunks(void)
  */
 
 static void
-clear_node(trie *trie, trie_node *n, int flags)
+clear_node(trie *trie, trie_node *n, int flags, const value_taker *vt)
 { trie_children children;
 
 next:
   children = n->children;
 
-  if ( trie->release_node )
-    (*trie->release_node)(trie, n);
+  if ( vt )
+  { if ( n->value )
+    { (*vt->take)(n->value, vt->ctx);
+      n->value = 0;
+    }
+  } else if ( trie->release_node )
+  { (*trie->release_node)(trie, n);
+  }
 
   if ( isoff(n, TN_CHUNKED) )
     release_key(n->key);
@@ -1348,7 +1387,7 @@ next:
 
       for(unsigned i=0; i<b->count; i++)
       { if ( b->entries[i].child )
-	  clear_node(trie, b->entries[i].child, flags|CN_DEALLOC);
+	  clear_node(trie, b->entries[i].child, flags|CN_DEALLOC, vt);
       }
       free_block(trie, b);
     }
@@ -1357,7 +1396,7 @@ next:
 
 static void
 destroy_node(trie *trie, trie_node *n)
-{ clear_node(trie, n, CN_DEALLOC);
+{ clear_node(trie, n, CN_DEALLOC, NULL);
 }
 
 

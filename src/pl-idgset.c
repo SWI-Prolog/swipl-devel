@@ -706,10 +706,20 @@ idg_registry_delete(idg_registry *reg, size_t index)
 
 void
 idg_registry_release(idg_registry *reg)
-{ int left;
+{ idg_registry_release_n(reg, 1);
+}
+
+/* Release n references at once, e.g., those of all nodes when they are
+   destroyed together.
+*/
+
+void
+idg_registry_release_n(idg_registry *reg, size_t n)
+{ size_t left;
 
   REG_LOCK(reg);
-  left = --reg->references;
+  assert(reg->references >= n);
+  left = reg->references -= n;
   REG_UNLOCK(reg);
   if ( left == 0 )
     idg_free_or_defer(free_registry_now, reg, NULL);

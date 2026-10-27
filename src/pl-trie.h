@@ -245,6 +245,8 @@ void	initTries(void);
 trie *	trie_create(alloc_pool *pool);
 int	release_trie_ref(atom_t aref);
 void	trie_empty(trie *trie);
+bool	trie_empty_take(trie *trie,
+			void (*take)(word value, void *ctx), void *ctx);
 void	trie_clean(trie *trie);
 void	trie_delete(trie *trie, trie_node *node, int prune);
 void	prune_node(trie *trie, trie_node *n);

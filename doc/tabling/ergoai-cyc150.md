@@ -1,6 +1,6 @@
 # ErgoAI cyc150: where memory and time go
 
-Status: analysis; proposal 4 implemented.
+Status: analysis; proposals 3 and 4 implemented.
 
 The cyc150 programs of ErgoAI-performance are 144 questions against one
 Cyc-derived KB, run by ergoAIp (ErgoAI on SWI-Prolog).  The TPLP
@@ -152,6 +152,16 @@ per-entry numbers above.
    the pool could be an arena that is released at once.  Atom-GC
    should run once at the end, not 109 times.  Target: seconds instead
    of 29 s; this matters for every workflow that resets.
+
+   *Implemented* (`clear_variant_table()`): the variant table is
+   emptied in one walk that takes over the answer-trie atoms, the
+   tables are reset in atom-index (creation) order, private IDG nodes
+   free their edge sets without touching the other end, the IDG
+   registry is released at once, and the atoms are released after all
+   resets.  `abolish_all_tables` after case A and B: 29.1 s -> 4.4 s,
+   plus 0.9 s of atom-GC in the gc thread.  Most of the gain is cache
+   locality: resetting in variant-table order took 19 s.  The 134 MB
+   of registry slots that used to remain after the abolish are freed.
 
 4. **Do not compile incremental tables with at most one answer.**
    `trie_gen/2` on a one-answer trie exits deterministically, so there

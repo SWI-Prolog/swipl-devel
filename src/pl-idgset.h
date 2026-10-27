@@ -135,7 +135,7 @@ thread's data.  A registry is kept alive by its thread and its nodes.
 #define IDG_REG_BLOCKS	  32
 
 typedef struct idg_registry
-{ int		references;		/* the thread and the nodes */
+{ size_t	references;		/* the thread and the nodes */
   size_t	count;			/* slots in use (high water) */
   size_t	free;			/* first free slot+1 (0: none) */
   struct alloc_pool *pool;		/* table pool the slots come from */
@@ -156,6 +156,7 @@ size_t	idg_registry_add(idg_registry *reg, void *node,
 			 struct alloc_pool *pool);
 void	idg_registry_delete(idg_registry *reg, size_t index);
 void	idg_registry_release(idg_registry *reg);
+void	idg_registry_release_n(idg_registry *reg, size_t n);
 void   *idg_registry_get(const idg_registry *reg, size_t index);
 size_t	idg_registry_count(const idg_registry *reg);
 size_t	idg_registry_sizeof(const idg_registry *reg);
