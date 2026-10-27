@@ -4406,73 +4406,156 @@ typedef struct trie_compile_state
 #if O_TRIE_ATTVAR
   bool		has_attvars;			/* Trie contains attvars */
 #endif
+  bool		sizing;				/* Only compute the size */
   size_t	else_loc;			/* last else */
   size_t	maxvar;				/* Highest var index */
-  tmp_buffer	codes;				/* Output instructions */
+  Clause	clause;				/* Clause we compile into */
+  size_t	ctop;				/* Bytes used in clause->codes */
+  size_t	cmax;				/* Bytes allocated for codes */
+  tmp_buffer	elses;				/* Else chain while sizing */
 } trie_compile_state;
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+We compile a trie in two passes.  The first only computes the size of
+the code, after which the second compiles directly into a clause of that
+size.  Compiling into a growing buffer that is copied into the clause
+needs about twice the memory of the clause, which is significant
+for large tables.  While sizing we cannot use the else-chain in the code
+and keep it in `elses`.  If the trie is modified between the passes the
+clause is grown using realloc().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define clauseBytes(n) (offsetof(struct clause, codes) + (n))
+#define baseCodes(state)    ((state)->clause->codes)
+#define entriesCodes(state) ((state)->ctop/sizeof(code))
+#define addCode(state, obj, type) \
+	do \
+	{ if ( !(state)->sizing ) \
+	  { if ( (state)->ctop + sizeof(type) > (state)->cmax ) \
+	      grow_codes(state, sizeof(type)); \
+	    *(type*)((char*)baseCodes(state) + (state)->ctop) = (obj); \
+	  } \
+	  (state)->ctop += sizeof(type); \
+	} while(0)
+#define addCodes(state, ptr, times, type) \
+	do \
+	{ size_t _len = (size_t)(times)*sizeof(type); \
+	  if ( !(state)->sizing ) \
+	  { if ( (state)->ctop + _len > (state)->cmax ) \
+	      grow_codes(state, _len); \
+	    memcpy((char*)baseCodes(state) + (state)->ctop, ptr, _len); \
+	  } \
+	  (state)->ctop += _len; \
+	} while(0)
+
+static void
+grow_codes(trie_compile_state *state, size_t minfree)
+{ size_t sz = state->cmax;
+
+  if ( sz < 512 )
+    sz = 512;
+  while( state->ctop + minfree > sz )
+    sz *= 2;
+  state->clause = PL_realloc(state->clause, clauseBytes(sz));
+  state->cmax = sz;
+}
 
 static void
 init_trie_compile_state(trie_compile_state *state, trie *trie)
 { memset(state, 0, sizeof(*state));
   state->trie = trie;
-  initBuffer(&state->codes);
-  state->maxvar = 0;
+  state->sizing = true;
+  initBuffer(&state->elses);
+}
+
+/* Prepare for the second pass, compiling into a clause of the size
+ * computed by the first.
+ */
+
+static bool
+start_trie_code(trie_compile_state *state)
+{ assert(state->else_loc == 0);
+  state->cmax         = state->ctop;
+  state->ctop         = 0;
+  state->sizing       = false;
+  state->try          = false;
+  state->last_is_fail = false;
+  state->maxvar       = 0;
+#if O_TRIE_ATTVAR
+  state->has_attvars  = false;
+#endif
+  state->clause = PL_malloc_atomic(clauseBytes(state->cmax));
+  memset(state->clause, 0, sizeof(*state->clause));
+
+  return true;
 }
 
 static void
 clean_trie_compile_state(trie_compile_state *state)
-{ discardBuffer(&state->codes);
+{ if ( state->clause )
+    PL_free(state->clause);
+  discardBuffer(&state->elses);
 }
 
 
 static void
 add_vmi(trie_compile_state *state, vmi c)
-{ addBuffer(&state->codes, encode(c), code);
+{ addCode(state, encode(c), code);
 }
 
 static void
 add_vmi_d(trie_compile_state *state, vmi c, code d)
-{ addBuffer(&state->codes, encode(c), code);
-  addBuffer(&state->codes, d, code);
+{ addCode(state, encode(c), code);
+  addCode(state, d, code);
 }
 
 static void
 add_vmi_w(trie_compile_state *state, vmi c, word d)
-{ addBuffer(&state->codes, encode(c), code);
-  addBuffer(&state->codes, d, word);
+{ addCode(state, encode(c), code);
+  addCode(state, d, word);
 }
 
 
+/* Add the else slot of a T_TRY_* instruction and push it on the
+ * else-chain.  fixup_else() fills the slot and pops it.
+ */
+
+static void
+add_else(trie_compile_state *state)
+{ size_t el = entriesCodes(state);
+
+  if ( state->sizing )
+    addBuffer(&state->elses, state->else_loc, size_t);
+  addCode(state, (code)state->else_loc, code);
+  state->else_loc = el;
+}
+
 static void
 add_vmi_else_d(trie_compile_state *state, vmi c, code d)
-{ size_t el;
-
-  addBuffer(&state->codes, encode(c), code);
-  el = entriesBuffer(&state->codes, code);
-  addBuffer(&state->codes, (code)state->else_loc, code);
-  state->else_loc = el;
-  addBuffer(&state->codes, d, code);
+{ addCode(state, encode(c), code);
+  add_else(state);
+  addCode(state, d, code);
 }
 
 static void
 add_vmi_else_w(trie_compile_state *state, vmi c, word d)
-{ size_t el;
-
-  addBuffer(&state->codes, encode(c), code);
-  el = entriesBuffer(&state->codes, code);
-  addBuffer(&state->codes, (code)state->else_loc, code);
-  state->else_loc = el;
-  addBuffer(&state->codes, d, word);
+{ addCode(state, encode(c), code);
+  add_else(state);
+  addCode(state, d, word);
 }
 
 static void
 fixup_else(trie_compile_state *state)
-{ Code base = baseBuffer(&state->codes, code);
-  size_t pc = entriesBuffer(&state->codes, code);
-  size_t el = state->else_loc;
+{ if ( state->sizing )
+  { state->else_loc = popBuffer(&state->elses, size_t);
+  } else
+  { Code base = baseCodes(state);
+    size_t pc = entriesCodes(state);
+    size_t el = state->else_loc;
 
-  state->else_loc = base[el];
-  base[el] = pc-el-1;
+    state->else_loc = base[el];
+    base[el] = pc-el-1;
+  }
 }
 
 /* Add an indirect to the compiled trie.   Indirects are stored
@@ -4487,7 +4570,7 @@ add_indirect(trie_compile_state *state, vmi op, word w)
   size_t wsize = wsizeofInd(*p);
 
   add_vmi(state, op);
-  addMultipleBuffer(&state->codes, p, wsize+1, word);
+  addCodes(state, p, wsize+1, word);
 }
 
 static void
@@ -4500,15 +4583,14 @@ add_smallint(trie_compile_state *state, vmi c1, vmi c2, word w)
   { add_vmi_d(state, c1, (scode)i);
   } else
   { add_vmi(state, c2);
-    addMultipleBuffer(&state->codes, &i, CODES_PER_WORD, code);
+    addCodes(state, &i, CODES_PER_WORD, code);
   }
 #endif
 }
 
 static void
 add_vmi_else_i(trie_compile_state *state, vmi c1, vmi c2, word w)
-{ size_t el;
-  sword i = valInt(w);
+{ sword i = valInt(w);
   vmi op;
 #if CODES_PER_WORD == 1
   op = c1;
@@ -4516,17 +4598,15 @@ add_vmi_else_i(trie_compile_state *state, vmi c1, vmi c2, word w)
   op =  (scode)i == i ? c1 : c2;
 #endif
 
-  addBuffer(&state->codes, encode(op), code);
-  el = entriesBuffer(&state->codes, code);
-  addBuffer(&state->codes, (code)state->else_loc, code);
-  state->else_loc = el;
+  addCode(state, encode(op), code);
+  add_else(state);
 #if CODES_PER_WORD == 1
-  addBuffer(&state->codes, i, scode);
+  addCode(state, i, scode);
 #else
   if ( (scode)i == i )
-    addBuffer(&state->codes, (scode)i, scode);
+    addCode(state, (scode)i, scode);
   else
-    addMultipleBuffer(&state->codes, &i, CODES_PER_WORD, code);
+    addCodes(state, &i, CODES_PER_WORD, code);
 #endif
 }
 
@@ -4648,7 +4728,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	  add_vmi_d(state, T_FLOAT, ip[0]);
 #if SIZEOF_CODE == 4
 	  static_assertion(sizeof(double) == sizeof(code)*2);
-	  addBuffer(&state->codes, ip[1], code);
+	  addCode(state, ip[1], code);
 #endif
           break;
 	}
@@ -4811,7 +4891,7 @@ next:
 	  }
       }
 
-      addMultipleBuffer(&state->codes, h->data, wsize, word);
+      addCodes(state, h->data, wsize, word);
     indirect_done:
       break;
     }
@@ -4922,20 +5002,18 @@ register_trie_clause_atom(atom_t a, void *ctx)
 
 static bool
 create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
-{ size_t code_size = entriesBuffer(&state->codes, code);
-  size_t size      = sizeofClause(code_size);
-//size_t clsize    = size + SIZEOF_CREF_CLAUSE;
+{ size_t code_size = entriesCodes(state);
   Clause cl;
 
-  cl = PL_malloc_atomic(size);
-  memset(cl, 0, sizeof(*cl));
+  if ( state->ctop != state->cmax )	/* trie changed after sizing */
+    state->clause = PL_realloc(state->clause, sizeofClause(code_size));
+  cl = state->clause;
+  state->clause = NULL;			/* now owned by the caller */
   cl->predicate = def;
   cl->code_size = code_size;
   cl->prolog_vars = (clsize_t)(TRIE_VAR_OFFSET + state->maxvar);
   cl->variables = cl->prolog_vars;	/* 2: pseudo arity */
   set(cl, UNIT_CLAUSE);			/* no body */
-  memcpy(cl->codes, baseBuffer(&state->codes, code),
-	 sizeOfBuffer(&state->codes));
   forAtomsInClause(cl, register_trie_clause_atom, NULL);
   *cp = cl;
 
@@ -4943,6 +5021,17 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
   ATOMIC_INC(&GD->statistics.clauses);
 
   return true;
+}
+
+
+#define compile_trie_code(trie, gen, state) \
+	LDFUNC(compile_trie_code, trie, gen, state)
+
+static bool
+compile_trie_code(DECL_LD trie *trie, vmi gen, trie_compile_state *state)
+{ add_vmi(state, gen);
+  return ( compile_trie_node(&trie->root, state) &&
+	   fixup_last_fail(state) );
 }
 
 
@@ -4962,11 +5051,13 @@ retry:
       ClauseRef cref;
       fid_t fid;
 
+      vmi gen = def->functor->arity == 2 ? T_TRIE_GEN2 : T_TRIE_GEN3;
+
       init_trie_compile_state(&state, trie);
-      add_vmi(&state, def->functor->arity == 2 ? T_TRIE_GEN2 : T_TRIE_GEN3);
       if ( (fid=PL_open_foreign_frame()) )
-      { if ( compile_trie_node(&trie->root, &state) &&
-	     fixup_last_fail(&state) &&
+      { if ( compile_trie_code(trie, gen, &state) &&	/* sizing */
+	     start_trie_code(&state) &&
+	     compile_trie_code(trie, gen, &state) &&
 	     create_trie_clause(def, &cl, &state) )
 	{ cref = assertDefinition(def, cl, CL_END);
 	  if ( cref )
