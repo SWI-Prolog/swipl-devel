@@ -2615,7 +2615,7 @@ variant_table(DECL_LD bool shared)
     if ( (t = trie_create(pool)) )
     { atom_t symb;
 
-      t->release_node = release_variant_table_node;
+      set(t, TRIE_ISVARIANT);
       if ( shared )
 	set(t, TRIE_CONCURRENT);		/* before publishing in *tp */
       symb = trie_symbol(t);
@@ -2692,7 +2692,7 @@ release_variant_table_node(trie *variant_table, trie_node *node)
 
 static bool
 is_variant_trie(trie *trie)
-{ return trie->release_node == release_variant_table_node;
+{ return ison(trie, TRIE_ISVARIANT);
 }
 
 
@@ -3005,6 +3005,19 @@ release_answer_node(trie *atrie, trie_node *node)
 }
 
 
+/* Called by the trie code when node n of the answer trie or variant
+   table trie is released.
+*/
+
+void
+tbl_release_node(trie *trie, trie_node *n)
+{ if ( ison(trie, TRIE_ISVARIANT) )
+    release_variant_table_node(trie, n);
+  else
+    release_answer_node(trie, n);
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 get_answer_table(+Variant, -Return, int flags)
 
@@ -3123,7 +3136,6 @@ retry:
 	return NULL;
       set(atrie, TRIE_ISTABLE|((flags&AT_MODED) ? TRIE_ISMAP : TRIE_ISSET));
       atrie->data.predicate = def;
-      atrie->release_node = release_answer_node;
       atrie->data.variant = node;
 
 #ifdef O_PLMT
@@ -7323,7 +7335,7 @@ PRED_IMPL("$is_answer_trie", 2, is_answer_trie, 0)
   trie *atrie;
 
   if ( get_trie_noex(A1, &atrie) &&
-       atrie->release_node == release_answer_node )
+       ison(atrie, TRIE_ISTABLE) )
   { idg_node *n;
 
     if ( atrie->data.worklist == WL_DYNAMIC )

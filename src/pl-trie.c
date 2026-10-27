@@ -203,6 +203,15 @@ static void		clear_node(trie *trie, trie_node *n, int flags,
 static void		free_lingering_blocks(trie *trie);
 static void		free_node_chunks(trie *trie);
 static inline void	release_value(word value);
+
+/* Release the tabling data of node n of trie (see tbl_release_node()) */
+
+static inline void
+release_node(trie *trie, trie_node *n)
+{ if ( ison(trie, TRIE_ISTABLE) ? ison(n, TN_DELAYINFO)
+				 : ison(trie, TRIE_ISVARIANT) )
+    tbl_release_node(trie, n);
+}
 static void		release_trie_value(trie *t);
 
 
@@ -321,7 +330,7 @@ trie_empty(trie *trie)
 }
 
 /* As trie_empty(), but instead of releasing the values and calling the
- * release_node hook for them, pass each value to take(), which takes
+ * release hook (tbl_release_node()) for them, pass each value to take(), which takes
  * over its reference.  Returns false if the trie is in use and was not
  * emptied.
  */
@@ -1356,8 +1365,8 @@ next:
     { (*vt->take)(n->value, vt->ctx);
       n->value = 0;
     }
-  } else if ( trie->release_node )
-  { (*trie->release_node)(trie, n);
+  } else
+  { release_node(trie, n);
   }
 
   if ( isoff(n, TN_CHUNKED) )
@@ -2606,8 +2615,7 @@ trie_delete(trie *trie, trie_node *node, int prune)
     } else
     { word v;
 
-      if ( trie->release_node )
-	(*trie->release_node)(trie, node);
+      release_node(trie, node);
 
       if ( (v=node->value) )
       { node->value = 0;

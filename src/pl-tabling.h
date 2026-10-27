@@ -387,6 +387,7 @@ int	setMonotonicMode(atom_t a);
 void	tbl_set_incremental_predicate(Definition def, int val);
 atom_t	tbl_complete_answer_clause(Definition def);
 trie_node *tbl_single_answer(trie *atrie);
+void	tbl_release_node(trie *trie, trie_node *n);
 bool	tbl_leader_finished(term_t old, term_t catcher,
 			    term_t scc, term_t wrapper);
 bool	tbl_reset_add_answer(LocalFrame fr);

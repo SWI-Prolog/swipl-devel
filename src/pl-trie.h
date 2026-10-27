@@ -121,6 +121,7 @@ typedef struct trie_node
 #define TRIE_CONCURRENT	0x0080		/* Lock for concurrent writers */
 #define TRIE_DISCARDABLE 0x0100		/* Discard nodes after compilation */
 #define TRIE_DISCARDED	0x0200		/* Nodes discarded; clause has keys */
+#define TRIE_ISVARIANT	0x0400		/* Trie is a variant table */
 
 /* Nodes of tries without concurrent writers are allocated from chunks
  * that are freed with the trie (see alloc_trie_node()).  The newest
@@ -161,7 +162,6 @@ typedef struct trie
 #endif
   trie_node		root;		/* the root node */
   indirect_table       *indirects;	/* indirect values */
-  void		      (*release_node)(struct trie *, trie_node *);
   alloc_pool	       *alloc_pool;	/* Node allocation pool */
   atom_t		clause;		/* Compiled representation */
   union
@@ -170,8 +170,8 @@ typedef struct trie
   } mem;
 #ifdef O_TRIE_STATS
   struct
-  { uint64_t		lookups;	/* trie_lookup */
-    uint64_t		gen_call;	/* trie_gen calls */
+  { unsigned int	lookups;	/* trie_lookup (wraps) */
+    unsigned int	gen_call;	/* trie_gen calls (wraps) */
 #ifdef O_PLMT
     unsigned int	deadlock;	/* times involved in a deadlock */
     unsigned int	wait;		/* times waited for */
