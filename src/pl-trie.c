@@ -125,35 +125,31 @@ static void	trie_destroy(trie *trie);
 		 *	       SYMBOL		*
 		 *******************************/
 
-typedef struct tref
-{ trie *trie;				/* represented trie */
-} tref;
+/* The blob of a trie does not copy its data: the data of the atom is the
+   trie itself, so symbol_trie() needs no extra indirection and creating
+   the symbol needs no allocation.  The trie lives as long as its atom.
+*/
 
 static int
 write_trie_ref(IOSTREAM *s, atom_t aref, int flags)
-{ tref *ref = PL_blob_data(aref, NULL, NULL);
+{ trie *t = PL_blob_data(aref, NULL, NULL);
   (void)flags;
 
-  Sfprintf(s, "<trie>(%p)", ref->trie);
+  Sfprintf(s, "<trie>(%p)", t);
   return true;
 }
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 GC a trie. Note that the  Prolog predicate trie_destroy/1 merely empties
-the trie, leaving its destruction to   the  atom garbage collector. This
-function is also called from pl-tabling.c   when  we accidentally create
-the same variant trie concurrently and  need   to  dispose  of one. As a
-result, this must be public and thread-safe.
+the trie, leaving its destruction to   the  atom garbage collector.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+static int
 release_trie_ref(atom_t aref)
-{ tref *ref = PL_blob_data(aref, NULL, NULL);
-  trie *t = ref->trie;
+{ trie *t = PL_blob_data(aref, NULL, NULL);
 
-  if ( t && COMPARE_AND_SWAP_PTR(&ref->trie, t, NULL) )
-    trie_destroy(t);			/* can be called twice */
+  trie_destroy(t);
 
   return true;
 }
@@ -161,10 +157,10 @@ release_trie_ref(atom_t aref)
 
 static int
 save_trie(atom_t aref, IOSTREAM *fd)
-{ tref *ref = PL_blob_data(aref, NULL, NULL);
+{ trie *t = PL_blob_data(aref, NULL, NULL);
   (void)fd;
 
-  return PL_warning("Cannot save reference to <trie>(%p)", ref->trie);
+  return PL_warning("Cannot save reference to <trie>(%p)", t);
 }
 
 
@@ -178,7 +174,7 @@ load_trie(IOSTREAM *fd)
 
 static PL_blob_t trie_blob =
 { PL_BLOB_MAGIC,
-  0,
+  PL_BLOB_NOCOPY,
   "trie",
   release_trie_ref,
   NULL,
@@ -2298,11 +2294,9 @@ trie_table_size(trie *atrie)
 atom_t
 trie_symbol(trie *trie)
 { if ( !trie->symbol )
-  { tref ref;
-    int new;
+  { int new;
 
-    ref.trie = trie;
-    trie->symbol = lookupBlob((void*)&ref, sizeof(ref),
+    trie->symbol = lookupBlob((void*)trie, sizeof(*trie),
 			      &trie_blob, &new);
   }
 
@@ -2316,10 +2310,10 @@ symbol_trie(atom_t symbol)
   PL_blob_t *type;
 
   if ( (data = PL_blob_data(symbol, NULL, &type)) && type == &trie_blob )
-  { tref *ref = data;
+  { trie *t = data;
 
-    if ( ref->trie->magic == TRIE_MAGIC )
-      return ref->trie;
+    if ( t->magic == TRIE_MAGIC )
+      return t;
   }
 
   return NULL;
@@ -2339,10 +2333,10 @@ get_trie(term_t t, trie **tp)
   PL_blob_t *type;
 
   if ( PL_get_blob(t, &data, NULL, &type) && type == &trie_blob )
-  { tref *ref = data;
+  { trie *trie = data;
 
-    if ( ref->trie->magic == TRIE_MAGIC )
-    { *tp = ref->trie;
+    if ( trie->magic == TRIE_MAGIC )
+    { *tp = trie;
       return true;
     }
 
@@ -2360,9 +2354,7 @@ get_trie_noex(term_t t, trie **tp)
   PL_blob_t *type;
 
   if ( PL_get_blob(t, &data, NULL, &type) && type == &trie_blob )
-  { tref *ref = data;
-
-    *tp = ref->trie;
+  { *tp = data;
     return true;
   }
 
@@ -2420,9 +2412,9 @@ PRED_IMPL("is_trie", 1, is_trie, 0)
   PL_blob_t *type;
 
   if ( PL_get_blob(A1, &data, NULL, &type) && type == &trie_blob )
-  { tref *ref = data;
+  { trie *t = data;
 
-    if ( ref->trie->magic == TRIE_MAGIC )
+    if ( t->magic == TRIE_MAGIC )
       return true;
   }
 

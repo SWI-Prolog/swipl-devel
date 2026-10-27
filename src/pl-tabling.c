@@ -3082,9 +3082,8 @@ retry:
 	if ( COMPARE_AND_SWAP_WORD(&node->value, 0, symb) )
 	{ set(node, TN_PRIMARY);
 	  TRIE_COUNT_INC(variants, value_count);
-	} else
-	{ release_trie_ref(symb);
-	  PL_unregister_atom(symb);
+	} else				/* atom-GC destroys our trie */
+	{ PL_unregister_atom(symb);
 	  atrie = symbol_trie(word2atom(node->value));
 	}
       } else
