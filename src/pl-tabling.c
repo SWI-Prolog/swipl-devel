@@ -295,6 +295,37 @@ static idg_mdep *idg_mdeps(idg_node *child, idg_node *parent);
 
 #define DL_IS_DELAY_LIST(dl)	((dl) && (dl) != DL_UNDEFINED)
 
+/* The delay info of an answer node is in a table, as few answers have
+   one and adding it to each node would add 8 bytes to every trie node.
+   TN_DELAYINFO tells the node has an entry.  release_answer_node()
+   removes the entry when the node goes.
+*/
+
+static TablePP answer_delay_infos;	/* trie_node -> delay_info */
+
+static inline delay_info *
+node_delayinfo(const trie_node *n)
+{ if ( ison(n, TN_DELAYINFO) )
+  { GET_LD
+    return lookupHTablePP(answer_delay_infos, (void*)n);
+  }
+
+  return NULL;
+}
+
+static void
+set_node_delayinfo(trie_node *n, delay_info *di)
+{ GET_LD
+
+  if ( di )
+  { updateHTablePP(answer_delay_infos, n, di);
+    set(n, TN_DELAYINFO);
+  } else if ( ison(n, TN_DELAYINFO) )
+  { clear(n, TN_DELAYINFO);
+    deleteHTablePP(answer_delay_infos, n);
+  }
+}
+
 #define IDG_CHANGED_NODE	0x0001		/* Normal node change */
 #define IDG_CHANGED_MONO	0x0002		/* Monotonic node change */
 #define IDG_PROPAGATE_FORCE	0x0004		/* See (**) */
@@ -951,7 +982,7 @@ int
 answer_is_conditional(trie_node *answer)
 { delay_info *di;
 
-  return ( (di=answer->data.delayinfo) &&
+  return ( (di=node_delayinfo(answer)) &&
 	   (di == DL_UNDEFINED || !isEmptyBuffer(&di->delay_sets)) );
 }
 
@@ -959,7 +990,7 @@ static delay_info *
 answer_delay_info(worklist *wl, trie_node *answer, int create)
 { delay_info *di;
 
-  if ( (di=answer->data.delayinfo) )
+  if ( (di=node_delayinfo(answer)) )
   { return di;
   } else if ( !create )
   { return NULL;
@@ -968,7 +999,7 @@ answer_delay_info(worklist *wl, trie_node *answer, int create)
     di->has_share_records = false;
     initBuffer(&di->delay_sets);
     initBuffer(&di->delays);
-    answer->data.delayinfo = di;
+    set_node_delayinfo(answer, di);
     wl->undefined++;
 
     return di;
@@ -1002,10 +1033,10 @@ delete_answer(Buffer ab,  trie_node *answer)
 
 static void
 destroy_delay_info(trie *atrie, trie_node *answer, int propagate)
-{ delay_info *di = answer->data.delayinfo;
+{ delay_info *di = node_delayinfo(answer);
 
   if ( DL_IS_DELAY_LIST(di) )
-  { answer->data.delayinfo = NULL;
+  { set_node_delayinfo(answer, NULL);
     if ( di->has_share_records )
     { delay *d = baseBuffer(&di->delays, delay);
       delay *z = topBuffer(&di->delays, delay);
@@ -1056,7 +1087,7 @@ destroy_delay_info(trie *atrie, trie_node *answer, int propagate)
 static void
 answer_set_general_undefined(trie *atrie, trie_node *answer)
 { destroy_delay_info(atrie, answer, true);
-  answer->data.delayinfo = DL_UNDEFINED;
+  set_node_delayinfo(answer, DL_UNDEFINED);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1080,7 +1111,7 @@ delete_depending_answers(worklist *wl, TmpBuffer wlset)
 
     assert(wl->depend_abolish);
 
-    if ( DL_IS_DELAY_LIST(di=answer->data.delayinfo) )
+    if ( DL_IS_DELAY_LIST(di=node_delayinfo(answer)) )
     { trie *at = value_trie(di->variant->value);
       worklist *dwl;
 
@@ -1138,7 +1169,7 @@ static void *
 destroy_delay_info_answer(trie_node *answer, void *ctx)
 { trie *atrie = ctx;
 
-  if ( DL_IS_DELAY_LIST(answer->data.delayinfo) )
+  if ( DL_IS_DELAY_LIST(node_delayinfo(answer)) )
   { answer_set_general_undefined(atrie, answer);
   }
 
@@ -1322,9 +1353,9 @@ retry:
   if ( isNil(*ldlp) && isNil(*gdlp) )
   { delay_info *di;
 
-    if ( (di=answer->data.delayinfo) )
+    if ( (di=node_delayinfo(answer)) )
     { destroy_delay_info(wl->table, answer, true);
-      answer->data.delayinfo = NULL;
+      set_node_delayinfo(answer, NULL);
       wl->undefined--;
       DEBUG(MSG_TABLING_SIMPLIFY,
 	    Sdprintf("Unconditional answer after conditional\n"));
@@ -1389,7 +1420,7 @@ retry:
 	    } else			/* deleted trie or 'undefined' */
 	    { undef:
 	      destroy_delay_info(wl->table, answer, true);
-	      answer->data.delayinfo = DL_UNDEFINED;
+	      set_node_delayinfo(answer, DL_UNDEFINED);
 	      return UDL_TRUE;
 	    }
 	  } else if ( isTerm(*h) )
@@ -1520,7 +1551,7 @@ update_delay_list(DECL_LD worklist *wl, trie_node *answer,
   deRef(gdlp);
   deRef2(valTermRef(delays), ldlp);
 
-  if ( isNil(*ldlp) && isNil(*gdlp) && !answer->data.delayinfo &&
+  if ( isNil(*ldlp) && isNil(*gdlp) && !node_delayinfo(answer) &&
        !(wl->table->data.IDG && wl->table->data.IDG->reevaluating) )
   { DEBUG(TABLING_NO_EARLY_COMPLETION,
 	  return UDL_TRUE);
@@ -1787,7 +1818,7 @@ static void print_delay(const char *msg, trie_node *variant, trie_node *answer);
 
 static int
 make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
-{ delay_info *di = answer->data.delayinfo;
+{ delay_info *di = node_delayinfo(answer);
 
   if ( DL_IS_DELAY_LIST(di) )
   { trie *at = value_trie(di->variant->value);
@@ -1813,7 +1844,7 @@ make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
 
 static int
 remove_conditional_answer(spf_agenda *agenda, trie_node *answer)
-{ delay_info *di = answer->data.delayinfo;
+{ delay_info *di = node_delayinfo(answer);
 
   if ( DL_IS_DELAY_LIST(di) )
   { trie *at = value_trie(di->variant->value);
@@ -1955,7 +1986,7 @@ static bool
 answer_delays_on(trie_node *answer, trie *atrie)
 { delay_info *di;
 
-  if ( DL_IS_DELAY_LIST(di=answer->data.delayinfo) )
+  if ( DL_IS_DELAY_LIST(di=node_delayinfo(answer)) )
   { delay *db = baseBuffer(&di->delays, delay);
     delay_set *ds, *dz;
 
@@ -2259,7 +2290,7 @@ static bool
 has_positive_dl(trie_node *n)
 { delay_info *di;
 
-  if ( n->value && DL_IS_DELAY_LIST(di=n->data.delayinfo) )
+  if ( n->value && DL_IS_DELAY_LIST(di=node_delayinfo(n)) )
   { delay_set *ds, *dz;
     delay *db = baseBuffer(&di->delays, delay);
 
@@ -2347,7 +2378,7 @@ PRED_IMPL("$tbl_force_truth_value", 3, tbl_force_truth_value, 0)
   if ( PL_get_pointer_ex(A1, &ptr) &&
        PL_get_stdbool_ex(A2, &truth) )
   { trie_node *answer = ptr;
-    delay_info *di = answer->data.delayinfo;
+    delay_info *di = node_delayinfo(answer);
     spf_agenda agenda;
     propagate *p;
 
@@ -2966,8 +2997,11 @@ unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
 
 static void
 release_answer_node(trie *atrie, trie_node *node)
-{ if ( DL_IS_DELAY_LIST(node->data.delayinfo) )
-    destroy_delay_info(atrie, node, true);
+{ if ( ison(node, TN_DELAYINFO) )
+  { if ( DL_IS_DELAY_LIST(node_delayinfo(node)) )
+      destroy_delay_info(atrie, node, true);
+    set_node_delayinfo(node, NULL);		/* DL_UNDEFINED */
+  }
 }
 
 
@@ -11065,7 +11099,7 @@ reeval_prep_node(trie_node *n, void *ctx)
     { worklist *wl;
 
       destroy_delay_info(atrie, n, true);
-      n->data.delayinfo = NULL;
+      set_node_delayinfo(n, NULL);
       clear(n, TN_IDG_UNCONDITIONAL);
       if ( WL_IS_WORKLIST(wl=atrie->data.worklist) && wl->undefined > 0 )
 	wl->undefined--;		/* (*) */
@@ -11306,7 +11340,7 @@ reset_evaluate_node(trie_node *n, void *ctx)
 
   if ( answer_is_conditional(n) )
   { destroy_delay_info(atrie, n, true);
-    n->data.delayinfo = NULL;
+    set_node_delayinfo(n, NULL);
   }
 
   if ( ison(n, TN_IDG_ADDED) )
@@ -12592,6 +12626,7 @@ initTabling(void)
   cv_init(&GD->tabling.cvar, NULL);
   GD->tabling.idg_registry = idg_registry_new();
 #endif
+  answer_delay_infos = newHTablePP(64);
   initIDGReaders();
 
   LD->tabling.restraint.max_table_subgoal_size_action  = ATOM_error;

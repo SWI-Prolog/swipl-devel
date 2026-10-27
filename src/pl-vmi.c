@@ -6232,7 +6232,7 @@ VMI(T_DELAY, 0, 1, (CA1_TRIE_NODE))
   if ( answer )
   { trie *trie;
 
-    if ( !answer->data.delayinfo )	/* (*) */
+    if ( isoff(answer, TN_DELAYINFO) )	/* (*) */
       NEXT_INSTRUCTION;
 
     trie  = get_trie_from_node(answer);

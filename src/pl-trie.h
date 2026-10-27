@@ -97,6 +97,7 @@ typedef struct trie_children_block
 #define TN_IDG_AS_LAST			0x0040	/* IDG: answer subsumption node */
 #define TN_PINNED			0x0080	/* Never pruned (cached node) */
 #define TN_CHUNKED			0x0100	/* Allocated in a node chunk */
+#define TN_DELAYINFO			0x0200	/* Answer has delay info */
 #define TN_CHUNK_INDEX_SHIFT		16	/* Index in chunk: upper bits */
 #define TN_IDG_MASK \
 	(TN_IDG_DELETED|TN_IDG_ADDED| \
@@ -107,9 +108,6 @@ typedef struct trie_node
   word			key;
   struct trie_node     *parent;
   trie_children		children;
-  struct
-  { struct delay_info  *delayinfo;	/* can be unified with children */
-  } data;
   unsigned		flags;		/* TN_* */
 } trie_node;
 
