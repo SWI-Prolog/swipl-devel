@@ -139,6 +139,27 @@ per-entry numbers above.
    is a per-predicate option ergoAIp could use for its rule metadata
    (`'$opposes_f'/2`, `'$cand'/2`).
 
+   *Measured:* the coarse variant exists: `dynamic p/1 as
+   (incremental, abstract(0))` records a call as the most general
+   variant.  Redeclaring `'$opposes_f'/2`, `'$opposes4_f'/4`,
+   `'$opposes_open'/2` and `'$cand'/2` this way after loading the core
+   (`tools/ergo_bench_abstract.pl`, with proposals 3 and 4):
+
+   | | per variant | `abstract(0)` |
+   |---|---:|---:|
+   | solve case A | 33.3 s | 35.5 s |
+   | table space | 9.08 GB | 5.61 GB |
+   | atoms | 12.97M | 7.59M |
+   | RSS | 13.76 GB | 9.87 GB |
+   | solve case B, tables kept | 11.7 s, 88.7M inferences | 11.7 s, 88.7M inferences |
+   | `abolish_all_tables` | 4.4 s | 2.6 s |
+
+   Case B does not change these predicates, so the coarser dependency
+   costs nothing here; a workflow that changes the rules would
+   re-evaluate more.  About 1.2M dependency nodes remain, mostly
+   `'$fact'/1`, so lightweight nodes would then save about 0.3 GB
+   instead of 1.6 GB.
+
 2. **Tables without blob atoms.**  The variant table stores the atom of
    each answer trie and the code maps it back with `symbol_trie()`.
    Storing the trie pointer and creating the blob only when Prolog
