@@ -204,12 +204,23 @@ typedef struct delay_info
 #define IDG_MDEP_MAGIC 0x745af3b0
 
 /* The edges child->parent are in child->affected and parent->dependent.
-   For a monotonic dependency, child->mono_deps maps the parent to the
+   For a monotonic dependency, child->mono->deps maps the parent to the
    chain of idg_mdep structures of the edge.  The chain ends in the
    child.  `concurrent` is set if other threads may modify the edge sets,
    i.e., the node is shared or has an edge to a shared node.  See
    pl-idgset.h.
+
+   There is an idg_node for each incremental table and each call to an
+   incremental dynamic predicate, so we keep it small: the fields for
+   monotonic dependencies are in idg_mono, which only nodes that have
+   monotonic dependencies allocate (idg_ensure_mono()).
 */
+
+typedef struct idg_mono
+{ TablePP	deps;			/* parent -> idg_mdep chain */
+  trie	       *index;			/* Monotonic dependencies by skeleton */
+  TablePP	index_deps;		/* index leaf -> its dependencies */
+} idg_mono;
 
 typedef struct idg_node
 { int           magic;			/* IDG_NODE_MAGIC */
@@ -218,10 +229,17 @@ typedef struct idg_node
   idg_set	affected;		/* parent IDG nodes */
   idg_set	dependent;		/* child IDG nodes */
   idg_set_block *lingering;		/* replaced blocks of both sets */
-  TablePP	mono_deps;		/* parent -> idg_mdep chain */
+  idg_mono     *mono;			/* monotonic dependencies or NULL */
   struct idg_registry *registry;	/* registry we are in */
-  size_t	registry_index;		/* our slot in it */
-  size_t	answer_count;		/* #answers in previous complete state */
+  unsigned	registry_index;		/* our slot in it */
+  unsigned	answer_count;		/* #answers in previous complete state */
+  unsigned	falsecount;		/* Invalidate count */
+#ifdef O_TRIE_STATS
+  struct
+  { unsigned	invalidated;		/* # times it was invalidated */
+    unsigned	reevaluated;		/* # times it was re-evaluated */
+  } stats;
+#endif
   unsigned	new_answer : 1;		/* Update generated a new answer */
   unsigned	reevaluating : 1;	/* currently re-evaluating */
   unsigned	aborted : 1;		/* re-evaluation was aborted */
@@ -233,15 +251,6 @@ typedef struct idg_node
   unsigned	tt_notrail : 1;		/* Do not trail new monotonic answers */
   unsigned	tt_new_dep : 1;		/* New dependency on transition mod */
   unsigned	mono_dep_seen : 1;	/* Has had a monotonic dependency */
-  size_t	falsecount;		/* Invalidate count */
-  trie	       *mono_index;		/* Monotonic dependencies by skeleton */
-  TablePP	mono_index_deps;	/* mono_index leaf -> its dependencies */
-#ifdef O_TRIE_STATS
-  struct
-  { uint64_t	invalidated;		/* # times it was invalidated */
-    uint64_t	reevaluated;		/* # times it was re-evaluated */
-  } stats;
-#endif
 } idg_node;
 
 

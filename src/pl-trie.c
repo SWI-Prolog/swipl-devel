@@ -4264,7 +4264,10 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
 
 	  size += idg_set_sizeof(&idg->affected);
 	  size += idg_set_sizeof(&idg->dependent);
-	  if ( idg->mono_deps ) size += sizeofTablePP(idg->mono_deps);
+	  if ( idg->mono )
+	  { size += sizeof(*idg->mono);
+	    if ( idg->mono->deps ) size += sizeofTablePP(idg->mono->deps);
+	  }
 
 	  return PL_unify_int64(arg, size);
 	}

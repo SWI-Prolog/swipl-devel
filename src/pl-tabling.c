@@ -7772,10 +7772,16 @@ idg_new(trie *atrie)
     if ( !(reg=LD->tabling.idg_registry) )
       reg = LD->tabling.idg_registry = idg_registry_new();
   }
-  if ( (n->registry_index = idg_registry_add(reg, n, pool)) == (size_t)-1 )
-  { free_to_pool(pool, n, sizeof(*n));
+  size_t index = idg_registry_add(reg, n, pool);
+  if ( index > UINT_MAX )		/* includes (size_t)-1: error */
+  { if ( index != (size_t)-1 )
+    { idg_registry_delete(reg, index);
+      PL_resource_error("table_space");
+    }
+    free_to_pool(pool, n, sizeof(*n));
     return NULL;
   }
+  n->registry_index = (unsigned)index;
   n->registry = reg;
 
   return n;
@@ -7791,6 +7797,50 @@ idg_release_registry(PL_local_data_t *ld)
   { ld->tabling.idg_registry = NULL;
     idg_registry_release(reg);
   }
+}
+
+/* The monotonic dependencies of n (see idg_mono) */
+
+static inline TablePP
+idg_mono_deps(const idg_node *n)
+{ idg_mono *m = n->mono;
+
+  return m ? m->deps : NULL;
+}
+
+static inline trie *
+idg_mono_index(const idg_node *n)
+{ idg_mono *m = n->mono;
+
+  return m ? m->index : NULL;
+}
+
+static inline TablePP
+idg_mono_index_deps(const idg_node *n)
+{ idg_mono *m = n->mono;
+
+  return m ? m->index_deps : NULL;
+}
+
+/* Make sure n has an idg_mono.  Returns NULL after raising a resource
+   error.  It is freed with the node (idg_free_node()).
+*/
+
+static idg_mono *
+idg_ensure_mono(idg_node *n)
+{ idg_mono *m;
+
+  if ( !(m=n->mono) )
+  { if ( !(m=alloc_from_pool(idg_pool(n), sizeof(*m))) )
+      return NULL;
+    memset(m, 0, sizeof(*m));
+    if ( !COMPARE_AND_SWAP_PTR(&n->mono, NULL, m) )
+    { free_to_pool(idg_pool(n), m, sizeof(*m));
+      m = n->mono;
+    }
+  }
+
+  return m;
 }
 
 /* Where replaced blocks of the edge sets of n go: NULL if only this
@@ -7812,7 +7862,7 @@ idg_mdeps(idg_node *child, idg_node *parent)
 { GET_LD
   TablePP t;
 
-  if ( (t=child->mono_deps) )
+  if ( (t=idg_mono_deps(child)) )
     return lookupHTablePP(t, parent);
 
   return NULL;
@@ -7846,7 +7896,11 @@ idg_reset(idg_node *node)
 
 static void
 idg_free_node(void *ptr, void *ctx)
-{ free_to_pool(ctx, ptr, sizeof(idg_node));
+{ idg_node *n = ptr;
+
+  if ( n->mono )
+    free_to_pool(ctx, n->mono, sizeof(idg_mono));
+  free_to_pool(ctx, ptr, sizeof(idg_node));
 }
 
 static void
@@ -7855,8 +7909,8 @@ idg_destroy(idg_node *node)
 
   idg_clean_affected(node);
   idg_clean_dependent(node);
-  if ( (table=node->mono_deps) )
-  { node->mono_deps = NULL;
+  if ( node->mono && (table=node->mono->deps) )
+  { node->mono->deps = NULL;
     destroyHTablePP(table);
   }
   mono_index_release(node);
@@ -7882,12 +7936,12 @@ idg_destroy_private(idg_node *node)
 { TablePP table;
 
   idg_set_clear(&node->affected,
-		node->mono_deps ? idg_free_mdeps_affected : NULL, node,
+		idg_mono_deps(node) ? idg_free_mdeps_affected : NULL, node,
 		idg_lingering(node), idg_pool(node));
   idg_set_clear(&node->dependent, NULL, NULL,
 		idg_lingering(node), idg_pool(node));
-  if ( (table=node->mono_deps) )
-  { node->mono_deps = NULL;
+  if ( node->mono && (table=node->mono->deps) )
+  { node->mono->deps = NULL;
     destroyHTablePP(table);
   }
   mono_index_release(node);
@@ -7912,10 +7966,10 @@ free_mdep_chain(idg_node *child)
   { idg_mdep *mdep = (idg_mdep*)child;
 
     child = mdep->next.child;
-    if ( mdep->index_node && src->mono_index_deps &&
-	 lookupHTablePP(src->mono_index_deps, mdep->index_node) == mdep )
-    { deleteHTablePP(src->mono_index_deps, mdep->index_node);
-      trie_delete(src->mono_index, mdep->index_node, true);
+    if ( mdep->index_node && idg_mono_index_deps(src) &&
+	 lookupHTablePP(idg_mono_index_deps(src), mdep->index_node) == mdep )
+    { deleteHTablePP(idg_mono_index_deps(src), mdep->index_node);
+      trie_delete(idg_mono_index(src), mdep->index_node, true);
     }
     free_mdep(mdep);
   }
@@ -7930,8 +7984,8 @@ idg_free_mdeps(idg_node *child, idg_node *parent)
 { GET_LD
   idg_mdep *mdep;
 
-  if ( child->mono_deps &&
-       (mdep=deleteHTablePP(child->mono_deps, parent)) )
+  if ( idg_mono_deps(child) &&
+       (mdep=deleteHTablePP(idg_mono_deps(child), parent)) )
     free_mdep_chain((idg_node*)mdep);
 }
 
@@ -8099,13 +8153,15 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
     if ( !mdep0 )
       mdep0 = (idg_mdep*)child;			/* a chain ends in the child */
 
-    switch( child->mono_index ? mono_index_find(child, parent, dep, &mdep)
+    switch( idg_mono_index(child) ? mono_index_find(child, parent, dep, &mdep)
 			      : find_dep(mdep0, dep, &mdep) )
     { case true:
 	break;
       case false:
 	DEBUG(MSG_TABLING_IDG,
 	      Sdprintf("  New dependency\n"));
+	if ( !idg_ensure_mono(child) )
+	  return false;
 	if ( !(mdep=new_mdep(dep)) )
 	  return false;
 	if ( child->lazy )
@@ -8114,19 +8170,19 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 	  mdep->lazy = true;
 					/* index the second and later */
 	if ( mono_indexable(child) &&
-	     (child->mono_index || child->mono_dep_seen) &&
-	     !( (child->mono_index || mono_index_build(child)) &&
+	     (idg_mono_index(child) || child->mono_dep_seen) &&
+	     !( (idg_mono_index(child) || mono_index_build(child)) &&
 		mono_index_insert(child, parent, mdep, dep) ) )
 	{ free_mdep(mdep);
 	  return false;
 	}
 	child->mono_dep_seen = true;
 	mdep->next.any = mdep0;
-	if ( !(t=child->mono_deps) )
+	if ( !(t=idg_mono_deps(child)) )
 	{ t = newHTablePP(4);
-	  if ( !COMPARE_AND_SWAP_PTR(&child->mono_deps, NULL, t) )
+	  if ( !COMPARE_AND_SWAP_PTR(&child->mono->deps, NULL, t) )
 	  { destroyHTablePP(t);
-	    t = child->mono_deps;
+	    t = child->mono->deps;
 	  }
 	}
 	if ( mdep0 == (idg_mdep*)child )
@@ -8748,8 +8804,8 @@ PRED_IMPL("$idg_mono_index", 2, idg_mono_index, 0)
   idg_node *n;
 
   return ( get_trie(A1, &atrie) &&
-	   (n=atrie->data.IDG) && n->mono_index &&
-	   PL_unify_atom(A2, n->mono_index->symbol) );
+	   (n=atrie->data.IDG) && idg_mono_index(n) &&
+	   PL_unify_atom(A2, idg_mono_index(n)->symbol) );
 }
 
 /** '$idg_mono_index_deps'(+SrcTrie, +Leaf, +DstTrie, ?Dependency) is nondet.
@@ -8774,13 +8830,13 @@ PRED_IMPL("$idg_mono_index_deps", 4, idg_mono_index_deps,
       void *leaf;
 
       if ( !get_trie(A1, &atrie) || !(n=atrie->data.IDG) ||
-	   !n->mono_index_deps ||
+	   !idg_mono_index_deps(n) ||
 	   !PL_get_pointer_ex(A2, &leaf) ||
 	   !get_trie(A3, &dtrie) )
 	return false;
       if ( dtrie->data.IDG && dtrie->data.IDG->force_reeval )
 	return false;
-      mdep = lookupHTablePP(n->mono_index_deps, leaf);
+      mdep = lookupHTablePP(idg_mono_index_deps(n), leaf);
       break;
     }
     case FRG_REDO:
@@ -9138,6 +9194,7 @@ idg_thread_summary(DECL_LD term_t thread, idg_summary *sum)
       { sum->nodes++;
 	sum->edges += idg_set_size(&n->affected);
 	sum->bytes += ( sizeof(*n) +
+			(n->mono ? sizeof(*n->mono) : 0) +
 			idg_set_sizeof(&n->affected) +
 			idg_set_sizeof(&n->dependent) +
 			idg_set_lingering_sizeof(n->lingering) );
@@ -9716,8 +9773,14 @@ PRED_IMPL("$idg_set_falsecount", 2, idg_set_falsecount, 0)
   if ( get_trie(A1, &atrie) )
   { idg_node *n;
 
-    if ( (n=atrie->data.IDG) )
-      return PL_get_size_ex(A2, &n->falsecount);
+    size_t fc;
+
+    if ( (n=atrie->data.IDG) && PL_get_size_ex(A2, &fc) )
+    { if ( fc > UINT_MAX )
+	return PL_representation_error("falsecount");
+      n->falsecount = (unsigned)fc;
+      return true;
+    }
 
     return false;
   }
@@ -9877,11 +9940,11 @@ mono_index_find(DECL_LD idg_node *src, idg_node *parent, term_t dep,
     goto out;
   }
 
-  if ( trie_lookup(src->mono_index, NULL, &node, valTermRef(key), false,
+  if ( trie_lookup(idg_mono_index(src), NULL, &node, valTermRef(key), false,
 		   NULL) == true &&
        node->value )
   { unsigned int hash = mdep_hash(dep);
-    idg_mdep *mdep = lookupHTablePP(src->mono_index_deps, node);
+    idg_mdep *mdep = lookupHTablePP(idg_mono_index_deps(src), node);
 
     for(; mdep; mdep = mdep->same_key)
     { if ( mdep->hash == hash )
@@ -9926,7 +9989,7 @@ mono_index_insert(DECL_LD idg_node *src, idg_node *parent, idg_mdep *mdep,
     return false;
   }
 
-  rc = trie_lookup(src->mono_index, NULL, &node, valTermRef(key), true, NULL);
+  rc = trie_lookup(idg_mono_index(src), NULL, &node, valTermRef(key), true, NULL);
   if ( rc != true )
   { if ( !trie_error(rc, key) && !PL_exception(0) )
       PL_resource_error("table_space");
@@ -9935,11 +9998,11 @@ mono_index_insert(DECL_LD idg_node *src, idg_node *parent, idg_mdep *mdep,
   }
 
   if ( node->value )
-  { mdep->same_key = lookupHTablePP(src->mono_index_deps, node);
-    updateHTablePP(src->mono_index_deps, node, mdep);
+  { mdep->same_key = lookupHTablePP(idg_mono_index_deps(src), node);
+    updateHTablePP(idg_mono_index_deps(src), node, mdep);
   } else
-  { set_trie_value_word(src->mono_index, node, ATOM_true);
-    addHTablePP(src->mono_index_deps, node, mdep);
+  { set_trie_value_word(idg_mono_index(src), node, ATOM_true);
+    addHTablePP(idg_mono_index_deps(src), node, mdep);
   }
   mdep->index_node = node;
 
@@ -9955,19 +10018,24 @@ mono_index_insert(DECL_LD idg_node *src, idg_node *parent, idg_mdep *mdep,
 static bool
 mono_index_build(DECL_LD idg_node *src)
 { trie *t;
+  idg_mono *m;
   TableEnum en;
 
   if ( !(t=trie_create(src->atrie->alloc_pool)) )
     return PL_resource_error("table_space");
   (void)trie_symbol(t);			/* reference until mono_index_release() */
-  src->mono_index = t;
-  src->mono_index_deps = newHTablePP(4);
+  if ( !(m=idg_ensure_mono(src)) )
+  { PL_unregister_atom(t->symbol);
+    return false;
+  }
+  m->index = t;
+  m->index_deps = newHTablePP(4);
 
-  if ( src->mono_deps )
+  if ( idg_mono_deps(src) )
   { table_key_t k;
     table_value_t v;
 
-    en = newTableEnumPP(src->mono_deps);
+    en = newTableEnumPP(idg_mono_deps(src));
     while(advanceTableEnum(en, &k, &v))
     { idg_node *parent = key2ptr(k);
       idg_mdep *mdep = val2ptr(v);
@@ -10003,8 +10071,8 @@ static void
 mono_index_release(idg_node *src)
 { trie *t;
 
-  if ( src->mono_index_deps )
-  { TablePP map = src->mono_index_deps;
+  if ( idg_mono_index_deps(src) )
+  { TablePP map = idg_mono_index_deps(src);
     TableEnum en = newTableEnumPP(map);
     table_key_t k;
     table_value_t v;
@@ -10016,11 +10084,11 @@ mono_index_release(idg_node *src)
 	mdep->index_node = NULL;
     }
     freeTableEnum(en);
-    src->mono_index_deps = NULL;
+    src->mono->index_deps = NULL;
     destroyHTablePP(map);
   }
-  if ( (t=src->mono_index) )
-  { src->mono_index = NULL;
+  if ( (t=idg_mono_index(src)) )
+  { src->mono->index = NULL;
     PL_unregister_atom(t->symbol);
   }
 }
