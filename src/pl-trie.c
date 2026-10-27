@@ -347,8 +347,9 @@ trie_empty_take(trie *trie, void (*take)(word value, void *ctx), void *ctx)
 Once a complete answer trie is compiled, the clause holds all its keys and
 we may discard the nodes.  This is allowed if the trie is not modified
 anymore and nobody needs the nodes, i.e., the table is private, has no
-conditional answers and is not incremental.  The tabling code marks such
-tries with TRIE_DISCARDABLE.  As the clause does not refer to the nodes
+conditional answers and is not monotonic.  Reevaluating an incremental
+table restores the nodes (see trie_ensure_nodes()).  The tabling code
+marks such tries with TRIE_DISCARDABLE.  As the clause does not refer to the nodes
 and owns its atoms (see compile_trie()), we can discard the nodes as
 long as nobody is enumerating the trie.  trie->value_count remains valid.
 
@@ -426,6 +427,20 @@ get_trie_nodes(term_t t, trie **tp)
     return false;
   if ( unlikely(ison(*tp, TRIE_DISCARDED)) )
     return trie_restore_nodes(*tp);
+
+  return true;
+}
+
+/* Make sure the nodes of `trie` are present, restoring them from its
+ * clause if they were discarded.
+ */
+
+bool
+trie_ensure_nodes(trie *trie)
+{ GET_LD
+
+  if ( unlikely(ison(trie, TRIE_DISCARDED)) )
+    return trie_restore_nodes(trie);
 
   return true;
 }

@@ -3941,18 +3941,31 @@ component from tbl_add_worklist().
 
 /* True if we may discard the nodes of the complete answer trie `atrie`
  * after it is compiled (see trie_discard_nodes()).  The caller verified
- * there are no conditional answers.
+ * there are no conditional answers.  Incremental tables qualify as the
+ * reevaluation restores the nodes from the clause (see prepare_reeval()).
+ * After a reevaluation the worklist does not reliably tell whether there
+ * are conditional answers, so we check the answers of tables with an IDG.
+ * Monotonic tables add answers to the complete trie.
  */
 
+static void *
+conditional_answer_node(trie_node *n, void *ctx)
+{ (void)ctx;
+
+  return n->value && answer_is_conditional(n) ? n : NULL;
+}
+
 static bool
-answer_nodes_discardable(const trie *atrie)
+answer_nodes_discardable(trie *atrie)
 { Definition def = atrie->data.predicate;
+  idg_node *idg = atrie->data.IDG;
 
   return ( isoff(atrie, TRIE_ISMAP|TRIE_ISSHARED|TRIE_ISTRACKED) &&
-	   !atrie->data.IDG &&
+	   !(idg && idg->monotonic) &&
 	   def && def->tabling &&
 	   ison(def->tabling, TP_VARIANT) &&
-	   isoff(def->tabling, TP_INCREMENTAL|TP_MONOTONIC) );
+	   isoff(def->tabling, TP_MONOTONIC) &&
+	   !(idg && map_trie_node(&atrie->root, conditional_answer_node, NULL)) );
 }
 
 #define complete_worklist(wl, destroy) LDFUNC(complete_worklist, wl, destroy)
@@ -6455,7 +6468,8 @@ table_complete_all(DECL_LD term_t scc, term_t status, term_t cl,
     if ( LD->table_flags.drop_intermediate )
     { if ( c->parent )
       { if ( rc && ntables == 1 && leader_stays &&
-	     ison(leader, TRIE_DISCARDABLE|TRIE_DISCARDED) )
+	     ison(leader, TRIE_DISCARDABLE|TRIE_DISCARDED) &&
+	     !leader->data.IDG )
 	  droppable_table(c, leader);
       } else
       { drop_intermediate_tables(c);
@@ -11136,6 +11150,10 @@ static int
 prepare_reeval(DECL_LD trie *atrie)
 { idg_node *idg = atrie->data.IDG;
   worklist *wl  = atrie->data.worklist;
+
+  if ( !trie_ensure_nodes(atrie) )	/* see answer_nodes_discardable() */
+    return false;
+  clear(atrie, TRIE_DISCARDABLE);	/* completion decides again */
 
   DEBUG(MSG_TABLING_IDG_REEVAL,
 	print_answer_table(atrie, "Preparing reeval of"));

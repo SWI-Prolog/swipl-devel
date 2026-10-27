@@ -280,6 +280,7 @@ trie_node *trie_single_value_node(trie *trie);
 bool	get_trie(term_t t, trie **tp);
 bool	get_trie_noex(term_t t, trie **tp);
 bool	get_trie_nodes(term_t t, trie **tp);
+bool	trie_ensure_nodes(trie *trie);
 HOT bool	unify_trie_term(trie_node *node, trie_node **parent,
 			term_t term);
 int	trie_lookup_abstract(trie *trie,
