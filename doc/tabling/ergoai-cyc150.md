@@ -1,6 +1,6 @@
 # ErgoAI cyc150: where memory and time go
 
-Status: analysis; proposals 3 and 4 implemented.
+Status: analysis; proposals 3, 4 and 5 implemented, 2 in part.
 
 The cyc150 programs of ErgoAI-performance are 144 questions against one
 Cyc-derived KB, run by ergoAIp (ErgoAI on SWI-Prolog).  The TPLP
@@ -224,6 +224,14 @@ per-entry numbers above.
    (120 B) carries the monotonic fields (24 B), O_TRIE_STATS counters
    (16 B) and the registry pointer and slot (16 B).  Moving the rare
    fields to side structs saves about 100 B per entry, 1.3 GB.
+
+   *Implemented:* `idg_node` 120 -> 80 B (monotonic fields in
+   `idg_mono`, 32-bit counters), `trie_node` 48 -> 40 B (the delay info
+   of conditional answers is in a table, flagged by `TN_DELAYINFO`) and
+   `struct trie` 176 -> 152 B (the 8 B smaller root node, flags instead
+   of the release hook pointer, 32-bit statistics).  Table space after
+   case A: 6.44 GB -> 6.06 GB -> 5.66 GB -> 5.51 GB, RSS 10.63 GB ->
+   9.80 GB.
 
 6. **A logical update view for answer tries.**  Then incremental
    tables need not be compiled at all (see the discussion of compiled
