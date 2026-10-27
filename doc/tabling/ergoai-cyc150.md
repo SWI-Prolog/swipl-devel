@@ -1,6 +1,6 @@
 # ErgoAI cyc150: where memory and time go
 
-Status: analysis; proposals not yet implemented.
+Status: analysis; proposal 4 implemented.
 
 The cyc150 programs of ErgoAI-performance are 144 questions against one
 Cyc-derived KB, run by ergoAIp (ErgoAI on SWI-Prolog).  The TPLP
@@ -158,6 +158,14 @@ per-entry numbers above.
    is no open enumeration that a change could disturb, which is why
    incremental tables are compiled.  2.4M tables have one answer;
    their clauses are most of the 0.37 GB.  Low risk.
+
+   *Implemented* (`tbl_single_answer()`): S_TABLED and S_TRIE_GEN unify
+   the answer from the trie.  Solving case A leaves 36,400 instead of
+   2,359,176 compiled clauses and 12.96M instead of 15.29M atoms (each
+   clause has a clause-reference blob); RSS drops from 14.28 GB to
+   13.76 GB and the solve from 34.7 s to 33.5 s.  A table that lost
+   answers on re-evaluation is still compiled, because
+   `reeval_complete_node()` does not prune the deleted answers.
 
 5. **Smaller structs.**  `struct trie` (176 B) carries the O_TRIE_STATS
    counters (24 B) and fields that answer tries rarely use; `idg_node`

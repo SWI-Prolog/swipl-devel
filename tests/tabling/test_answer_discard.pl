@@ -280,6 +280,18 @@ test(incremental, L == [1,2]) :-
     add_d(2),
     all(X, ip(X), L),
     del_d(2).
+test(incremental_single,                % a single answer is not compiled
+     [ C1 == false, X == 1, Det == true, L == [ip(1),ip(2)], C2 == true
+     ]) :-
+    abolish_all_tables,
+    call_twice(ip(_), _),
+    (compiled(ip(_)) -> C1 = true ; C1 = false),
+    ip(X), deterministic(Det),
+    add_d(2),
+    call_twice(ip(_), L),
+    (compiled(ip(_)) -> C2 = true ; C2 = false),
+    del_d(2),
+    call_twice(ip(_), [ip(1)]).
 test(shared, [condition(threads), true(N > 1)]) :-
                                         % without threads, shared is private
     abolish_all_tables,

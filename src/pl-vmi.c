@@ -3637,6 +3637,8 @@ predicate.  It has the same arguments as S_CALLWRAPPER.  If the table
 for the call is complete, tbl_complete_answer_clause() puts the compiled
 answer trie and the answer skeleton in the first two arguments of the
 frame and we run the answer trie in this frame as trie_gen_compiled/2.
+If the table has a single answer and no clause (see tbl_single_answer()),
+the first argument is the answer trie and we unify the answer.
 Otherwise we continue as S_CALLWRAPPER, calling start_tabling/3.
 When debugging we always use the wrapper, so ports are as before.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -3661,7 +3663,10 @@ VMI(S_TABLED, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA))
 
   ARGP = argFrameP(FR, 0);
   FR->predicate = DEF = GD->procedures.trie_gen_compiled2->definition;
-  TRUST_CLAUSE(clause_clref(clref));
+  ClauseRef cref = clause_clref(clref);
+  if ( !cref )				/* single answer */
+    VMH_GOTO(trie_gen_single, trie_single_value_node(symbol_trie(clref)));
+  TRUST_CLAUSE(cref);
 }
 END_VMI
 
@@ -5956,8 +5961,12 @@ VMI(S_TRIE_GEN, 0, 0, ())
 
     TRIE_STAT_INC(t, gen_call);
     if ( !(dbref=t->clause) )
-    { if ( t->value_count == 0 )
+    { trie_node *answer;
+
+      if ( t->value_count == 0 )
 	FRAME_FAILED;
+      if ( DEF->functor->arity == 2 && (answer=tbl_single_answer(t)) )
+	VMH_GOTO(trie_gen_single, answer);
 
       LD->query->next_environment = lTop;
       lTop = (LocalFrame)ARGP;
@@ -5980,6 +5989,29 @@ VMI(S_TRIE_GEN, 0, 0, ())
   TRUST_CLAUSE(cref);
 }
 END_VMI
+
+
+/* trie_gen_compiled/2 for a table with a single answer that is not
+   compiled (see tbl_single_answer()): unify the answer and exit.
+*/
+
+VMH(trie_gen_single, 1, (trie_node*), (answer))
+{ term_t key = consTermRef(argFrameP(FR, 1));
+  bool rc;
+
+  lTop = (LocalFrame)argFrameP(FR, 2);
+  SAVE_REGISTERS(QID);
+  rc = unify_trie_term(answer, NULL, key);
+  LOAD_REGISTERS(QID);
+  if ( !rc )
+  { if ( exception_term )
+      THROW_EXCEPTION;
+    FRAME_FAILED;
+  }
+
+  VMH_GOTO(exit_checking_wakeup);
+}
+END_VMH
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

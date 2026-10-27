@@ -5991,16 +5991,40 @@ wls_reeval_complete(worklist **wls, size_t ntables)
 }
 
 
+/* Return the answer node of the complete table `atrie` if it has a
+ * single unconditional answer and does not need a compiled clause.
+ * Incremental tables are compiled because the trie may change while
+ * we enumerate it.  Generating a single answer is deterministic, so
+ * there is nothing to disturb and we unify the answer from the trie
+ * (S_TRIE_GEN).  This saves the clause of most incremental tables.
+ * Other tables are compiled to discard their nodes (see
+ * trie_maybe_discard_nodes()).
+ */
+
+trie_node *
+tbl_single_answer(trie *atrie)
+{ if ( atrie->value_count == 1 &&
+       atrie->data.IDG &&
+       !atrie->clause &&
+       !atrie->data.worklist &&		/* no conditional answers */
+       isoff(atrie, TRIE_ISSHARED|TRIE_ISMAP) )
+    return trie_single_value_node(atrie);
+
+  return NULL;
+}
+
+
 /* Unify `cl` with the answers of the leader of `scc` for done_leader/4.
  * (*) If possible this is the answer trie, avoiding compilation of tables
  * that are never called again.  We compile if the answers are conditional
  * (the clause holds the delays), the trie may change while enumerating
- * (shared and incremental tables) or the trie is abolished on completion.
- * We also compile if the trie has at least table_compile_threshold
- * (Prolog flag) nodes per answer: the clause is about half the size of
- * the nodes, which we can then discard at once.  This trades time for
- * memory (1000naiveReverse: 72ms/65Mb with 32, 61ms/94Mb without).
- * Moded tables do not use the clause.
+ * (shared and incremental tables, unless they have a single answer; see
+ * tbl_single_answer()) or the trie is abolished on completion.  We also
+ * compile if the trie has at least table_compile_threshold (Prolog flag)
+ * nodes per answer: the clause is about half the size of the nodes,
+ * which we can then discard at once.  This trades time for memory
+ * (1000naiveReverse: 72ms/65Mb with 32, 61ms/94Mb without).  Moded
+ * tables do not use the clause.
  */
 
 #define unify_leader_clause(scc, cl, is_trie) \
@@ -6013,13 +6037,17 @@ unify_leader_clause(DECL_LD tbl_component *scc, term_t cl, bool *is_trie)
 
   *is_trie = false;
   TRIE_STAT_INC(atrie, gen_call);
+  bool defined = !WL_IS_WORKLIST(wl) || !wl->undefined;
+
   if ( !(clref=atrie->clause) &&
        isoff(atrie, TRIE_ISSHARED|TRIE_ABOLISH_ON_COMPLETE) &&
-       !atrie->data.IDG &&
-       ( ison(atrie, TRIE_ISMAP) ||
-	 ( (!WL_IS_WORKLIST(wl) || !wl->undefined) &&
-	   atrie->node_count/((size_t)atrie->value_count+1) <
-	     LD->table_flags.compile_threshold ) ) )
+       ( atrie->data.IDG
+	   ? ( defined && isoff(atrie, TRIE_ISMAP) &&
+	       atrie->value_count == 1 && trie_single_value_node(atrie) )
+	   : ( ison(atrie, TRIE_ISMAP) ||
+	       ( defined &&
+		 atrie->node_count/((size_t)atrie->value_count+1) <
+		   LD->table_flags.compile_threshold ) ) ) )
   { *is_trie = true;
     return PL_unify_atom(cl, trie_symbol(atrie));   /* see (*) */
   }
@@ -11909,6 +11937,8 @@ complete_answer_clause(DECL_LD trie *atrie)
   if ( !(clref=atrie->clause) )
   { Definition def = GD->procedures.trie_gen_compiled2->definition;
 
+    if ( tbl_single_answer(atrie) )
+      return trie_symbol(atrie);
     if ( (clref=compile_trie(def, atrie)) == ATOM_error )
       return clref;
   }
@@ -12094,6 +12124,7 @@ in this frame as trie_gen_compiled/2.  This does the same as the
 
 Returns
   - The clause reference of the compiled answer trie
+  - The answer trie if it has a single answer (see tbl_single_answer())
   - ATOM_fail if the call must fail
   - ATOM_error if an exception was raised
   - 0 if the call must be handled by start_tabling/3.  We only globalised
