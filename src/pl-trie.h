@@ -193,6 +193,30 @@ typedef struct size_abstract
   size_t	size;			/* limit each term to size */
 } size_abstract;
 
+/* The value of a node in a private variant table is the answer trie,
+ * tagged such that it is neither an atom, a small integer nor a record.
+ * The trie gets its symbol (atom) only when Prolog needs a handle.  The
+ * node owns the symbol if there is one and else the trie itself (see
+ * release_trie_value() and value_trie()).
+ */
+
+#define TRIE_PTR_TAG	0x7
+
+static inline bool
+isTriePtrValue(word w)
+{ return (w&0x7) == TRIE_PTR_TAG;
+}
+
+static inline word
+triePtrValue(trie *t)
+{ return (word)t|TRIE_PTR_TAG;
+}
+
+static inline trie *
+valueTriePtr(word w)
+{ return (trie*)(w&~(word)0x7);
+}
+
 /* node_count and value_count only need atomic updates if there may be
  * multiple writers.  Locked instructions are expensive when adding many
  * new nodes as they wait for these stores to complete.
@@ -272,6 +296,8 @@ bool	trie_error(int rc, term_t culprit);
 bool	trie_trie_error(int rc, trie *trie);
 atom_t	trie_symbol(trie *trie);
 trie *	symbol_trie(atom_t symbol);
+trie *	value_trie(word value);
+void	trie_release_value(word value);
 bool	put_trie_value(term_t t, trie_node *node);
 bool	set_trie_value(trie *trie, trie_node *node, term_t value);
 HOT bool	set_trie_value_word(trie *trie, trie_node *node, word val);

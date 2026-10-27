@@ -203,6 +203,7 @@ static void		clear_node(trie *trie, trie_node *n, int flags,
 static void		free_lingering_blocks(trie *trie);
 static void		free_node_chunks(trie *trie);
 static inline void	release_value(word value);
+static void		release_trie_value(trie *t);
 
 
 /* Built-in atoms such as `trienode`, the value of answers, are never
@@ -2304,6 +2305,33 @@ trie_symbol(trie *trie)
 }
 
 
+/* Release the reference of a variant table node to the answer trie t
+ * (see isTriePtrValue()).  If the trie has a symbol, atom-GC destroys it
+ * when Prolog no longer refers to it.  Otherwise nothing else can refer
+ * to it and we destroy it now.
+ */
+
+static void
+release_trie_value(trie *t)
+{ atom_t symbol = t->symbol;
+
+  if ( symbol )
+    PL_unregister_atom(symbol);
+  else
+    trie_destroy(t);
+}
+
+/* The trie from the value of a variant table node */
+
+trie *
+value_trie(word value)
+{ if ( isTriePtrValue(value) )
+    return valueTriePtr(value);
+
+  return symbol_trie(word2atom(value));
+}
+
+
 trie *
 symbol_trie(atom_t symbol)
 { void *data;
@@ -2324,7 +2352,7 @@ symbol_trie(atom_t symbol)
 #define unify_trie(t, trie) LDFUNC(unify_trie, t, trie)
 static bool
 unify_trie(DECL_LD term_t t, trie *trie)
-{ return PL_unify_atom(t, trie->symbol);
+{ return PL_unify_atom(t, trie_symbol(trie));
 }
 
 bool
@@ -2380,7 +2408,7 @@ trie_trie_error(int rc, trie *trie)
   term_t t;
 
   return ( (t= PL_new_term_ref()) &&
-	   PL_put_atom(t, trie->symbol) &&
+	   PL_put_atom(t, trie_symbol(trie)) &&
 	   trie_error(rc, t) );
 }
 
@@ -2466,6 +2494,13 @@ release_value(word value)
   }
   else if ( isRecord(value) )
     PL_erase(word2ptr(record_t, value));
+  else if ( isTriePtrValue(value) )
+    release_trie_value(valueTriePtr(value));
+}
+
+void
+trie_release_value(word value)
+{ release_value(value);
 }
 
 
@@ -2484,7 +2519,9 @@ equal_value(word v1, word v2)
 #define unify_value(t, value) LDFUNC(unify_value, t, value)
 static int
 unify_value(DECL_LD term_t t, word value)
-{ if ( !isRecord(value) )
+{ if ( isTriePtrValue(value) )
+  { return PL_unify_atom(t, trie_symbol(valueTriePtr(value)));
+  } else if ( !isRecord(value) )
   { return PL_unify_atomic(t, value);
   } else
   { term_t t2;

@@ -1081,7 +1081,7 @@ delete_depending_answers(worklist *wl, TmpBuffer wlset)
     assert(wl->depend_abolish);
 
     if ( DL_IS_DELAY_LIST(di=answer->data.delayinfo) )
-    { trie *at = symbol_trie(word2atom(di->variant->value));
+    { trie *at = value_trie(di->variant->value);
       worklist *dwl;
 
       if ( WL_IS_WORKLIST((dwl=at->data.worklist)) &&
@@ -1790,7 +1790,7 @@ make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
 { delay_info *di = answer->data.delayinfo;
 
   if ( DL_IS_DELAY_LIST(di) )
-  { trie *at = symbol_trie(word2atom(di->variant->value));
+  { trie *at = value_trie(di->variant->value);
     worklist *wl = at->data.worklist;
     assert(wl->magic == WORKLIST_MAGIC);
 
@@ -1816,7 +1816,7 @@ remove_conditional_answer(spf_agenda *agenda, trie_node *answer)
 { delay_info *di = answer->data.delayinfo;
 
   if ( DL_IS_DELAY_LIST(di) )
-  { trie *at = symbol_trie(word2atom(di->variant->value));
+  { trie *at = value_trie(di->variant->value);
     worklist *wl = at->data.worklist;
 
     assert(wl->magic == WORKLIST_MAGIC);
@@ -2233,7 +2233,7 @@ call_answer_completion(DECL_LD trie *atrie)
     LD->tabling.component = NULL;
     LD->tabling.has_scheduling_component = false;
     LD->tabling.in_answer_completion = true;
-    rc = ( PL_put_atom(av+0, atrie->symbol) &&
+    rc = ( PL_put_atom(av+0, trie_symbol(atrie)) &&
 	   unify_skeleton(atrie, 0, av+1) &&
 	   PL_call_predicate(NULL, PL_Q_PASS_EXCEPTION, pred, av) );
     LD->tabling.in_answer_completion = false;
@@ -2354,7 +2354,7 @@ PRED_IMPL("$tbl_force_truth_value", 3, tbl_force_truth_value, 0)
     init_spf_agenda(&agenda);
 
     if ( DL_IS_DELAY_LIST(di) )
-    { trie *at = symbol_trie(word2atom(di->variant->value));
+    { trie *at = value_trie(di->variant->value);
       worklist *wl = at->data.worklist;
 
       DEBUG(MSG_TABLING_AC,
@@ -2649,7 +2649,7 @@ release_variant_table_node(trie *variant_table, trie_node *node)
 { (void)variant_table;
 
   if ( node->value )
-  { trie *atrie = symbol_trie(word2atom(node->value));
+  { trie *atrie = value_trie(node->value);
 
     reset_answer_table(atrie,
 		       variant_table->magic == TRIE_CMAGIC ? RAT_CLEANUP : 0);
@@ -2680,14 +2680,13 @@ trie keeps all answer tries alive.
 A private variant table is torn down in bulk (abolish_all_tables/0 on
 ErgoAI's cyc150 took 28s for 12.9M tables, mostly cache misses):
 
-  - We empty the variant table, taking over its answer-trie atoms
-    (trie_empty_take()), and then reset the tables in the order of the
-    atom index, which is their creation order.  The atoms, the tries
-    and their IDG nodes were allocated in this order, so this causes
-    far fewer cache misses than the order of the variant table.  We
-    only release the atoms after resetting all tables.  This keeps the
-    answer tries alive, so we do not need the delay info pass (*), and
-    atom-GC does not run during the resets.
+  - We empty the variant table, taking over its values, the answer
+    tries (trie_empty_take()), and then reset the tables in creation
+    order (sort_table_values()).  The tries and their IDG nodes were
+    allocated in this order, so this causes far fewer cache misses than
+    the order of the variant table.  We only release the tries after
+    resetting all tables.  This keeps them alive, so we do not need the
+    delay info pass (*), and atom-GC does not run during the resets.
   - The IDG edges of a private node connect to other private nodes of
     this variant table, unless the node is `concurrent` (it has shared
     children).  We first remove the edges of these rare nodes as
@@ -2705,7 +2704,7 @@ destroy_delay_info_table(trie_node *node, void *ctx)
 { (void)ctx;
 
   if ( node->value )
-  { trie *atrie = symbol_trie(word2atom(node->value));
+  { trie *atrie = value_trie(node->value);
     worklist *wl = atrie->data.worklist;
 
     if ( WL_IS_WORKLIST(wl) && wl->undefined )
@@ -2721,7 +2720,7 @@ idg_unlink_concurrent_table(trie_node *node, void *ctx)
 { (void)ctx;
 
   if ( node->value )
-  { trie *atrie = symbol_trie(word2atom(node->value));
+  { trie *atrie = value_trie(node->value);
     idg_node *n = atrie->data.IDG;
 
     if ( n && n->concurrent )
@@ -2736,14 +2735,14 @@ idg_unlink_concurrent_table(trie_node *node, void *ctx)
 typedef struct bulk_reset
 { idg_registry *registry;		/* registry of the thread */
   size_t	idg_nodes;		/* # nodes destroyed from it */
-  atom_t       *atoms;			/* answer-trie atoms */
-  size_t	count;			/* # in atoms */
-  size_t	size;			/* allocated size of atoms */
+  word	       *values;			/* variant table values */
+  size_t	count;			/* # in values */
+  size_t	size;			/* allocated size of values */
 } bulk_reset;
 
 static void
-reset_table_bulk_atom(atom_t symbol, bulk_reset *br)
-{ trie *atrie = symbol_trie(symbol);
+reset_table_bulk(word value, bulk_reset *br)
+{ trie *atrie = value_trie(value);
   idg_node *n = atrie->data.IDG;
 
   if ( n )
@@ -2756,69 +2755,87 @@ reset_table_bulk_atom(atom_t symbol, bulk_reset *br)
   atrie->data.variant = NULL;
 }
 
-/* Take the answer-trie atom `value` of the variant table into
- * br->atoms (see trie_empty_take()).  br->atoms has room for all values
- * of the variant table, so the realloc() is a precaution.  Without
- * memory we reset the table immediately and release the atom.
+/* Take the value of a variant table node into br->values (see
+ * trie_empty_take()).  br->values has room for all values of the
+ * variant table, so the realloc() is a precaution.  Without memory we
+ * reset the table immediately and release the value.
  */
 
 static void
-take_table_atom(word value, void *ctx)
+take_table_value(word value, void *ctx)
 { bulk_reset *br = ctx;
-  atom_t symbol = word2atom(value);
 
   if ( br->count == br->size )
   { size_t size = br->size ? br->size*2 : 1024;
-    atom_t *atoms = realloc(br->atoms, size*sizeof(atom_t));
+    word *values = realloc(br->values, size*sizeof(word));
 
-    if ( !atoms )
-    { reset_table_bulk_atom(symbol, br);
-      PL_unregister_atom(symbol);
+    if ( !values )
+    { reset_table_bulk(value, br);
+      trie_release_value(value);
       return;
     }
-    br->atoms = atoms;
-    br->size  = size;
+    br->values = values;
+    br->size   = size;
   }
 
-  br->atoms[br->count++] = symbol;
+  br->values[br->count++] = value;
 }
 
-/* Sort the atoms by index using a bitmap: the indexes are unique and
- * roughly dense.  Leaves the atoms unsorted if there is no memory.
+/* Sort the values in creation order of the tables.  For a symbol this
+ * is the order of the atom index and else (mostly) the address of the
+ * answer trie.  We use an LSD radix sort on the significant bits of the
+ * value, which is much faster than qsort() for millions of values.
+ * Leaves the values unsorted if there is no memory.
  */
 
+#define RADIX_BITS 16
+
 static void
-sort_table_atoms(bulk_reset *br)
-{ size_t lo = SIZE_MAX, hi = 0;
-  uint64_t *map;
+sort_table_values(bulk_reset *br)
+{ word lo = ~(word)0, hi = 0;
+  word *tmp;
 
   if ( br->count < 2 )
     return;
   for(size_t i=0; i<br->count; i++)
-  { size_t idx = indexAtom(br->atoms[i]);
+  { word v = br->values[i];
 
-    if ( idx < lo ) lo = idx;
-    if ( idx > hi ) hi = idx;
+    if ( v < lo ) lo = v;
+    if ( v > hi ) hi = v;
   }
 
-  size_t words = (hi-lo)/64+1;
-  if ( (map=calloc(words, sizeof(*map))) )
-  { size_t n = 0;
+  word range = (hi-lo)>>3;		/* values are 8-aligned plus tag */
+  if ( range == 0 || !(tmp=malloc(br->count*sizeof(word))) )
+    return;
 
+  size_t *counts = malloc(((size_t)1<<RADIX_BITS)*sizeof(size_t));
+  if ( !counts )
+  { free(tmp);
+    return;
+  }
+
+  word *from = br->values, *to = tmp;
+  size_t mask = ((size_t)1<<RADIX_BITS)-1;
+
+  for(unsigned shift=0; shift < sizeof(word)*8 && (range>>shift); shift += RADIX_BITS)
+  { memset(counts, 0, (mask+1)*sizeof(size_t));
     for(size_t i=0; i<br->count; i++)
-    { size_t b = indexAtom(br->atoms[i])-lo;
-      map[b/64] |= (uint64_t)1<<(b%64);
+      counts[(((from[i]-lo)>>3)>>shift)&mask]++;
+    size_t pos = 0;
+    for(size_t d=0; d<=mask; d++)
+    { size_t c = counts[d];
+      counts[d] = pos;
+      pos += c;
     }
-    for(size_t w=0; w<words; w++)
-    { for(uint64_t bits=map[w]; bits; bits &= bits-1)
-      { size_t idx = lo + w*64 + (size_t)__builtin_ctzll(bits);
-
-	br->atoms[n++] = ((atom_t)idx<<LMASK_BITS)|TAG_ATOM;
-      }
-    }
-    assert(n == br->count);
-    free(map);
+    for(size_t i=0; i<br->count; i++)
+      to[counts[(((from[i]-lo)>>3)>>shift)&mask]++] = from[i];
+    word *t = from; from = to; to = t;
   }
+
+  if ( from != br->values )
+    memcpy(br->values, from, br->count*sizeof(word));
+  free(counts);
+  free(tmp);
 }
 
 /* Clear the variant table *vtriep and the start node cache *startp.
@@ -2838,20 +2855,20 @@ clear_variant_table(PL_local_data_t *ld, trie **vtriep, node_array **startp)
     bulk_reset br = { .size = vtrie->value_count };
 
     if ( ld && !vtrie->references && br.size &&
-	 (br.atoms = malloc(br.size*sizeof(atom_t))) )
+	 (br.values = malloc(br.size*sizeof(word))) )
     { br.registry = ld->tabling.idg_registry;
       if ( ld->tabling.concurrent_idg_nodes )
 	map_trie_node(&vtrie->root, idg_unlink_concurrent_table, NULL);
       ld->tabling.idg_registry = NULL;
-      trie_empty_take(vtrie, take_table_atom, &br);
-      sort_table_atoms(&br);		/* creation order: fewer cache misses */
+      trie_empty_take(vtrie, take_table_value, &br);
+      sort_table_values(&br);		/* creation order: fewer cache misses */
       for(size_t i=0; i<br.count; i++)
-	reset_table_bulk_atom(br.atoms[i], &br);
+	reset_table_bulk(br.values[i], &br);
       if ( br.registry )		/* the nodes' and the thread's */
 	idg_registry_release_n(br.registry, br.idg_nodes+1);
       for(size_t i=0; i<br.count; i++)
-	PL_unregister_atom(br.atoms[i]);
-      free(br.atoms);
+	trie_release_value(br.values[i]);
+      free(br.values);
       ld->tabling.concurrent_idg_nodes = 0;
       ld->tabling.dyn_orphan_events = 0;
     } else
@@ -3058,9 +3075,9 @@ retry:
     }
 
     if ( node->value )
-    { atrie = symbol_trie(word2atom(node->value));
+    { atrie = value_trie(node->value);
     } else if ( (flags&AT_CREATE) )
-    { atom_t symb;
+    {
 #ifdef O_PLMT
       alloc_pool *pool = (shared ? GD->tabling.node_pool
 				 : LD->tabling.node_pool);
@@ -3074,22 +3091,23 @@ retry:
       atrie->data.predicate = def;
       atrie->release_node = release_answer_node;
       atrie->data.variant = node;
-      symb = trie_symbol(atrie);
 
 #ifdef O_PLMT
       if ( shared )
-      { set(atrie, TRIE_ISSHARED);
+      { atom_t symb = trie_symbol(atrie);
+
+	set(atrie, TRIE_ISSHARED);
 	if ( COMPARE_AND_SWAP_WORD(&node->value, 0, symb) )
 	{ set(node, TN_PRIMARY);
 	  TRIE_COUNT_INC(variants, value_count);
 	} else				/* atom-GC destroys our trie */
 	{ PL_unregister_atom(symb);
-	  atrie = symbol_trie(word2atom(node->value));
+	  atrie = value_trie(node->value);
 	}
       } else
 #endif
-      { set(node, TN_PRIMARY);
-	node->value = symb;
+      { set(node, TN_PRIMARY);		/* symbol when needed */
+	node->value = triePtrValue(atrie);
 	TRIE_COUNT_INC(variants, value_count);
       }
     } else
@@ -4482,7 +4500,7 @@ delete_orphan_dynamic_tables(Buffer b)
 static void *
 collect_orphan_dynamic_table(trie_node *n, void *ctx)
 { if ( n->value )
-  { trie *atrie = symbol_trie(word2atom(n->value));
+  { trie *atrie = value_trie(n->value);
 
     if ( orphan_dynamic_table(atrie) )
       addBuffer((Buffer)ctx, atrie, trie*);
@@ -4967,7 +4985,7 @@ add_subsuming_answer(DECL_LD worklist *wl, trie *atrie, trie_node *root, term_t 
   { term_t trie;
 
     if ( (trie = PL_new_term_ref()) &&
-	 PL_unify_atomic(trie, atrie->symbol) )
+	 PL_unify_atomic(trie, trie_symbol(atrie)) )
       trie_error(rc, trie);
 
     return NULL;
@@ -5311,7 +5329,7 @@ PRED_IMPL("$tbl_wkl_answer_trie", 2, tbl_wkl_answer_trie, 0)
   worklist *wl;
 
   return ( get_worklist(A1, &wl) &&
-	   PL_unify_atom(A2, wl->table->symbol) );
+	   PL_unify_atom(A2, trie_symbol(wl->table)) );
 }
 
 
@@ -5414,7 +5432,7 @@ unify_dependency(DECL_LD term_t a0, term_t dependency,
 
     assert(p);
     p[0] = FUNCTOR_dot2;
-    p[1] = wl->table->symbol;
+    p[1] = trie_symbol(wl->table);
 
     push_delay_list(p);
   } else if ( unlikely(answer_is_conditional(answer)) )
@@ -5425,7 +5443,7 @@ unify_dependency(DECL_LD term_t a0, term_t dependency,
     p[0] = FUNCTOR_dot2;
     p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
     p[3] = FUNCTOR_plus2;
-    p[4] = wl->table->symbol;
+    p[4] = trie_symbol(wl->table);
     p[5] = p5;
 
     push_delay_list(p);
@@ -5908,7 +5926,7 @@ tbl_variant_table(DECL_LD term_t closure, term_t variant, term_t Trie,
       return ( PL_unify_atomic(Trie, clref) &&
 	       PL_unify_atomic(status, ATOM_complete) );
     } else
-    { return ( PL_unify_atomic(Trie, atrie->symbol) &&
+    { return ( PL_unify_atomic(Trie, trie_symbol(atrie)) &&
 	       unify_table_status(status, atrie, def, true) );
     }
   }
@@ -5961,7 +5979,7 @@ PRED_IMPL("$tbl_existing_variant_table", 5, tbl_existing_variant_table, 0)
   get_closure_predicate(A1, &def);
 
   if ( (trie=get_answer_table(def, A2, A5, &clref, false)) )
-  { return ( PL_unify_atomic(A3, trie->symbol) &&
+  { return ( PL_unify_atomic(A3, trie_symbol(trie)) &&
 	     unify_table_status(A4, trie, def, true) );
   }
 
@@ -5975,7 +5993,7 @@ PRED_IMPL("$tbl_local_variant_table", 1, tbl_local_variant_table, 0)
   trie *trie = LD->tabling.variant_table;
 
   if ( trie )
-    return PL_unify_atomic(A1, trie->symbol);
+    return PL_unify_atomic(A1, trie_symbol(trie));
 
   return false;
 }
@@ -5989,7 +6007,7 @@ PRED_IMPL("$tbl_global_variant_table", 1, tbl_global_variant_table, 0)
   trie *trie = GD->tabling.variant_table;
 
   if ( trie )
-    return PL_unify_atomic(A1, trie->symbol);
+    return PL_unify_atomic(A1, trie_symbol(trie));
 #endif
 
   return false;
@@ -6016,7 +6034,7 @@ PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, PL_FA_NONDETERMINISTIC)
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       if ( (trie=LD->tabling.variant_table) )
-      { if ( PL_unify_atomic(A1, trie->symbol) )
+      { if ( PL_unify_atomic(A1, trie_symbol(trie)) )
 	{ if ( GD->tabling.variant_table )
 	    ForeignRedoInt(1);
 	  else
@@ -6026,7 +6044,7 @@ PRED_IMPL("$tbl_variant_table", 1, tbl_variant_table, PL_FA_NONDETERMINISTIC)
     /*FALLTHROUGH*/
     case FRG_REDO:
       if ( (trie=GD->tabling.variant_table) )
-	return PL_unify_atomic(A1, trie->symbol);
+	return PL_unify_atomic(A1, trie_symbol(trie));
       return false;
     case FRG_CUTTED:
       return true;
@@ -6816,7 +6834,7 @@ PRED_IMPL("$tbl_worklist_data", 2, tbl_worklist_data, 0)
     term_t t = PL_new_term_ref();
 
     return ( PL_unify_pointer(av+0, wl->component) &&
-	     PL_unify_atomic(av+1, wl->table->symbol) &&
+	     PL_unify_atomic(av+1, trie_symbol(wl->table)) &&
 	     PL_unify_bool(av+2, wl->in_global_wl) &&
 	     PL_unify_bool(av+3, wl->executing) &&
 	     unify_clusters(av+4, wl) &&
@@ -6835,7 +6853,7 @@ PRED_IMPL("$tbl_wkl_table", 2, tbl_wkl_table, 0)
   worklist *wl;
 
   return ( get_worklist(A1, &wl) &&
-	   PL_unify_atomic(A2, wl->table->symbol) );
+	   PL_unify_atomic(A2, trie_symbol(wl->table)) );
 }
 
 
@@ -9520,7 +9538,7 @@ sdg_unify_table(DECL_LD term_t t, worklist *wl)
       { wl->negative,                SDG_NEGATIVE }
     };
 
-  if ( !( PL_put_atom(av+0, atrie->symbol) &&
+  if ( !( PL_put_atom(av+0, trie_symbol(atrie)) &&
 	  (!atrie->data.variant ||
 	   unify_trie_term(atrie->data.variant, NULL, av+1)) &&
 	  PL_put_pointer(av+2, wl->component) &&
@@ -9579,7 +9597,7 @@ PRED_IMPL("$tbl_sdg", 3, tbl_sdg, 0)
 	     PL_put_pointer(av+0, c) &&
 	     (c->parent ? PL_put_pointer(av+1, c->parent)
 			: PL_put_atom(av+1, sdg_atoms[SDG_NULL])) &&
-	     (c->leader ? PL_put_atom(av+2, c->leader->symbol)
+	     (c->leader ? PL_put_atom(av+2, trie_symbol(c->leader))
 			: PL_put_atom(av+2, sdg_atoms[SDG_NULL])) &&
 	     PL_cons_functor_v(av+0, FUNCTOR_sdg_scc3, av) &&
 	     PL_unify(head, av+0) );
@@ -9606,8 +9624,8 @@ PRED_IMPL("$tbl_sdg", 3, tbl_sdg, 0)
       sdg_atom sign = (e->b&1) ? SDG_NEGATIVE : SDG_POSITIVE;
 
       rc = ( PL_unify_list(tail, head, tail) &&
-	     PL_put_atom(av+0, caller->table->symbol) &&
-	     PL_put_atom(av+1, callee->table->symbol) &&
+	     PL_put_atom(av+0, trie_symbol(caller->table)) &&
+	     PL_put_atom(av+1, trie_symbol(callee->table)) &&
 	     PL_put_atom(av+2, sdg_atoms[sign]) &&
 	     PL_put_int64(av+3, e->count) &&
 	     PL_cons_functor_v(av+0, FUNCTOR_sdg_edge4, av) &&
@@ -12374,8 +12392,8 @@ tbl_complete_answer_clause(DECL_LD Definition def)
       set_start_node(sap, id, start);
     if ( rc != TRIE_LOOKUP_NOT_FLAT )
     { if ( rc == true && node->value &&
-	   (clref=complete_answer_clause(symbol_trie(word2atom(node->value)))) )
-      { trie *atrie = symbol_trie(word2atom(node->value));
+	   (clref=complete_answer_clause(value_trie(node->value))) )
+      { trie *atrie = value_trie(node->value);
 	word skel = flat_skeleton(&vars);
 
 	if ( (clref = call_complete_table(atrie, def, clref)) != ATOM_fail &&
@@ -12423,7 +12441,7 @@ retry:
   if ( rc != true || !node->value )
     goto out_buf;			/* new, abstracted or error */
 
-  atrie = symbol_trie(word2atom(node->value));
+  atrie = value_trie(node->value);
   if ( !(clref = complete_answer_clause(atrie)) )
     goto out_buf;
 

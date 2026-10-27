@@ -175,6 +175,20 @@ per-entry numbers above.
    the abolish.  The lifetime of a trie then needs a reference count
    for handles instead of atom-GC: the main design work.
 
+
+   *Partly implemented.*  The trie blob is `PL_BLOB_NOCOPY`: its data
+   is the trie itself (no allocation, one indirection less).  The
+   variant table of a thread stores tagged trie pointers
+   (`triePtrValue()`); a trie gets its atom only when Prolog asks for a
+   handle, and a trie without one is destroyed when its variant is
+   removed.  The dependency nodes of incremental dynamic calls never get
+   an atom.  After case A (with the ergoAIp `abstract(0)` change):
+   atoms 9.45M -> 6.44M, RSS 11.08 GB -> 10.63 GB, solve A 30.3 s ->
+   29.0 s, solve B 11.2 s -> 10.7 s.  Real tables still get an atom
+   at creation, because boot/tabling.pl handles them by atom
+   (`'$tbl_variant_table'/6`, `create_table/6`, `'$tbl_leader'/5`, the
+   current IDG node); avoiding that needs a non-atom handle with its own
+   lifetime management.
 3. **Bulk teardown in `abolish_all_tables`.**  When all private tables
    go, edges need not be removed from the sets of the other end, and
    the pool could be an arena that is released at once.  Atom-GC
