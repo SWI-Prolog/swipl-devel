@@ -3656,6 +3656,7 @@ VMI(S_TABLED, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA))
 
   if ( !clref )
     VMI_GOTO(S_CALLWRAPPER);
+  clearLocal(FR, FR_SSU_DET);		/* no => rule runs */
   if ( clref == ATOM_fail )
     FRAME_FAILED;
   if ( clref == ATOM_error )

@@ -128,6 +128,14 @@ mo(a, 2).
 :- table su/1 as subsumptive.
 su(X) :- between(1, 3, X).
 
+%   SSU predicates tabled after their clauses: S_SSU_DET runs before
+%   S_TABLED, so failing from a complete table must not raise an
+%   existence error for the rules.
+
+ssu(X) => X == a.
+ssm(X) => member(X, [a,b]).
+:- table ssu/1, ssm/1.
+
 test(supervisor) :-
     assertion('$get_predicate_attribute'(f(_,_), tabled_variant, 1)),
     assertion('$get_predicate_attribute'(sh(_), tabled_variant, 1)),
@@ -353,6 +361,15 @@ test(shared_thread, condition(current_prolog_flag(threads, true))) :-
 test(moded) :-
     all(X, mo(a, X), [3]),
     all(X, mo(a, X), [3]).
+test(ssu_complete_fails, [ [F1,F2,A,M1,M2] == [true,true,true,true,true]
+                          ]) :-
+    abolish_all_tables,
+    (\+ ssu(b) -> F1 = true ; F1 = false),
+    (\+ ssu(b) -> F2 = true ; F2 = false),
+    (ssu(a) -> A = true ; A = false),
+    all(X, ssm(X), [a,b]),
+    (\+ ssm(c) -> M1 = true ; M1 = false),
+    (\+ ssm(c) -> M2 = true ; M2 = false).
 test(subsumptive) :-
     all(X, su(X), [1,2,3]),
     assertion(su(2)),
