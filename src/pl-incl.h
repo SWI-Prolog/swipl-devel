@@ -1426,6 +1426,7 @@ typedef struct atom_table
   Atom *	table;
 } atom_table;
 
+#define ATOM_RESERVE_BATCH	64	/* atom slots a thread reserves at once */
 
 #ifdef O_ATOMGC
 

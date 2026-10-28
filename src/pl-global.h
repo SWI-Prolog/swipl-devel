@@ -670,6 +670,11 @@ struct PL_local_data
   { intptr_t	generator;		/* See PL_atom_generator() */
     atom_t	unregistering;		/* See PL_unregister_atom() */
     int		gc_active;		/* Thread is running atom-gc */
+    struct
+    { unsigned	next;			/* first unused slot */
+      unsigned	count;			/* slots in index[] */
+      size_t	index[ATOM_RESERVE_BATCH]; /* reserved atom slots */
+    } reserved;				/* See reserveAtom() */
   } atoms;
 
   struct

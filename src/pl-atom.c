@@ -767,20 +767,43 @@ allocateAtomBlock(int idx)
   }
 }
 
-static Atom
-reserveAtom(void)
-{ size_t index;
-#ifdef O_ATOMGC				/* try to find a hole! */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Atom slots are reserved in batches of up to ATOM_RESERVE_BATCH per thread
+and handed out from LD->atoms.reserved.  Reserving one slot at a time
+makes threads that create many atoms (e.g., the blobs of tables) write
+the shared GD->atoms.no_hole_before and GD->atoms.highest for each atom,
+and interleaves their atoms in the atom array, so that the cache lines
+holding an atom's reference count are shared between threads.
+
+A reserved slot has ATOM_RESERVED_REFERENCE without ATOM_VALID_REFERENCE.
+Atom-GC and rehashing skip such slots.  releaseReservedAtoms() frees the
+unused slots of a thread that terminates.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+claimAtomSlot(size_t index)
+{ Atom a = fetchAtomArray(index);
+  unsigned int ref = a->references;
+
+  return ( ATOM_IS_FREE(ref) &&
+	   COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_RESERVED_REFERENCE) );
+}
+
+/* Reserve up to `max` atom slots, storing their indexes in `slots`.
+ * Returns the number reserved, at least one.
+ */
+
+static unsigned
+reserveAtomSlots(size_t *slots, unsigned max)
+{ unsigned n = 0;
+  size_t index;
+#ifdef O_ATOMGC				/* try to find holes! */
   int i;
   int last = false;
-  Atom a;
-  unsigned int ref;
-  int idx;
 
   for(index=GD->atoms.no_hole_before, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
     size_t high = GD->atoms.highest;
-    Atom b = GD->atoms.array.blocks[i];
 
     if ( upto >= high )
     { upto = high;
@@ -788,40 +811,72 @@ reserveAtom(void)
     }
 
     for(; index<upto; index++)
-    { a = b + index;
-      ref = a->references;
-
-      if ( ATOM_IS_FREE(ref) &&
-	   COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_RESERVED_REFERENCE) )
-      { assert(a->type == ATOM_TYPE_INVALID);
-	GD->atoms.no_hole_before = index+1;
-        a->atom = (index<<LMASK_BITS)|TAG_ATOM;
-
-	return a;
+    { if ( claimAtomSlot(index) )
+      { slots[n++] = index;
+	if ( n == max )
+	{ GD->atoms.no_hole_before = index+1;
+	  return n;
+	}
       }
     }
   }
-  GD->atoms.no_hole_before = index+1;
+  GD->atoms.no_hole_before = index;
+  if ( n > 0 )
+    return n;
 #endif /*O_ATOMGC*/
 
-  for(;;)
+  for(;;)				/* extend the array */
   { index = __atomic_load_n(&GD->atoms.highest, __ATOMIC_ACQUIRE);
-    idx = MSB(index);
-    assert(index >= 0);
+    int idx = MSB(index);
+    size_t end = (size_t)2<<idx;	/* end of the block */
+    size_t upto = index+max;
 
+    if ( upto > end )
+      upto = end;
     if ( !GD->atoms.array.blocks[idx] )
       allocateAtomBlock(idx);
 
-    a = &GD->atoms.array.blocks[idx][index];
-    ref = a->references;
-
-    if ( ATOM_IS_FREE(ref) &&
-	 COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_RESERVED_REFERENCE) )
-    { COMPARE_AND_SWAP_SIZE(&GD->atoms.highest, index, index+1);
-      a->atom = (index<<LMASK_BITS)|TAG_ATOM;
-
-      return a;
+    if ( COMPARE_AND_SWAP_SIZE(&GD->atoms.highest, index, upto) )
+    { for(; index<upto; index++)	/* a hole scan may take some */
+      { if ( claimAtomSlot(index) )
+	  slots[n++] = index;
+      }
+      if ( n > 0 )
+	return n;
     }
+  }
+}
+
+#define reserveAtom(_) LDFUNC(reserveAtom, _)
+static Atom
+reserveAtom(DECL_LD)
+{ size_t index;
+  Atom a;
+
+  if ( LD->atoms.reserved.next == LD->atoms.reserved.count )
+  { LD->atoms.reserved.count = reserveAtomSlots(LD->atoms.reserved.index,
+						ATOM_RESERVE_BATCH);
+    LD->atoms.reserved.next = 0;
+  }
+  index = LD->atoms.reserved.index[LD->atoms.reserved.next++];
+  a = fetchAtomArray(index);
+  assert(a->type == ATOM_TYPE_INVALID);
+  a->atom = (index<<LMASK_BITS)|TAG_ATOM;
+
+  return a;
+}
+
+/* Free the atom slots reserved by a terminating thread */
+
+void
+releaseReservedAtoms(PL_local_data_t *ld)
+{ while( ld->atoms.reserved.next < ld->atoms.reserved.count )
+  { size_t index = ld->atoms.reserved.index[ld->atoms.reserved.next++];
+    Atom a = fetchAtomArray(index);
+
+    a->references = 0;
+    if ( GD->atoms.no_hole_before > index )
+      GD->atoms.no_hole_before = index;
   }
 }
 
@@ -862,10 +917,10 @@ same_name(const Atom a, const char *s, size_t length, const PL_blob_t *type)
 
 atom_t
 lookupBlob(DECL_LD const char *s, size_t length, PL_blob_t *type, int *new)
-{ unsigned int v0, v, ref;
-  Atom *table;
+{ unsigned int v0, v = 0, ref;
+  Atom *table = NULL;
   int buckets;
-  Atom a, head;
+  Atom a, head = NULL;
 
   if ( !type->registered )		/* avoid deadlock */
     PL_register_blob_type(type);
@@ -876,15 +931,15 @@ lookupBlob(DECL_LD const char *s, size_t length, PL_blob_t *type, int *new)
     v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
 
 redo:
-  acquire_atom_table(table, buckets);
+  if ( ison(type, PL_BLOB_UNIQUE) )	/* other blobs are not in the table */
+  { acquire_atom_table(table, buckets);
 
-  v  = v0 & (buckets-1);
-  head = table[v];
-  acquire_atom_bucket(table+v);
-  DEBUG(MSG_HASH_STAT, GD->atoms.lookups++);
+    v  = v0 & (buckets-1);
+    head = table[v];
+    acquire_atom_bucket(table+v);
+    DEBUG(MSG_HASH_STAT, GD->atoms.lookups++);
 
-  if ( ison(type, PL_BLOB_UNIQUE) )
-  { for(a = table[v]; a; a = a->next)
+    for(a = table[v]; a; a = a->next)
     { DEBUG(MSG_HASH_STAT, GD->atoms.cmps++);
       ref = a->references;
       if ( ATOM_IS_RESERVED(ref) &&
@@ -909,21 +964,21 @@ redo:
 	return a->atom;
       }
     }
+
+    if ( GD->atoms.table->buckets * 2 < GD->statistics.atoms )
+    { int rc;
+
+      PL_LOCK(L_REHASH_ATOMS);
+      rc = rehashAtoms();
+      PL_UNLOCK(L_REHASH_ATOMS);
+
+      if ( !rc )
+	outOfCore();
+    }
+
+    if ( !( table == GD->atoms.table->table && head == table[v] ) )
+      goto redo;
   }
-
-  if ( GD->atoms.table->buckets * 2 < GD->statistics.atoms )
-  { int rc;
-
-    PL_LOCK(L_REHASH_ATOMS);
-    rc = rehashAtoms();
-    PL_UNLOCK(L_REHASH_ATOMS);
-
-    if ( !rc )
-      outOfCore();
-  }
-
-  if ( !( table == GD->atoms.table->table && head == table[v] ) )
-    goto redo;
 
   a = reserveAtom();
   a->length = length;
@@ -1308,7 +1363,8 @@ collectAtoms(void)
       if ( !ATOM_IS_MARKED(ref) && (ATOM_REF_COUNT(ref) == 0) )
       { invalidateAtom(a, ref);
       } else
-      {	ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
+      { if ( ATOM_IS_MARKED(ref) )	/* do not dirty the others */
+	  ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
         if ( ATOM_REF_COUNT(ref) == 0 )
 	{ unregistered++;
 	  add_type_units(a);
@@ -1858,7 +1914,10 @@ redo:
       ref = a->references;
       if ( ATOM_IS_RESERVED(ref) )
       { if ( !ATOM_IS_VALID(ref) )
-	  goto redo;
+	{ if ( a->type == ATOM_TYPE_INVALID )
+	    continue;			/* reserved by a thread, see */
+	  goto redo;			/* reserveAtom() */
+	}
 	if ( ison(a->type, PL_BLOB_UNIQUE) )
 	{ size_t v;
 	  v = a->hash_value & mask;

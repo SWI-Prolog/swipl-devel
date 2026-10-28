@@ -58,6 +58,7 @@ foreign_t	pl_atom_hashstat(term_t i, term_t n);
 void		do_init_atoms(void);
 int		resetListAtoms(void);
 void		cleanupAtoms(void);
+void		releaseReservedAtoms(PL_local_data_t *ld);
 void		markAtom(atom_t a);
 foreign_t	pl_garbage_collect_atoms(void);
 int		checkAtoms_src(const char *file, int line);

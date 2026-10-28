@@ -786,6 +786,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
   #endif
 
     cleanupLocalDefinitions(ld);
+    releaseReservedAtoms(ld);
 
     DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
     ld->magic = 0;
