@@ -389,6 +389,34 @@ Sunlock(IOSTREAM *s)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Sshare() prepares a stream that was  created without a mutex (SIO_NOMUTEX,
+e.g., the memory stream of with_output_to/2)   for access from multiple
+threads. It must be called by  the   thread  that owns the stream. Locks
+this thread holds on the stream are transferred to the new mutex.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+Sshare(IOSTREAM *s)
+{
+#ifdef O_PLMT
+  if ( !s->mutex )
+  { IOLOCK *m;
+
+    if ( !(m = PL_malloc(sizeof(*m))) )
+      return -1;
+    recursiveMutexInit(m);
+    for(int i=0; i<s->locks; i++)
+      recursiveMutexLock(m);
+    s->mutex = m;
+    s->flags &= ~SIO_NOMUTEX;
+  }
+#endif
+
+  return 0;
+}
+
+
 IOSTREAM *
 Sacquire(IOSTREAM *s)
 { Sreference(s);

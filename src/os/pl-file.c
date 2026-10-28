@@ -339,14 +339,44 @@ setStandardStream(DECL_LD int i, IOSTREAM *s)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The new thread shares the standard streams   of  ldold. These may have
+been created without a mutex,   notably the memory stream of
+with_output_to/2. If we are the thread  owning ldold, we can safely add
+a mutex. Otherwise (PL_thread_attach_engine()) we   fall  back to the
+process' standard streams.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static IOSTREAM *
+shareStandardStream(IOSTREAM *s, int i, bool owner)
+{ if ( s && !s->mutex && !(owner && Sshare(s) == 0) )
+  { switch(i)
+    { case SNO_USER_INPUT:
+      case SNO_CURRENT_INPUT:
+	return Sinput;
+      case SNO_USER_OUTPUT:
+      case SNO_CURRENT_OUTPUT:
+	return Soutput;
+      case SNO_USER_ERROR:
+	return Serror;
+      default:
+	return NULL;
+    }
+  }
+
+  return s;
+}
+
 void
 copyStandardStreams(PL_local_data_t *ldnew, PL_local_data_t *ldold,
 		    intptr_t flags)
-{ ldnew->IO.stream_type_check = ldold->IO.stream_type_check;
+{ GET_LD
+  bool owner = (LD == ldold);
+  ldnew->IO.stream_type_check = ldold->IO.stream_type_check;
   int upto = (flags&PL_THREAD_CUR_STREAMS) ? SNO_MAX : SNO_USER_ERROR;
 
   for(int i=0; i <= upto; i++)
-  { IOSTREAM *s = ldold->IO.streams[i];
+  { IOSTREAM *s = shareStandardStream(ldold->IO.streams[i], i, owner);
     if ( s )
       Sacquire(s);
     ldnew->IO.streams[i] = s;

@@ -47,6 +47,7 @@ This module is a Unit test for Prolog built-ins that process threads.
 
 test_threads :-
 	run_tests([ thread_create,
+		    thread_output,
 		    thread_errors,
 		    thread_property,
 		    mutex,
@@ -68,6 +69,31 @@ test(anonymous) :-
 	assertion(Status == true).
 
 :- end_tests(thread_create).
+
+:- begin_tests(thread_output).
+
+% Threads inherit the memory stream of with_output_to/2,3 as their
+% output.  This stream has no mutex by default.
+
+write_lines(N) :-
+	forall(between(1, N, I),
+	       with_output_to(user_output, format("~w~n", [I]))).
+
+test(inherit_capture, Len =:= 5*Lines) :-
+	Lines = 2000,
+	with_output_to(
+	    string(S),
+	    ( findall(T, (between(1, 4, _),
+			  thread_create(write_lines(Lines), T)), Ts),
+	      write_lines(Lines),
+	      maplist(thread_join, Ts)
+	    ),
+	    [capture([user_output])]),
+	split_string(S, "\n", "", Parts),
+	length(Parts, Len0),
+	Len is Len0-1.
+
+:- end_tests(thread_output).
 
 :- begin_tests(thread_errors).
 

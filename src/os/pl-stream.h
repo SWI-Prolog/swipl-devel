@@ -45,6 +45,7 @@
 void		unallocStream(IOSTREAM *s);
 IOSTREAM       *Sacquire(IOSTREAM *s);
 int             Srelease(IOSTREAM *s);
+int		Sshare(IOSTREAM *s);
 bool		Supdatepos(IOPOS *p, int c);
 void		Sresetesc(IOPOS *p);
 
