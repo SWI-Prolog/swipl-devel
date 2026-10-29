@@ -424,7 +424,7 @@ addOpToBuffer(Buffer b, atom_t name, unsigned char type, short priority)
 
 
 static void
-addOpsFromTable(TableWP t, atom_t name, int priority, int type, Buffer b)
+addOpsFromTable(TableWP t, atom_t name, int type, Buffer b)
 { TableEnum e = newTableEnumWP(t);
   table_key_t tk;
   table_value_t tv;
@@ -443,10 +443,7 @@ addOpsFromTable(TableWP t, atom_t name, int priority, int type, Buffer b)
 	     (op->type[kind]&OP_MASK) != (type&OP_MASK) )
 	  continue;
 
-	if ( !priority ||
-	     op->priority[kind] == priority ||
-	     op->priority[kind] == 0 )
-	  addOpToBuffer(b, nm, op->type[kind], op->priority[kind]);
+	addOpToBuffer(b, nm, op->type[kind], op->priority[kind]);
       } else
       { int kind;
 
@@ -454,10 +451,7 @@ addOpsFromTable(TableWP t, atom_t name, int priority, int type, Buffer b)
 	{ if ( op->priority[kind] < 0 )
 	    continue;
 
-	  if ( !priority ||
-	     op->priority[kind] == priority ||
-	     op->priority[kind] == 0 )
-	    addOpToBuffer(b, nm, op->type[kind], op->priority[kind]);
+	  addOpToBuffer(b, nm, op->type[kind], op->priority[kind]);
 	}
       }
     }
@@ -468,16 +462,16 @@ addOpsFromTable(TableWP t, atom_t name, int priority, int type, Buffer b)
 
 
 static void
-scanVisibleOperators(Module m, atom_t name, int priority, int type, Buffer b,
+scanVisibleOperators(Module m, atom_t name, int type, Buffer b,
 		     int inherit)
 { if ( m->operators )
-    addOpsFromTable(m->operators, name, priority, type, b);
+    addOpsFromTable(m->operators, name, type, b);
 
   if ( inherit )
   { ListCell c;
 
     for(c=m->supers; c; c=c->next)
-      scanVisibleOperators(c->value, name, priority, type, b, inherit);
+      scanVisibleOperators(c->value, name, type, b, inherit);
   }
 }
 
@@ -502,7 +496,6 @@ current_op(DECL_LD Module m, int inherit,
   switch( ForeignControl(h) )
   { case FRG_FIRST_CALL:
     { atom_t a, nm;			/* NULL_ATOM: any name */
-      int p;				/* 0: any priority */
       int t;				/* 0: any type */
 
       if ( PL_is_variable(name) )
@@ -510,13 +503,13 @@ current_op(DECL_LD Module m, int inherit,
       else if ( !PL_get_atom_ex(name, &nm) )
 	return false;
 
-      if ( PL_is_variable(prec) )
-      { p = 0;
-      } else if ( PL_get_integer_ex(prec, &p) )
-      { if ( !(p > 0 && p <= 1200) )
+      if ( !PL_is_variable(prec) )	/* matched when enumerating */
+      { int p;
+
+	if ( !PL_get_integer_ex(prec, &p) )
+	  return false;
+	if ( !(p > 0 && p <= 1200) )
 	  return PL_domain_error("operator_priority", prec);
-      } else
-      { return false;
       }
 
       if ( PL_is_variable(type) )
@@ -533,7 +526,7 @@ current_op(DECL_LD Module m, int inherit,
       initBuffer(b);
       e->index = 0;
 
-      scanVisibleOperators(m, nm, p, t, b, inherit);
+      scanVisibleOperators(m, nm, t, b, inherit);
       DEBUG(MSG_OPERATOR,
 	    if ( nm ) Sdprintf("Scanned for %s in %s: %d hits\n",
 			       PL_atom_chars(nm),

@@ -69,6 +69,11 @@ test(inherit, true) :-
     ->  fail
     ;   op(500, yfx, +)
     ).
+test(hide_priority, L == [250-yfx]) :-
+    setup_call_cleanup(
+        op(250, yfx, rem),
+        findall(P-T, ( member(P, [250, 400]), current_op(P, T, rem) ), L),
+        op(400, yfx, rem)).
 
 :- end_tests(current_op).
 
