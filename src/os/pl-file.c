@@ -2218,6 +2218,17 @@ set_buffering(IOSTREAM *s, atom_t b)
 }
 
 
+static bool
+newline_domain_error(atom_t val, const char *msg)
+{ GET_LD
+  term_t t;
+
+  return ( (t=PL_new_term_ref()) &&
+	   PL_put_atom(t, val) &&
+	   PL_error(NULL, 0, msg, ERR_DOMAIN, ATOM_newline, t) );
+}
+
+
 static int
 atom_to_newline_mode(atom_t val, unsigned int flags, unsigned int *mode)
 { if ( val == ATOM_posix )
@@ -2226,11 +2237,11 @@ atom_to_newline_mode(atom_t val, unsigned int flags, unsigned int *mode)
     *mode = SIO_NL_DOS;
   else if ( val == ATOM_detect )
   { if ( !(flags&SIO_INPUT) )
-      return PL_error(NULL, 0, "detect only allowed for input streams",
-		      ERR_DOMAIN, ATOM_newline, val),false;
+      return newline_domain_error(val,
+				  "detect only allowed for input streams");
     *mode = SIO_NL_DETECT;
   } else
-    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_newline, val),false;
+    return newline_domain_error(val, NULL);
 
   return true;
 }

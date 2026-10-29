@@ -106,6 +106,12 @@ test(no_protocol_in, [ condition(\+ protocolling(_)),
 		       error(existence_error(stream, protocol))
 		     ]) :-
 	read_term(protocol, _, []).
+test(newline_dom, error(domain_error(newline, foo))) :-
+	open_null_stream(S),
+	call_cleanup(set_stream(S, newline(foo)), close(S)).
+test(newline_detect_output, error(domain_error(newline, detect))) :-
+	open_null_stream(S),
+	call_cleanup(set_stream(S, newline(detect)), close(S)).
 
 :- end_tests(io).
 
