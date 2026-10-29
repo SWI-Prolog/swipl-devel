@@ -2788,11 +2788,11 @@ static bool
 ar_powm(Number base, Number exp, Number mod, Number r)
 {
   if ( !intNumber(base) )
-    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, base);
+    return PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, base);
   if ( !intNumber(exp) )
-    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, exp);
+    return PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, exp);
   if ( !intNumber(mod) )
-    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, mod);
+    return PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, mod);
 
 #ifdef O_BIGNUM
   promoteToMPZNumber(base);

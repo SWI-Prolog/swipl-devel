@@ -498,6 +498,8 @@ test(powm_1) :-
 test(powm_2) :-
     A is powm(2,4,3),
     A == 1.
+test(powm_type, error(type_error(integer, 2.0))) :-
+    _ is powm(2.0,3,5).
 test(integer_1) :-                       % rounding integer conversion
     0 =:= integer(1 rdiv 3),
     1 =:= integer(2 rdiv 3),
