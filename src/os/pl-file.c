@@ -2167,7 +2167,7 @@ setCloseOnExec(IOSTREAM *s, term_t stream, bool val)
 }
 
 
-static int
+static bool
 set_eof_action(IOSTREAM *s, atom_t action)
 { if ( action == ATOM_eof_code )
   { s->flags &= ~(SIO_NOFEOF|SIO_FEOF2ERR);
@@ -2190,7 +2190,7 @@ set_eof_action(IOSTREAM *s, atom_t action)
 }
 
 
-static int
+static bool
 set_buffering(IOSTREAM *s, atom_t b)
 {
 #define SIO_ABUF (SIO_FBUF|SIO_LBUF|SIO_NBUF)
@@ -2230,7 +2230,7 @@ newline_domain_error(atom_t val, const char *msg)
 }
 
 
-static int
+static bool
 atom_to_newline_mode(atom_t val, unsigned int flags, unsigned int *mode)
 { if ( val == ATOM_posix )
     *mode = SIO_NL_POSIX;
