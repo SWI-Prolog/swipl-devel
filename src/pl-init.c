@@ -1982,7 +1982,8 @@ PL_cleanup(int status)
   emptyStacks();			/* no need for this and we may be */
 					/* out of stack */
 #ifdef O_PROFILE
-  resetProfiler();			/* don't do profiling anymore */
+  stopProfiler();			/* don't do profiling anymore */
+  resetProfiler();
 #endif
 #ifdef O_PLMT
   if ( !exitPrologThreads() )		/* reclaim memory while a thread */

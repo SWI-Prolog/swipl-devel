@@ -47,6 +47,24 @@ test_profile :-
 
 :- begin_tests(profile_report).
 
+% Only one thread can be profiled.  profile/2 in another thread must
+% raise an error and leave the profiler of the first thread alone.
+
+test(busy, [ true(Error = error(permission_error(profile, thread, _), _)),
+             true(Mode == cputime)
+           ]) :-
+    thread_self(Me),
+    thread_create(( profiler(_, cputime),
+                    thread_send_message(Me, profiling),
+                    thread_get_message(done),
+                    profiler(Mode0, false),
+                    thread_send_message(Me, mode(Mode0))
+                  ), Id, [detached(true)]),
+    thread_get_message(profiling),
+    catch(profile(true), Error, true),
+    thread_send_message(Id, done),
+    thread_get_message(mode(Mode)).
+
 % A sampled profile that is too short for a sample has no ticks.
 
 test(no_samples, [ true(Ticks == 0),

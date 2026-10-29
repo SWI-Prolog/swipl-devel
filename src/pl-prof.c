@@ -218,6 +218,9 @@ startProfiler(prof_status how)
   if ( !LD->profile.sample_period )	/* profiler/2 without $profile/4 */
     LD->profile.sample_period = DEFAULT_SAMPLE_PERIOD;
 
+  if ( !activateProfiler(PROF_CPU) )	/* e.g., already profiling */
+    return false;
+
   rval = timeSetEvent(10,
 		      round(LD->profile.sample_period/1000),		/* resolution (milliseconds) */
 		      callTimer,
@@ -225,11 +228,12 @@ startProfiler(prof_status how)
 		      TIME_PERIODIC);
 
   if ( rval )
-    timer = rval;
-  else
-    return PL_error(NULL, 0, NULL, ERR_SYSCALL, "timeSetEvent");
+  { timer = rval;
+    return true;
+  }
 
-  return activateProfiler(PROF_CPU);
+  activateProfiler(PROF_INACTIVE);
+  return PL_error(NULL, 0, NULL, ERR_SYSCALL, "timeSetEvent");
 }
 
 
@@ -307,6 +311,9 @@ startProfiler(prof_status how)
     timer = ITIMER_REAL;
   }
 
+  if ( !activateProfiler(how) )		/* e.g., already profiling */
+    return false;
+
   set_sighandler(sig, sig_profile);
   timer_signal = sig;
 
@@ -316,11 +323,15 @@ startProfiler(prof_status how)
   value.it_value.tv_usec = LD->profile.sample_period;
 
   if ( setitimer(timer, &value, &ovalue) != 0 )
+  { activateProfiler(PROF_INACTIVE);
+    set_sighandler(sig, SIG_IGN);
+    timer_signal = 0;
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, setitimer);
+  }
 
   itimer = timer;
 
-  return activateProfiler(how);
+  return true;
 }
 
 void
@@ -946,7 +957,8 @@ prof_clear_stacks(DECL_LD LocalFrame fr, Choice ch)
 
 bool
 resetProfiler(DECL_LD)
-{ stopProfiler();
+{ if ( LD->profile.active )		/* do not stop another thread */
+    stopProfiler();
 
   assert(LD->gc._local_frames == 0);
   assert(LD->gc._choice_count == 0);
@@ -1005,7 +1017,8 @@ PRED_IMPL("$profile", 4, profile, PL_FA_TRANSPARENT)
     return false;
 
   resetProfiler();
-  startProfiler(val);
+  if ( !startProfiler(val) )
+    return false;
   rc = callProlog(NULL, A1, PL_Q_PASS_EXCEPTION, NULL);
   stopProfiler();
 
