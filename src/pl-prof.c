@@ -262,9 +262,28 @@ static struct itimerval value, ovalue;	/* itimer controlling structures */
 static int itimer = -1;			/* ITIMER_* */
 static int timer_signal;		/* SIG* */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+SIGPROF and SIGALRM are process signals  and may be delivered to any thread,
+including threads that are not Prolog  threads.   We  forward  them to the
+profiled thread, such that the sample is  taken in its context.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 sig_profile(int sig)
-{ (void)sig;
+{
+#ifdef O_PLMT
+  PL_local_data_t *ld = GD->profile.thread;
+
+  if ( ld && ld != GLOBAL_LD )
+  { PL_thread_info_t *info = ld->thread.info;
+
+    if ( info && info->has_tid )
+      pthread_kill(info->tid, sig);
+    return;
+  }
+#else
+  (void)sig;
+#endif
 
   WITH_LD_IF_PROFILING()
   { profile(thread_prof_ticks());
