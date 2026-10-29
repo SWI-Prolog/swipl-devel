@@ -72,7 +72,7 @@ profiled_samples(Samples) :-
     statistics(cputime, T0),
     spin(T0),
     profiler(_, false),
-    '$prof_statistics'(Samples, _, _, _, _, _, _).
+    '$prof_statistics'(Samples, _, _, _, _, _, _, _).
 
 spin(T0) :-
     statistics(cputime, T),

@@ -39,8 +39,13 @@
 typedef enum
 { PROF_INACTIVE = 0,		/* Profiler is inactive */
   PROF_CPU,			/* Profile CPU time */
-  PROF_WALL			/* Profile wall time */
+  PROF_WALL,			/* Profile wall time */
+  PROF_WALL_EXACT,		/* Measure wall time at the ports */
+  PROF_CPU_EXACT		/* Idem, scaled to thread CPU time */
 } prof_status;
+
+#define PROF_IS_CPU(m)	 ((m) == PROF_CPU || (m) == PROF_CPU_EXACT)
+#define PROF_IS_EXACT(m) ((m) == PROF_WALL_EXACT || (m) == PROF_CPU_EXACT)
 
 typedef enum
 { PROFC_FALSE = 0,

@@ -82,6 +82,13 @@ library(swi/pce_profile).
 %
 %     - time(Which)
 %       Profile `cpu` or `wall` time.  The default is CPU time.
+%     - exact(Bool)
+%       If `true` (default `false`), do not sample, but read the
+%       clock each time execution moves to another node of the call
+%       tree.  This gives exact wall times, also for short running
+%       goals.  For CPU time, the thread's CPU time is read once per
+%       sample period (see sample_rate(Rate)) and after each long
+%       interval, where the thread may have been off the CPU.
 %     - sample_rate(Rate)
 %       Samples per second, any numeric value between 1 and 1000.
 %       Default is defined by the Prolog flag `profile_sample_rate`,
@@ -108,7 +115,10 @@ profile(Goal0, Options) :-
     current_prolog_flag(profile_ports, DefPorts),
     current_prolog_flag(profile_sample_rate, DefRate),
     option(time(Which), Options, cpu),
-    time_name(Which, How),
+    time_name(Which, Time),
+    option(exact(Exact), Options, false),
+    must_be(boolean, Exact),
+    exact_time(Exact, Time, How),
     option(ports(Ports), Options, DefPorts),
     must_be(oneof([true,false,classic]),Ports),
     option(sample_rate(Rate), Options, DefRate),
@@ -116,6 +126,13 @@ profile(Goal0, Options) :-
     expand_goal(Goal0, Goal),
     call_cleanup('$profile'(Goal, How, Ports, Rate),
                  prolog_statistics:show_profile(Options)).
+
+exact_time(false, Time, Time).
+exact_time(true,  Time, How) :-
+    exact_name(Time, How).
+
+exact_name(cputime,  exact_cputime).
+exact_name(walltime, exact_walltime).
 
 time_name(cpu,      cputime)  :- !.
 time_name(wall,     walltime) :- !.
@@ -164,8 +181,13 @@ show_text_profile(Options) :-
     ),
     sort_prof_nodes(SortKey, Nodes, Sorted),
     format_divider,
-    format('Number of nodes: ~w~t[ports(~w)]~55|~tTotal time: ~3f seconds~101|~n',
-           [Stat.nodes, Ports, NetTime]),
+    (   Stat.exact == true
+    ->  Mode = 'exact '
+    ;   Mode = ''
+    ),
+    format('Number of nodes: ~w~t[~w~w time, ports(~w)]~60|~t\c
+            Total time: ~3f seconds~101|~n',
+           [Stat.nodes, Mode, Stat.clock, Ports, NetTime]),
     format('Predicate~tCalls +~41| Redos~t~49|~t \c
             Exits +~58| Fails~tTime:Self +~87| Time:Children~n', []),
     format_divider,
@@ -237,11 +259,15 @@ percentage(Part, Total, Percent) :-
 %     - summary:Dict
 %       Overall statistics providing
 %       - samples:Count:
-%         Times the statistical profiler was called
+%         Times the statistical profiler was called or, if `exact`
+%         is `true`, the number of times execution moved to another
+%         node of the call tree.
 %       - ticks:Count
 %         Nanoseconds sampled during profiling
 %       - accounting:Count
-%         Nanoseconds spent on accounting
+%         Nanoseconds spent on accounting.  This is the profiler's
+%         own overhead.  The exact modes measure it and exclude it
+%         from the times of the predicates.
 %       - time:Seconds
 %         Total time sampled
 %       - nodes:Count
@@ -250,6 +276,10 @@ percentage(Part, Total, Percent) :-
 %         Same interval timer period in micro seconds
 %       - ports: Ports
 %         One of `true`, `false` or `classic`
+%       - clock: Clock
+%         One of `cpu` or `wall`, the time that was profiled.
+%       - exact: Bool
+%         Whether the data was collected using exact(true)
 %     - nodes
 %       List of nodes.  Each node provides:
 %       - predicate:PredicateIndicator
@@ -289,9 +319,19 @@ prof_statistics(summary{samples:Samples, ticks:Ticks,
                         accounting:Account, time:Time,
                         nodes:Nodes,
                         sample_period: Period,
-                        ports: Ports
+                        ports: Ports,
+                        clock: Clock,
+                        exact: Exact
                        }) :-
-    '$prof_statistics'(Samples, Ticks, Account, Time, Nodes, Period, Ports).
+    '$prof_statistics'(Samples, Ticks, Account, Time, Nodes, Period, Ports,
+                       Mode),
+    prof_mode(Mode, Clock, Exact).
+
+prof_mode(cputime,        cpu,  false).
+prof_mode(walltime,       wall, false).
+prof_mode(exact_cputime,  cpu,  true).
+prof_mode(exact_walltime, wall, true).
+prof_mode(false,          cpu,  false).     % no data
 
 %!  profile_procedure_data(?Pred, -Data:dict) is nondet.
 %

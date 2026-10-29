@@ -104,6 +104,23 @@ checks 100 times per second how much time is spent in the profiled
 thread and adds this to the current node.  See \secref{winprofile}
 for details.
 
+Using the option \term{exact}{true}, profile/2 does not sample, but
+reads a clock each time execution moves to another node of the call
+tree and adds the elapsed wall time to the node that was left.  The
+time spent updating the call tree is reported as accounting time.  This
+gives exact timings, also for short running goals and predicates that
+are called often but run briefly.  It uses the processor's timestamp
+counter if this is available (the invariant TSC on x86 or the virtual
+counter on ARM64) and the operating system's monotonic clock otherwise.
+
+Reading the CPU time of a thread is too slow to do at every node
+switch.  For CPU time, the exact mode therefore reads the thread's CPU
+time once per sample period, as well as after each interval longer
+than 10 microseconds.  A thread can only spend significant time off
+the CPU, e.g., blocked in I/O or sleep/1, inside a single long interval.
+The short intervals are considered to have run on the CPU and the long
+interval is charged the remaining CPU time used in the period.
+
 
 \subsubsection{Profiling in the Windows Implementation}
 \label{sec:winprofile}

@@ -642,6 +642,7 @@ struct PL_local_data
   { int		accounting;		/* we are accounting */
     int		sum_ok;			/* siblings are counted */
     prof_status	active;			/* profiler is on */
+    prof_status	mode;			/* mode that collected the data */
     prof_control ports_control;		/* which port counts are generated? */
     unsigned int sample_period;		/* profile sample period (usecs.) */
     struct call_node *current;		/* `current' node */
@@ -653,6 +654,20 @@ struct PL_local_data
     int64_t	time_at_last_tick;	/* nsec since time_at_start */
     double	time_at_start;		/* Time at last start */
     double	time;			/* recorded CPU time */
+    struct				/* PROF_*_EXACT clock */
+    { uint64_t	last;			/* prof_clock() at last switch */
+      uint64_t	start;			/* prof_clock() at start */
+      int64_t	start_ns;		/* monotonic nsec at start */
+      uint64_t	raw;			/* unconverted ticks total */
+      uint64_t	accounting;		/* unconverted accounting ticks */
+					/* PROF_CPU_EXACT window */
+      uint64_t	win_start;		/* prof_clock() at window start */
+      uint64_t	win_length;		/* window length in prof_clock() units */
+      uint64_t	long_interval;		/* close window after this interval */
+      int64_t	win_cpu;		/* thread CPU nsec at window start */
+      uint64_t	win_accounting;		/* accounting in this window */
+      struct call_node *win_nodes;	/* nodes charged in this window */
+    } clock;
   } profile;
 #endif /* O_PROFILE */
 

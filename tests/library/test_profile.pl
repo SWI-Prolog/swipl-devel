@@ -38,12 +38,18 @@
           ]).
 :- use_module(library(plunit)).
 :- use_module(library(prolog_profile)).
+:- use_module(library(lists)).
 
 /** <module> Test the execution profiler
+
+The exact modes read the clock at each change  of the current node in
+the call tree.  We use sleep/1 to get  bounds on the recorded times that
+hold regardless of the machine load:  sleeping   takes  wall time but no
+CPU time.
 */
 
 test_profile :-
-    run_tests([profile_report]).
+    run_tests([profile_report, profile_exact]).
 
 :- begin_tests(profile_report).
 
@@ -79,3 +85,64 @@ test(no_samples, [ true(Ticks == 0),
                    prolog_profile:show_text_profile([top(1)])).
 
 :- end_tests(profile_report).
+
+:- begin_tests(profile_exact).
+
+test(mode, Mode == exact_walltime) :-
+    reset_profiler,
+    profiler(_, exact_walltime),
+    profiler(Mode, false).
+test(sleep, [ true(Ticks >= 20 000 000),
+              true(Self >= 20 000 000),
+              true(Ticks >= Self)
+            ]) :-
+    exact_profile(sleep_twice, Data, exact_walltime),
+    Ticks = Data.summary.ticks,
+    self_ticks(Data, system:sleep/1, Self).
+test(cpu_mode, [ condition(exact_cpu), Mode == exact_cputime ]) :-
+    reset_profiler,
+    profiler(_, exact_cputime),
+    profiler(Mode, false).
+test(cpu_sleep, [ condition(exact_cpu),
+                  true(Self*2 < Busy)
+                ]) :-
+    exact_profile(sleep_and_work, Data, exact_cputime),
+    self_ticks(Data, system:sleep/1, Self),
+    self_ticks(Data, lists:numlist_/3, Busy).
+
+:- end_tests(profile_exact).
+
+sleep_twice :-
+    sleep(0.01),
+    sleep(0.01).
+
+% exact_cputime requires a precise thread CPU clock, which is
+% not available on, e.g., Wine.
+
+exact_cpu :-
+    reset_profiler,
+    catch(profiler(_, exact_cputime), error(not_implemented(_,_),_), fail),
+    profiler(_, false).
+
+% Sleep in short intervals, such that  sleeping and working alternate
+% within the windows in which the CPU time is read.
+
+sleep_and_work :-
+    forall(between(1, 20, _),
+           ( sleep(0.001),
+             numlist(1, 20 000, _)
+           )).
+
+self_ticks(Data, PI, Ticks) :-
+    member(Node, Data.nodes),
+    Node.predicate == PI,
+    !,
+    Ticks = Node.ticks_self.
+
+exact_profile(Goal, Data, Mode) :-
+    reset_profiler,
+    setup_call_cleanup(
+        profiler(_, Mode),
+        Goal,
+        profiler(_, false)),
+    profile_data(Data).
