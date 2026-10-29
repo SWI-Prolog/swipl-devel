@@ -1453,16 +1453,35 @@ getchr__(ReadData _PL_rd)
 	  rdbase = rb.base, last_token_start = rb.here-1; \
 	  syntaxError1(what, arg, _PL_rd); \
 	}
+#define rawSyntaxErrorAt(what, arg, offset) \
+	{ addToBuffer(EOS, _PL_rd); \
+	  rdbase = rb.base, last_token_start = rb.base+(offset); \
+	  syntaxError1(what, arg, _PL_rd); \
+	}
 
-static void
-setErrorLocation(IOPOS *pos, ReadData _PL_rd)
+/* Prepare for an error on material that started at `pos` in the
+ * stream and at offset `start` in the read buffer, i.e., an unterminated
+ * quoted item or block comment.  Returns the buffer offset to pass to
+ * rawSyntaxErrorAt().  For string input the context is the text read
+ * with the offset of the item.  As blank space is collapsed in the
+ * buffer, for other streams we use the stream position.
+ */
+
+static size_t
+setErrorLocation(IOPOS *pos, size_t start, ReadData _PL_rd)
 { if ( pos )
   { GET_LD
 
     LD->read_source.position = *pos;
   }
-  if ( rb.here > rb.base )		/* nothing read: leave empty */
-    rb.here = rb.base+1;		/* see rawSyntaxError() */
+  if ( isStringStream(rb.stream) )	/* ptr_to_location() counts chars */
+    return start+1;			/* that end before the error pointer */
+
+  if ( pos )
+    _PL_rd->start_of_term.position = *pos;
+  rb.here = rb.base;
+
+  return 0;
 }
 
 /* Read a quoted text that opens with code point `open` and closes
@@ -1478,6 +1497,7 @@ static int
 raw_read_quoted(int open, int close, ReadData _PL_rd)
 { IOPOS pbuf;
   IOPOS *pos;
+  size_t start = rb.here - rb.base;
   int c;
 
   if ( rb.stream->position )
@@ -1562,10 +1582,10 @@ out:
   eofinstr:
     if ( Sferror(rb.stream) )
       return false;
-    setErrorLocation(pos, _PL_rd);
+    start = setErrorLocation(pos, start, _PL_rd);
     p = utf8_put_char(what, open);
     *p = EOS;
-    rawSyntaxError1("end_of_file_in_quoted", what);
+    rawSyntaxErrorAt("end_of_file_in_quoted", what, start);
   }
   addToBuffer(c, _PL_rd);
 
@@ -1698,6 +1718,7 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		if ( c == '*' )
 		{ int last;
 		  int level = 1;
+		  size_t start = rb.here - rb.base;
 		  tmp_buffer ctmpbuf;
 		  Buffer cbuf;
 
@@ -1713,10 +1734,10 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		  if ((last = getchr()) == EOF)
 		  { if ( cbuf )
 		      discardBuffer(cbuf);
-		    setErrorLocation(pos, _PL_rd);
+		    start = setErrorLocation(pos, start, _PL_rd);
 		    if ( Sferror(rb.stream) )
 		      return false;
-		    rawSyntaxError("end_of_file_in_block_comment");
+		    rawSyntaxErrorAt("end_of_file_in_block_comment", NULL, start);
 		  }
 		  if ( cbuf )
 		    addUTF8Buffer(cbuf, last);
@@ -1743,10 +1764,10 @@ raw_read2(DECL_LD ReadData _PL_rd)
 		    { case EOF:
 			if ( cbuf )
 			  discardBuffer(cbuf);
-			setErrorLocation(pos, _PL_rd);
+			start = setErrorLocation(pos, start, _PL_rd);
 			if ( Sferror(rb.stream) )
 			  return false;
-			rawSyntaxError("end_of_file_in_block_comment");
+			rawSyntaxErrorAt("end_of_file_in_block_comment", NULL, start);
 		      case '*':
 			if ( last == '/' )
 			  level++;

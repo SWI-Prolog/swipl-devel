@@ -171,6 +171,27 @@ test(undefined_char_escape, E == undefined_char_escape(C)) :-
 test(eof_in_comment, Ctx == string("", 0)) :-
     catch(term_to_atom(_, abcdef), _, true),
     catch(term_to_atom(_, '/* x'), error(_, Ctx), true).
+% context of unterminated quoted text or comment held only one byte
+test(eof_in_quoted_ctx, Ctx == string("foo('x", 4)) :-
+    catch(term_to_atom(_, 'foo(\'x'), error(_, Ctx), true).
+test(eof_in_quoted_ctx, Ctx == string(S, 0)) :-
+    atom_codes(A, [0xAB, 0'x, 0' , 0'\', 0'y]),
+    atom_string(A, S),
+    catch(term_to_atom(_, A), error(_, Ctx), true).
+test(eof_in_comment_ctx, Offset == 2) :-
+    catch(term_to_atom(_, 'a /* x'), error(_, string(_, Offset)), true).
+test(eof_in_quoted_pos, Pos == 2:2:5) :-
+    setup_call_cleanup(
+	open_string("a,\n  'x", In),
+	catch(read(In, _), error(_, stream(_, L, LP, C)), true),
+	close(In)),
+    Pos = L:LP:C.
+test(eof_in_comment_pos, Pos == 2:2:5) :-
+    setup_call_cleanup(
+	open_string("a,\n  /* x", In),
+	catch(read(In, _), error(_, stream(_, L, LP, C)), true),
+	close(In)),
+    Pos = L:LP:C.
 % cycles(Bool) was written as int, overwriting dotlists
 test(dotlists, T == [a|b]) :-
     term_string(T, "'.'(a,b)", [dotlists(true)]).
