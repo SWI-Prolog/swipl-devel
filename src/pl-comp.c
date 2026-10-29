@@ -6191,9 +6191,9 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 #define isVarRef(w)	((ssize_t)((tag(w) == TAG_REFERENCE &&		\
 				    storage(w) == STG_INLINE) ? valInt(w) : -1))
 
-static functor_t
-clause_functor(const Clause cl)
-{ switch(cl->flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE))
+functor_t
+clause_functor(unsigned int flags)
+{ switch(flags & CLAUSE_SSU_FLAGS)
   { case 0:			return FUNCTOR_prove2;
     case SSU_COMMIT_CLAUSE:	return FUNCTOR_ssu_commit2;
     case SSU_CHOICE_CLAUSE:	return FUNCTOR_ssu_choice2;
@@ -6307,7 +6307,7 @@ decompile(Clause clause, term_t term, term_t bindings)
   } else
   { term_t a = PL_new_term_ref();
 
-    TRY(PL_unify_functor(term, clause_functor(clause)));
+    TRY(PL_unify_functor(term, clause_functor(clause->flags)));
     _PL_get_arg(1, term, a);
     TRY(decompile_head(clause, a, di));
     _PL_get_arg(2, term, a);

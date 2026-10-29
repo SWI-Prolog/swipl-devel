@@ -78,6 +78,7 @@ bool		argKey(Code PC, size_t skip, word *key);
 bool		arg1Key(Code PC, word *key);
 const Code	prevPC(const Clause clause, const Code pc);
 bool		decompile(Clause clause, term_t term, term_t bindings);
+functor_t	clause_functor(unsigned int flags);
 word		pl_nth_clause(term_t p, term_t n, term_t ref,
 			      control_t h);
 void		wamListClause(Clause clause);

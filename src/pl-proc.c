@@ -3135,10 +3135,10 @@ PRED_IMPL("retract", 1, retract,
     if ( !PL_strip_module_ex(term, &m, cl) ||
 	 !get_head_and_body_clause(cl, head, body, &m, &flags) )
       return false;
-    if ( PL_get_atom(body, &b) && b == ATOM_true )
+    if ( !(flags&CLAUSE_SSU_FLAGS) && PL_get_atom(body, &b) && b == ATOM_true )
       rc = PL_put_term(cl, head);
     else
-      rc = PL_cons_functor(cl, FUNCTOR_prove2, head, body);
+      rc = PL_cons_functor(cl, clause_functor(flags), head, body);
     if ( !rc )
       return false;
 

@@ -118,6 +118,16 @@ test(qhead, [X-A == 1-a, cleanup(retractall(foo(_)))]) :-
 	assert((foo(1) :- bar(a))),
 	context_module(M),
 	retract((M:foo(X) :- bar(A))).
+test(ssu_commit, [B-N == (X=1)-0, cleanup(retractall(foo(_)))]) :-
+	assertz((foo(X) => X = 1)),
+	retract((foo(X) => B)),
+	predicate_property(foo(_), number_of_clauses(N)).
+test(ssu_true, [X == 1, cleanup(retractall(foo(_)))]) :-
+	assertz((foo(1) => true)),
+	retract((foo(X) => true)).
+test(ssu_neck, [fail, cleanup(retractall(foo(_)))]) :-
+	assertz((foo(X) => X = 1)),
+	retract((foo(_) :- _)).
 test(update_view, L == [ant,bee]) :-
 	retractall(insect(_)),
 	retractall(icopy(_)),
