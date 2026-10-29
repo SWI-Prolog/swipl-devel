@@ -82,6 +82,7 @@ typedef struct
   term_t portray_goal;			/* call/2 activated portray hook */
   term_t write_options;			/* original write options */
   term_t prec_opt;			/* term in write options with prec */
+  term_t attvars;			/* attvars whose attributes we write */
 } write_options;
 
 #define WRITE_OPTIONS_DEFAULTS \
@@ -996,6 +997,28 @@ writeAttributes(term_t t, int prec, write_options *options, int flags)
   return true;
 }
 
+/* True if we are writing the attributes of `av`, i.e., `av` is in
+ * the list `attvars`.
+ */
+
+static bool
+writing_attvar(term_t av, term_t attvars)
+{ GET_LD
+  term_t l, h;
+
+  if ( !attvars ||
+       !(l=PL_copy_term_ref(attvars)) ||
+       !(h=PL_new_term_ref()) )
+    return false;
+
+  while( PL_get_list(l, h, l) )
+  { if ( PL_compare(h, av) == 0 )
+      return true;
+  }
+
+  return false;
+}
+
 static bool
 writeAttVar(term_t av, write_options *options)
 { GET_LD
@@ -1009,20 +1032,31 @@ writeAttVar(term_t av, write_options *options)
 	    Putc('}', options->out));
   } else if ( (options->flags & PL_WRT_ATTVAR_WRITE) )
   { fid_t fid;
-    term_t a;
+    term_t a, attvars;
+    term_t outer = options->attvars;
+    bool rc;
 
     if ( !(fid = PL_open_foreign_frame()) )
       return false;
+    if ( (rc = writing_attvar(av, outer)) )
+    { PL_close_foreign_frame(fid);	/* cycle: name only */
+      return true;
+    }
 
-    Sputcode('{', options->out);
-    a = PL_new_term_ref();
-    PL_get_attr(av, a);
-    if ( !writeAttributes(a, 1200, options, W_TOP) )
-      return false;
-    Sputcode('}', options->out);
+    if ( (a=PL_new_term_ref()) &&
+	 (attvars=PL_new_term_ref()) &&
+	 PL_get_attr(av, a) &&
+	 (outer ? PL_put_term(attvars, outer) : PL_put_nil(attvars)) &&
+	 PL_cons_list(attvars, av, attvars) )
+    { options->attvars = attvars;
+      rc = ( Putc('{', options->out) &&
+	     writeAttributes(a, 1200, options, W_TOP) &&
+	     Putc('}', options->out) );
+      options->attvars = outer;
+    }
     PL_close_foreign_frame(fid);
 
-    return true;
+    return rc;
   } else if ( (options->flags & PL_WRT_ATTVAR_PORTRAY) &&
 	      GD->halt.cleaning <= CLN_PROLOG )
   { predicate_t pred;

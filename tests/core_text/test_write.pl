@@ -308,6 +308,16 @@ test(bracket_2, S == "'()'(a)") :-
 test(bracket_3, S == "⟨a⟩") :-
     compound_name_arguments(T, '⟨⟩', [a]),
     with_output_to(string(S), writeq(T)).
+test(attvar_cycle, S == Expected) :-
+    put_attr(X, a, f(X)),
+    format(string(Expected), "~w{a:f(~w)}", [X,X]),
+    with_output_to(string(S), write_term(X, [attributes(write)])).
+test(attvar_cycle2, S == Expected) :-
+    put_attr(X, a, f(Y)),
+    put_attr(Y, b, g(X)),
+    format(string(Expected), "h(~w{a:f(~w{b:g(~w)})},~w{b:g(~w{a:f(~w)})})",
+	   [X,Y,X,Y,X,Y]),
+    with_output_to(string(S), write_term(h(X,Y), [attributes(write)])).
 
 :- end_tests(write_misc).
 
