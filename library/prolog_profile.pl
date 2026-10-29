@@ -225,9 +225,9 @@ time_data(Data,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime) :-
 %       - samples:Count:
 %         Times the statistical profiler was called
 %       - ticks:Count
-%         Virtual ticks during profiling
+%         Nanoseconds sampled during profiling
 %       - accounting:Count
-%         Tick spent on accounting
+%         Nanoseconds spent on accounting
 %       - time:Seconds
 %         Total time sampled
 %       - nodes:Count
@@ -241,6 +241,8 @@ time_data(Data,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime) :-
 %       - predicate:PredicateIndicator
 %       - ticks_self:Count
 %       - ticks_siblings:Count
+%         Nanoseconds sampled in the predicate itself and in its
+%         callees.
 %       - call:Count
 %       - redo:Count
 %       - exit:Count

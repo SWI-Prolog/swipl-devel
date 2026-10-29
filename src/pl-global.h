@@ -647,10 +647,10 @@ struct PL_local_data
     struct call_node *current;		/* `current' node */
     struct call_node *roots;		/* list of root-nodes */
     uint64_t	samples;		/* profile samples */
-    uint64_t	ticks;			/* profile ticks total */
+    uint64_t	ticks;			/* profile ticks total (nsec) */
     uint64_t	accounting_ticks;	/* Ticks in profCall() and friends */
     size_t	nodes;			/* #Recorded nodes */
-    double	time_at_last_tick;	/* Time at last statistics tick */
+    int64_t	time_at_last_tick;	/* nsec since time_at_start */
     double	time_at_start;		/* Time at last start */
     double	time;			/* recorded CPU time */
   } profile;

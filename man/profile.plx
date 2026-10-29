@@ -98,7 +98,8 @@ promising.
 The last part of the profiler collects statistics on the CPU time
 used in each node. On systems providing setitimer() with
 \const{SIGPROF}, it `ticks' the current node of the call-tree each
-time the timer fires.  On Windows, a MM-timer in a separate thread
+time the timer fires, adding the CPU (or wall) time elapsed since the
+previous tick in nanoseconds.  On Windows, a MM-timer in a separate thread
 checks 100 times per second how much time is spent in the profiled
 thread and adds this to the current node.  See \secref{winprofile}
 for details.

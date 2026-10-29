@@ -46,6 +46,7 @@
 #include "pl-gc.h"
 #include "pl-util.h"
 #include "pl-pro.h"
+#include <math.h>
 #include "pl-modul.h"
 
 #undef LD
@@ -65,8 +66,8 @@
 static bool identify_def(term_t t, void *handle);
 static bool get_def(term_t t, void **handle);
 static void prof_release_def(void *handle);
-static void profile(intptr_t count);
-static int  thread_prof_ticks(void);
+static void profile(int64_t count);
+static int64_t thread_prof_ticks(void);
 
 #undef LDFUNC_DECLARATIONS
 
@@ -92,7 +93,7 @@ typedef struct call_node
   uint64_t	    fails;		/* fails back to choicepoint */
   uint64_t	    exits;		/* exits to the parent */
   uint64_t	    recur;		/* recursive calls */
-  uint64_t	    ticks;		/* time-statistics */
+  uint64_t	    ticks;		/* time-statistics (nsec) */
   uint64_t	    sibling_ticks;	/* ticks in a siblings */
   struct call_node *next;		/* next in siblings chain */
   struct call_node *siblings;		/* my offspring */
@@ -141,10 +142,10 @@ activateProfiler(DECL_LD prof_status active)
   }
 
   if ( active )
-  { LD->profile.time_at_last_tick =
-    LD->profile.time_at_start     = active == PROF_CPU
+  { LD->profile.time_at_start     = active == PROF_CPU
 					? ThreadCPUTime(CPU_USER)
 					: WallTime();
+    LD->profile.time_at_last_tick = 0;
 
     GD->profile.thread = LD;
   } else
@@ -161,18 +162,28 @@ activateProfiler(DECL_LD prof_status active)
 }
 
 
-static int
-thread_prof_ticks(DECL_LD)
-{ double t0 = LD->profile.time_at_last_tick;
-  double t1 = LD->profile.active == PROF_CPU ? ThreadCPUTime(CPU_USER)
-					     : WallTime();
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Return the time since the last tick in nanoseconds.  We keep the time of
+the last tick as nanoseconds since the profiler was activated, such that
+the ticks add up exactly to the profiled time and no rounding error
+accumulates.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static int64_t
+thread_prof_ticks(DECL_LD)
+{ double now = LD->profile.active == PROF_CPU ? ThreadCPUTime(CPU_USER)
+					      : WallTime();
+  int64_t t0 = LD->profile.time_at_last_tick;
+  int64_t t1 = llround((now - LD->profile.time_at_start)*1e9);
+
+  if ( t1 < t0 )				/* clock went backwards */
+    return 0;
   LD->profile.time_at_last_tick = t1;
 
   DEBUG(MSG_PROF_TICKS,
-	Sdprintf("%d ms\n", (int)((t1-t0)*1000.0)));
+	Sdprintf("%" PRId64 " ns\n", t1-t0));
 
-  return (int)((t1-t0)*1000.0);			/* milliseconds */
+  return t1-t0;					/* nanoseconds */
 }
 
 
@@ -193,13 +204,7 @@ typedef DWORD DWORD_PTR;
 static void CALLBACK
 callTimer(UINT id, UINT msg, DWORD_PTR dwuser, DWORD_PTR dw1, DWORD_PTR dw2)
 { WITH_LD_IF_PROFILING()
-  { int newticks;
-
-    if ( (newticks = thread_prof_ticks()) )
-    { if ( newticks < 0 )			/* Windows 95/98/... */
-	newticks = 1;
-    }
-    profile(newticks);
+  { profile(thread_prof_ticks());
   }
 }
 
@@ -262,13 +267,7 @@ sig_profile(int sig)
 { (void)sig;
 
   WITH_LD_IF_PROFILING()
-  { int newticks;
-
-    if ( (newticks = thread_prof_ticks()) )
-    { if ( newticks < 0 )			/* Windows 95/98/... */
-	newticks = 1;
-    }
-    profile(newticks);
+  { profile(thread_prof_ticks());
   }
 }
 
@@ -840,8 +839,8 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 		       -Time, -Nodes, -Period, -Ports)
 
 @arg Samples is the number of times the statistical profiler was called.
-@arg Ticks   is the number of virtual ticks during profiling
-@arg AccountingTicks are tick spent on accounting
+@arg Ticks   is the sampled time during profiling in nanoseconds
+@arg AccountingTicks is the sampled time spent on accounting (nsec)
 @arg Time    is the total CPU time spent profiling
 @arg Nodes   is the number of nodes in the call tree
 @arg Period  is the number of microseconds between samples
@@ -1009,7 +1008,7 @@ statistics.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-profile(DECL_LD intptr_t count)
+profile(DECL_LD int64_t count)
 { call_node *node;
 
   if ( !HAS_LD )
