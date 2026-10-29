@@ -2225,7 +2225,8 @@ newline_domain_error(atom_t val, const char *msg)
 
   return ( (t=PL_new_term_ref()) &&
 	   PL_put_atom(t, val) &&
-	   PL_error(NULL, 0, msg, ERR_DOMAIN, ATOM_newline, t) );
+	   (PL_error(NULL, 0, msg, ERR_DOMAIN, ATOM_newline, t),false)
+	 );
 }
 
 
