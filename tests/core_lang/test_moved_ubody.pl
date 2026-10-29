@@ -182,4 +182,11 @@ test(decomp13, (Head :- Body) =@= (s13(X) :- X = 1, Y is X+1, Y > 0)) :-
     Head = s13(_),
     clause(Head, Body).
 
+% All moved unifications were turned back into head unification
+s14(X, Y) :- Y = f(X).
+
+test(decomp14, (Head :- Body) =@= (s14(X,f(X)) :- true)) :-
+    Head = s14(_,_),
+    clause(Head, Body).
+
 :- end_tests(moved_decompile).

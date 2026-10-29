@@ -6232,10 +6232,12 @@ moved_unifications(DECL_LD term_t body, decompileInfo *di, int hasbody)
   eq = tmp;
   a  = tmp+1;
 
-  for(last=0, i=0; i<di->arity; i++)
+  for(last=-1, i=0; i<di->arity; i++)
   { if ( true_bit(di->bvar_access, i) )
       last = i;
   }
+  if ( last < 0 && !hasbody )		/* all were turned into head unification */
+    return PL_unify_atom(body, ATOM_true);
 
   for(i=0; i<=last; i++)
   { if ( true_bit(di->bvar_access, i) )
