@@ -83,6 +83,12 @@ test(agc, Xs == [ aaaa100001,aaaa100002,aaaa100003,aaaa100004,
 	offset(10 000, findnsols(10, X, gen_atom(X), Xs)),
 	!.
 
+test(bagof_qualified_var, R == [a-[1], b-[2]]) :-
+	Goal = ( G = member(X-Y, [1-a,2-b]),
+		 findall(Y-L, bagof(X, user:G, L), R)
+	       ),
+	call(Goal).
+
 gen_atom(A) :-
 	between(1, infinite, X),
 	atom_concat(aaaa, X, A).

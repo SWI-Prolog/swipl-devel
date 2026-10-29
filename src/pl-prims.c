@@ -4037,6 +4037,7 @@ free_variables_loop(DECL_LD Word t, atom_t *mname, term_t goal)
 	  if ( isAtom(*a1) )
 	    *mname = word2atom(*a1);
 	  t = &f->arguments[1];
+	  deRef(t);
 	  goto again;
 	} else if ( !existential )
 	{ *valTermRef(goal) = *t;
