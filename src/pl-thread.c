@@ -782,7 +782,11 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 
   #ifdef O_PROFILE
     if ( ld->profile.active )
-      WITH_LD(ld) activateProfiler(false);
+    { if ( after_fork )			/* timer is stopped by the fork */
+	WITH_LD(ld) activateProfiler(false);
+      else
+	stopProfiler();
+    }
   #endif
 
     cleanupLocalDefinitions(ld);

@@ -342,7 +342,7 @@ stopItimer(void)
 
 #endif /*__WINDOWS__*/
 
-static bool
+bool
 stopProfiler(void)
 { WITH_LD_IF_PROFILING_AND(LD->profile.active)
   { double tend = LD->profile.active == PROF_CPU ? ThreadCPUTime(CPU_USER)
