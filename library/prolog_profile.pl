@@ -147,9 +147,15 @@ show_profile_(Options) :-
     prolog:show_profile_hook(Options),
     !.
 show_profile_(Options) :-
+    show_text_profile(Options).
+
+%   Textual report on the last collected profile.
+
+show_text_profile(Options) :-
     prof_statistics(Stat),
     NetTicks is Stat.ticks-Stat.accounting,
-    NetTime is (NetTicks/Stat.ticks)*Stat.time,
+    percentage(NetTicks, Stat.ticks, NetPC),
+    NetTime is NetPC*Stat.time/100,
     Ports = Stat.ports,
     findall(Node, profile_procedure_data(_:_, Node), Nodes),
     (   option(cumulative(false), Options, false)
@@ -203,11 +209,19 @@ format_divider :- format('~`=t~102|~n').
 
 time_data(Data,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime) :-
     value(ticks_self,Data,Ticks),
-    SelfPC is 100*Ticks/NetTicks,
+    percentage(Ticks, NetTicks, SelfPC),
     SelfTime is SelfPC*NetTime/100,
     value(ticks_siblings,Data,ChildrenTicks),
-    ChildrenPC is 100*ChildrenTicks/NetTicks,
+    percentage(ChildrenTicks, NetTicks, ChildrenPC),
     ChildrenTime is ChildrenPC*NetTime/100.
+
+%   Percentage of Part in Total.  Total is 0 if no sample was taken.
+
+percentage(_, Total, 0.0) :-
+    Total =:= 0,
+    !.
+percentage(Part, Total, Percent) :-
+    Percent is 100*Part/Total.
 
 
                  /*******************************
