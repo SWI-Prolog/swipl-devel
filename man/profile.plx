@@ -121,6 +121,12 @@ the CPU, e.g., blocked in I/O or sleep/1, inside a single long interval.
 The short intervals are considered to have run on the CPU and the long
 interval is charged the remaining CPU time used in the period.
 
+By default (Prolog flag \prologflag{profile_exact} is \const{auto}),
+profile/2 uses exact timing if reading the clock is cheap and, for CPU
+time, the thread CPU time can be read precisely.  This is typically not
+the case in virtual machines, where reading the timestamp counter may
+trap into the hypervisor.  In that case profile/2 uses sampling.
+
 
 \subsubsection{Profiling in the Windows Implementation}
 \label{sec:winprofile}

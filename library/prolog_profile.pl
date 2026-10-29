@@ -54,6 +54,10 @@
                       [ keep(true),
                         type(oneof([true,false,classic]))
                       ]).
+:- create_prolog_flag(profile_exact, auto,
+                      [ keep(true),
+                        type(oneof([auto,true,false]))
+                      ]).
 :- create_prolog_flag(profile_sample_rate, 200.0,
                       [ keep(true),
                         type(float)
@@ -82,13 +86,18 @@ library(swi/pce_profile).
 %
 %     - time(Which)
 %       Profile `cpu` or `wall` time.  The default is CPU time.
-%     - exact(Bool)
-%       If `true` (default `false`), do not sample, but read the
-%       clock each time execution moves to another node of the call
-%       tree.  This gives exact wall times, also for short running
-%       goals.  For CPU time, the thread's CPU time is read once per
-%       sample period (see sample_rate(Rate)) and after each long
-%       interval, where the thread may have been off the CPU.
+%     - exact(Exact)
+%       If `true`, do not sample, but read the clock each time
+%       execution moves to another node of the call tree.  This gives
+%       exact wall times, also for short running goals.  For CPU time,
+%       the thread's CPU time is read once per sample period (see
+%       sample_rate(Rate)) and after each long interval, where the
+%       thread may have been off the CPU.  If `auto`, use exact
+%       timing if reading the clock is cheap and, for CPU time, the
+%       thread CPU clock is precise.  This is typically not the case
+%       in virtual machines.  Otherwise use sampling.  Default is
+%       defined by the Prolog flag `profile_exact`, which defaults to
+%       `auto`.
 %     - sample_rate(Rate)
 %       Samples per second, any numeric value between 1 and 1000.
 %       Default is defined by the Prolog flag `profile_sample_rate`,
@@ -116,8 +125,10 @@ profile(Goal0, Options) :-
     current_prolog_flag(profile_sample_rate, DefRate),
     option(time(Which), Options, cpu),
     time_name(Which, Time),
-    option(exact(Exact), Options, false),
-    must_be(boolean, Exact),
+    current_prolog_flag(profile_exact, DefExact),
+    option(exact(Exact0), Options, DefExact),
+    must_be(oneof([auto,true,false]), Exact0),
+    exact(Exact0, Time, Exact),
     exact_time(Exact, Time, How),
     option(ports(Ports), Options, DefPorts),
     must_be(oneof([true,false,classic]),Ports),
@@ -126,6 +137,18 @@ profile(Goal0, Options) :-
     expand_goal(Goal0, Goal),
     call_cleanup('$profile'(Goal, How, Ports, Rate),
                  prolog_statistics:show_profile(Options)).
+
+exact(auto, Time, Exact) :-
+    !,
+    (   time_clock(Time, Clock),
+        '$prof_exact_ok'(Clock)
+    ->  Exact = true
+    ;   Exact = false
+    ).
+exact(Exact, _, Exact).
+
+time_clock(cputime,  cpu).
+time_clock(walltime, wall).
 
 exact_time(false, Time, Time).
 exact_time(true,  Time, How) :-

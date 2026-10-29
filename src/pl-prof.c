@@ -339,6 +339,38 @@ precise_thread_cpu_clock(DECL_LD const char **why)
   return ok;
 }
 
+/* Cost of prof_clock() in nsec.  In some virtual machines, reading the
+   TSC traps into the hypervisor, which makes the exact modes very slow.
+*/
+
+#define PROF_EXACT_MAX_CLOCK_NS 40.0	/* auto: max cost of prof_clock() */
+
+static double
+prof_clock_cost_ns(void)
+{ static double cost = -1.0;
+
+  if ( cost < 0.0 )
+  { volatile uint64_t sink = 0;
+
+#ifdef PROF_CLOCK_TSC
+    invariant_tsc();
+#endif
+    for(int run=0; run<3; run++)	/* min of 3 to avoid preemption */
+    { int64_t t0 = prof_mono_ns();
+      double c;
+
+      for(int i=0; i<1000; i++)
+	sink += prof_clock();
+      c = (double)(prof_mono_ns()-t0)/1000.0;
+      if ( cost < 0.0 || c < cost )
+	cost = c;
+    }
+    (void)sink;
+  }
+
+  return cost;
+}
+
 /* Rough estimate of the prof_clock() frequency, used to determine the
    window length of PROF_CPU_EXACT.
 */
@@ -858,6 +890,39 @@ prof_status_atom(prof_status s)
     case PROF_CPU_EXACT:  return ATOM_exact_cputime;
     default:		  return ATOM_false;
   }
+}
+
+/** '$prof_exact_ok'(+Clock) is semidet.
+
+True if the exact mode for Clock (`cpu` or `wall`) is cheap enough to
+be used by default:  reading prof_clock() is cheap and, for `cpu`, the
+thread CPU clock is precise.
+*/
+
+static
+PRED_IMPL("$prof_exact_ok", 1, prof_exact_ok, 0)
+{ PRED_LD
+  atom_t clock;
+  const char *why;
+
+  if ( !PL_get_atom_ex(A1, &clock) )
+    return false;
+  if ( prof_clock_cost_ns() > PROF_EXACT_MAX_CLOCK_NS )
+    return false;
+  if ( clock == ATOM_cpu )
+    return precise_thread_cpu_clock(&why);
+
+  return true;
+}
+
+/** '$prof_clock_cost'(-Nsec) is det.
+
+Nsec is the cost of reading the clock used by the exact profiler modes.
+*/
+
+static
+PRED_IMPL("$prof_clock_cost", 1, prof_clock_cost, 0)
+{ return PL_unify_float(A1, prof_clock_cost_ns());
 }
 
 static
@@ -1899,6 +1964,8 @@ BeginPredDefs(profile)
 #if O_PROFILE
   PRED_DEF("$profile", 4, profile, PL_FA_TRANSPARENT)
   PRED_DEF("profiler", 2, profiler, 0)
+  PRED_DEF("$prof_exact_ok", 1, prof_exact_ok, 0)
+  PRED_DEF("$prof_clock_cost", 1, prof_clock_cost, 0)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
   PRED_DEF("$prof_node", 8, prof_node, 0)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)

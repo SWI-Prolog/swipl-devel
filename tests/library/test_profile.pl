@@ -49,7 +49,7 @@ CPU time.
 */
 
 test_profile :-
-    run_tests([profile_report, profile_exact]).
+    run_tests([profile_report, profile_default, profile_exact]).
 
 :- begin_tests(profile_report).
 
@@ -85,6 +85,39 @@ test(no_samples, [ true(Ticks == 0),
                    prolog_profile:show_text_profile([top(1)])).
 
 :- end_tests(profile_report).
+
+:- begin_tests(profile_default, [condition(text_report)]).
+
+% With profile_exact = auto, profile/2 uses exact timing if the clock is
+% cheap to read, which is typically not the case in virtual machines.
+
+test(auto, Exact == Expected) :-
+    (   '$prof_exact_ok'(cpu)
+    ->  Expected = true
+    ;   Expected = false
+    ),
+    profile_with_flag(auto, Exact).
+test(flag_false, Exact == false) :-
+    profile_with_flag(false, Exact).
+
+:- end_tests(profile_default).
+
+%   The report of profile/2 is textual unless the GUI hooks into it.
+
+text_report :-
+    \+ ( predicate_property(prolog:show_profile_hook(_),
+                            number_of_clauses(N)),
+         N > 0
+       ).
+
+profile_with_flag(Value, Exact) :-
+    current_prolog_flag(profile_exact, Old),
+    setup_call_cleanup(
+        set_prolog_flag(profile_exact, Value),
+        with_output_to(string(_), profile(true, [top(1)])),
+        set_prolog_flag(profile_exact, Old)),
+    profile_data(Data),
+    Exact = Data.summary.exact.
 
 :- begin_tests(profile_exact).
 
