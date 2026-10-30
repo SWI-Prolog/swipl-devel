@@ -701,6 +701,7 @@ struct PL_local_data
       size_t	count;			/* entries in chunks[] */
       size_t	size;			/* allocated entries of chunks[] */
       size_t	cursor;			/* chunks before this are full */
+      local_atom_chunk *current;	/* = chunks[cursor] or NULL */
       size_t	live;			/* # live local atoms */
       size_t	threshold;		/* sweep when live reaches this */
       size_t	collected;		/* total reclaimed by the sweep */

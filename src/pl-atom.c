@@ -320,6 +320,23 @@ PL_blob_gc_released(Atom a)
 }
 
 
+/* Make a blob refer to nothing, without calling its release hook.  As
+   after PL_free_blob(), PL_blob_data() returns NULL.  Used if the C object
+   of a PL_BLOB_NOCOPY blob is freed while Prolog may still refer to the
+   blob.
+*/
+
+void
+discardBlob(atom_t a)
+{ Atom x = atomValue(a);
+
+  PL_blob_gc_released(x);
+  x->length = 0;
+  MEMORY_BARRIER();
+  x->name = NULL;
+}
+
+
 static inline int
 bump_atom_references(Atom a, unsigned int ref)
 { for(;;)
@@ -1764,27 +1781,35 @@ getLocalChunk(DECL_LD)
 
 static Atom
 reserveLocalAtom(DECL_LD)
-{ local_atom_chunk *c = NULL;
-  size_t chunk = 0;
+{ local_atom_chunk *c = LD->atoms.local.current;
+  size_t chunk;
   uint64_t free;
   unsigned int bit;
   Atom a;
 
-  for(;;)
-  { if ( LD->atoms.local.cursor == LD->atoms.local.count )
-      getLocalChunk();
-    chunk = LD->atoms.local.chunks[LD->atoms.local.cursor];
-    c = localChunk(chunk);
-    if ( (free = c->avail & ~c->used) )
-      break;
-    LD->atoms.local.cursor++;
+  if ( likely(c && (free = c->avail & ~c->used)) )
+  { chunk = LD->atoms.local.chunks[LD->atoms.local.cursor];
+  } else
+  { if ( c )
+      LD->atoms.local.cursor++;
+    for(;;)
+    { if ( LD->atoms.local.cursor == LD->atoms.local.count )
+	getLocalChunk();
+      chunk = LD->atoms.local.chunks[LD->atoms.local.cursor];
+      c = localChunk(chunk);
+      if ( (free = c->avail & ~c->used) )
+	break;
+      LD->atoms.local.cursor++;
+    }
+    LD->atoms.local.current = c;
   }
 
   bit = LSB64(free);
   c->used |= (uint64_t)1<<bit;
-  a = fetchAtomArray((chunk<<LOCAL_CHUNK_BITS)+bit);
+  size_t index = (chunk<<LOCAL_CHUNK_BITS)+bit;
+  a = fetchAtomArray(index);
   assert(a->type == ATOM_TYPE_INVALID);
-  a->atom = MK_ATOM((chunk<<LOCAL_CHUNK_BITS)+bit);
+  a->atom = MK_ATOM(index);
 
   if ( !LD->atoms.local.threshold )
     LD->atoms.local.threshold = LOCAL_AGC_MIN;
@@ -1801,8 +1826,11 @@ reserveLocalAtom(DECL_LD)
  * The hash is only used by term_hash/2 and friends.
  */
 
-static atom_t
-lookupLocalBlob(DECL_LD const char *s, size_t length, PL_blob_t *type)
+#define createLocalBlob(s, length, type, refs) \
+	LDFUNC(createLocalBlob, s, length, type, refs)
+static inline atom_t
+createLocalBlob(DECL_LD const char *s, size_t length, PL_blob_t *type,
+		unsigned int refs)
 { Atom a = reserveLocalAtom();
   uintptr_t h = (uintptr_t)s;
 
@@ -1812,12 +1840,32 @@ lookupLocalBlob(DECL_LD const char *s, size_t length, PL_blob_t *type)
 #ifdef O_TERMHASH
   a->hash_value = (unsigned int)((h>>3) * 0x9E3779B1u) ^ (unsigned int)(h>>35);
 #endif
-  a->references = ( 1 | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE |
+  a->references = ( refs | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE |
 		    ATOM_LOCAL_REFERENCE );
   if ( type->acquire )
     (*type->acquire)(a->atom);
 
   return a->atom;
+}
+
+static atom_t
+lookupLocalBlob(DECL_LD const char *s, size_t length, PL_blob_t *type)
+{ return createLocalBlob(s, length, type, 1);
+}
+
+/* Create a local PL_BLOB_NOCOPY blob without a reference.  The caller
+ * must put it on the stacks before the next safe point, where the local
+ * sweep may reclaim it.
+ */
+
+atom_t
+newLocalBlob(DECL_LD void *data, size_t length, PL_blob_t *type)
+{ if ( unlikely(!type->registered) )
+    PL_register_blob_type(type);
+
+  DEBUG(0, assert(ison(type, PL_BLOB_LOCAL) && ison(type, PL_BLOB_NOCOPY) &&
+		  isoff(type, PL_BLOB_UNIQUE)));
+  return createLocalBlob(data, length, type, 0);
 }
 
 
@@ -1977,6 +2025,7 @@ collectLocalAtoms(void)
 
   LD->atoms.local.live = live;
   LD->atoms.local.cursor = 0;
+  LD->atoms.local.current = NULL;
   LD->atoms.local.threshold = live*2 > LOCAL_AGC_MIN ? live*2
 						     : LOCAL_AGC_MIN;
   returnEmptyLocalChunks(LD->atoms.local.threshold);
@@ -2858,8 +2907,9 @@ PRED_IMPL("blob_released", 1, blob_released, 0)
 #ifdef O_ATOMGC
 /* '$local_test_blob'(-Blob) creates a thread-local blob for testing the
  * local sweep.  '$local_atoms'(+Key, -Value) provides statistics: `live`,
- * `collected`, `sweeps` and `chunks` for the calling thread and `pool`,
- * the number of chunks in the global pool.
+ * `collected`, `sweeps` and `chunks` for the calling thread, `pool`, the
+ * number of chunks in the global pool, and `highest`, the size of the
+ * atom array.
  */
 
 static PL_blob_t local_test_blob =
@@ -2894,6 +2944,8 @@ PRED_IMPL("$local_atoms", 2, local_atoms, 0)
     v = LD->atoms.local.count;
   else if ( streq(key, "pool") )
     v = GD->atoms.local_pool.count;
+  else if ( streq(key, "highest") )
+    v = GD->atoms.highest;
   else
     return PL_domain_error("local_atoms_key", A1);
 

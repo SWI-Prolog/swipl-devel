@@ -42,6 +42,7 @@
 #if USE_LD_MACROS
 #define lookupBlob(s, len, type, new) LDFUNC(lookupBlob, s, len, type, new)
 #define lookupAtom(s, len) LDFUNC(lookupAtom, s, len)
+#define newLocalBlob(data, length, type) LDFUNC(newLocalBlob, data, length, type)
 #endif
 
 
@@ -64,6 +65,8 @@ void		markLocalAtom(atom_t a);
 size_t		collectLocalAtoms(void);
 void		considerLocalSweep(void);
 void		releaseLocalAtoms(PL_local_data_t *ld);
+void		discardBlob(atom_t a);
+atom_t		newLocalBlob(void *data, size_t length, PL_blob_t *type);
 foreign_t	pl_garbage_collect_atoms(void);
 int		checkAtoms_src(const char *file, int line);
 int		is_volatile_atom(atom_t a);
