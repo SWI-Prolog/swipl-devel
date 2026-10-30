@@ -106,7 +106,7 @@ new_gvar(DECL_LD atom_t name, atom_t value)
   }
 
   addNewHTable(LD->gvar.nb_vars, (table_key_t)name, (table_value_t)old);
-  PL_register_atom(name);
+  registerAtomLocally(name);		/* global variables are thread-local */
 
   return old;
 }
@@ -259,7 +259,7 @@ setval(DECL_LD term_t var, term_t value, unsigned int flags)
     { freezeGlobal();
       LD->gvar.grefs++;
     } else if ( isAtom(w) )
-      PL_register_atom(word2atom(w));
+      registerAtomLocally(word2atom(w));
   }
 
   return true;

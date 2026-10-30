@@ -179,6 +179,51 @@ test(thread_exit, Type == local_test) :-
     kept(K),
     blob(K, Type),
     retractall(kept(_)).
+test(local, true) :-
+    '$local_test_blob'(B),
+    '$local_atom'(B).
+test(gvar_local, [true(Local == true), true(Type == local_test)]) :-
+    set_gvar_blob,			% global variables are thread-local
+    nb_getval(local_blob_test, B0),
+    local_flag(B0, Local),
+    churn(20_000),
+    garbage_collect_atoms,
+    nb_getval(local_blob_test, B),
+    blob(B, Type),
+    nb_delete(local_blob_test).
+test(promote_assert, [true(Local == false), true(Type == local_test)]) :-
+    retractall(kept(_)),
+    assert_local_blob,			% promotes
+    kept(B),
+    local_flag(B, Local),
+    churn(20_000),
+    garbage_collect_atoms,
+    kept(K),
+    blob(K, Type),
+    retractall(kept(_)).
+test(promote_message, [condition(current_prolog_flag(threads, true)),
+                       true(Local == false), true(Type == local_test)]) :-
+    promote_by_message(B),
+    local_flag(B, Local),
+    blob(B, Type).
+local_flag(Atom, Local) :-
+    (   '$local_atom'(Atom)
+    ->  Local = true
+    ;   Local = false
+    ).
+
+%   Whether the sweep would reclaim the blob depends on stale words that
+%   the conservative stack scan may find, so we test the promotion itself.
+
+test(promote_answer, [true(Locals == [false]), true(Types == [local_test])]) :-
+    abolish_all_tables,
+    \+ \+ tabled_blob(_),		% the answer trie is the only reference
+    churn(20_000),
+    garbage_collect,
+    garbage_collect_atoms,
+    findall(K, (tabled_blob(k(K)), blob(K, _)), Ks),
+    maplist(local_flag, Ks, Locals),
+    maplist(blob, Ks, Types).
 test(concurrent_agc, [condition(current_prolog_flag(threads, true)),
                       Type == local_test]) :-
     thread_create(atoms_and_agc(20), Id),
@@ -193,6 +238,37 @@ test(concurrent_agc, [condition(current_prolog_flag(threads, true)),
 assert_local_blob :-
     '$local_test_blob'(B),
     assertz(kept(B)).
+
+%   promote_by_message(-Blob)
+%
+%   A thread creates Blob, sends it to us and sweeps before we use it.
+
+promote_by_message(B) :-
+    thread_self(Me),
+    thread_create(send_blob(Me), Id),
+    thread_get_message(blob(B)),
+    thread_get_message(swept),
+    thread_join(Id).
+
+send_blob(To) :-
+    '$local_test_blob'(B),
+    thread_send_message(To, blob(B)),
+    churn(5_000),
+    garbage_collect,
+    garbage_collect_atoms,
+    thread_send_message(To, swept).
+
+%   The answer trie of a table is private, so it uses chunked nodes once it
+%   is large enough.  The keys of chunked nodes are not registered.
+
+:- table tabled_blob/1.
+
+tabled_blob(k(X)) :- between(1, 1_000, X).
+tabled_blob(k(B)) :- '$local_test_blob'(B).
+
+set_gvar_blob :-
+    '$local_test_blob'(B),
+    nb_setval(local_blob_test, B).
 
 atoms_and_agc(N) :-
     forall(between(1, N, I),

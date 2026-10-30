@@ -1131,10 +1131,18 @@ alloc_trie_node(trie *trie, trie_node_chunk **cp, bool *bump)
   return &nc->nodes[0];
 }
 
+/* A key of a chunked node is not registered.  Atom-GC marks it instead
+ * (see markAtomsInTries()), but the local sweep of a thread does not, so
+ * a local atom is promoted.
+ */
+
 static inline void
 mark_new_key(word key)
-{ if ( unlikely(GD->atoms.gc_active) && isAtom(key) )
-    markAtom(word2atom(key));
+{ if ( isAtom(key) )
+  { promoteAtomIfLocal(word2atom(key));
+    if ( unlikely(GD->atoms.gc_active) )
+      markAtom(word2atom(key));
+  }
 }
 
 static trie_node *

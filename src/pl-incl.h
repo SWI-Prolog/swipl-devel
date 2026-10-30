@@ -1453,6 +1453,7 @@ typedef struct atom_table
    the creating thread.  See "Thread-local blobs" in pl-atom.c.
 */
 #define PL_BLOB_LOCAL		0x100
+#define PL_BLOB_OWNED		0x200	/* local blob owned by a C object */
 typedef void (*atom_mark_func)(atom_t a); /* markAtom(), markLocalAtom() */
 #define LOCAL_AGC_MIN		1024	/* sweep at least this many */
 #define LOCAL_AGC_SCAN_RATIO	16	/* stack words scanned per local atom */

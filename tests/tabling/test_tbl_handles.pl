@@ -54,11 +54,20 @@ threads :-
 :- dynamic
     saved/2.
 
-:- table t/0, w/0.
+:- table t/0, w/0, same/2.
 
 t :-
     '$tbl_scc'(SCC),
     assertz(saved(scc, SCC)).
+
+same(Same, Refs) :-			% handle identity after promotion
+    '$tbl_scc'(S1),
+    recorda(tbl_handle_test, S1, Ref),	% registers, which promotes
+    erase(Ref),				% drops that reference
+    '$atom_references'(S1, Refs),	% the reference of the component
+    garbage_collect_atoms,
+    '$tbl_scc'(S2),
+    (   S1 == S2 -> Same = true ; Same = false ).
 
 w :-
     '$tbl_variant_table'(VT),
@@ -100,6 +109,9 @@ test(stale_worklist, error(existence_error(worklist, _))) :-
     w,
     saved(wl, WL),
     '$tbl_wkl_table'(WL, _).
+test(promoted_identity, [Same == true, Refs == 1]) :-
+    abolish_all_tables,
+    same(Same, Refs).
 test(incomplete, [condition(threads), Status == incomplete]) :-
     abolish_all_tables,
     shared_status(Status).

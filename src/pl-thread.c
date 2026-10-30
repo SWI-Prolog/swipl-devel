@@ -4567,6 +4567,8 @@ create_thread_message(DECL_LD term_t msg)
 
   if ( !(rec=compileTermToHeap(msg, R_NOLOCK)) )
     return NULL;
+  if ( LD->atoms.local.live )		/* atom-GC marks, the local sweep */
+    markAtomsRecord(rec, promoteAtomIfLocal); /* does not: promote */
 
   if ( (msgp = allocHeap(sizeof(*msgp))) )
   { msgp->next    = NULL;

@@ -213,7 +213,7 @@ Note that threads can mark their atoms and continue execution because:
 
 static int	rehashAtoms(void);
 static void	considerAGC(void);
-static unsigned int register_atom(volatile Atom p);
+static unsigned int register_atom(volatile Atom p, bool promote);
 static void	 unregister_atom(volatile Atom p);
 #ifdef O_ATOMGC
 #define reserveLocalAtom(_) LDFUNC(reserveLocalAtom, _)
@@ -337,16 +337,33 @@ discardBlob(atom_t a)
 }
 
 
+static inline unsigned int
+promoting_ref(unsigned int ref, Atom a)
+{ if ( unlikely(ATOM_IS_LOCAL(ref)) )	/* see promoteLocalAtom() */
+  { ref &= ~ATOM_LOCAL_REFERENCE;
+    if ( GD->atoms.gc_active )
+      ref |= ATOM_MARKED_REFERENCE;
+    if ( ison(a->type, PL_BLOB_OWNED) )
+      ref++;				/* reference of the object */
+  }
+
+  return ref;
+}
+
+static void	promoted_atom(Atom a, unsigned int nref);
+
 static inline int
 bump_atom_references(Atom a, unsigned int ref)
 { for(;;)
-  { unsigned int nref = ref+1;
+  { unsigned int nref = promoting_ref(ref+1, a);
 
     if ( ATOM_REF_COUNT(nref) == 0 )
       return true;			/* reached max references */
 
     if ( COMPARE_AND_SWAP_UINT(&a->references, ref, nref) )
-    { if ( ATOM_REF_COUNT(ref) == 0 && !ATOM_IS_LOCAL(ref) )
+    { if ( unlikely(ATOM_IS_LOCAL(ref)) )
+      { promoted_atom(a, nref);
+      } else if ( ATOM_REF_COUNT(ref) == 0 )
       { ATOMIC_DEC(&GD->atoms.unregistered);
 	del_type_units(a);
       }
@@ -1129,7 +1146,7 @@ _PL_debug_register_atom(atom_t a,
   { Atom atom = fetchAtomArray(i);
     unsigned int refs;
 
-    refs = ATOM_REF_COUNT(register_atom(atom));
+    refs = ATOM_REF_COUNT(register_atom(atom, true));
     if ( atomLogFd && tracking(atom) )
       Sfprintf(atomLogFd, "%s:%d: %s(): ++ (%d) for `%s' (#%zd)\n",
 	       file, line, func, refs, atom->name, i);
@@ -2052,6 +2069,99 @@ considerLocalSweep(void)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Promotion turns a local atom into an ordinary atom: it clears
+ATOM_LOCAL_REFERENCE, after which global AGC manages the atom.  Its
+atom_t does not change.  Any thread may promote an atom.  The slot stays
+in the `used` bitmap of its chunk until the owner's sweep finds it is no
+longer local.  Escapes that promote:
+
+  - PL_register_atom() and lookups that add a reference
+    (bump_atom_references()).  Data of the owner thread that must not
+    promote uses registerAtomLocally().
+  - Copies that are marked by atom-GC instead of registered: the keys of
+    chunked trie nodes and the records of message queues
+    (promoteAtomIfLocal()).
+
+Normally the owner promotes: until then, no other thread can see the
+atom.  Global AGC does not mark local atoms.  If it is active, the
+promoted atom is marked, as it may have been skipped while marking.
+
+A PL_BLOB_OWNED blob belongs to a C object that remembers it, such as a
+tabling worklist.  Promotion adds a reference for the object, which the
+object drops when it is freed and discards the blob.  Global AGC thus
+never reclaims such a blob while its object lives, and the release hook,
+which updates the object, only runs in the owner's local sweep.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* Account for an atom that was promoted to `nref` */
+
+static void
+promoted_atom(Atom a, unsigned int nref)
+{ ATOMIC_INC(&GD->statistics.atoms);
+  add_type_live(a);
+  if ( ATOM_REF_COUNT(nref) == 0 )
+  { ATOMIC_INC(&GD->atoms.unregistered);
+    add_type_units(a);
+  }
+}
+
+/* Promote a local atom.  Returns false if it was not local. */
+
+bool
+promoteLocalAtom(Atom a)
+{ for(;;)
+  { unsigned int ref = a->references;
+    unsigned int nref;
+
+    if ( !ATOM_IS_LOCAL(ref) )
+      return false;
+    nref = promoting_ref(ref, a);
+    if ( COMPARE_AND_SWAP_UINT(&a->references, ref, nref) )
+    { promoted_atom(a, nref);
+      return true;
+    }
+  }
+}
+
+/* Promote `a` if it is a local atom.  Cheap if it is not: a local atom
+ * is in a chunk that has an owner, and the chunk table is much denser
+ * than the atom array, so we test that before looking at the atom.
+ */
+
+void
+promoteAtomIfLocal(atom_t a)
+{ size_t index = indexAtom(a);
+  size_t chunk = index>>LOCAL_CHUNK_BITS;
+  local_atom_chunk *c;
+
+  if ( chunk && index < GD->atoms.highest &&
+       (c=localChunk(chunk)) && c->owner )
+  { Atom p = fetchAtomArray(index);
+
+    if ( unlikely(ATOM_IS_LOCAL(p->references)) )
+      promoteLocalAtom(p);
+  }
+}
+
+/* The thread that owns the chunk of atom `a` or NULL.  A promoted atom
+ * keeps the owner of its chunk until the owner's sweep or termination
+ * releases the slot.  Chunk descriptors are never freed, so any thread
+ * may call this.
+ */
+
+PL_local_data_t *
+localAtomOwner(atom_t a)
+{ size_t chunk = indexAtom(a)>>LOCAL_CHUNK_BITS;
+  local_atom_chunk *c;
+
+  if ( chunk && (c=localChunk(chunk)) )
+    return c->owner;
+
+  return NULL;
+}
+
+
 /* A thread or engine terminates.  Its stacks are dead, so its local atoms
  * without references are released.  The others become ordinary atoms,
  * left to global AGC.  The free slots of its chunks become holes.
@@ -2067,23 +2177,7 @@ releaseLocalAtoms(PL_local_data_t *ld)
 
     releaseLocalCandidates(c, chunk, c->used);
     for(used = c->used; used; used &= used-1)
-    { Atom a = fetchAtomArray(base+LSB64(used));
-
-      for(;;)
-      { unsigned int ref = a->references;
-	unsigned int nref = ref & ~ATOM_LOCAL_REFERENCE;
-
-	if ( COMPARE_AND_SWAP_UINT(&a->references, ref, nref) )
-	{ ATOMIC_INC(&GD->statistics.atoms);
-	  add_type_live(a);
-	  if ( ATOM_REF_COUNT(nref) == 0 ) /* release hook refused */
-	  { ATOMIC_INC(&GD->atoms.unregistered);
-	    add_type_units(a);
-	  }
-	  break;
-	}
-      }
-    }
+      promoteLocalAtom(fetchAtomArray(base+LSB64(used)));
 
     returnLocalChunk(c, chunk);
   }
@@ -2117,15 +2211,23 @@ operations. This should be safe because:
     - When we unregister an atom, it must have at least one reference.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* Add a reference to p.  If `promote` is true, a local atom is promoted
+ * (see promoteLocalAtom()).  Otherwise the caller is the owner and keeps
+ * the reference in data of its own thread.
+ */
+
 static unsigned int
-register_atom(volatile Atom p)
+register_atom(volatile Atom p, bool promote)
 { for(;;)
   { unsigned int ref  = p->references;
-    unsigned int nref = ref+1;
+    unsigned int nref = promote ? promoting_ref(ref+1, p) : ref+1;
 
     if ( ATOM_REF_COUNT(nref) != 0 )
     { if ( COMPARE_AND_SWAP_UINT(&p->references, ref, nref) )
-      { if ( ATOM_REF_COUNT(nref) == 1 && !ATOM_IS_LOCAL(nref) )
+      { if ( unlikely(ATOM_IS_LOCAL(ref)) )
+	{ if ( promote )
+	    promoted_atom(p, nref);
+	} else if ( ATOM_REF_COUNT(nref) == 1 )
 	{ ATOMIC_DEC(&GD->atoms.unregistered);
 	  del_type_units(p);
 	}
@@ -2147,7 +2249,27 @@ void
   if ( index >= GD->atoms.builtin )
   { Atom p = fetchAtomArray(index);
 
-    register_atom(p);
+    register_atom(p, true);
+  }
+#endif
+}
+
+
+/* As PL_register_atom(), but a local atom stays local.  For references
+ * from data that belongs to the thread that owns the atom, such as the
+ * suspensions of its tabling worklists.
+ */
+
+void
+registerAtomLocally(atom_t a)
+{
+#ifdef O_ATOMGC
+  size_t index = indexAtom(a);
+
+  if ( index >= GD->atoms.builtin )
+  { Atom p = fetchAtomArray(index);
+
+    register_atom(p, false);
   }
 #endif
 }
@@ -2924,6 +3046,19 @@ PRED_IMPL("$local_test_blob", 1, local_test_blob, 0)
   return PL_unify_blob(A1, &n, sizeof(n), &local_test_blob);
 }
 
+/* '$local_atom'(@Atom) is true if Atom is a local atom */
+
+static
+PRED_IMPL("$local_atom", 1, local_atom, 0)
+{ PRED_LD
+  atom_t a;
+
+  if ( PL_get_atom(A1, &a) && indexAtom(a) >= GD->atoms.builtin )
+    return ATOM_IS_LOCAL(atomValue(a)->references) != 0;
+
+  return false;
+}
+
 static
 PRED_IMPL("$local_atoms", 2, local_atoms, 0)
 { PRED_LD
@@ -3555,6 +3690,7 @@ BeginPredDefs(atom)
 #ifdef O_ATOMGC
   PRED_DEF("$local_test_blob", 1, local_test_blob, 0)
   PRED_DEF("$local_atoms", 2, local_atoms, 0)
+  PRED_DEF("$local_atom", 1, local_atom, 0)
 #endif
   PRED_DEF("$atom_completions", 2, atom_completions, 0)
   PRED_DEF("$complete_atom", 3, complete_atom, 0)

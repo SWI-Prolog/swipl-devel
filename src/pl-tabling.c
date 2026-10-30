@@ -72,7 +72,7 @@ We provide two answer completion strategies:
 // #undef O_AC_EAGER
 
 #define record_t fastheap_term *
-#define PL_record(t)      term_to_fastheap(t)
+#define PL_record(t)      term_to_fastheap_ex(t, true) /* thread-local */
 #define PL_recorded(r, t) put_fastheap(r, t)
 #define PL_erase(r)	  free_fastheap(r)
 
@@ -458,13 +458,15 @@ free_tbl_free_objects(PL_local_data_t *ld, bool closed)
 
 /* Prolog refers to worklists and components using thread-local blobs
  * (see "Thread-local blobs" in pl-atom.c).  An object creates its blob
- * on demand and remembers it in `symbol`, but holds no reference to it.
- * The blob thus lives as long as Prolog refers to it.  When the owner's
- * local sweep reclaims it, the release hook clears `symbol` and the
- * object creates a new blob if Prolog needs one again.  Any two handles
- * that exist at the same time are therefore the same atom.  Freeing the
- * object discards its blob, such that stale handles no longer reach the
- * object (which may be recycled by tbl_alloc()).
+ * on demand and remembers it in `symbol`.  While local, it holds no
+ * reference, so the blob lives as long as Prolog refers to it; the owner's
+ * local sweep then calls the release hook, which clears `symbol`.  If
+ * the owner stores a handle, e.g., using assert/1, the blob is promoted.
+ * As the types are PL_BLOB_OWNED, promotion adds a reference for the
+ * object, so `symbol` remains valid while the object lives and the hook
+ * never runs in another thread.  Freeing the object discards its blob,
+ * such that stale handles no longer reach the object (which may be
+ * recycled by tbl_alloc()), and drops that reference.
  *
  * Worklists and components are private to the thread that created them
  * (`owner`).  Other threads never get a handle: a table whose worklist
@@ -498,14 +500,14 @@ release_component_handle(atom_t a)
 
 static PL_blob_t worklist_blob =
 { PL_BLOB_MAGIC,
-  PL_BLOB_LOCAL|PL_BLOB_NOCOPY,
+  PL_BLOB_LOCAL|PL_BLOB_OWNED|PL_BLOB_NOCOPY,
   "worklist",
   release_worklist_handle
 };
 
 static PL_blob_t component_blob =
 { PL_BLOB_MAGIC,
-  PL_BLOB_LOCAL|PL_BLOB_NOCOPY,
+  PL_BLOB_LOCAL|PL_BLOB_OWNED|PL_BLOB_NOCOPY,
   "table_component",
   release_component_handle
 };
@@ -534,13 +536,21 @@ tbl_handle(DECL_LD void *obj, atom_t *symbolp, PL_local_data_t *owner,
 #define component_symbol(c) \
 	tbl_handle(c, &(c)->symbol, (c)->owner, &component_blob)
 
+/* Discard the blob of an object that is freed.  A promoted blob holds a
+ * reference for the object (see PL_BLOB_OWNED), which we drop.
+ */
+
 static void
 discard_tbl_handle(atom_t *symbolp)
 { atom_t a;
 
   if ( (a=*symbolp) )
-  { *symbolp = 0;
+  { bool promoted = !ATOM_IS_LOCAL(atomValue(a)->references);
+
+    *symbolp = 0;
     discardBlob(a);
+    if ( promoted )
+      PL_unregister_atom(a);
   }
 }
 

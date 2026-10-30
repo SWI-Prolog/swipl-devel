@@ -237,6 +237,15 @@ check_atom_t(atom_t a)
        atm->references != ATOM_PRE_DESTROY_REFERENCE )
     PL_api_error("invalid atom_t %zd (no valid atom at this index)",
 		 (size_t)a);
+#if defined(O_ATOMGC) && defined(O_DEBUG) /* too slow for validate_api */
+  if ( ATOM_IS_LOCAL(atm->references) )
+  { GET_LD
+
+    if ( localAtomOwner(a) != LD )
+      PL_api_error("atom_t %zd is a local atom of another thread "
+		   "(missing promotion)", (size_t)a);
+  }
+#endif
 }
 
 void

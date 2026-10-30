@@ -960,6 +960,15 @@ static const word reloc_mask[TAGEX_COUNT] =
 
 fastheap_term *
 term_to_fastheap(DECL_LD term_t t)
+{ return term_to_fastheap_ex(t, false);
+}
+
+/* If `local` is true, the result is only used by this thread and local
+ * atoms stay local (see registerAtomLocally()).
+ */
+
+fastheap_term *
+term_to_fastheap_ex(DECL_LD term_t t, bool local)
 { term_t copy = PL_new_term_ref();
   Word gcopy, gtop, p, o;
   fastheap_term *fht;
@@ -1013,7 +1022,10 @@ term_to_fastheap(DECL_LD term_t t)
     { *o++ = consAddr(valAddr(w)-offset, tagex(w));
     } else
     { if ( isAtom(w) )
-      { PL_register_atom(word2atom(w));
+      { if ( local )
+	  registerAtomLocally(word2atom(w));
+	else
+	  PL_register_atom(word2atom(w));
 	flags |= FH_ATOMS;
       }
       *o++ = w;
