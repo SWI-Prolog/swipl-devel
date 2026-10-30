@@ -1546,6 +1546,46 @@ tmp_free(void *mem)
 
 #endif /*MMAP_STACK*/
 
+/* Allocate zeroed memory for a large table that may remain mostly
+   unused, such as a block of the atom array.  If possible, large tables
+   are mapped, so a page only uses physical memory once it is touched.
+   Free using free_lazy_zeroed() with the same size.
+*/
+
+void *
+alloc_lazy_zeroed(size_t size)
+{ void *mem;
+
+#ifdef MMAP_STACK
+  if ( size >= MMAP_THRESHOLD )
+  { mem = mmap(NULL, size,
+	       (PROT_READ|PROT_WRITE),
+	       (MAP_PRIVATE|MAP_ANONYMOUS),
+	       -1, 0);
+    if ( mem == MAP_FAILED )
+      outOfCore();
+    return mem;
+  }
+#endif
+
+  mem = PL_malloc_uncollectable(size);
+  memset(mem, 0, size);
+  return mem;
+}
+
+void
+free_lazy_zeroed(void *mem, size_t size)
+{
+#ifdef MMAP_STACK
+  if ( size >= MMAP_THRESHOLD )
+  { munmap(mem, size);
+    return;
+  }
+#endif
+
+  PL_free(mem);
+}
+
 void *
 stack_malloc(size_t size)
 { void *ptr = tmp_malloc(size);

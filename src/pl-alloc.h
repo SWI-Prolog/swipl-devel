@@ -133,6 +133,8 @@ word		globalIndirectFromCode(Code *PC);
 void *		tmp_malloc(size_t req);
 void *		tmp_realloc(void *mem, size_t req);
 void		tmp_free(void *mem);
+void *		alloc_lazy_zeroed(size_t size);
+void		free_lazy_zeroed(void *mem, size_t size);
 size_t		tmp_nalloc(size_t req);
 size_t		tmp_nrealloc(void *mem, size_t req);
 void *		stack_malloc(size_t req);

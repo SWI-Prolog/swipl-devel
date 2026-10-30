@@ -1479,6 +1479,8 @@ typedef struct local_chunk_array
 #define ATOM_REF_COUNT(ref)	((ref) & ATOM_REF_COUNT_MASK)
 
 #define ATOM_TYPE_INVALID	((PL_blob_t*)0x007)
+					/* NULL: never used (zeroed) slot */
+#define ATOM_TYPE_IS_INVALID(t)	((t) == ATOM_TYPE_INVALID || !(t))
 
 #ifdef O_DEBUG_ATOMGC
 extern IOSTREAM *atomLogFd;

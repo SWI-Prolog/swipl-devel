@@ -781,24 +781,21 @@ atoms. In that case accessing a GC'ed   atom  causes a crash rather then
 another atom.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* A new block of the atom array is zeroed, which makes its slots free
+   (references 0) with a NULL type (see ATOM_TYPE_IS_INVALID()).  We do
+   not touch it, so the pages of a block only use physical memory once
+   atoms are created in them (see alloc_lazy_zeroed()).
+*/
+
 static void
 allocateAtomBlock(int idx)
 { if ( !GD->atoms.array.blocks[idx] )
   { size_t bs = (size_t)1<<idx;
-    size_t i;
-    Atom newblock;
+    Atom newblock = alloc_lazy_zeroed(bs*sizeof(struct atom));
 
-    if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(struct atom))) )
-      outOfCore();
-
-    memset(newblock, 0, bs*sizeof(struct atom));
-    for(i=0; i<bs; i++)
-    { newblock[i].type = ATOM_TYPE_INVALID;
-      newblock[i].name = "<virgin>";
-    }
     if ( !COMPARE_AND_SWAP_PTR(&GD->atoms.array.blocks[idx],
 			   NULL, newblock-bs) )
-      PL_free(newblock);		/* done by someone else */
+      free_lazy_zeroed(newblock, bs*sizeof(struct atom)); /* done by someone else */
   }
 }
 
@@ -895,7 +892,7 @@ reserveAtom(DECL_LD)
   }
   index = LD->atoms.reserved.index[LD->atoms.reserved.next++];
   a = fetchAtomArray(index);
-  assert(a->type == ATOM_TYPE_INVALID);
+  assert(ATOM_TYPE_IS_INVALID(a->type));
   a->atom = MK_ATOM(index);
 
   return a;
@@ -1808,7 +1805,7 @@ reserveLocalAtom(DECL_LD)
   c->used |= (uint64_t)1<<bit;
   size_t index = (chunk<<LOCAL_CHUNK_BITS)+bit;
   a = fetchAtomArray(index);
-  assert(a->type == ATOM_TYPE_INVALID);
+  assert(ATOM_TYPE_IS_INVALID(a->type));
   a->atom = MK_ATOM(index);
 
   if ( !LD->atoms.local.threshold )
@@ -2470,7 +2467,7 @@ redo:
       ref = a->references;
       if ( ATOM_IS_RESERVED(ref) )
       { if ( !ATOM_IS_VALID(ref) )
-	{ if ( a->type == ATOM_TYPE_INVALID )
+	{ if ( ATOM_TYPE_IS_INVALID(a->type) )
 	    continue;			/* reserved by a thread, see */
 	  goto redo;			/* reserveAtom() */
 	}
@@ -2694,7 +2691,8 @@ cleanupAtoms(void)
   i = 0;
   while( GD->atoms.array.blocks[i] )
   { size_t bs = (size_t)1<<i;
-    PL_free(GD->atoms.array.blocks[i++] + bs);
+    free_lazy_zeroed(GD->atoms.array.blocks[i++] + bs,
+		     bs*sizeof(struct atom));
   }
 
 #ifdef O_ATOMGC
