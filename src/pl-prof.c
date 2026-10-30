@@ -1129,6 +1129,19 @@ free_relatives(prof_ref *r)
 #define DEF_RECURSIVE   (Definition)1
 
 
+/* Each call and each redo leaves a node by an exit or a fail, except for
+   a call that is still running when the profile is collected, e.g.,
+   profiler/2 itself.  Such a call would give a negative redo count.
+*/
+
+static uint64_t
+node_redos(const call_node *n)
+{ uint64_t left = n->exits + n->fails;
+
+  return left > n->calls ? left - n->calls : 0;
+}
+
+
 static void
 add_parent_ref(node_sum *sum,
 	       call_node *self,
@@ -1137,13 +1150,13 @@ add_parent_ref(node_sum *sum,
 { prof_ref *r;
 
   sum->calls += self->calls;
-  sum->redos += self->exits + self->fails - self->calls;
+  sum->redos += node_redos(self);
   sum->exits += self->exits;
 
   for(r=sum->callers; r; r=r->next)
   { if ( r->handle == handle && r->cycle == cycle )
     { r->calls += self->calls;
-      r->redos += self->exits + self->fails - self->calls;
+      r->redos += node_redos(self);
       r->exits += self->exits;
       r->ticks += self->ticks;
       r->sibling_ticks += self->sibling_ticks;
@@ -1154,7 +1167,7 @@ add_parent_ref(node_sum *sum,
 
   r = allocHeapOrHalt(sizeof(*r));
   r->calls = self->calls;
-  r->redos = self->exits + self->fails - self->calls;
+  r->redos = node_redos(self);
   r->exits = self->exits;
   r->ticks = self->ticks;
   r->sibling_ticks = self->sibling_ticks;
@@ -1195,7 +1208,7 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
   for(r=sum->callees; r; r=r->next)
   { if ( r->handle == sibling->handle && r->cycle == cycle )
     { r->calls += sibling->calls;
-      r->redos += sibling->exits + sibling->fails - sibling->calls;
+      r->redos += node_redos(sibling);
       r->exits += sibling->exits;
       r->ticks += sibling->ticks;
       r->sibling_ticks += sibling->sibling_ticks;
@@ -1206,7 +1219,7 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
 
   r = allocHeapOrHalt(sizeof(*r));
   r->calls = sibling->calls;
-  r->redos = sibling->exits + sibling->fails - sibling->calls;
+  r->redos = node_redos(sibling);
   r->exits = sibling->exits;
   r->ticks = sibling->ticks;
   r->sibling_ticks = sibling->sibling_ticks;

@@ -85,6 +85,21 @@ test(no_samples, [ true(Ticks == 0),
     with_output_to(string(Report),
                    prolog_profile:show_text_profile([top(1)])).
 
+% profiler/2 is still running when the profile is collected: it called,
+% but did not exit.  That used to make its redo count -1, i.e., 2^64-1.
+% '$profile'/4 sets the ports that profiler/2 counts.
+
+test(running_call_has_no_redos, Redo == 0) :-
+    '$profile'(true, cputime, true, 200),
+    reset_profiler,
+    profiler(_, cputime),
+    profiler(_, false),
+    profile_data(Data),
+    member(Node, Data.nodes),
+    Node.predicate == system:profiler/2,
+    !,
+    Redo = Node.redo.
+
 :- end_tests(profile_report).
 
 :- begin_tests(profile_default, [condition(text_report)]).
