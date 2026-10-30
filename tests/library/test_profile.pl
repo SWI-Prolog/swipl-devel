@@ -85,6 +85,23 @@ test(no_samples, [ true(Ticks == 0),
     with_output_to(string(Report),
                    prolog_profile:show_text_profile([top(1)])).
 
+% A label that is too wide for its column is elided, so the columns of
+% its row stay aligned.
+
+test(long_label, Width == 102) :-
+    reset_profiler,
+    setup_call_cleanup(
+        profiler(_, cputime),
+        a_predicate_with_a_name_that_is_far_too_long_for_its_column,
+        profiler(_, false)),
+    with_output_to(string(Report),
+                   prolog_profile:show_text_profile([top(100)])),
+    split_string(Report, "\n", "", Rows),
+    member(Row, Rows),
+    sub_string(Row, _, _, _, "_for_its_column/0"),
+    !,
+    string_length(Row, Width).
+
 % profiler/2 is still running when the profile is collected: it called,
 % but did not exit.  That used to make its redo count -1, i.e., 2^64-1.
 % '$profile'/4 sets the ports that profiler/2 counts.
@@ -100,7 +117,29 @@ test(running_call_has_no_redos, Redo == 0) :-
     !,
     Redo = Node.redo.
 
+% Counts that are wider than their column move the columns, so they stay
+% aligned.  The rows of the report have their "+" signs in the same
+% columns.
+
+test(wide_counts, Columns == [Plus]) :-
+    reset_profiler,
+    '$profile'(many_redos, cputime, true, 200),
+    with_output_to(string(Report),
+                   prolog_profile:show_text_profile([top(100)])),
+    split_string(Report, "\n", "", Rows),
+    findall(Ps, ( member(Row, Rows),
+                  sub_string(Row, _, _, _, "s.("),
+                  findall(P, sub_string(Row, P, _, _, "+"), Ps)
+                ), Columns0),
+    sort(Columns0, Columns),
+    Columns = [Plus].
+
 :- end_tests(profile_report).
+
+a_predicate_with_a_name_that_is_far_too_long_for_its_column.
+
+many_redos :-
+    \+ ( between(1, 2 000 000, X), X < 0 ).
 
 :- begin_tests(profile_default, [condition(text_report)]).
 

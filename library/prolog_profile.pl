@@ -40,7 +40,8 @@
             profile_procedure_data/2    % :PI, -Data
           ]).
 :- autoload(library(error),[must_be/2]).
-:- autoload(library(lists), [member/2]).
+:- autoload(library(lists), [member/2, append/3]).
+:- autoload(library(apply), [foldl/4]).
 :- autoload(library(option), [option/3]).
 :- autoload(library(pairs), [map_list_to_pairs/3, pairs_values/2]).
 :- autoload(library(prolog_code), [predicate_sort_key/2, predicate_label/2]).
@@ -73,7 +74,8 @@ library(swi/pce_profile).
 */
 
 :- multifile
-    prolog:show_profile_hook/1.
+    prolog:show_profile_hook/1,
+    prolog:profile_node_label/2.
 
 %!  profile(:Goal).
 %!  profile(:Goal, +Options).
@@ -197,12 +199,16 @@ show_text_profile(Options) :-
     percentage(NetTicks, Stat.ticks, NetPC),
     NetTime is NetPC*Stat.time/100,
     Ports = Stat.ports,
-    findall(Node, profile_procedure_data(_:_, Node), Nodes),
+    findall(Node, procedure_data(_, Node), Nodes),
     (   option(cumulative(false), Options, false)
     ->  SortKey = ticks_self
     ;   SortKey = ticks
     ),
     sort_prof_nodes(SortKey, Nodes, Sorted),
+    option(top(N), Options, 25),
+    top(N, Sorted, Top),
+    column_stops(Top, Ports, Stops),
+    Stops = stops(CallStop, RedoStop, ExitStop),
     format_divider,
     (   Stat.exact == true
     ->  Mode = 'exact '
@@ -211,11 +217,54 @@ show_text_profile(Options) :-
     format('Number of nodes: ~w~t[~w~w time, ports(~w)]~60|~t\c
             Total time: ~3f seconds~101|~n',
            [Stat.nodes, Mode, Stat.clock, Ports, NetTime]),
-    format('Predicate~tCalls +~41| Redos~t~49|~t \c
-            Exits +~58| Fails~tTime:Self +~87| Time:Children~n', []),
+    format('Predicate~tCalls +~*| Redos~t~*|~t \c
+            Exits +~*| Fails~tTime:Self +~87| Time:Children~n',
+           [CallStop, RedoStop, ExitStop]),
     format_divider,
-    option(top(N), Options, 25),
-    show_plain(Sorted, N, (NetTicks,NetTime,Ports)).
+    forall(member(Node, Top),
+           show_plain(Node, (NetTicks,NetTime,Ports), Stops)),
+    format_divider.
+
+top(N, List, Top) :-
+    length(List, Len),
+    Len > N,
+    !,
+    length(Top, N),
+    append(Top, _, List).
+top(_, List, List).
+
+%   column_stops(+Nodes, +Ports, -Stops) is det.
+%
+%   The columns of the counts are as wide as their widest count in
+%   Nodes.  A column that is wider than the default moves the columns
+%   left of it to the left, taking the space from the predicate labels.
+%   Stops is stops(CallStop, RedoStop, ExitStop), the column where the
+%   calls, redos and exits end.
+
+column_stops(Nodes, Ports, stops(CallStop, RedoStop, ExitStop)) :-
+    foldl(count_widths(Ports), Nodes, 0-0-0, RW-EW-FW),
+    ExitStop is 58 - max(0, FW-10),
+    RedoStop is ExitStop - 9 - max(0, EW-7),
+    CallStop is RedoStop - 8 - max(0, RW-6).
+
+count_widths(Ports, Node, R0-E0-F0, R-E-F) :-
+    counts(Node, Ports, _Call, Redo, Exit, Fail),
+    count_width(Redo, RW), R is max(R0, RW),
+    count_width(Exit, EW), E is max(E0, EW),
+    count_width(Fail, FW), F is max(F0, FW).
+
+count_width(Count, Width) :-
+    format(string(S), '~D', [Count]),
+    string_length(S, Width).
+
+counts(Node, Ports, Call, Redo, Exit, Fail) :-
+    value(call, Node, Call),
+    (   Ports == false
+    ->  Redo = 0, Exit = 0, Fail = 0
+    ;   value(redo, Node, Redo),
+        value(exit, Node, Exit),
+        Fail is Call+Redo-Exit
+    ).
 
 sort_prof_nodes(ticks, Nodes, Sorted) :-
     !,
@@ -228,29 +277,50 @@ sort_prof_nodes(Key, Nodes, Sorted) :-
 key_ticks(Node, Ticks) :-
 	value(ticks,Node,Ticks).
 
-show_plain([], _, _) :- format_divider.
-show_plain([H|T], N, Stat) :-
-    show_plain(H, Stat),
-    N2 is N - 1,
-    (   N2 > 0
-    ->  show_plain(T, N2, Stat)
-    ;   format_divider
-    ).
-
-show_plain(Node, (NetTicks,NetTime,Ports)) :-
-    value(label,                       Node, Pred),
-    value(call,                        Node, Call),
-    (   Ports == false
-    ->  Redo = 0, Exit = 0, Fail = 0
-    ;   value(redo,                    Node, Redo),
-        value(exit,                    Node, Exit),
-        Fail is Call+Redo-Exit
-    ),
+show_plain(Node, (NetTicks,NetTime,Ports),
+           stops(CallStop, RedoStop, ExitStop)) :-
+    value(label, Node, Label),
+    counts(Node, Ports, Call, Redo, Exit, Fail),
+    count_width(Call, CallsWidth),
+    Width is CallStop - CallsWidth - 3, % " " before and " +" after Calls
+    elide(Label, Width, Pred),
     time_data(Node,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime),
-    format('~w ~t~D +~41| ~D ~t~49|~t~D +~58| ~D ~t~2fs.(~78|~t~1f%) +~87|~t~2fs.(~95|~t~1f%)~102|~n',
-           [Pred, Call, Redo, Exit, Fail, SelfTime, SelfPC, ChildrenTime, ChildrenPC]).
+    format('~w ~t~D +~*| ~D ~t~*|~t~D +~*| ~D ~t~2fs.(~78|~t~1f%) +~87|~t~2fs.(~95|~t~1f%)~102|~n',
+           [ Pred, Call, CallStop, Redo, RedoStop, Exit, ExitStop, Fail,
+             SelfTime, SelfPC, ChildrenTime, ChildrenPC
+           ]).
 
 format_divider :- format('~`=t~102|~n').
+
+%!  elide(+Label, +Width, -Elided) is det.
+%
+%   If Label is wider than Width, replace its middle by an ellipsis, so
+%   both the module or class and the name remain visible.
+
+elide(Label, Width, Elided) :-
+    string_length(Label, Len),
+    Len > Width,
+    !,
+    ellipsis(Ellipsis),
+    string_length(Ellipsis, ELen),
+    Keep is max(0, Width-ELen),
+    Pre is Keep//2,
+    Post is Keep-Pre,
+    sub_string(Label, 0, Pre, _, S1),
+    sub_string(Label, _, Post, 0, S2),
+    atomics_to_string([S1, Ellipsis, S2], Elided).
+elide(Label, _, Label).
+
+ellipsis("\u2026") :-
+    stream_property(current_output, encoding(Enc)),
+    unicode_encoding(Enc),
+    !.
+ellipsis("...").
+
+unicode_encoding(utf8).
+unicode_encoding(unicode_be).
+unicode_encoding(unicode_le).
+unicode_encoding(wchar_t).
 
 time_data(Data,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime) :-
     value(ticks_self,Data,Ticks),
@@ -412,6 +482,24 @@ node_id_pred(Node, Pred) :-
     '$prof_node'(Node, Pred, _Calls, _Redos, _Exits, _Recur,
                  _Ticks, _SiblingTicks).
 
+%!  node_label(+Predicate, -Label) is det.
+%
+%   Label is the text that identifies the  predicate field of a node.
+%   This is a predicate indicator or  an   object  of another profile
+%   type, such as an XPCE method,  which   is  named by the multifile
+%   hook prolog:profile_node_label/2.
+
+node_label(Pred, Label) :-
+    prolog:profile_node_label(Pred, Label),
+    !.
+node_label(Pred, Label) :-
+    ground(Pred),
+    Pred = _:_,
+    !,
+    predicate_label(Pred, Label).
+node_label(Pred, Label) :-
+    format(string(Label), '~p', [Pred]).
+
 %!  value(+Key, +NodeData, -Value)
 %
 %   Obtain possible computed attributes from NodeData.
@@ -421,7 +509,7 @@ value(name, Data, Name) :-
     predicate_sort_key(Data.predicate, Name).
 value(label, Data, Label) :-
     !,
-    predicate_label(Data.predicate, Label).
+    node_label(Data.predicate, Label).
 value(ticks, Data, Ticks) :-
     !,
     Ticks is Data.ticks_self + Data.ticks_siblings.
