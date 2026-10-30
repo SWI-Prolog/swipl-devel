@@ -732,7 +732,7 @@ pack_default_options(_Spec, Pack, OptsIn, Options) :-   % (2)
     !,
     (   option(git(_), OptsIn)
     ->  Options = OptsIn
-    ;   git_url(URL, Pack)
+    ;   git_url(URL, Pack, OptsIn)
     ->  Options = [git(true)|OptsIn]
     ;   Options = OptsIn
     ),
@@ -754,7 +754,7 @@ pack_default_options(Archive, Pack, OptsIn, Options) :- % (3)
     ;   domain_error(pack_file_name, Archive)
     ).
 pack_default_options(URL, Pack, OptsIn, Options) :-     % (4)
-    git_url(URL, Pack),
+    git_url(URL, Pack, OptsIn),
     !,
     merge_options([git(true), url(URL)], OptsIn, Options).
 pack_default_options(FileURL, Pack, _, Options) :-      % (5)
@@ -2525,15 +2525,17 @@ pack_publish(Dir, Options) :-
     pack_git_info(Dir, _Hash, Metadata),
     prepare_repository(Dir, Metadata, Options),
     (   memberchk(download(URL), Metadata),
-        git_url(URL, _)
+        git_url(URL, _, Options)
     ->  true
     ;   option(remote(Remote), Options, origin),
         git_remote_url(Remote, RemoteURL, [directory(Dir)]),
         git_to_https_url(RemoteURL, URL)
     ),
     memberchk(version(Version), Metadata),
+    memberchk(name(Pack), Metadata),
     pack_publish_(URL,
-                  [ version(Version)
+                  [ version(Version),
+                    pack(Pack)
                   | Options
                   ]).
 pack_publish(Spec, Options) :-
@@ -2793,6 +2795,25 @@ safe_pack_char(C) :- between(0'A, 0'Z, C), !.
 safe_pack_char(C) :- between(0'0, 0'9, C), !.
 safe_pack_char(0'_).
 
+%!  consistent_pack_name(+Pack, +Repo) is det.
+%
+%   The claimed pack  name  must  match   the  repository  name.  Future
+%   versions might allow for a prefix, e.g., `prolog_<pack>`, etc.
+%
+%   @arg Repo is the basename of the   GIT  repository (no directory, no
+%   extension).
+
+consistent_pack_name(Pack, Pack) :-
+    !.
+consistent_pack_name(Pack, Repo) :-
+    downcase_atom(Pack, Lwr),
+    downcase_atom(Repo, Lwr),
+    !.
+consistent_pack_name(Pack, Repo) :-
+    format(string(Msg), "Pack name must match repository name (~w)", [Repo]),
+    throw(error(permission_error(Pack, name, pack),
+                context(_, Msg))).
+
 %!  pack_version(-Pack:atom, -Version:atom)// is semidet.
 %
 %   True when the input statifies <pack>-<version>
@@ -2848,11 +2869,11 @@ is_sane_git('/usr/bin/git') :-
 :- endif.
 is_sane_git(_).
 
-%!  git_url(+URL, -Pack) is semidet.
+%!  git_url(+URL, -Pack, +Options) is semidet.
 %
 %   True if URL describes a git url for Pack
 
-git_url(URL, Pack) :-
+git_url(URL, Pack, Options) :-
     uri_components(URL, Components),
     uri_data(scheme, Components, Scheme),
     nonvar(Scheme),                         % must be full URL
@@ -2866,12 +2887,13 @@ git_url(URL, Pack) :-
     ->  true
     ),
     file_base_name(Path, PackExt),
-    (   file_name_extension(Pack, git, PackExt)
+    (   file_name_extension(PackFromRepo, git, PackExt)
     ->  true
-    ;   Pack = PackExt
+    ;   PackFromRepo = PackExt
     ),
+    option(pack(Pack), Options, PackFromRepo),
     (   safe_pack_name(Pack)
-    ->  true
+    ->  consistent_pack_name(Pack, PackFromRepo)
     ;   domain_error(pack_name, Pack)
     ).
 
