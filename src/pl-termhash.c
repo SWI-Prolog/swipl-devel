@@ -102,7 +102,7 @@ primitiveHashValue(DECL_LD word term, unsigned int *hval)
       return true;
     }
     case TAG_INTEGER:
-      if ( storage(term) == STG_INLINE )
+      if ( isInlineInt(term) )
       { int64_t v = valInt(term);
 
 	*hval = MurmurHashAligned2(&v, sizeof(v), *hval);
@@ -450,12 +450,12 @@ variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
       { if ( state->algorithm == HASH_SHA1 )
 	{ return E_ATTVAR;
 	} else
-	{ if ( storage(w) == STG_GLOBAL )
+	{ if ( isGlobalPtr(w) )
 	  { word i = state->var_count++;
 
 	    if ( !push_attvar(p, state) )
 	      return E_RESOURCE;
-	    *p = (i<<LMASK_BITS)|TAG_VAR|MARK_MASK;
+	    *p = consTagged(i, TAGEX_VAR)|MARK_MASK;
 	  }
 	  HASH("V", 1);
 	  HASH(p, sizeof(word));
@@ -468,7 +468,7 @@ variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
 
 	  if ( !push_var(p, state) )
 	    return E_RESOURCE;
-	  *p = (i<<LMASK_BITS)|TAG_VAR|MARK_MASK;
+	  *p = consTagged(i, TAGEX_VAR)|MARK_MASK;
 	}
         HASH("V", 1);
 	HASH(p, sizeof(word));

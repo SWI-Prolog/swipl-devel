@@ -1430,8 +1430,7 @@ build_canonical(DECL_LD bs_graph *g, Word base, word *form)
       { size_t leaf = (size_t)(-ch-1);
 
 	if ( leaf < g->vars )
-	{ ccell[i][1+j] = consPtr(vcell[g->vnum[leaf]-1],
-				  TAG_COMPOUND|STG_GLOBAL);
+	{ ccell[i][1+j] = consCompound(vcell[g->vnum[leaf]-1]);
 	} else
 	{ ccell[i][1+j] = *g->leafp[leaf];
 	}
@@ -1444,11 +1443,11 @@ build_canonical(DECL_LD bs_graph *g, Word base, word *form)
     vcell[i][1] = consInt(i+1);
   }
 
-  *form = g->classes > 0 ? consPtr(p, TAG_COMPOUND|STG_GLOBAL) : ATOM_nil;
+  *form = g->classes > 0 ? consCompound(p) : ATOM_nil;
   for(i=0; i<g->classes; i++)		/* the list holding them together */
   { p[0] = FUNCTOR_dot2;
-    p[1] = consPtr(ccell[i], TAG_COMPOUND|STG_GLOBAL);
-    p[2] = i+1 < g->classes ? consPtr(p+3, TAG_COMPOUND|STG_GLOBAL) : ATOM_nil;
+    p[1] = consCompound(ccell[i]);
+    p[2] = i+1 < g->classes ? consCompound(p+3) : ATOM_nil;
     p += 3;
   }
 
@@ -1511,7 +1510,7 @@ build_minimal(DECL_LD bs_graph *g, Word base, word *minimal)
     { int ch = g->child[g->arg[rep]+j];
 
       if ( ch >= 0 )			/* a cell: point at its class */
-      { cell[c][1+j] = consPtr(cell[g->class[ch]], TAG_COMPOUND|STG_GLOBAL);
+      { cell[c][1+j] = consCompound(cell[g->class[ch]]);
       } else				/* a leaf: take it as it stands */
       { Word a = g->leafp[-ch-1];
 
@@ -1520,7 +1519,7 @@ build_minimal(DECL_LD bs_graph *g, Word base, word *minimal)
     }
   }
 
-  *minimal = consPtr(cell[g->class[0]], TAG_COMPOUND|STG_GLOBAL);
+  *minimal = consCompound(cell[g->class[0]]);
   tmp_free(cell);
 
   return true;
@@ -1573,7 +1572,7 @@ build_automaton_result(DECL_LD bs_graph *g, Word base, word *automaton)
     rep   = g->order[g->class_start[c]];
     arity = arityFunctor(g->node[rep].functor);
 
-    a[g->canon[c]] = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+    a[g->canon[c]] = consCompound(p);
     p[0] = g->node[rep].functor;
     for(j=0; j<arity; j++)
     { int ch = g->child[g->arg[rep]+j];
@@ -1592,7 +1591,7 @@ build_automaton_result(DECL_LD bs_graph *g, Word base, word *automaton)
     }
   }
 
-  *automaton = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+  *automaton = consCompound(a);
 }
 
 
@@ -1620,7 +1619,7 @@ build_map(DECL_LD bs_graph *g, bs_automaton *aut, Word base, word *map)
     m[1+i] = consInt(to);
   }
 
-  *map = consPtr(m, TAG_COMPOUND|STG_GLOBAL);
+  *map = consCompound(m);
 }
 
 
@@ -1918,7 +1917,7 @@ build_factorized(DECL_LD bs_graph *g, Word base, word *skel, word *subst)
       { size_t d = g->class[ch];
 
 	cell[c][1+j] = var[d] ? makeRefG(var[d])
-			      : consPtr(cell[d], TAG_COMPOUND|STG_GLOBAL);
+			      : consCompound(cell[d]);
       } else
       { Word a = g->leafp[-ch-1];
 
@@ -1928,7 +1927,7 @@ build_factorized(DECL_LD bs_graph *g, Word base, word *skel, word *subst)
   }
 
   *skel = var[root] ? makeRefG(var[root])
-		    : consPtr(cell[root], TAG_COMPOUND|STG_GLOBAL);
+		    : consCompound(cell[root]);
 
   *subst = ATOM_nil;			/* the equations, canonical order */
   for(i=g->classes; i-- > 0; )
@@ -1939,13 +1938,13 @@ build_factorized(DECL_LD bs_graph *g, Word base, word *skel, word *subst)
 
       eq[0] = FUNCTOR_equals2;
       eq[1] = makeRefG(var[cc]);
-      eq[2] = consPtr(cell[cc], TAG_COMPOUND|STG_GLOBAL);
+      eq[2] = consCompound(cell[cc]);
       p += 3;
 
       p[0] = FUNCTOR_dot2;
-      p[1] = consPtr(eq, TAG_COMPOUND|STG_GLOBAL);
+      p[1] = consCompound(eq);
       p[2] = *subst;
-      *subst = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      *subst = consCompound(p);
       p += 3;
     }
   }
@@ -2287,7 +2286,7 @@ build_minimal_automaton(DECL_LD bs_graph *g, bs_automaton *aut, bool sink,
 
     p[0] = FUNCTOR_automaton1;
     p[1] = canBind(*lw) ? makeRefG(lw) : *lw;
-    *min = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+    *min = consCompound(p);
     p += 2;
   } else
   { build_automaton_result(g, p, min);
@@ -2301,7 +2300,7 @@ build_minimal_automaton(DECL_LD bs_graph *g, bs_automaton *aut, bool sink,
       p[0] = lookupFunctorDef(ATOM_map, aut->states);
       for(i=0; i<aut->states; i++)
 	p[1+i] = consInt(aut->state[i] == aut->state[0] ? 1 : 0);
-      *map = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      *map = consCompound(p);
     } else
     { build_map(g, aut, p, map);
     }

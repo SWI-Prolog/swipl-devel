@@ -2072,7 +2072,7 @@ raw_read(DECL_LD ReadData _PL_rd, unsigned char **endp)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 These functions manipulate the  variable-name  base   for  a  term. When
 building the term on the global stack,  variables are represented a term
-with tagex() TAG_VAR|STG_RESERVED, which is handled properly by GC.
+with tagex() TAGEX_VARINFO, which is handled properly by GC.
 
 The buffer `var_buffer' is a  list  of   pointers  to  a  stock of these
 variable structures. This list is dynamically expanded if necessary. The
@@ -2086,9 +2086,9 @@ reading terms with many named variables   result in quadratic behaviour.
 Not sure whether it is worth the trouble to use a hash-table here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define isVarInfo(w)	(tagex(w) == (TAG_VAR|STG_RESERVED))
-#define consVarInfo(i)	((word)(nv)<<LMASK_BITS)|TAG_VAR|STG_RESERVED
-#define valVarInfo(w)   ((unsigned int)((word)(w)>>LMASK_BITS)) /* check cast */
+#define isVarInfo(w)	(tagex(w) == TAGEX_VARINFO)
+#define consVarInfo(i)	consTagged(i, TAGEX_VARINFO)
+#define valVarInfo(w)   ((unsigned int)valTagged(w)) /* check cast */
 #define VAR_INDEX_HASH_OFFSET 1
 
 #define MAX_SINGLETONS 256		/* max singletons _reported_ */
@@ -4246,7 +4246,7 @@ build_term(DECL_LD atom_t atom, int arity, ReadData _PL_rd)
 
   DEBUG(8, Sdprintf("Building term %s/%d ... ", stringAtom(atom), arity));
   argp = gTop;
-  w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
+  w = consCompound(argp);
   gTop += 1+arity;
   *argp++ = functor;
 
@@ -4488,7 +4488,7 @@ build_dict(DECL_LD int pairs, ReadData _PL_rd)
 
   DEBUG(9, Sdprintf("Building dict with %d pairs ... ", pairs));
   argp = gTop;
-  w = consPtr(argp, TAG_COMPOUND|STG_GLOBAL);
+  w = consCompound(argp);
   gTop += pairs*2+2;
   *argp++ = dict_functor(pairs);
   if ( tag )
@@ -5674,8 +5674,7 @@ read_list_resume_elem(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
     return false;
   argp = gTop;
   gTop += 3;
-  *unRef(*valTermRef(tail)) = consPtr(argp,
-				      TAG_COMPOUND|STG_GLOBAL);
+  *unRef(*valTermRef(tail)) = consCompound(argp);
   *argp++ = FUNCTOR_dot2;
   setVar(argp[0]);
   setVar(argp[1]);

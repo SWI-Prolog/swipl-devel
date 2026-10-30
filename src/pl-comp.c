@@ -324,13 +324,13 @@ First of all the clause is scanned and all  variables  are  instantiated
 with  a  structure  that  mimics  a term, but isn't one.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/* We use STG_RESERVED here to make sure that the value is not 0.
+/* TAGEX_VARINFO cells are never 0 and are never Prolog data.
    This value is also used by read_term/2,3 and friends.
 */
 
-#define isVarInfo(w)	(tagex(w) == (TAG_VAR|STG_RESERVED))
-#define setVarInfo(w,i)	(w = (((word)(i))<<LMASK_BITS)|TAG_VAR|STG_RESERVED)
-#define varIndex(w)	((size_t)((w)>>LMASK_BITS))
+#define isVarInfo(w)	(tagex(w) == TAGEX_VARINFO)
+#define setVarInfo(w,i)	(w = consTagged(i, TAGEX_VARINFO))
+#define varIndex(w)	((size_t)valTagged(w))
 #define varInfo(w)	(LD->comp.vardefs[varIndex(w)])
 
 
@@ -2931,7 +2931,7 @@ case it can return LOCAL_OVERFLOW.
 
 static boolex_t
 link_local_var(DECL_LD Word v, int iv, CompileInfo ci)
-{ VarDef vd = LD->comp.vardefs[*v>>LMASK_BITS];
+{ VarDef vd = LD->comp.vardefs[varIndex(*v)];
   int voffset = VAROFFSET(iv);
   Word k = varFrameP(lTop, voffset);
 
@@ -3020,7 +3020,7 @@ A void.  Generate either B_VOID or H_VOID.
 	goto argvar;
       goto var;
     case TAG_INTEGER:
-      if ( storage(*arg) == STG_INLINE )
+      if ( isInlineInt(*arg) )
       { sword i = valInt(*arg);
 
 #if CODES_PER_WORD == 1
@@ -3966,7 +3966,7 @@ next_arg:
   deRef(arg);
 
   if ( isRational(*arg) )
-  { if ( storage(*arg) == STG_INLINE )
+  { if ( isInlineInt(*arg) )
     { sword i = valInt(*arg);
 #if CODES_PER_WORD == 1
       Output_1(ci, A_INTEGER, i);
@@ -6050,7 +6050,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	  word w;
 
 	  if ( p )
-	  { w = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+	  { w = consIndirect(p, TAG_FLOAT);
 	    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	    cpDoubleData(p, PC);
 	    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
@@ -6187,9 +6187,8 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
   }
 }
 
-#define makeVarRef(i)	((i)<<LMASK_BITS|TAG_REFERENCE)
-#define isVarRef(w)	((ssize_t)((tag(w) == TAG_REFERENCE &&		\
-				    storage(w) == STG_INLINE) ? valInt(w) : -1))
+#define makeVarRef(i)	consTagged(i, TAGEX_VARREF)
+#define isVarRef(w)	(tagex(w) == TAGEX_VARREF ? (ssize_t)valTagged(w) : -1)
 
 functor_t
 clause_functor(unsigned int flags)
@@ -6488,7 +6487,7 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    p = gTop;
 			    gTop += 2+WORDS_PER_DOUBLE;
 
-			    *ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+			    *ARGP++ = consIndirect(p, TAG_FLOAT);
 			    *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 			    cpDoubleData(p, PC);
 			    *p   = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
@@ -7107,7 +7106,7 @@ put_functor(DECL_LD Word p, functor_t f)
   while( arity-- > 0 )
     setVar(*++a);
 
-  *p = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+  *p = consCompound(t);
   return true;
 }
 
@@ -7136,7 +7135,7 @@ build_term(DECL_LD functor_t f, decompileInfo *di, int dir)
     return GLOBAL_OVERFLOW;
   a = gTop;
   gTop += 1+arity;
-  term = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+  term = consCompound(a);
   *a = f;
   for(i=0; i<arity; i++)
     setVar(*++a);

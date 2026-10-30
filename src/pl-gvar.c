@@ -81,7 +81,7 @@ static void
 free_nb_linkval_value(word value)
 { if ( isAtom(value) )
     PL_unregister_atom(word2atom(value));
-  else if ( storage(value) == STG_GLOBAL )
+  else if ( isGlobalPtr(value) )
   { GET_LD
     LD->gvar.grefs--;
   }
@@ -235,7 +235,7 @@ setval(DECL_LD term_t var, term_t value, unsigned int flags)
     { p = allocGlobal(1);
       *p = old;
       freezeGlobal();		/* The value location must be */
-      if ( storage(old) != STG_GLOBAL )	/* preserved */
+      if ( !isGlobalPtr(old) )	/* preserved */
 	LD->gvar.grefs++;
       updateHTable(LD->gvar.nb_vars,
 		   (table_key_t)name, (table_value_t)makeRefG(p));
@@ -244,7 +244,7 @@ setval(DECL_LD term_t var, term_t value, unsigned int flags)
     TrailAssignment(p);
     *p = w;
   } else
-  { bool old_on_global = storage(old) == STG_GLOBAL;
+  { bool old_on_global = isGlobalPtr(old);
 
     if ( !(flags&SETVAL_LINK) )
     { if ( !(w = setval_duplicate(w, old)) )
@@ -255,7 +255,7 @@ setval(DECL_LD term_t var, term_t value, unsigned int flags)
 
     updateHTable(LD->gvar.nb_vars, (table_key_t)name, (table_value_t)w);
 
-    if ( storage(w) == STG_GLOBAL )
+    if ( isGlobalPtr(w) )
     { freezeGlobal();
       LD->gvar.grefs++;
     } else if ( isAtom(w) )

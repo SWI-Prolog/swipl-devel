@@ -63,7 +63,7 @@ static inline Word
 EXTEND_SEQ_CODES(DECL_LD Word p, int c)
 { *p++ = FUNCTOR_dot2;
   *p++ = consInt(c);
-  *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+  *p = consCompound(p+1);
 
   return p+1;
 }
@@ -74,7 +74,7 @@ static inline Word
 EXTEND_SEQ_CHARS(DECL_LD Word p, int c)
 { *p++ = FUNCTOR_dot2;
   *p++ = codeToAtom(c);
-  *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+  *p = consCompound(p+1);
 
   return p+1;
 }
@@ -83,7 +83,7 @@ EXTEND_SEQ_CHARS(DECL_LD Word p, int c)
 #define CLOSE_SEQ_STRING(p, p0, tail, term, l) LDFUNC(CLOSE_SEQ_STRING, p, p0, tail, term, l)
 static inline bool
 CLOSE_SEQ_STRING(DECL_LD Word p, Word p0, term_t tail, term_t term, term_t l)
-{ setHandle(l, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
+{ setHandle(l, consCompound(p0));
   p--;
   if ( tail )
   { setVar(*p);

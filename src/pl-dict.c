@@ -445,7 +445,7 @@ put_dict(DECL_LD word dict, size_t size, Word nv, word *new_dict)
   new[1] = linkValI(&data->arguments[0]);
   new[0] = dict_functor((out-(new+1))/2);
 
-  *new_dict = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
+  *new_dict = consCompound(new);
 
   return true;
 }
@@ -485,7 +485,7 @@ copy_keys_dict(DECL_LD word dict, word *new_dict)
   }
 
   gTop = out;
-  *new_dict = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
+  *new_dict = consCompound(new);
 
   return true;
 }
@@ -553,7 +553,7 @@ del_dict(DECL_LD word dict, word key, word *new_dict)
   new[1] = linkValI(&data->arguments[0]); /* tag */
   new[0] = dict_functor((out-(new+1))/2); /* arity */
 
-  *new_dict = consPtr(new, TAG_COMPOUND|STG_GLOBAL);
+  *new_dict = consCompound(new);
 
   return true;
 }
@@ -726,7 +726,7 @@ select_dict(DECL_LD word del, word from, word *new_dict)
     if ( gTop+nsize*2+2 <= gMax )
     { Word out = gTop;
 
-      *new_dict = consPtr(out, TAG_COMPOUND|STG_GLOBAL);
+      *new_dict = consCompound(out);
       *out++ = dict_functor(nsize);
       *out++ = ATOM_dyndict;
 
@@ -926,7 +926,7 @@ PL_get_dict_ex(term_t data, term_t tag, term_t dict, int flags)
     _PL_dict_status_t rc = dict_order(dp, &dupl);
     if ( rc == PL_DICT_TRUE )
     { gTop = ap;
-      *valTermRef(dict) = consPtr(dp, TAG_COMPOUND|STG_GLOBAL);
+      *valTermRef(dict) = consCompound(dp);
       DEBUG(CHK_SECURE, checkStacks(NULL));
       return true;
     } else

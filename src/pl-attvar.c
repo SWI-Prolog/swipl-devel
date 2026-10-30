@@ -61,7 +61,7 @@ the linked list of attributes:
   | refptr | <--- newer attvars <--- LD->attvar.attvars
   ----------
   | attvar | --\
-  ----------   | TAG_ATTVAR|STG_GLOBAL pointer
+  ----------   | consAttVar() pointer
   | att/3  | <-/
   ----------
   | name   |
@@ -123,7 +123,7 @@ registerWakeup(DECL_LD Word name, Word value)
 
     deRef2(tail, t);
     TrailAssignment(t);
-    *t = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
+    *t = consCompound(wake);
     TrailAssignment(tail);		/* on local stack! */
     *tail = makeRefG(wake+3);
     DEBUG(MSG_WAKEUP,
@@ -135,7 +135,7 @@ registerWakeup(DECL_LD Word name, Word value)
 
     assert(isVar(*head));
     TrailAssignment(head);		/* See (*) */
-    *head = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
+    *head = consCompound(wake);
     TrailAssignment(tail);
     *tail = makeRefG(wake+3);
     LD->alerted |= ALERT_WAKEUP;
@@ -241,7 +241,7 @@ alloc_attvar(DECL_LD)
 
   if ( gp )
   { register_attvar(&gp[0]);
-    gp[1] = consPtr(&gp[2], TAG_ATTVAR|STG_GLOBAL);
+    gp[1] = consAttVar(&gp[2]);
     gp[2] = ATOM_nil;
     return &gp[1];
   }
@@ -301,7 +301,7 @@ make_new_attvar(DECL_LD Word p)
 
   gp = link_attvar();
   gp[1] = ATOM_nil;
-  gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
+  gp[0] = consAttVar(&gp[1]);
   gTop += 2;
 
   trail_new_attvar(gp);
@@ -324,13 +324,13 @@ put_new_attvar(DECL_LD Word p, atom_t name, Word value)
   gTop += 6;
   at = &gp[1];
   setVar(*at);
-  gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
+  gp[0] = consAttVar(&gp[1]);
 
   at[1] = FUNCTOR_att3;
   at[2] = name;
   at[3] = linkValI(value);
   at[4] = ATOM_nil;
-  at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
+  at[0] = consCompound(&at[1]);
 
   trail_new_attvar(gp);
   Trail(p, makeRefG(gp));
@@ -408,7 +408,7 @@ put_att_value(DECL_LD Word vp, atom_t name, Word value)
   at[3] = ATOM_nil;
 
   TrailAssignment(vp);
-  *vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
+  *vp = consCompound(at);
 }
 
 
@@ -857,7 +857,7 @@ PRED_IMPL("$freeze", 2, freeze, 0)
 	gc[2] = *goal;
 
 	TrailAssignment(vp);				/* SHIFT: 1+2 */
-	*vp = consPtr(gc, TAG_COMPOUND|STG_GLOBAL);
+	*vp = consCompound(gc);
       } else if ( vp )					/* vp points to [] */
       { Word at = gTop;
 
@@ -869,7 +869,7 @@ PRED_IMPL("$freeze", 2, freeze, 0)
 
 	assert(*vp == ATOM_nil);
 	TrailAssignment(vp);				/* SHIFT: 1+2 */
-	*vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
+	*vp = consCompound(at);
       } else
 	assert(0);					/* bad attributes */
     }
@@ -928,7 +928,7 @@ add_or(DECL_LD word or, word c2)
     { n[0] = FUNCTOR_dot2;
       n[1] = c2;
       n[2] = ATOM_nil;
-      *tail = consPtr(n, TAG_COMPOUND|STG_GLOBAL);
+      *tail = consCompound(n);
     } else
       return E_NOSPACE;
   }
@@ -955,14 +955,14 @@ make_disj_list(DECL_LD word c1, word c2, Word result)
 
     if ( (t = allocGlobalNoShift(8)) )
     { t[0] = FUNCTOR_or1;
-      t[1] = consPtr(&t[2], TAG_COMPOUND|STG_GLOBAL);
+      t[1] = consCompound(&t[2]);
       t[2] = FUNCTOR_dot2;
       t[3] = c1;
-      t[4] = consPtr(&t[5], TAG_COMPOUND|STG_GLOBAL);
+      t[4] = consCompound(&t[5]);
       t[5] = FUNCTOR_dot2;
       t[6] = c2;
       t[7] = ATOM_nil;
-      *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+      *result = consCompound(t);
     } else
       return E_NOSPACE;
   }
@@ -1027,7 +1027,7 @@ when_condition(DECL_LD Word cond, Word result, when_state *state)
 	  t[1] = c1;
 	  t[2] = c2;
 
-	  *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+	  *result = consCompound(t);
 	} else
 	  return E_NOSPACE;
       }
@@ -1139,7 +1139,7 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
     t[1] = contextModule(PL__ctx->engine->environment)->name;
     t[2] = linkValNoG(g);
     g = valTermRef(g2);
-    *g = consPtr(t, STG_GLOBAL|TAG_COMPOUND);
+    *g = consCompound(t);
   }
 
   v = valTermRef(A1); deRef(v);
@@ -1148,7 +1148,7 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
   { Word t = gTop;
 
     gTop += 3;
-    t[0] = consPtr(&t[1], STG_GLOBAL|TAG_COMPOUND);
+    t[0] = consCompound(&t[1]);
     t[1] = FUNCTOR_call1,
     t[2] = linkValI(g);
     put_new_attvar(v, name, t);
@@ -1169,7 +1169,7 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 	t[1] = linkValI(ap);
 	t[2] = linkValI(g);
 	TrailAssignment(ap);
-	*ap = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+	*ap = consCompound(t);
 
 	return true;
       }
@@ -1179,7 +1179,7 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
     { Word t = gTop;
 
       gTop += 3;
-      t[0] = consPtr(&t[1], STG_GLOBAL|TAG_COMPOUND);
+      t[0] = consCompound(&t[1]);
       t[1] = FUNCTOR_call1,
       t[2] = linkValI(g);
 
@@ -1395,7 +1395,7 @@ retry:
       { p[0] = FUNCTOR_dot2;
 	p[1] = makeRefG(pav);
 	setVar(p[2]);
-	*tailp = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	*tailp = consCompound(p);
 	tailp = &p[2];
       } else
       { gTop = gend;

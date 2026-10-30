@@ -196,7 +196,7 @@ mpz_add_si(mpz_t r, const mpz_t n1, long add)
 
 static inline void
 get_integer(word w, Number n)
-{ if ( storage(w) == STG_INLINE )
+{ if ( isInlineInt(w) )
   { n->type = V_INTEGER,
     n->value.i = valInt(w);
   } else
@@ -208,7 +208,7 @@ get_integer(word w, Number n)
 #define get_rational(w, n) LDFUNC(get_rational, w, n)
 static inline void
 get_rational(DECL_LD word w, Number n)
-{ if ( storage(w) == STG_INLINE )
+{ if ( isInlineInt(w) )
   { n->value.i = valInt(w);
     n->type = V_INTEGER;
   } else

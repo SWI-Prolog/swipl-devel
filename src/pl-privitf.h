@@ -75,7 +75,7 @@ typedef struct list_ctx
 #define addAtomicList(ctx, value) LDFUNC(addAtomicList, ctx, value)
 static inline void
 addAtomicList(DECL_LD list_ctx *ctx, word value)
-{ ctx->gstore[0] = consPtr(&ctx->gstore[1], TAG_COMPOUND|STG_GLOBAL);
+{ ctx->gstore[0] = consCompound(&ctx->gstore[1]);
   ctx->gstore[1] = FUNCTOR_dot2;
   ctx->gstore[2] = value;
   ctx->gstore += 3;

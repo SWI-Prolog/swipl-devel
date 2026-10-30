@@ -680,9 +680,11 @@ them.  Descriptions:
 #define WORDS_PER_BIGNUM64	(5)
 
 				/* Prolog's integer range */
-#define PLMINTAGGEDINT		(-(sword)((word)1<<(WORDBITSIZE-LMASK_BITS-1)))
+#define PLMINTAGGEDINT		(-(sword)((word)1<<(TAGGED_INT_BITS-1)))
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
-#define PLMINTAGGEDINT32	(-(sword)((word)1<<(32-LMASK_BITS-1)))
+				/* Tagged range of old 32-bit versions.  Fixed: */
+				/* term_hash/2 values depend on it */
+#define PLMINTAGGEDINT32	(-(sword)((word)1<<24))
 #define PLMAXTAGGEDINT32	(-PLMINTAGGEDINT32 - 1)
 #define inTaggedNumRange(n)	(valInt(consInt(n)) == (n))
 #define PLMININT		(-PLMAXINT - 1)
@@ -3051,7 +3053,7 @@ int		trap_gdb(void);
 #endif
 
 #define NULL_ATOM ((atom_t)0)
-#define MK_ATOM(n)		((atom_t)((n)<<7|TAG_ATOM|STG_STATIC))
+#define MK_ATOM(n)		((atom_t)consTagged(n, TAGEX_ATOM))
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 

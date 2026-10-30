@@ -213,6 +213,76 @@ be kept consistent.
 #define tagex(w)	((w) & (TAG_MASK|STG_MASK))
 #define isIndirect(w)	(EXBIT(tagex(w)) & INDIRECT_BM)
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Code outside this file must not depend on   the bit layout of a cell. It
+uses the tagex() values below, the  constructors   and  tests  below and
+consPtr()/valPtr() from pl-inline.h rather   than  LMASK_BITS, STG_* and
+storage().
+
+The TAGEX_* values are what tagex()  returns   and  may  be used as case
+labels. The second group are cells   that  never appear as Prolog data:
+private markers of the compiler, read/1, tries and variant/2.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define TAGEX_COUNT		32	/* tagex() is in 0..TAGEX_COUNT-1 */
+
+#define TAGEX_VAR		(TAG_VAR|STG_STATIC)
+#define TAGEX_ATTVAR		(TAG_ATTVAR|STG_GLOBAL)
+#define TAGEX_INDIRECT_FLOAT	(TAG_FLOAT|STG_GLOBAL)
+#define TAGEX_TAGGED_INT	(TAG_INTEGER|STG_INLINE)
+#define TAGEX_INDIRECT_INT	(TAG_INTEGER|STG_GLOBAL)
+#define TAGEX_INDIRECT_STRING	(TAG_STRING|STG_GLOBAL)
+#define TAGEX_ATOM		(TAG_ATOM|STG_STATIC)
+#define TAGEX_FUNCTOR		(TAG_ATOM|STG_GLOBAL)
+#define TAGEX_COMPOUND		(TAG_COMPOUND|STG_GLOBAL)
+#define TAGEX_REF		(TAG_REFERENCE|STG_GLOBAL)
+#define TAGEX_REF_LOCAL		(TAG_REFERENCE|STG_LOCAL)
+
+#define TAGEX_VARINFO		(TAG_VAR|STG_RESERVED)	  /* compiler, read/1 */
+#define TAGEX_TRIE_RESERVED	(TAG_VAR|STG_LOCAL)	  /* trie special keys */
+#define TAGEX_TRIE_ATTVAR	(TAG_ATTVAR|STG_STATIC)	  /* <begin_attvar N> */
+#define TAGEX_TRIE_ATTVAR_END	(TAG_ATTVAR|STG_RESERVED) /* <end_attvar N> */
+#define TAGEX_VARIANT_COMPOUND	(TAG_COMPOUND|STG_STATIC) /* variant/2 */
+#define TAGEX_VARREF		(TAG_REFERENCE|STG_STATIC) /* decompiler */
+
+/* Cells holding a number (index, counter) rather than an address.
+   consTagged(n, tx) is a cell with tagex() tx and value n.
+*/
+#define consTagged(n, tx)	(((word)(n)<<LMASK_BITS)|(tx))
+#define valTagged(w)		((word)(w)>>LMASK_BITS)
+
+/* Cells holding an address.  The address is a word; consPtr() and
+   valPtr() in pl-inline.h are the typed versions.  Adding
+   addrDelta(d) to a pointer cell moves its address by d bytes.
+*/
+#define consAddr(a, tx)		(((word)(a)<<LMASK_BITS)|(tx))
+#define valAddr(w)		((word)(w)>>LMASK_BITS)
+#define addrDelta(d)		((word)(d)<<LMASK_BITS)
+
+/* Storage tests.  The current layout uses the same bits for different
+   purposes depending on where the cell lives.
+
+     - isGlobalPtr(w) is true if w points into the global stack.  It is
+       also true for a functor_t, so callers that may see a functor
+       must test isFunctor() first.
+     - isIndirectHdr(w) is true if a cell _on the global stack_ is the
+       guard of an indirect.  INDHDR_BIT is set in all such guards and
+       in no other global stack cell.
+     - isLocalPtr(w) is true if a cell _outside the global stack_ points
+       into the local stack.  Such cells only exist during GC and stack
+       shifts and in PushPtr()/PopPtr() references.
+*/
+#define isGlobalPtr(w)		(storage(w) == STG_GLOBAL)
+#define INDHDR_BIT		STG_LOCAL
+#define isIndirectHdr(w)	(storage(w) == STG_LOCAL)
+#define isLocalPtr(w)		(storage(w) == STG_LOCAL)
+#define isLocalRef(w)		(tagex(w) == TAGEX_REF_LOCAL)
+
+/* nonFunctorKey(k) modifies a hash key such that it differs from any
+   functor_t.  Used for clause index keys of indirect data.
+*/
+#define nonFunctorKey(k)	((k) & ~(word)STG_GLOBAL)
+
 
 		 /*******************************
 		 *	 BASIC TYPE TESTS	*
@@ -262,6 +332,15 @@ and while loading .wic files.  It comes at no price.
 /* We use local references during GC and shift */
 #define makeRefLok(p)	consPtr(p, TAG_REFERENCE|STG_LOCAL)
 #define makeRefLG(p)	((void*)(p) >= (void*)lBase ? makeRefLok(p) : makeRefG(p))
+
+		 /*******************************
+		 *	 POINTER CELLS		*
+		 *******************************/
+
+#define consCompound(p)	consPtr(p, TAGEX_COMPOUND)
+#define consAttVar(p)	consPtr(p, TAGEX_ATTVAR)
+/* tag is TAG_FLOAT, TAG_INTEGER or TAG_STRING */
+#define consIndirect(p, tag) consPtr(p, (tag)|STG_GLOBAL)
 
 
 		 /*******************************
@@ -320,6 +399,11 @@ wsizeofInd(word w)
 #define wsizeofIndirect(w)	(wsizeofInd(*addressIndirect(w)))
 
 #define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))
+/* isInlineInt(w) is isTaggedInt(w) for a w that is known to be an
+   integer (tag(w) == TAG_INTEGER), i.e., it tells a tagged integer from
+   an indirect one.  It is cheaper than isTaggedInt().
+*/
+#define isInlineInt(w)	(storage(w) == STG_INLINE)
 
 #define MP_RAT_MASK	(0x1)
 
@@ -373,3 +457,4 @@ static inline Atom	fetchAtomArray(size_t index);
 
 #define consInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
 #define consUInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
+#define TAGGED_INT_BITS	(WORDBITSIZE-LMASK_BITS) /* bits in a tagged int */

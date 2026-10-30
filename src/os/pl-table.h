@@ -330,8 +330,9 @@ htable_valid_kv(void *kv)
   return kvi > 0 || kvi	< -2;		/* and HTABLE_SENTINEL */
 }
 
-#define pointerHashValue(p, size) ((((intptr_t)(p) >> LMASK_BITS) ^ \
-				    ((intptr_t)(p) >> (LMASK_BITS+5)) ^ \
+#define PTR_HASH_SHIFT 7		/* drop alignment and tag bits */
+#define pointerHashValue(p, size) ((((intptr_t)(p) >> PTR_HASH_SHIFT) ^ \
+				    ((intptr_t)(p) >> (PTR_HASH_SHIFT+5)) ^ \
 				    ((intptr_t)(p))) & \
 				   ((size)-1))
 

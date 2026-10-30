@@ -54,7 +54,7 @@ Implementation issues
 There are two parts in the atom   administration. One is a dynamic array
 (called buffer) atom_array, which is there to   find  the atoms back. An
 atom   as   it   appears   is   of   type   word   and   of   the   form
-(n<<LMASK_BITS)|TAG_ATOM. The atom structure is   located by getting the
+MK_ATOM(n). The atom  structure  is   located  by  getting  the
 n-th pointer from the atom_array  dynamic   array.  See  atomValue() for
 translating the word into the address of the structure.
 
@@ -861,7 +861,7 @@ reserveAtom(DECL_LD)
   index = LD->atoms.reserved.index[LD->atoms.reserved.next++];
   a = fetchAtomArray(index);
   assert(a->type == ATOM_TYPE_INVALID);
-  a->atom = (index<<LMASK_BITS)|TAG_ATOM;
+  a->atom = MK_ATOM(index);
 
   return a;
 }
@@ -2032,7 +2032,7 @@ registerBuiltinAtoms(void)
     v  = v0 & (GD->atoms.table->buckets-1);
 
     a = &GD->atoms.array.blocks[idx][index];
-    a->atom       = (index<<LMASK_BITS)|TAG_ATOM;
+    a->atom       = MK_ATOM(index);
     a->name       = (char *)s;
     a->length     = len;
     a->type       = &text_atom;

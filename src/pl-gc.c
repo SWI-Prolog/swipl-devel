@@ -356,7 +356,7 @@ print_val(word val, char *buf)
     } else
     { strcpy(o, s);
     }
-  } else if ( tagex(val) == (TAG_ATOM|STG_GLOBAL) )
+  } else if ( isFunctor(val) )
   { FunctorDef fd = valueFunctor(val);
 
     Ssprintf(o, "functor %s/%zd", stringAtom(fd->name), fd->arity);
@@ -722,7 +722,7 @@ queryOfFrame(LocalFrame fr)
 
 static inline int
 isGlobalRef(word w)
-{ return storage(w) == STG_GLOBAL;
+{ return isGlobalPtr(w);
 }
 
 
@@ -730,7 +730,7 @@ static inline size_t
 offset_word(word m)
 { size_t offset;
 
-  if ( unlikely(storage(m) == STG_LOCAL) )
+  if ( unlikely(isIndirectHdr(m)) )
   {
 #if SIZEOF_VOIDP < SIZEOF_WORD && O_DEBUG
     assert(wsizeofInd(m) + 1 < SIZE_MAX);
@@ -903,7 +903,7 @@ forward:				/* Go into the tree */
     }
 #ifdef O_ATTVAR
     case TAG_ATTVAR:
-    { DEBUG(CHK_SECURE, assert(storage(val) == STG_GLOBAL));
+    { DEBUG(CHK_SECURE, assert(isGlobalPtr(val)));
       next = valPtr(val);
       DEBUG(CHK_SECURE, assert(onStack(global, next)));
       needsRelocation(current);
@@ -921,7 +921,7 @@ forward:				/* Go into the tree */
     case TAG_COMPOUND:
     { size_t args;
 
-      DEBUG(CHK_SECURE, assert(storage(val) == STG_GLOBAL));
+      DEBUG(CHK_SECURE, assert(isGlobalPtr(val)));
       next = valPtr(val);
       DEBUG(CHK_SECURE, assert(onStack(global, next)));
       needsRelocation(current);
@@ -947,13 +947,13 @@ forward:				/* Go into the tree */
       FORWARD;
     }
     case TAG_INTEGER:
-      if ( storage(val) == STG_INLINE )
+      if ( isInlineInt(val) )
 	BACKWARD;
     case TAG_STRING:
     case TAG_FLOAT:			/* indirects */
     { next = valPtr(val);
 
-      DEBUG(CHK_SECURE, assert(storage(val) == STG_GLOBAL));
+      DEBUG(CHK_SECURE, assert(isGlobalPtr(val)));
       DEBUG(CHK_SECURE, assert(onStack(global, next)));
       needsRelocation(current);
       if ( is_marked(next) )		/* can be referenced from multiple */
@@ -1214,10 +1214,10 @@ argument_stack_to_term_refs(vm_state *state)
 
 	if ( (uintptr_t)adr & UWRITE )
 	{ adr = (Word)((uintptr_t)adr & ~UWRITE);
-	  *valTermRef(t) = consPtr(adr, STG_GLOBAL|TAG_ATTVAR);
+	  *valTermRef(t) = consAttVar(adr);
 	  state->uwrite_count++;
 	} else
-	{ *valTermRef(t) = consPtr(adr, STG_GLOBAL|TAG_REFERENCE);
+	{ *valTermRef(t) = makeRefG(adr);
 	}
 	DEBUG(CHK_SECURE, checkData(adr));
       } else
@@ -1789,7 +1789,7 @@ we get rid of this feature?
 
 static void
 mark_local_variable(DECL_LD Word p)
-{ while ( unlikely(tagex(*p) == (TAG_REFERENCE|STG_LOCAL)) )
+{ while ( unlikely(isLocalRef(*p)) )
   { Word p2;
 
     p2 = unRef(*p);
@@ -2935,8 +2935,8 @@ offset the location of the  target   non-garbage  location.  If scanning
 finds one of these cells, we simply fetch the value and go to `done'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define consVar(w) (((word)(w)<<LMASK_BITS) | TAG_VAR)
-#define valVar(w)  ((word)(w) >> LMASK_BITS)
+#define consVar(w) consTagged(w, TAGEX_VAR)
+#define valVar(w)  valTagged(w)
 
 static void
 sweep_global_mark(DECL_LD gc_wordptr *m)
@@ -2951,7 +2951,7 @@ sweep_global_mark(DECL_LD gc_wordptr *m)
   for(;;)
   { Word prev = gm-1;
 
-    while( !(*prev & (MARK_MASK|FIRST_MASK|STG_LOCAL)) )
+    while( !(*prev & (MARK_MASK|FIRST_MASK|INDHDR_BIT)) )
     { if ( tag(*prev) == TAG_VAR && *prev != 0 )
       { gm = gBase + valVar(*prev);
 	goto done;			/* (*) */
@@ -2982,7 +2982,7 @@ sweep_global_mark(DECL_LD gc_wordptr *m)
     } else				/* a large cell */
     { size_t offset;
 
-      DEBUG(CHK_SECURE, assert(storage(*prev) == STG_LOCAL));
+      DEBUG(CHK_SECURE, assert(isIndirectHdr(*prev)));
       offset = (size_t)(wsizeofInd(*prev)+1);	/* = offset for a large cell */
       prev -= offset;
       if ( is_marked_or_first(prev) )
@@ -3109,7 +3109,7 @@ sweep_trail(void)
 	into_relocation_chain(&te->as_word, STG_TRAIL);
       } else
 #endif
-      if ( storage(te->as_word) == STG_GLOBAL )
+      if ( isGlobalPtr(te->as_word) )
       { needsRelocation(&te->as_word);
 	check_relocation(&te->as_word);
 	into_relocation_chain(&te->as_word, STG_TRAIL);
@@ -3293,12 +3293,12 @@ is_downward_ref(DECL_LD Word p)
 
   switch(tag(val))
   { case TAG_INTEGER:
-      if ( storage(val) == STG_INLINE )
+      if ( isInlineInt(val) )
 	fail;
     case TAG_STRING:
     case TAG_FLOAT:
-      if ( storage(val) != STG_GLOBAL )
-      { assert(storage(val) == STG_LOCAL);
+      if ( !isGlobalPtr(val) )
+      { assert(isIndirectHdr(val));
 	fail;
       }
     case TAG_ATTVAR:
@@ -3322,12 +3322,12 @@ is_upward_ref(DECL_LD Word p)
 
   switch(tag(val))
   { case TAG_INTEGER:
-      if ( storage(val) == STG_INLINE )
+      if ( isInlineInt(val) )
 	fail;
     case TAG_STRING:
     case TAG_FLOAT:
-      if ( storage(val) != STG_GLOBAL )
-      { assert(storage(val) == STG_LOCAL);
+      if ( !isGlobalPtr(val) )
+      { assert(isIndirectHdr(val));
 	fail;
       }
     case TAG_ATTVAR:
@@ -3395,7 +3395,7 @@ downskip_combine_garbage(DECL_LD Word current, Word dest)
 { Word top_gc = current + offset_cell(current);
 
   for(current-- ; ; current-- )
-  { if ( (*current & (MARK_MASK|FIRST_MASK|STG_LOCAL)) )
+  { if ( (*current & (MARK_MASK|FIRST_MASK|INDHDR_BIT)) )
     { if ( is_marked(current) )
       { DEBUG(MSG_GC_HOLE, Sdprintf("Normal-non-GC cell at %p\n", current));
 	return make_gc_hole(current+1, top_gc);
@@ -3404,7 +3404,7 @@ downskip_combine_garbage(DECL_LD Word current, Word dest)
       } else					/* large cell */
       { size_t offset;
 
-	DEBUG(CHK_SECURE, assert(storage(*current) == STG_LOCAL));
+	DEBUG(CHK_SECURE, assert(isIndirectHdr(*current)));
 	offset = wsizeofInd(*current)+1;	/* = offset for a large cell */
 	current -= offset;			/* start large cell */
 	if ( is_marked(current) )
@@ -3455,7 +3455,7 @@ compact_global(void)
     } else if ( is_first(current) )
     { first_large_cell:
       update_relocation_chain(current, dest);	/* gTop refs from marks */
-    } else if ( storage(*current) == STG_LOCAL ) /* large cell */
+    } else if ( isIndirectHdr(*current) ) /* large cell */
     { size_t offset = offset_cell(current);
 
       assert(offset > 0);
@@ -3963,7 +3963,7 @@ scan_global(int flags)
       set_start(current);
     cells++;
 
-    if ( tagex(*current) == (TAG_VAR|STG_RESERVED) )
+    if ( tagex(*current) == TAGEX_VARINFO )
       Sdprintf("read/1 varref at %p\n", current);
     /* TAG_VAR+value is used by sweep_global_mark() */
     if ( tag(*current) == TAG_VAR && !marked && *current != 0 )
@@ -4801,7 +4801,7 @@ static void
 update_gpointer(Word p, intptr_t gs)
 { word w = *p;
 
-  if ( storage(w) == STG_GLOBAL && tag(w) != TAG_ATOM )
+  if ( isGlobalPtr(w) && !isFunctor(w) )
     update_wpointer(p, gs);
 }
 
@@ -4809,9 +4809,9 @@ static void
 update_lgpointer(Word p, intptr_t ls, intptr_t gs)
 { word w = *p;
 
-  if ( storage(w) == STG_GLOBAL && tag(w) != TAG_ATOM )
+  if ( isGlobalPtr(w) && !isFunctor(w) )
     update_wpointer(p, gs);
-  else if ( storage(w) == STG_LOCAL )
+  else if ( isLocalPtr(w) )
     update_wpointer(p, ls);
 }
 
@@ -5786,7 +5786,7 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
 
     if ( isAtom(w) )
     { markAtom(word2atom(w));
-    } else if ( unlikely(storage(w) == STG_LOCAL) )
+    } else if ( unlikely(isIndirectHdr(w)) )
     { word sz = wsizeofInd(w) + 1; /* = _careful_ offset_word() */
       if ( gtop - current > sz )
 	current += sz;

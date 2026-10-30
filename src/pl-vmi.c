@@ -567,7 +567,7 @@ VMI(H_FLOAT, 0, CODES_PER_DOUBLE, (CA1_FLOAT))
 
     p = gTop;
     gTop += 2+WORDS_PER_DOUBLE;
-    c = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+    c = consIndirect(p, TAG_FLOAT);
 
     *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
     cpDoubleData(p, PC);
@@ -795,7 +795,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
     ENSURE_GLOBAL_SPACE(1+arity, deRef2(ARGP, p));
     ap = gTop;
     gTop += 1+arity;
-    c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+    c = consCompound(ap);
     *ap++ = f;
     ARGP = ap;
     while(arity-->0)			/* must clear if we want to do GC */
@@ -849,7 +849,7 @@ VMI(H_RLIST, 0, 0, ())
       ENSURE_GLOBAL_SPACE(3, deRef2(ARGP, p));
       ap = gTop;
       gTop += 3;
-      c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+      c = consCompound(ap);
       *ap++ = FUNCTOR_dot2;
       setVar(ap[0]);			/* must clear for GC */
       setVar(ap[1]);
@@ -914,7 +914,7 @@ VMI(H_LIST_FF, 0, 2, (CA1_FVAR,CA1_FVAR))
 			  });
       ap = gTop;
       gTop = ap+3;
-      c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+      c = consCompound(ap);
       *ap++ = FUNCTOR_dot2;
       setVar(*ap); varFrame(FR, *PC++) = makeRefG(ap); ap++;
       setVar(*ap); varFrame(FR, *PC++) = makeRefG(ap);
@@ -991,7 +991,7 @@ VMI(B_FLOAT, 0, CODES_PER_DOUBLE, (CA1_FLOAT))
   p = gTop;
   gTop += 2+WORDS_PER_DOUBLE;
 
-  *ARGP++ = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+  *ARGP++ = consIndirect(p, TAG_FLOAT);
   *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
   cpDoubleData(p, PC);
   *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
@@ -1674,7 +1674,7 @@ VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
   Word ap;
 
   ENSURE_GLOBAL_SPACE(1+arity, (void)0);
-  *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
+  *ARGP = consCompound(gTop);
   ARGP = gTop;
   *ARGP++ = f;
   for(ap=ARGP; arity-->0;)		/* must clear if we want to do GC */
@@ -1700,7 +1700,7 @@ END_VMI
 
 VMI(B_RLIST, 0, 0, ())
 { ENSURE_GLOBAL_SPACE(3, (void)0);
-  *ARGP = consPtr(gTop, TAG_COMPOUND|STG_GLOBAL);
+  *ARGP = consCompound(gTop);
   ARGP = gTop;
   *ARGP++ = FUNCTOR_dot2;
   setVar(ARGP[0]);
@@ -3896,7 +3896,7 @@ VMH(a_var_n, 1, (int), (offset))
   deRef2(p, p2);
 
 					/* speedup common case a bit */
-  if ( tagex(*p2) == (TAG_INTEGER|STG_INLINE) )
+  if ( isTaggedInt(*p2) )
   { n = allocArithStack();
     n->value.i = valInt(*p2);
     n->type = V_INTEGER;
@@ -4111,7 +4111,7 @@ VMI(A_ADD_FC, VIF_BREAK, 3, (CA1_FVAR, CA1_VAR, CA1_INTEGER))
     ARGP = argFrameP(lTop, 0);
     globaliseFirstVar(rp);
     *ARGP++ = *rp;
-    *ARGP++ = consPtr(expr, TAG_COMPOUND|STG_GLOBAL);
+    *ARGP++ = consCompound(expr);
     NFR = lTop;
     DEF = GD->procedures.is2->definition;
     setNextFrameFlags(NFR, FR);
@@ -5275,7 +5275,7 @@ VMH(b_throw_resume, 2, (term_t, Stack), (catchfr_ref, outofstack))
       if ( !has_emergency_space(&LD->stacks.global, 3*sizeof(word)) )
 	fatalError("Cannot wrap abort exception\n");
 
-      argFrame(lTop, 0) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      argFrame(lTop, 0) = consCompound(p);
       p[0] = FUNCTOR_drecover_and_rethrow2;
       p[1] = argFrame(FR, 2);
       p[2] = w;
@@ -6105,7 +6105,7 @@ TBD:
 	  _astack[1] = *TrieTermP; \
 	  _astack[2] = *TrieOffset; \
 	  _astack[3] = *TrieArgStackP; \
-	  *TrieArgStackP = consPtr(_astack, TAG_COMPOUND|STG_GLOBAL); \
+	  *TrieArgStackP = consCompound(_astack); \
 	} while(0)
 #define TriePopArgP() \
 	do  \
@@ -6158,7 +6158,7 @@ VMI(T_TRIE_GEN2, 0, 0, ())
   /* argFrameP(FR, 0) is the trie */
   unify_ptrs(&ap[1], argFrameP(FR, 1), 0);
 
-  *TrieTermP = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+  *TrieTermP = consCompound(ap);
 
   NEXT_INSTRUCTION;
 }
@@ -6192,7 +6192,7 @@ VMI(T_TRIE_GEN3, 0, 0, ())
   unify_ptrs(&ap[1], argFrameP(FR, 1), 0);
   unify_ptrs(&ap[2], argFrameP(FR, 2), 0);
 
-  *TrieTermP = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+  *TrieTermP = consCompound(ap);
 
   NEXT_INSTRUCTION;
 }
@@ -6272,7 +6272,7 @@ VMI(T_FUNCTOR, 0, 1, (CA1_FUNC))
     ENSURE_STACK_SPACE(1+arity+4+6, 6, deRef2(TrieCurrentP, p));
     ap = gTop;
     gTop += 1+arity;
-    c = consPtr(ap, TAG_COMPOUND|STG_GLOBAL);
+    c = consCompound(ap);
     TriePushArgP();
     DEBUG(MSG_TRIE_VM,
 	  { Sdprintf("Push: ");
@@ -6378,7 +6378,7 @@ VMI(T_VAR, 0, 1, (CA1_INTEGER))
 }
 END_VMI
 
-/* This does the same  as unify_key() for `TAG_ATTVAR|STG_STATIC`.  We
+/* This does the same  as unify_key() for `TAGEX_TRIE_ATTVAR`.  We
    wrap the attributes  into a tuple, where the first  argument is the
    current location (`vi->address` in  unify_key()), the second is the
    attributed variable  and the  3rd is the  location where  where the
@@ -6405,13 +6405,13 @@ VMI(T_ATTVARA, 0, 1, (CA1_INTEGER))
 
     gp = gTop;
     register_attvar(gp);
-    gp[1] = consPtr(&gp[5], TAG_ATTVAR|STG_GLOBAL);
+    gp[1] = consAttVar(&gp[5]);
     gp[2] = FUNCTOR_att3;
     gp[3] = linkValI(TrieCurrentP);
     gp[4] = makeRefG(&gp[1]);
     setVar(gp[5]);
     gTop += 6;
-    tuple = consPtr(&gp[2], TAG_COMPOUND|STG_GLOBAL);
+    tuple = consCompound(&gp[2]);
     Trail(vp, tuple);
     TriePushArgP();
     *TrieTermP  = tuple;
@@ -6517,7 +6517,7 @@ VMI(T_FLOAT, 0, CODES_PER_DOUBLE, (CA1_FLOAT))
     ENSURE_GLOBAL_SPACE(2+WORDS_PER_DOUBLE, deRef2(TrieCurrentP, k));
     p = gTop;
     gTop += 2+WORDS_PER_DOUBLE;
-    c = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+    c = consIndirect(p, TAG_FLOAT);
 
     *p++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
     cpDoubleData(p, PC);

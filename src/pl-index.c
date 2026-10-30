@@ -224,7 +224,7 @@ indexOfWord(word w)
       case TAG_ATOM:
 	break;				/* atom_t */
       case TAG_INTEGER:
-	if ( likely(storage(w) == STG_INLINE) )
+	if ( likely(isInlineInt(w)) )
 	  break;
 #if O_BIGNUM
 	return bignum_index(addressIndirect(w));

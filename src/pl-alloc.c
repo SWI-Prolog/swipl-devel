@@ -472,11 +472,11 @@ push_goal(LocalFrame fr)
   size_t arity = fr->predicate->functor->arity;
   size_t i;
   Word p = gTop;
-  word r = consPtr(p, STG_GLOBAL|TAG_COMPOUND);
+  word r = consCompound(p);
 
   p[0] = FUNCTOR_frame3;
   p[1] = consInt(fr->level);
-  p[2] = consPtr(&p[4], STG_GLOBAL|TAG_COMPOUND);
+  p[2] = consCompound(&p[4]);
   p[3] = ATOM_nil;				/* reserved */
   p += 4;
 
@@ -485,7 +485,7 @@ push_goal(LocalFrame fr)
   if ( arity > 0 )
   { Word ad;					/* argument descriptions */
 
-    p[2] = consPtr(&p[3], STG_GLOBAL|TAG_COMPOUND);
+    p[2] = consCompound(&p[3]);
     p += 3;
     p[0] = fr->predicate->functor->functor;
     p++;
@@ -495,7 +495,7 @@ push_goal(LocalFrame fr)
 
       deRef(a);
       if ( isTerm(*a) )
-      { *p++ = consPtr(ad, STG_GLOBAL|TAG_COMPOUND);
+      { *p++ = consCompound(ad);
 
 	if ( isList(*a) )
 	{ Word tail;
@@ -546,14 +546,14 @@ push_cycle(cycle_entry ce[MAX_CYCLE], int depth)
 
   if ( gTop+size < gMax )
   { Word p  = gTop;
-    word r  = consPtr(p, STG_GLOBAL|TAG_COMPOUND);
+    word r  = consCompound(p);
 
     gTop = p+depth*3;
     for(i=0; i<depth; i++, p+=3)
     { p[0] = FUNCTOR_dot2;
       p[1] = push_goal(ce[i].frame);
       if ( i+1 < depth )
-	p[2] = consPtr(&p[3], STG_GLOBAL|TAG_COMPOUND);
+	p[2] = consCompound(&p[3]);
       else
 	p[2] = ATOM_nil;
     }
@@ -632,7 +632,7 @@ push_overflow_context(Stack stack, int extra)
 
     dict_order(dict, NULL);
 
-    return consPtr(dict, STG_GLOBAL|TAG_COMPOUND);
+    return consCompound(dict);
   } else
     return PL_new_atom(stack->name); /* The stack names are built-in atoms */
 }
@@ -705,13 +705,13 @@ outOfStack(void *stack, stack_overflow_action how)
       { Word p = gTop;
 
 	p[0] = FUNCTOR_error2;			/* see (*) above */
-	p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+	p[1] = consCompound(&p[3]);
 	p[2] = ctx;
 	p[3] = FUNCTOR_resource_error1;
 	p[4] = ATOM_stack;
 	gTop += 5;
 
-	*valTermRef(LD->exception.bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	*valTermRef(LD->exception.bin) = consCompound(p);
 	freezeGlobal();
       } else
       { Sdprintf("ERROR: Out of global-stack.\n"
@@ -899,7 +899,7 @@ globalString(DECL_LD size_t len, const char *s)
     *q++ = 'B';
     memcpy(q, s, len);
 
-    word w = consPtr(p, TAG_STRING|STG_GLOBAL);
+    word w = consIndirect(p, TAG_STRING);
     DEBUG(CHK_SECURE,
 	  { size_t len2;
 	    char *s2 = getCharsString(w, &len2);
@@ -946,7 +946,7 @@ globalWString(DECL_LD size_t len, const pl_wchar_t *s)
     memcpy(&w[1], s, len*sizeof(pl_wchar_t));
   }
 
-  return consPtr(g, TAG_STRING|STG_GLOBAL);
+  return consIndirect(g, TAG_STRING);
 }
 
 
@@ -1016,7 +1016,7 @@ put_double(DECL_LD Word at, double d)
   p = gTop;
   gTop += 2+WORDS_PER_DOUBLE;
 
-  *at = consPtr(p, TAG_FLOAT|STG_GLOBAL);
+  *at = consIndirect(p, TAG_FLOAT);
 
   if ( isnan(d) )
     d = PL_nan();			/* SWI-Prolog canonical 1.5NaN */

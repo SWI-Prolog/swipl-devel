@@ -1498,7 +1498,7 @@ retry:
       } /*for pass*/
 
       if ( tshare )
-      { word w = consPtr(tshare, TAG_COMPOUND|STG_GLOBAL);
+      { word w = consCompound(tshare);
 	record_t r;
 
 	tshare[0] = PL_new_functor(ATOM_v, nshare+1);
@@ -1585,7 +1585,7 @@ init_delay_list(void)
   p[0] = FUNCTOR_minus1;
   p[1] = ATOM_nil;
 
-  *valTermRef(t) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+  *valTermRef(t) = consCompound(p);
 
   return t;
 }
@@ -1648,7 +1648,7 @@ push_delay_list(DECL_LD Word p)
   dl = argTermP(*dl, 0);
   p[2] = *dl;
   TrailAssignment(dl);
-  *dl = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+  *dl = consCompound(p);
 }
 
 /* Push a positive delay node.  If the answer is ground this is a
@@ -1701,7 +1701,7 @@ tbl_push_delay(DECL_LD atom_t atrie, Word wrapper, trie_node *answer)
 
   if ( (p = allocGlobalNoShift(6)) )
   { p[0] = FUNCTOR_dot2;
-    p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+    p[1] = consCompound(&p[3]);
     p[3] = FUNCTOR_plus2;
     p[4] = atrie;
     p[5] = p5;
@@ -1742,7 +1742,7 @@ PRED_IMPL("$tbl_add_global_delays", 2, tbl_add_global_delays, 0)
 
     if ( !(p=allocGlobal(3*len)) )
       return false;
-    l = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+    l = consCompound(p);
 
     dlp = valTermRef(dl);
     deRef(dlp);
@@ -1756,7 +1756,7 @@ PRED_IMPL("$tbl_add_global_delays", 2, tbl_add_global_delays, 0)
       { *p = linkValI(valTermRef(A1));
 	return PL_unify_atomic(A2, l);
       }
-      *p   = consPtr(&p[1], TAG_COMPOUND|STG_GLOBAL);
+      *p   = consCompound(&p[1]);
       p++;
     }
   }
@@ -2992,7 +2992,7 @@ unify_trie_ret(DECL_LD term_t ret, TmpBuffer vars)
 
   if ( hasGlobalSpace(arity+1) )
   { Word p = allocGlobalNoShift(arity+1);
-    word w = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+    word w = consCompound(p);
     *p++ = vf;
 
     for(; pp < ep; pp++)
@@ -4245,7 +4245,7 @@ unify_fresh(DECL_LD term_t t, trie *atrie, Definition def, int create)
 	p[2] = w2;
 	deRef(v);
 	if ( canBind(*v) )
-	  return bindConst(v, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
+	  return bindConst(v, consCompound(p));
       }
 
       return PL_unify_term(t, PL_FUNCTOR, f,
@@ -5525,7 +5525,7 @@ unify_dependency(DECL_LD term_t a0, term_t dependency,
     assert(p);
 
     p[0] = FUNCTOR_dot2;
-    p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+    p[1] = consCompound(&p[3]);
     p[3] = FUNCTOR_plus2;
     p[4] = trie_symbol(wl->table);
     p[5] = p5;
@@ -12252,7 +12252,7 @@ put_supervisor_goal(DECL_LD term_t t, Definition def, bool abstract)
   if ( arity == 0 )
   { gp[2] = def->functor->name;
   } else if ( abstract )
-  { gp[2] = consPtr(&gp[3], TAG_COMPOUND|STG_GLOBAL);
+  { gp[2] = consCompound(&gp[3]);
     gp[3] = def->functor->functor;
     for(size_t i=0; i<arity; i++)
       setVar(gp[4+i]);
@@ -12260,7 +12260,7 @@ put_supervisor_goal(DECL_LD term_t t, Definition def, bool abstract)
   { Word fp = argFrameP(LD->query->registers.fr, 0); /* may have shifted */
     Word ap = &gp[4];
 
-    gp[2] = consPtr(&gp[3], TAG_COMPOUND|STG_GLOBAL);
+    gp[2] = consCompound(&gp[3]);
     gp[3] = def->functor->functor;
     for(size_t i=0; i<arity; i++, fp++, ap++)
     { Word fa;
@@ -12276,7 +12276,7 @@ put_supervisor_goal(DECL_LD term_t t, Definition def, bool abstract)
     }
   }
 
-  *valTermRef(t) = consPtr(gp, TAG_COMPOUND|STG_GLOBAL);
+  *valTermRef(t) = consCompound(gp);
   return true;
 }
 
@@ -12468,7 +12468,7 @@ flat_skeleton(DECL_LD TmpBuffer vars)
     return atom2word(ATOM_ret);
 
   p = allocGlobalNoShift(arity+1);
-  w = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+  w = consCompound(p);
   *p++ = ret_functor(arity);
   for(; pp < ep; pp++, p++)
   { Word vp = *pp;

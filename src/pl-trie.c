@@ -71,15 +71,14 @@ TODO
   - Thread safe reclaiming of deleted nodes
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define RESERVED_TRIE_VAL(n) (((word)((uintptr_t)n)<<LMASK_BITS) | \
-			      TAG_VAR|STG_LOCAL)
+#define RESERVED_TRIE_VAL(n) consTagged((uintptr_t)(n), TAGEX_TRIE_RESERVED)
 #define TRIE_ERROR_VAL       RESERVED_TRIE_VAL(1)
 #define TRIE_KEY_ABSENT      RESERVED_TRIE_VAL(2)	/* key of no stored value */
 #define TRIE_KEY_POP(n)      RESERVED_TRIE_VAL(10+(n))
 
-#define IS_TRIE_KEY_POP(w)   ((size_t)((tagex(w) == (TAG_VAR|STG_LOCAL) && \
-					((w)>>LMASK_BITS) > 10) ? ((w)>>LMASK_BITS) - 10 \
-								: 0))
+#define IS_TRIE_KEY_POP(w)   ((size_t)((tagex(w) == TAGEX_TRIE_RESERVED && \
+					valTagged(w) > 10) ? valTagged(w) - 10 \
+							   : 0))
 
 #define NVARS_FAST 100
 
@@ -785,14 +784,14 @@ static inline void
 update_var_mask(trie_children_block *b, word key)
 { unsigned *maskp;
 
-  if ( tagex(key) == TAG_VAR )
+  if ( tagex(key) == TAGEX_VAR )
     maskp = &b->var_mask;
-  else if ( tagex(key) == (TAG_ATTVAR|STG_STATIC) )
+  else if ( tagex(key) == TAGEX_TRIE_ATTVAR )
     maskp = &b->attvar_mask;
   else
     return;
 
-  size_t vn = (size_t)(key>>LMASK_BITS); /* 1.. */
+  size_t vn = (size_t)valTagged(key); /* 1.. */
   *maskp |= (vn < VMASKBITS ? 0x1U<<(vn-1) : VMASK_SCAN);
 }
 
@@ -1672,8 +1671,8 @@ attributes.
 
     <begin_attvar N> <attributes ...> <pop> <end_attvar N>
 
-<begin_attvar N> is (N<<LMASK_BITS)|TAG_ATTVAR|STG_STATIC
-<end_attvar N>   is (N<<LMASK_BITS)|TAG_ATTVAR|STG_RESERVED
+<begin_attvar N> is consTagged(N, TAGEX_TRIE_ATTVAR)
+<end_attvar N>   is consTagged(N, TAGEX_TRIE_ATTVAR_END)
 <pop>		 is TRIE_KEY_POP(popn), compensating for the push
                     for writing the attributes and restoring read/write
                     umode.
@@ -1722,7 +1721,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 	  break;
 #if O_TRIE_ATTVAR
 	if ( avm && avm->compound_depth == compounds )
-	{ word w = (*avm->attvar)|STG_RESERVED;
+	{ word w = consTagged(valTagged(*avm->attvar), TAGEX_TRIE_ATTVAR_END);
 	  DEBUG(MSG_TRIE_PUT_TERM,
 		Sdprintf("Finished attvar at %p\n", avm->attvar));
 	  (void)popBufferP(attvars, attvar_mark);
@@ -1739,7 +1738,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
       {
 #if O_TRIE_ATTVAR
 	if ( avm && avm->compound_depth == compounds )
-	{ word w = (*avm->attvar)|STG_RESERVED;
+	{ word w = consTagged(valTagged(*avm->attvar), TAGEX_TRIE_ATTVAR_END);
 	  DEBUG(MSG_TRIE_PUT_TERM,
 		Sdprintf("Finished attvar at %p\n", avm->attvar));
 	  if ( !(node = follow_node(trie, node, TRIE_KEY_POP(popn), add)) )
@@ -1766,7 +1765,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 	    initBuffer(vars);
 	  }
 	  addBuffer(vars, p, Word);
-	  w2 = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
+	  w2 = consTagged(var_number, TAGEX_VAR);
 	  if ( tag(w) == TAG_VAR ) /* otherwise abstracted */
 	    *p = w2;
 	  w = w2;
@@ -1775,7 +1774,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 	break;
       case TAG_ATTVAR:
 #if O_TRIE_ATTVAR
-	if ( tagex(w) != (TAG_ATTVAR|STG_STATIC) )
+	if ( tagex(w) != TAGEX_TRIE_ATTVAR )
 	{ Word ap = valPAttVar(w);
 	  if ( var_number++ == 0 && !vars )
 	  { vars = &varb;
@@ -1783,7 +1782,7 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
 	  }
 	  addBuffer(vars, p, Word);
 	  addBuffer(vars, ap, Word);
-	  w = ((((word)var_number))<<LMASK_BITS)|TAG_ATTVAR|STG_STATIC;
+	  w = consTagged(var_number, TAGEX_TRIE_ATTVAR);
 	  *p = w;
 	  node = follow_node(trie, node, w, add);
 	  if ( !node )
@@ -1856,9 +1855,9 @@ trie_lookup_abstract(DECL_LD trie *trie, trie_node *node, trie_node **nodep,
       if ( tag(*vp) == TAG_VAR )
       { setVar(*vp);
 #if O_TRIE_ATTVAR
-      } else if ( tagex(*vp) == (TAG_ATTVAR|STG_STATIC) )
+      } else if ( tagex(*vp) == TAGEX_TRIE_ATTVAR )
       { Word ap = *++pp;
-	*vp = consPtr(ap, TAG_ATTVAR|STG_GLOBAL);
+	*vp = consAttVar(ap);
 #endif
       }
     }
@@ -1950,7 +1949,7 @@ trie_lookup_flat(DECL_LD trie *trie, trie_node **startp, trie_node **nodep,
 	  }
 	  if ( vp+n == ep )
 	    addBuffer(vars, p, Word);
-	  w = ((((word)n+1))<<LMASK_BITS)|TAG_VAR;
+	  w = consTagged(n+1, TAGEX_VAR);
 	  break;
 	}
 	case TAG_ATTVAR:
@@ -2068,7 +2067,7 @@ trie_insert_flat(DECL_LD trie *trie, trie_node **nodep, Word k)
     if ( tag(w) == TAG_VAR )
     { if ( isVar(w) )
       { vars[var_number++] = p;
-	w = ((((word)var_number))<<LMASK_BITS)|TAG_VAR;
+	w = consTagged(var_number, TAGEX_VAR);
 	*p = w;
       }
     } else if ( isIndirect(w) )
@@ -2106,9 +2105,9 @@ get_trie_from_node(trie_node *node)
 bool
 is_ground_trie_node(trie_node *node)
 { for( ; node->parent; node = node->parent )
-  { if ( tagex(node->key) == TAG_VAR
+  { if ( tagex(node->key) == TAGEX_VAR
 #if O_TRIE_ATTVAR
-	 || tagex(node->key) == (TAG_ATTVAR|STG_STATIC)
+	 || tagex(node->key) == TAGEX_TRIE_ATTVAR
 #endif
        )
       return false;
@@ -3012,7 +3011,7 @@ unify_key(DECL_LD ukey_state *state, word key)
   } while(0)
 
   switch(tagex(key))
-  { case TAG_VAR|STG_LOCAL:			/* RESERVED_TRIE_VAL */
+  { case TAGEX_TRIE_RESERVED:			/* RESERVED_TRIE_VAL */
     { size_t popn = IS_TRIE_KEY_POP(key);
 
       assert(popn);
@@ -3023,7 +3022,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 		     popn, state->ptr-gBase, state->umode));
       return true;
     }
-    case TAG_ATOM|STG_GLOBAL:			/* functor */
+    case TAGEX_FUNCTOR:			/* functor */
     { size_t arity = arityFunctor(key);
 
       DEBUG(MSG_TRIE_PUT_TERM,
@@ -3036,7 +3035,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 
 	if ( (t=allocGlobalNoShift(arity+1)) )
 	{ t[0] = key;
-	  *p = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+	  *p = consCompound(t);
 	  state->ptr = &t[1];
 	  return true;
 	} else
@@ -3055,7 +3054,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 	    if ( (t=allocGlobalNoShift(arity+1)) )
 	    { if ( !hasGlobalSpace(0) )
 		return overflowCode(0);
-	      w = consPtr(&t[0], TAG_COMPOUND|STG_GLOBAL);
+	      w = consCompound(&t[0]);
 	      t[0] = key;
 	      for(i=0; i<arity; i++)
 		setVar(t[i+1]);
@@ -3074,7 +3073,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 	      t[0] = key;
 	      for(i=0; i<arity; i++)
 		setVar(t[i+1]);
-	      Trail(p, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
+	      Trail(p, consCompound(t));
 	      state->ptr = &t[1];
 	      return true;
 	    } else
@@ -3095,7 +3094,7 @@ unify_key(DECL_LD ukey_state *state, word key)
     }
     assert(0);
     case TAG_VAR:
-    { size_t index = (size_t)(key>>LMASK_BITS);
+    { size_t index = (size_t)valTagged(key);
       varinfo *vi = find_var(state, index);
 
       DEBUG(MSG_TRIE_PUT_TERM,
@@ -3130,8 +3129,8 @@ unify_key(DECL_LD ukey_state *state, word key)
     }
     assert(0);
 #if O_TRIE_ATTVAR
-    case TAG_ATTVAR|STG_STATIC:
-    { size_t index = (size_t)(key>>LMASK_BITS);
+    case TAGEX_TRIE_ATTVAR:
+    { size_t index = (size_t)valTagged(key);
       varinfo *vi = find_var(state, index);
 
       DEBUG(MSG_TRIE_PUT_TERM,
@@ -3142,7 +3141,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 	if ( hasGlobalSpace(0) )
 	{ Word gp = gTop;
 	  register_attvar(gp);
-	  gp[1] = consPtr(&gp[2], TAG_ATTVAR|STG_GLOBAL);
+	  gp[1] = consAttVar(&gp[2]);
 	  state->ptr = &gp[2];
 	  gTop += 3;
 	  vi->address = p;
@@ -3150,7 +3149,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 	  if ( state->umode == uwrite )
 	    *p = makeRefG(&gp[1]);
 	  else
-	    state->umode = uwrite; /* wait for end (TAG_ATTVAR|STG_RESERVED) */
+	    state->umode = uwrite; /* wait for end TAGEX_TRIE_ATTVAR_END */
 
 	  return true;
 	} else
@@ -3166,9 +3165,9 @@ unify_key(DECL_LD ukey_state *state, word key)
 	break;
       }
     }
-    case TAG_ATTVAR|STG_RESERVED:
+    case TAGEX_TRIE_ATTVAR_END:
     { if ( state->umode == uread )
-      { size_t index = (size_t)(key>>LMASK_BITS);
+      { size_t index = (size_t)valTagged(key);
 	varinfo *vi = find_var(state, index);
 	if ( hasGlobalSpace(0) )
 	{ Word p2;
@@ -3193,9 +3192,9 @@ unify_key(DECL_LD ukey_state *state, word key)
     }
 #endif /*O_TRIE_ATTVAR*/
     assert(0);
-    case STG_GLOBAL|TAG_INTEGER:		/* indirect data */
-    case STG_GLOBAL|TAG_STRING:
-    case STG_GLOBAL|TAG_FLOAT:
+    case TAGEX_INDIRECT_INT:		/* indirect data */
+    case TAGEX_INDIRECT_STRING:
+    case TAGEX_INDIRECT_FLOAT:
     { word w;
 
       w = extern_indirect_no_shift(state->trie->indirects, key);
@@ -3358,7 +3357,7 @@ typedef struct trie_branch
   unsigned   attvar_mask;		/* attributed ones, tried next */
   unsigned   var_index;
   unsigned   epoch;			/* epoch `cursor` belongs to */
-  word	     var_tag;			/* TAG_VAR or TAG_ATTVAR|STG_STATIC */
+  word	     var_tag;			/* TAGEX_VAR or TAGEX_TRIE_ATTVAR */
   word       novar;
   size_t     frames;			/* frames in use when it was made */
   qcursor    cursor;			/* the cursor before this node */
@@ -3623,7 +3622,7 @@ align_pruning_key(DECL_LD trie_gen_state *state, qcursor *c, word skey)
   if ( !skey )				/* the root is the leaf */
     return true;
   popn    = IS_TRIE_KEY_POP(skey);
-  functor = (tagex(skey) == (TAG_ATOM|STG_GLOBAL));
+  functor = (isFunctor(skey));
   if ( tag(skey) == TAG_ATTVAR )
     goto stop;
 
@@ -3669,7 +3668,7 @@ align_pruning_key(DECL_LD trie_gen_state *state, qcursor *c, word skey)
     case Q_KEY:
       if ( popn )
 	goto stop;
-      if ( tagex(skey) == TAG_VAR || skey == qkey )
+      if ( tagex(skey) == TAGEX_VAR || skey == qkey )
       { if ( functor )
 	  enter_query_compound(state, c, p);
 	else
@@ -3761,7 +3760,7 @@ add_choice(DECL_LD trie_gen_state *state,
 	init_child_iter(&br->iter, node);
 	br->var_mask    = vmask;
 	br->attvar_mask = amask;
-	br->var_tag     = TAG_VAR;
+	br->var_tag     = TAGEX_VAR;
 	br->var_index   = 1;
 	br->novar       = k;
 	if ( !advance_node(state, ch) )
@@ -3856,7 +3855,7 @@ advance_node(DECL_LD trie_gen_state *state, trie_choice *ch)
     for(;;)
     { for( ; br->var_index && br->var_index < VMASKBITS; br->var_index++ )
       { if ( (br->var_mask & (0x1U<<(br->var_index-1))) )
-	{ word key = ((((word)br->var_index))<<LMASK_BITS)|br->var_tag;
+	{ word key = consTagged(br->var_index, br->var_tag);
 
 	  if ( (ch->child=get_child(br->iter.parent, key)) )
 	  { ch->key = key;
@@ -3869,7 +3868,7 @@ advance_node(DECL_LD trie_gen_state *state, trie_choice *ch)
 	break;
       br->var_mask    = br->attvar_mask;
       br->attvar_mask = 0;
-      br->var_tag     = TAG_ATTVAR|STG_STATIC;
+      br->var_tag     = TAGEX_TRIE_ATTVAR;
       br->var_index   = 1;
     }
   }
@@ -4715,7 +4714,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 
 #if O_TRIE_ATTVAR
       if ( avm && avm->compound_depth == compounds )
-      { size_t index = (*avm->attvar)>>LMASK_BITS;
+      { size_t index = (size_t)valTagged(*avm->attvar);
 	add_vmi_d(state, T_ATTVARZ, (code)index);
       }
 #endif
@@ -4733,16 +4732,16 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	    if ( index > state->maxvar )
 	      state->maxvar = index;
 	    addBuffer(&varb, p, Word);
-	    *p = w = ((((word)index))<<LMASK_BITS)|TAG_VAR;
+	    *p = w = consTagged(index, TAGEX_VAR);
 	  } else
-	  { index = (size_t)(w>>LMASK_BITS);
+	  { index = (size_t)valTagged(w);
 	  }
 	  add_vmi_d(state, T_VAR, (code)index);
 	  break;
 	}
 	case TAG_ATTVAR:
 #if O_TRIE_ATTVAR
-	  if ( tagex(w) != (TAG_ATTVAR|STG_STATIC) )
+	  if ( tagex(w) != TAGEX_TRIE_ATTVAR )
 	  { Word ap = valPAttVar(w);
 	    if ( var_number++ == 0 )
 	      initBuffer(&varb);
@@ -4753,7 +4752,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 
 	    addBuffer(&varb, p, Word);
 	    addBuffer(&varb, ap, Word);
-	    w = ((((word)index))<<LMASK_BITS)|TAG_ATTVAR|STG_STATIC;
+	    w = consTagged(index, TAGEX_TRIE_ATTVAR);
 	    *p = w;
 	    add_vmi_d(state, T_ATTVARA, (code)index);
 	    if ( !attvars )
@@ -4770,7 +4769,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	  } else
 	  { DEBUG(MSG_TRIE_PUT_TERM,
 		  Sdprintf("Shared attvar at %p\n", p));
-	    size_t index = w>>LMASK_BITS;
+	    size_t index = (size_t)valTagged(w);
 	    add_vmi_d(state, T_ATTVARA, (code)index);
 	  }
 	  break;
@@ -4782,7 +4781,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	  add_vmi_d(state, T_ATOM, (code)w);
 	  break;
 	case TAG_INTEGER:
-	  if ( storage(w) == STG_INLINE)
+	  if ( isInlineInt(w))
 	  { add_smallint(state, T_SMALLINT, T_SMALLINTW, w);
 #ifdef O_BIGNUM
 	  } else
@@ -4830,9 +4829,9 @@ out:
       if ( tag(*vp) == TAG_VAR )
       { setVar(*vp);
 #if O_TRIE_ATTVAR
-      } else if ( tagex(*vp) == (TAG_ATTVAR|STG_STATIC) )
+      } else if ( tagex(*vp) == TAGEX_TRIE_ATTVAR )
       { Word ap = *++pp;
-	*vp = consPtr(ap, TAG_ATTVAR|STG_GLOBAL);
+	*vp = consAttVar(ap);
 #endif
       }
     }
@@ -4867,7 +4866,7 @@ next:
   key = n->key;
 
   switch(tagex(key))
-  { case TAG_VAR|STG_LOCAL:			/* RESERVED_TRIE_VAL */
+  { case TAGEX_TRIE_RESERVED:			/* RESERVED_TRIE_VAL */
     { size_t popn = IS_TRIE_KEY_POP(key);
 
       assert(popn);
@@ -4877,7 +4876,7 @@ next:
 	add_vmi_d(state, T_POPN, (code)popn);
       break;
     }
-    case TAG_ATOM|STG_GLOBAL:			/* functor */
+    case TAGEX_FUNCTOR:			/* functor */
     { if ( state->try )
 	add_vmi_else_d(state, T_TRY_FUNCTOR, (code)key);
       else
@@ -4885,13 +4884,13 @@ next:
       break;
     }
 #if O_TRIE_ATTVAR
-    case TAG_ATTVAR|STG_STATIC:
-    case TAG_ATTVAR|STG_RESERVED:
+    case TAGEX_TRIE_ATTVAR:
+    case TAGEX_TRIE_ATTVAR_END:
       state->has_attvars = true;
 #endif
     /*FALLTHROUGH*/
     case TAG_VAR:
-    { size_t index = (size_t)(key>>LMASK_BITS);
+    { size_t index = (size_t)valTagged(key);
       vmi c;
 
       if ( index > state->maxvar )
@@ -4900,8 +4899,8 @@ next:
       if ( state->try )
       { switch(tagex(key))
 	{ case TAG_VAR:                 c = T_TRY_VAR; break;
-	  case TAG_ATTVAR|STG_STATIC:   c = T_TRY_ATTVARA; break;
-	  case TAG_ATTVAR|STG_RESERVED:
+	  case TAGEX_TRIE_ATTVAR:   c = T_TRY_ATTVARA; break;
+	  case TAGEX_TRIE_ATTVAR_END:
 	    if ( ison(state->trie, TRIE_ISTABLE) )
 	      c = T_TRY_ATTVARZT;
 	    else
@@ -4913,8 +4912,8 @@ next:
       } else
       { switch(tagex(key))
 	{ case TAG_VAR:                 c = T_VAR; break;
-	  case TAG_ATTVAR|STG_STATIC:   c = T_ATTVARA; break;
-	  case TAG_ATTVAR|STG_RESERVED:
+	  case TAGEX_TRIE_ATTVAR:   c = T_ATTVARA; break;
+	  case TAGEX_TRIE_ATTVAR_END:
 	    if ( ison(state->trie, TRIE_ISTABLE) )
 	      c = T_ATTVARZT;
 	    else
@@ -4926,10 +4925,10 @@ next:
       }
       break;
     }
-    case STG_GLOBAL|TAG_INTEGER:		/* indirect data */
-    case STG_GLOBAL|TAG_STRING:
-    case STG_GLOBAL|TAG_FLOAT:
-    { size_t index = (size_t)(key>>LMASK_BITS);
+    case TAGEX_INDIRECT_INT:		/* indirect data */
+    case TAGEX_INDIRECT_STRING:
+    case TAGEX_INDIRECT_FLOAT:
+    { size_t index = (size_t)valTagged(key);
       int idx = MSB(index);
       indirect *h = &state->trie->indirects->array.blocks[idx][index];
       size_t wsize = wsizeofInd(h->header);

@@ -42,14 +42,14 @@
 		*	     VARIANT		*
 		*********************************/
 
-#define consVar(w) (((word)(w)<<LMASK_BITS) | TAG_VAR | FIRST_MASK)
-#define valVar(w)  ((size_t)((word)(w) >> LMASK_BITS))
+#define consVar(w) (consTagged(w, TAGEX_VAR) | FIRST_MASK)
+#define valVar(w)  ((size_t)valTagged(w))
 
-#define TAG_COMPOUND_x    (STG_STATIC|TAG_COMPOUND)
+#define TAG_COMPOUND_x    TAGEX_VARIANT_COMPOUND
 #define isCompound_x(w) \
-	(( (word)(w) & (STG_MASK|TAG_MASK) ) == TAG_COMPOUND_x )
-#define valCompound_x(w)  ((size_t)((word)(w) >> LMASK_BITS))
-#define consCompound_x(i) (((word)(i)<<LMASK_BITS) | TAG_COMPOUND_x)
+	(tagex(w) == TAG_COMPOUND_x)
+#define valCompound_x(w)  ((size_t)valTagged(w))
+#define consCompound_x(i) consTagged(i, TAG_COMPOUND_x)
 
 #define node_bp(p)	((p)->bp)
 #define node_orig(p)	((p)->orig)
@@ -270,8 +270,8 @@ isomorphic(DECL_LD argPairs *a, size_t i, size_t j, Buffer buf)
     { case TAG_ATOM:
 	return false;
       case TAG_INTEGER:
-	if ( storage(wl) == STG_INLINE ||
-	     storage(wr) == STG_INLINE )
+	if ( isInlineInt(wl) ||
+	     isInlineInt(wr) )
 	  return false;
       case TAG_STRING:
       case TAG_FLOAT:
@@ -398,8 +398,8 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
     { case TAG_ATOM:
 	return false;
       case TAG_INTEGER:
-	if ( storage(wl) == STG_INLINE ||
-	     storage(wr) == STG_INLINE )
+	if ( isInlineInt(wl) ||
+	     isInlineInt(wr) )
 	  return false;
       case TAG_STRING:
       case TAG_FLOAT:

@@ -232,7 +232,7 @@ put_environment(DECL_LD term_t env, LocalFrame fr, Code pc, bool for_copy)
   { Word tp = gTop;
     gTop = p;
 
-    *valTermRef(env) = consPtr(tp, TAG_COMPOUND|STG_GLOBAL);
+    *valTermRef(env) = consCompound(tp);
   }
 
   PL_unregister_atom(cref);

@@ -474,8 +474,8 @@ PRED_IMPL("\\=", 2, not_unify, 0)
   { case TAG_ATOM:
       return true;
     case TAG_INTEGER:
-      if ( storage(w1) == STG_INLINE ||
-	   storage(w2) == STG_INLINE )
+      if ( isInlineInt(w1) ||
+	   isInlineInt(w2) )
 	return true;
     case TAG_STRING:
     case TAG_FLOAT:
@@ -1296,13 +1296,13 @@ scan_shared(DECL_LD Word t, Word vart, size_t *count)
 	    return GLOBAL_OVERFLOW;
 
 	  v[0] = FUNCTOR_dot2;
-	  v[1] = consPtr(&v[3], TAG_COMPOUND|STG_GLOBAL);
+	  v[1] = consCompound(&v[3]);
 	  v[2] = ATOM_nil;
 	  v[3] = FUNCTOR_equals2;
 	  v[4] = 0;			/* For now */
-	  v[5] = consPtr(d, TAG_COMPOUND|STG_GLOBAL);
+	  v[5] = consCompound(d);
 
-	  *vart = consPtr(&v[0], TAG_COMPOUND|STG_GLOBAL);
+	  *vart = consCompound(&v[0]);
 	  vart = &v[2];
 
 	  set_first(d);
@@ -1551,7 +1551,7 @@ termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
 	succeed;
       }
       case TAG_INTEGER:
-	if ( storage(term) == STG_INLINE )
+	if ( isInlineInt(term) )
 	{ int64_t v = valInt(term);
 
 	  *hval = MurmurHashAligned2(&v, sizeof(v), *hval);
@@ -1874,8 +1874,8 @@ compare_primitives(DECL_LD Word p1, Word p2, cmp_mode mode)
     { number n1, n2;
       int rc;
 
-      if ( storage(w1) == STG_INLINE &&
-	   storage(w2) == STG_INLINE )
+      if ( isInlineInt(w1) &&
+	   isInlineInt(w2) )
 	return SCALAR_TO_CMP(valInt(w1), valInt(w2));
 
       get_rational(w1, &n1);
@@ -2645,7 +2645,7 @@ PRED_IMPL("$filled_array", 4, filled_array, 0)
       p[i] = w;
   }
 
-  *valTermRef(compound) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+  *valTermRef(compound) = consCompound(p);
   return PL_unify(A1, compound);
 }
 
@@ -2864,7 +2864,7 @@ setarg(DECL_LD size_t argn, term_t term, term_t value, unsigned int flags)
   { v = valTermRef(value);
     deRef(v);
 
-    if ( storage(*v) == STG_GLOBAL )
+    if ( isGlobalPtr(*v) )
     { if ( isTerm(*v) && !(flags & SETARG_LINK) )
       { term_t copy = PL_new_term_ref();
 	term_t keep = may_share_in_duplicate(argTermP(*a, argn-1));
@@ -3099,7 +3099,7 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
     if ( (p = allocGlobal(arity+1)) )
     { Word l = valTermRef(tail);
 
-      *valTermRef(head) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      *valTermRef(head) = consCompound(p);
       *p++ = PL_new_functor(name, arity);
       deRef(l);
       while(isList(*l))
@@ -3285,7 +3285,7 @@ do_number_vars(DECL_LD Word p, nv_options *options, intptr_t n, mark *m)
       }
       gTop += 2;
 
-      v = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+      v = consCompound(a);
       bindConst(p, v);
     } else if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
@@ -4253,9 +4253,9 @@ retry:
       while(--tt >= mt)
       { Word p = tt->address;
 
-	*tail = consPtr(&gp[0], TAG_COMPOUND|STG_GLOBAL);
+	*tail = consCompound(&gp[0]);
 	gp[0] = FUNCTOR_dot2;
-	gp[1] = consPtr(&gp[3], TAG_COMPOUND|STG_GLOBAL);
+	gp[1] = consCompound(&gp[3]);
 	gp[2] = ATOM_nil;
 	tail = &gp[2];
 	gp[3] = FUNCTOR_equals2;

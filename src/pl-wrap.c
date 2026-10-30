@@ -291,7 +291,7 @@ retry:
 
     if ( hasGlobalSpace(arity+1) )		/* ensure space for unify */
     { Word to = allocGlobalNoShift(arity+1);
-      word w  = consPtr(to, TAG_COMPOUND|STG_GLOBAL);
+      word w  = consCompound(to);
       Word f  = fd->arguments;
 
       *to++ = PL_new_functor(closure, arity);
@@ -475,7 +475,7 @@ PRED_IMPL("$wrapped_implementation", 3, wrapped_implementation,
 	p[0] = lookupFunctorDef(aref, arity);
 	for(i=0; i<arity; i++)
 	  p[i+1] = linkValI(&a[i]);
-	*valTermRef(impl) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	*valTermRef(impl) = consCompound(p);
 	return PL_unify(A3, impl);
       }
     } else

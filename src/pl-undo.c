@@ -147,7 +147,7 @@ PRED_IMPL("$undo", 1, undo, 0)
       p[2] = *ul;
       TrailAssignment(ul);
       DEBUG(MSG_UNDO, Sdprintf("Trailed %p\n", ul));
-      *ul = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      *ul = consCompound(p);
 
       return true;
     } else

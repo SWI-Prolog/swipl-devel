@@ -497,7 +497,7 @@ globalMPZ(DECL_LD Word at, mpz_t mpz)
     p = gTop;
     gTop += wsz+MPZ_STACK_EXTRA+2;
 
-    *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+    *at = consIndirect(p, TAG_INTEGER);
 
     *p++     = m;
     p[wsz+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
@@ -516,7 +516,7 @@ globalMPZ(DECL_LD Word at, mpz_t mpz)
     size_t wsz = mpz_wsize(mpz, &size);
     assert(p[0] == mkIndHdr(wsz+MPZ_STACK_EXTRA, TAG_INTEGER));
 #endif
-    *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+    *at = consIndirect(p, TAG_INTEGER);
   }
 
   return true;
@@ -551,7 +551,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq)
     p = gTop;
     gTop += num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA;
 
-    *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+    *at = consIndirect(p, TAG_INTEGER);
     *p++ = m;
     *p++ = mpq_size_stack(MPZ_LIMB_SIZE(num));
 #if O_BF
@@ -581,7 +581,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq)
 	    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, TAG_INTEGER));
 	    assert((Word)MPZ_LIMBS(den) == (Word)MPZ_LIMBS(num) + num_wsz);
 	  });
-    *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+    *at = consIndirect(p, TAG_INTEGER);
   }
 
   return true;
@@ -652,7 +652,7 @@ void
 get_bigint(word w, Number n)
 { Word p = addressIndirect(w);
 
-  DEBUG(0, assert(storage(w) != STG_INLINE));
+  DEBUG(0, assert(!isInlineInt(w)));
 
   p++;				/* bits of indirect */
   n->type = V_MPZ;
@@ -706,10 +706,10 @@ get_mpq_from_code(Code pc, mpq_t mpq)
 
 bool
 get_int64(DECL_LD word w, int64_t *ip)
-{ if ( tagex(w) == (TAG_INTEGER|STG_INLINE) )
+{ if ( isTaggedInt(w) )
   { *ip = valInt(w);
     return true;
-  } else if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
+  } else if ( tagex(w) == TAGEX_INDIRECT_INT )
   { number n;
 
     get_bigint(w, &n);
@@ -880,7 +880,7 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
   wsize = (limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
   p = *store;
   *store += (wsize+2+MPZ_STACK_EXTRA);
-  *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+  *r = consIndirect(p, TAG_INTEGER);
   m = mkIndHdr(wsize+MPZ_STACK_EXTRA, TAG_INTEGER);
   *p++ = m;
   p[wsize+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
@@ -924,7 +924,7 @@ loadMPQFromCharp(const char *data, Word r, Word *store)
 
   p = *store;
   *store += wsize+2+2*MPZ_STACK_EXTRA;
-  *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+  *r = consIndirect(p, TAG_INTEGER);
   m = mkIndHdr(wsize+2*MPZ_STACK_EXTRA, TAG_INTEGER);
   *p++ = m;
   *p++ = mpq_size_stack((int) (num_neg ? -num_limbsize : num_limbsize)); /* dubious cast */

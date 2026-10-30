@@ -1093,7 +1093,7 @@ put_call_goal(DECL_LD term_t t, Procedure proc)
     *gp++ = fd->functor;
     for(size_t i=0; i<fd->arity; i++)
       unify_gl(gp++, ap++, false);
-    *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
+    *valTermRef(t) = consCompound(gt);
   } else
   { *valTermRef(t) = fd->name;
   }
@@ -1183,7 +1183,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       gt[0] = FUNCTOR_call1;
       gt[1] = simple_goal;
-      *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
+      *valTermRef(t) = consCompound(gt);
 
       return true;
     }
@@ -1202,8 +1202,8 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       unify_gl(&gt[2], tm, has_firstvar);
       unify_gl(&gt[3], a, has_firstvar);
       gt[4] = FUNCTOR_call1;
-      gt[5] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
-      *valTermRef(t) = consPtr(&gt[4], STG_GLOBAL|TAG_COMPOUND);
+      gt[5] = consCompound(gt);
+      *valTermRef(t) = consCompound(&gt[4]);
 
       return true;
     }
@@ -1225,8 +1225,8 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       unify_gl(&gt[1], v1, has_firstvar);
       gt[2] = (word)PC[2];
       gt[3] = FUNCTOR_call1;
-      gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
-      *valTermRef(t) = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
+      gt[4] = consCompound(gt);
+      *valTermRef(t) = consCompound(&gt[3]);
 
       return true;
     }
@@ -1252,8 +1252,8 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       unify_gl(&gt[1], v1, has_firstvar);
       unify_gl(&gt[2], v2, has_firstvar);
       gt[3] = FUNCTOR_call1;
-      gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
-      *valTermRef(t) = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
+      gt[4] = consCompound(gt);
+      *valTermRef(t) = consCompound(&gt[3]);
 
       return true;
     }
@@ -1286,8 +1286,8 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       gt[0] = ftor;
       unify_gl(&gt[1], v1, has_firstvar);
       gt[2] = FUNCTOR_call1;
-      gt[3] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
-      *valTermRef(t) = consPtr(&gt[2], STG_GLOBAL|TAG_COMPOUND);
+      gt[3] = consCompound(gt);
+      *valTermRef(t) = consCompound(&gt[2]);
 
       return true;
     }
@@ -1364,10 +1364,10 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       gt[2] = consInt(add);
       gt[3] = FUNCTOR_is2;
       unify_gl(&gt[4], A, has_firstvar);
-      gt[5] = consPtr(&gt[0], STG_GLOBAL|TAG_COMPOUND);
+      gt[5] = consCompound(&gt[0]);
       gt[6] = FUNCTOR_call1;
-      gt[7] = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
-      *valTermRef(t) = consPtr(&gt[6], STG_GLOBAL|TAG_COMPOUND);
+      gt[7] = consCompound(&gt[3]);
+      *valTermRef(t) = consCompound(&gt[6]);
 
       return true;
     }
@@ -1815,7 +1815,7 @@ m_qualify_argument(DECL_LD LocalFrame fr, int arg)
     } else
     { p2[2] = (needsRef(*p) ? makeRefG(p) : *p);
     }
-    *k = consPtr(p2, STG_GLOBAL|TAG_COMPOUND);
+    *k = consCompound(p2);
   } else
   { int depth = 100;
 

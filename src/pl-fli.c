@@ -214,7 +214,7 @@ check_user_term_t(DECL_LD term_t t)
 
 void
 check_functor_t(functor_t f)
-{ if ( tagex(f) != (TAG_ATOM|STG_GLOBAL) )
+{ if ( !isFunctor(f) )
     PL_api_error("invalid functor_t %zd (bad tag)", (size_t)f);
   size_t index = indexFunctor(f);
   if ( index > GD->functors.highest )
@@ -1490,7 +1490,7 @@ cons_functorv(DECL_LD term_t h, functor_t fd, va_list args)
 
       bindConsVal(++a, valHandleP(r));
     }
-    setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(h, consCompound(t));
   }
 
   return true;
@@ -1545,7 +1545,7 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
     while( arity-- > 0 )
       bindConsVal(++a, ai++);
 
-    setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(h, consCompound(t));
   }
 
   return true;
@@ -1565,7 +1565,7 @@ PL_cons_list(DECL_LD term_t l, term_t head, term_t tail)
   bindConsVal(&a[1], valHandleP(head));
   bindConsVal(&a[2], valHandleP(tail));
 
-  setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+  setHandle(l, consCompound(a));
 
   return true;
 }
@@ -1599,13 +1599,13 @@ PL_cons_list_v(term_t list, size_t count, term_t elems)
       p[0] = FUNCTOR_dot2;
       bindConsVal(&p[1], valHandleP(elems));
       if ( count > 0 )
-      { p[2] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+      { p[2] = consCompound(&p[3]);
       } else
       { p[2] = ATOM_nil;
       }
     }
 
-    setHandle(list, consPtr(gTop, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(list, consCompound(gTop));
     gTop = p;
   } else
   { setHandle(list, ATOM_nil);
@@ -3174,12 +3174,12 @@ PL_put_list_ncodes(term_t t, size_t len, const char *chars)
     if ( !p )
       return false;
 
-    setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(t, consCompound(p));
 
     for( ; len-- != 0; chars++)
     { *p++ = FUNCTOR_dot2;
       *p++ = consInt((intptr_t)*chars & 0xff);
-      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+      *p = consCompound(p+1);
       p++;
     }
     p[-1] = ATOM_nil;
@@ -3208,12 +3208,12 @@ PL_put_list_nchars(term_t t, size_t len, const char *chars)
     if ( !p )
       return false;
 
-    setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(t, consCompound(p));
 
     for( ; len-- != 0 ; chars++)
     { *p++ = FUNCTOR_dot2;
       *p++ = codeToAtom(*chars & 0xff);
-      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+      *p = consCompound(p+1);
       p++;
     }
     p[-1] = ATOM_nil;
@@ -3308,7 +3308,7 @@ PL_put_functor(term_t t, functor_t f)
 
     if ( !(a = allocGlobal(1 + arity)) )
       return false;
-    setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(t, consCompound(a));
     *a++ = f;
     while(arity-- > 0)
       setVar(*a++);
@@ -3325,7 +3325,7 @@ PL_put_list(term_t l)
   Word a = allocGlobal(3);
 
   if ( a )
-  { setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+  { setHandle(l, consCompound(a));
     *a++ = FUNCTOR_dot2;
     setVar(*a++);
     setVar(*a);
@@ -3377,7 +3377,7 @@ _PL_put_xpce_reference_i(term_t t, uintptr_t i)
   { word w = consInt(i);
     assert(valInt(w) == i);
 
-    setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(t, consCompound(a));
     *a++ = FUNCTOR_at_sign1;
     *a++ = w;
     return true;
@@ -3393,7 +3393,7 @@ _PL_put_xpce_reference_a(term_t t, atom_t name)
   Word a = allocGlobal(2);
 
   if ( a )
-  { setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+  { setHandle(t, consCompound(a));
     *a++ = FUNCTOR_at_sign1;
     *a++ = name;
     return true;
@@ -3439,7 +3439,7 @@ PL_unify_compound(term_t t, functor_t f)
     }
 
     a = gTop;
-    to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+    to = consCompound(a);
 
     gTop += 1+arity;
     *a = f;
@@ -3473,7 +3473,7 @@ PL_unify_functor(DECL_LD term_t t, functor_t f)
       }
 
       Word a = gTop;
-      word to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+      word to = consCompound(a);
 
       *a++ = f;
       for(size_t i=0; i<arity; i++)
@@ -3917,7 +3917,7 @@ PL_unify_list(DECL_LD term_t l, term_t h, term_t t)
     a = gTop;
     gTop += 3;
 
-    c = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+    c = consCompound(a);
     *a++ = FUNCTOR_dot2;
     setVar(*a);
     setHandle(h, makeRefG(a));
@@ -4307,7 +4307,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 
       a = gTop;
       gTop += 2;
-      c = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+      c = consCompound(a);
 
       *a++ = FUNCTOR_at_sign1;
       *a++ = put_xpce_ref_arg(ref);
@@ -4504,7 +4504,7 @@ PL_put_dict(term_t t, atom_t tag,
     word dupl = 0;
     _PL_dict_status_t rc = dict_order(p0, &dupl);
     if ( rc == PL_DICT_TRUE )
-    { setHandle(t, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
+    { setHandle(t, consCompound(p0));
       DEBUG(CHK_SECURE, checkStacks(NULL));
       return true;
     }
@@ -4925,13 +4925,13 @@ copy_exception(DECL_LD term_t ex, term_t bin)
 
 	Sdprintf("WARNING: cannot raise exception; raising global overflow\n");
 	p[0] = FUNCTOR_error2;			/* see (*) above */
-	p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+	p[1] = consCompound(&p[3]);
 	p[2] = ATOM_global;
 	p[3] = FUNCTOR_resource_error1;
 	p[4] = ATOM_stack;
 	gTop += 5;
 
-	*valTermRef(bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	*valTermRef(bin) = consCompound(p);
 	goto ok;
       }
     }

@@ -1077,7 +1077,7 @@ retry:
       goto error;
     }
 
-    while ( tagex(*--p) == (TAG_ATOM|STG_GLOBAL) )
+    while ( isFunctor(*--p) )
     { functor_t functor = word2functor(*p);
       ArithF f;
 
@@ -1190,7 +1190,7 @@ valueExpression(DECL_LD term_t expr, number *n)
 { Word p = valTermRef(expr);
 
   deRef(p);
-  if ( tagex(*p) == (TAG_INTEGER|STG_INLINE) )
+  if ( isTaggedInt(*p) )
   { n->value.i = valInt(*p);
     n->type = V_INTEGER;
     return true;

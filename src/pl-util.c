@@ -164,7 +164,7 @@ functorName(functor_t f)
   char *e = tmp;
   FunctorDef fd;
 
-  if ( tagex(f) != (TAG_ATOM|STG_GLOBAL) )
+  if ( !isFunctor(f) )
     return "<not-a-functor>";
 
   fd = valueFunctor(f);
@@ -179,7 +179,7 @@ functorName(functor_t f)
 
 char *
 keyName(word key)
-{ if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+{ if ( isFunctor(key) )
   { return functorName(word2functor(key));
   } else
   { char tmp[650];

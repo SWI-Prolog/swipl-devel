@@ -494,7 +494,7 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
     { case TAG_VAR:
       { intptr_t n = info->nvars++;
 
-	*p = (n<<7)|TAG_ATOM|STG_GLOBAL;
+	*p = consTagged(n, TAGEX_FUNCTOR); /* see (*) */
 	addBuffer(&info->vars, p, Word);
 	addOpCode(info, PL_TYPE_VARIABLE);
 	addSizeInt(info, n);
@@ -512,7 +512,7 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 	}
 
 	addBuffer(&info->vars, *p, word);		/* save value */
-	*p = (n<<7)|TAG_ATOM|STG_GLOBAL;
+	*p = consTagged(n, TAGEX_FUNCTOR); /* see (*) */
 	addBuffer(&info->vars, mkAttVarP(p), Word);
 	addOpCode(info, PL_TYPE_ATTVAR);
 	addSizeInt(info, n);
@@ -525,8 +525,8 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
       }
 #endif
       case TAG_ATOM:
-      { if ( storage(w) == STG_GLOBAL )	/* this is a variable */
-	{ intptr_t n = ((intptr_t)(w) >> 7);
+      { if ( isFunctor(w) )   /* (*) marked variable; functors are never values */
+	{ intptr_t n = (intptr_t)valTagged(w);
 
 	  addOpCode(info, PL_TYPE_VARIABLE);
 	  addSizeInt(info, n);
@@ -973,7 +973,7 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 
 	if ( (p=globalBlob(shdr+scode+1, TAG_STRING)) )
 	{ char *q = (char *)&p[1];
-	  word w  = consPtr(p, TAG_STRING|STG_GLOBAL);
+	  word w  = consIndirect(p, TAG_STRING);
 
 	  *q++ = 'B';
 	  memcpy(q,      data.hdr.base,       shdr);
@@ -1397,7 +1397,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	DEBUG(MSG_REC_ATTVAR,
 	      Sdprintf("Restore attvar %zd at %p\n", n, &b->gstore[1]));
 	register_attvar(b->gstore);
-	b->gstore[1] = consPtr(&b->gstore[2], TAG_ATTVAR|STG_GLOBAL);
+	b->gstore[1] = consAttVar(&b->gstore[2]);
 	*p = makeRefG(&b->gstore[1]);
 	b->vars[n] = p;
 	p = &b->gstore[2];
@@ -1445,7 +1445,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 
 	val.i64 = fetchInt64(b);
 
-	*p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
+	*p = consIndirect(b->gstore, TAG_INTEGER);
 	*b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
 	for(i=0; i<WORDS_PER_PLINT; i++)
 	  *b->gstore++ = val.w[i];
@@ -1462,7 +1462,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 #endif
       case PL_TYPE_FLOAT:
       case PL_TYPE_EXT_FLOAT:
-      { *p = consPtr(b->gstore, TAG_FLOAT|STG_GLOBAL);
+      { *p = consIndirect(b->gstore, TAG_FLOAT);
 	*b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	if ( tag == PL_TYPE_FLOAT )
 	  fetchFloat(b, b->gstore);
@@ -1479,7 +1479,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 
 	lw = (len+sizeof(word))/sizeof(word); /* see globalBlob() */
 	pad = (lw*sizeof(word) - len);
-	*p = consPtr(b->gstore, TAG_STRING|STG_GLOBAL);
+	*p = consIndirect(b->gstore, TAG_STRING);
 	*b->gstore++ = hdr = mkBlobHdr(lw, pad, TAG_STRING);
 	b->gstore[lw-1] = 0L;		/* zero-padding */
 	fetchChars(b, len, b->gstore);
@@ -1492,7 +1492,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
       { size_t offset = fetchSizeInt(b);
 	Word ct = b->gbase+offset;
 
-	*p = consPtr(ct, TAG_COMPOUND|STG_GLOBAL);
+	*p = consCompound(ct);
 	continue;
       }
 #endif
@@ -1504,7 +1504,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	arity = arityFunctor(fdef);
 
       compound:
-	*p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
+	*p = consCompound(b->gstore);
 	*b->gstore++ = fdef;
 	p = b->gstore;
 	b->gstore += arity;
@@ -1554,7 +1554,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
       }
     }
       case PL_TYPE_CONS:
-      { *p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
+      { *p = consCompound(b->gstore);
 	*b->gstore++ = FUNCTOR_dot2;
 	p = b->gstore;
 	b->gstore += 2;
@@ -1960,9 +1960,8 @@ PL_erase_external(char *rec)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The key is stored as an atom, integer  or functor header as found on the
-global-stack. A functor is a type with  the   same  mask as an atom, but
-using the STG_GLOBAL storage indicator.  So,   the  first line denotes a
-real atom.
+global-stack. A functor has the same tag   as an atom, but isFunctor() is
+true for it. So, the first line denotes a real atom.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool

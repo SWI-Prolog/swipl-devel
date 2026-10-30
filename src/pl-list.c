@@ -73,11 +73,11 @@ PRED_IMPL("$length", 2, dlength, 0)
 	return false;
 
       p = gTop;
-      *valTermRef(list) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      *valTermRef(list) = consCompound(p);
       while(len-- > 0)
       { p[0] = FUNCTOR_dot2;
 	setVar(p[1]);
-	p[2] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+	p[2] = consCompound(&p[3]);
 	p += 3;
       }
       p[-1] = ATOM_nil;
@@ -518,7 +518,7 @@ put_sort_list(term_t l, list sl)
 { GET_LD
 
   IS_WORD_ALIGNED(sl);
-  *valTermRef(l) = consPtr(sl, TAG_COMPOUND|STG_GLOBAL);
+  *valTermRef(l) = consCompound(sl);
 
   for(;;)
   { list n = sl->next.as_ptr;
@@ -530,7 +530,7 @@ put_sort_list(term_t l, list sl)
 					    : *sl->item.term.as_ptr);
     p[0] = FUNCTOR_dot2;
     if ( n )
-    { p[2] = consPtr(n, TAG_COMPOUND|STG_GLOBAL);
+    { p[2] = consCompound(n);
       sl = n;
     } else
     { p[2] = ATOM_nil;

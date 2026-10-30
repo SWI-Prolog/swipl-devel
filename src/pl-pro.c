@@ -806,7 +806,7 @@ last_arg:
   while(isRef(*p))
   { assert(!is_marked(p));
     p2 = unRef(*p);
-    if ( storage(*p) == STG_LOCAL ) /* PushPtr()/PopPtr() reference? */
+    if ( isLocalRef(*p) )		/* PushPtr()/PopPtr() reference? */
     { for(int i=0; i<LD->tmp.top; i++)
       { if ( valTermRef(LD->tmp.h[i]) == p )
 	  goto deref_ok;
@@ -871,7 +871,7 @@ last_arg:
       printk(context, "Indirect at %p is unaligned", a);
     if ( !onGlobal(a) )
       printk(context, "Indirect at %p not on global stack", a);
-    if ( storage(*p) != STG_GLOBAL )
+    if ( !isGlobalPtr(*p) )
       printk(context, "Indirect data not on global");
     if ( isFloat(*p) )
       return key+(word) valFloat(*p);
@@ -921,20 +921,16 @@ last_arg:
     size_t mx = GD->atoms.highest;
 
     assert(!is_marked(p));
-    if ( storage(*p) != STG_STATIC )
-      printk(context, "Atom doesn't have STG_STATIC");
-
     idx = indexAtom(*p);
     if ( idx >= mx )
       printk(context, "Atom index out of range (%ld > %ld)", idx, mx);
     return key + *p;
   }
-  if ( tagex(*p) == (TAG_VAR|STG_RESERVED) )
+  if ( tagex(*p) == TAGEX_VARINFO )
     return key + *p;			/* Used by read_term/2,3 and compiler */
 
 					/* now it should be a term */
-  if ( tag(*p) != TAG_COMPOUND ||
-       storage(*p) != STG_GLOBAL )
+  if ( tagex(*p) != TAGEX_COMPOUND )
     printk(context, "Illegal term at: %p: %p", p, *p);
 
   if ( is_marked(p) )
@@ -947,8 +943,7 @@ last_arg:
     if ( !onGlobal(f) )
       printk(context, "Term at %p not on global stack", f);
 
-    if ( tag(f->definition) != TAG_ATOM ||
-	 storage(f->definition) != STG_GLOBAL )
+    if ( !isFunctor(f->definition) )
       printk(context, "Illegal functor: %p", *p);
     if ( f->definition & MARK_MASK )
       printk(context, "functor with mark: %p", *p);

@@ -87,7 +87,7 @@ virgin variables virgin. In  the  final   copy  we  simply  share virgin
 variables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define VAR_MARK	((0x1<<LMASK_BITS)|TAG_VAR)
+#define VAR_MARK	consTagged(1, TAGEX_VAR)
 #define BOTH_MASK	(MARK_MASK|FIRST_MASK)
 
 #define visited(w)	((w) & BOTH_MASK)
@@ -481,7 +481,7 @@ mark_for_copy(DECL_LD Word p, const cp_options *options)
     }
 
     p--;
-    if ( tagex(*p) == (TAG_ATOM|STG_GLOBAL) )	/* functor (compound) */
+    if ( isFunctor(*p) )	/* functor (compound) */
     { cp_options opts = *options;
 
       DEBUG(MSG_COPYTERM,
@@ -588,7 +588,7 @@ exitCyclicCopy(DECL_LD int flags)
 	setVar(*p2);
       }
 
-      *p = consPtr(old, STG_GLOBAL|TAG_ATTVAR);
+      *p = consAttVar(old);
     }
   }
 }
@@ -652,7 +652,7 @@ copy_term(DECL_LD Word from, Word to, const cp_options *options)
 	    }
 	    TrailCyclic(p);
 	    TrailCyclic(from);
-	    *from = consPtr(attr, STG_GLOBAL|TAG_ATTVAR);
+	    *from = consAttVar(attr);
 	    *to = makeRefG(attr);
 
 	    from = p;
@@ -669,7 +669,7 @@ copy_term(DECL_LD Word from, Word to, const cp_options *options)
 	    { *to = makeRefG(p);
 	    } else
 	    { *to = VAR_MARK;
-	      *from = consPtr(to, STG_GLOBAL|TAG_ATTVAR)|BOTH_MASK;
+	      *from = consAttVar(to)|BOTH_MASK;
 	      TrailCyclic(p);
 	      TrailCyclic(from);
 	    }
@@ -692,7 +692,7 @@ copy_term(DECL_LD Word from, Word to, const cp_options *options)
 	}
 
 	if ( isRef(ff->definition) )
-	{ *to = consPtr(unRef(ff->definition), TAG_COMPOUND|STG_GLOBAL);
+	{ *to = consCompound(unRef(ff->definition));
 	  continue;
 	}
 
@@ -712,7 +712,7 @@ copy_term(DECL_LD Word from, Word to, const cp_options *options)
 	  ft->definition = ff->definition & ~BOTH_MASK;
 	  ff->definition = makeRefG((Word)ft);
 	  TrailCyclic(&ff->definition);
-	  *to = consPtr(ft, TAG_COMPOUND|STG_GLOBAL);
+	  *to = consCompound(ft);
 
 	  if ( pushWorkAgendaLRD(&agenda, arity, ff->arguments, ft->arguments) )
 	    continue;
@@ -727,7 +727,7 @@ copy_term(DECL_LD Word from, Word to, const cp_options *options)
 	    goto out;
 	  }
 	  ft->definition = ff->definition & ~BOTH_MASK;
-	  *to = consPtr(ft, TAG_COMPOUND|STG_GLOBAL);
+	  *to = consCompound(ft);
 
 	  if ( pushWorkAgendaLRD(&agenda, arity, ff->arguments, ft->arguments) )
 	    continue;
@@ -924,10 +924,10 @@ The record has two parts:
 
   - data[0..term_len) is the term copied by duplicate_term(). These are
     all tagged cells: duplicate_term() does not copy indirects, so the
-    area holds no raw data.  A cell is relocated iff its storage is
-    STG_GLOBAL and it is not a functor, i.e., compounds, references,
-    attvar cells and indirects.  Pointers are stored relative to data.
-    An attvar is preceded by the marker TAG_ATTVAR (STG_STATIC), which
+    area holds no raw data.  A cell is relocated iff it points into the
+    global stack (RELOC_BM), i.e., compounds, references, attvar cells
+    and indirects.  Pointers are stored relative to data.
+    An attvar is preceded by the marker TAG_ATTVAR (a plain tag), which
     becomes the link in the attvar chain.
   - data[term_len..data_len) holds the indirects, copied verbatim.
 
@@ -936,22 +936,21 @@ restoring a single branch-free pass over the cells, and avoids reading
 back the result of memcpy(), which cannot be store-forwarded.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define PTR_SHIFT LMASK_BITS
-
 #define FH_ATOMS	0x1			/* Term contains atoms */
 #define FH_ATTVARS	0x2			/* Term contains attvars */
 
-#define RELOC_BM ( EXBIT(STG_GLOBAL|TAG_ATTVAR) | \
-		   EXBIT(STG_GLOBAL|TAG_FLOAT) | \
-		   EXBIT(STG_GLOBAL|TAG_INTEGER) | \
-		   EXBIT(STG_GLOBAL|TAG_STRING) | \
-		   EXBIT(STG_GLOBAL|TAG_COMPOUND) | \
-		   EXBIT(STG_GLOBAL|TAG_REFERENCE) )
+#define RELOC_BM ( EXBIT(TAGEX_ATTVAR) | \
+		   EXBIT(TAGEX_INDIRECT_FLOAT) | \
+		   EXBIT(TAGEX_INDIRECT_INT) | \
+		   EXBIT(TAGEX_INDIRECT_STRING) | \
+		   EXBIT(TAGEX_COMPOUND) | \
+		   EXBIT(TAGEX_REF) )
 
 #define needs_relocation(w) ((RELOC_BM>>tagex(w))&1)
 
 #define RM(i) (((RELOC_BM>>(i))&1) ? ~(word)0 : (word)0)
-static const word reloc_mask[32] =
+static_assert(TAGEX_COUNT == 32, "reloc_mask[] assumes 32 tagex() values");
+static const word reloc_mask[TAGEX_COUNT] =
 { RM(0),  RM(1),  RM(2),  RM(3),  RM(4),  RM(5),  RM(6),  RM(7),
   RM(8),  RM(9),  RM(10), RM(11), RM(12), RM(13), RM(14), RM(15),
   RM(16), RM(17), RM(18), RM(19), RM(20), RM(21), RM(22), RM(23),
@@ -1008,10 +1007,10 @@ term_to_fastheap(DECL_LD term_t t)
       size_t sz = wsizeofInd(*ip)+2;
 
       memcpy(indirects, ip, sz*sizeof(word));
-      *o++ = (((char*)indirects-(char*)fht->data)<<PTR_SHIFT) | tagex(w);
+      *o++ = consAddr((char*)indirects-(char*)fht->data, tagex(w));
       indirects += sz;
     } else if ( needs_relocation(w) )
-    { *o++ = (((w>>PTR_SHIFT)-offset)<<PTR_SHIFT) | tagex(w);
+    { *o++ = consAddr(valAddr(w)-offset, tagex(w));
     } else
     { if ( isAtom(w) )
       { PL_register_atom(word2atom(w));
@@ -1053,7 +1052,7 @@ put_fastheap(DECL_LD fastheap_term *fht, term_t t)
 
   o = gTop;
   s = fht->data;
-  delta = (word)o<<PTR_SHIFT;
+  delta = addrDelta(o);
   for(p=o, e=o+fht->term_len; p<e; p++, s++)
   { word w = *s;
     *p = w + (delta & reloc_mask[tagex(w)]);

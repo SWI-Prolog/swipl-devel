@@ -546,14 +546,12 @@ Trail(DECL_LD Word p, word v)
 
 static inline word
 consPtr(void *p, word ts)
-{ word v = ptr2word(p);
-
-  return (v<<LMASK_BITS)|ts;
+{ return consAddr(ptr2word(p), ts);
 }
 
 static inline Word
 valPtr(word w)
-{ return word2ptr(Word, w>>LMASK_BITS);
+{ return word2ptr(Word, valAddr(w));
 }
 
 #if ALIGNOF_DOUBLE == ALIGNOF_VOIDP
@@ -775,15 +773,15 @@ clause indexing. ptr is the start of the  data. It is word aligned and n
 is the size in bytes, a multiple of sizeof(word). If the indirect is too
 long we has based on the start, end and length.
 
-The hash should not conflict  with   a  functor_t  (hence the STG_GLOBAL
-mask) and may never be 0.
+The hash should not conflict  with   a  functor_t  (hence
+nonFunctorKey()) and may never be 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define KEY_INDEX_MAX 4
 
 static inline word
 clean_index_key(word key)
-{ key &= ~((word)STG_GLOBAL);
+{ key = nonFunctorKey(key);
   if ( !key ) key = 1;
   return key;
 }
