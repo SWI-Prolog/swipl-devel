@@ -2343,16 +2343,41 @@ trie_table_size(trie *atrie)
 }
 
 
+/* The atom (handle) of `trie`, created on first use.  Trie blobs are
+ * not unique, so two threads that create the atom concurrently would give
+ * the trie two atoms, each destroying it when reclaimed.  The variant
+ * table of another thread, e.g., the IDG viewer, may ask for it.
+ */
+
+/* The atom (handle) of `trie`, created on first use.  Trie blobs are
+ * not unique, so threads that create it concurrently create an atom each,
+ * and each would destroy the trie when reclaimed.  The loser detaches its
+ * atom from the trie (as PL_free_blob(), but without releasing the trie),
+ * so atom-GC reclaims the atom only.  Nobody else has seen this atom.
+ */
+
 atom_t
 trie_symbol(trie *trie)
-{ if ( !trie->symbol )
-  { int new;
+{ atom_t symbol;
 
-    trie->symbol = lookupBlob((void*)trie, sizeof(*trie),
-			      &trie_blob, &new);
+  if ( !(symbol=trie->symbol) )
+  { int new;
+    atom_t a = lookupBlob((void*)trie, sizeof(*trie), &trie_blob, &new);
+
+    if ( COMPARE_AND_SWAP_ATOM(&trie->symbol, 0, a) )
+    { symbol = a;
+    } else
+    { Atom x = atomValue(a);
+
+      PL_blob_gc_released(x);
+      x->length = 0;
+      x->name = NULL;
+      PL_unregister_atom(a);
+      symbol = trie->symbol;
+    }
   }
 
-  return trie->symbol;
+  return symbol;
 }
 
 
