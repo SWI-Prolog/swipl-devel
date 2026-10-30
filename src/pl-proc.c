@@ -93,6 +93,29 @@ static int	isProtectedCRef(ClauseRef cref);
 #define O_PROGLIMIT_INCL_PRED 0
 #define SIZEOF_PROC (sizeof(struct procedure) + sizeof(struct definition))
 
+/* A new definition of `fd` in `m`, used by one procedure */
+
+static Definition
+newDefinition(FunctorDef fd, Module m)
+{ Definition def = allocHeapOrHalt(sizeof(*def));
+
+  memset(def, 0, sizeof(*def));
+  def->functor = fd;
+  def->module  = m;
+#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_SANITIZER_LSAN_INTERFACE_H)
+  def->name = strdup(predicateName(def));
+  __lsan_ignore_object(def->name);
+#endif
+  def->shared  = 1;
+  if ( fd->arity > 0 )
+  { def->impl.any.args = allocHeapOrHalt(sizeof(arg_info)*fd->arity);
+    memset(def->impl.any.args, 0, sizeof(arg_info)*fd->arity);
+  }
+
+  return def;
+}
+
+
 Procedure
 lookupProcedure(functor_t f, Module m)
 { GET_LD
@@ -115,25 +138,10 @@ lookupProcedure(functor_t f, Module m)
 #endif
 
   proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
-  def  = (Definition) allocHeapOrHalt(sizeof(struct definition));
+  def  = newDefinition(valueFunctor(f), m);
   proc->definition = def;
   proc->flags      = 0;
   proc->source_no  = 0;
-
-  memset(def, 0, sizeof(*def));
-  def->functor = valueFunctor(f);
-  def->module  = m;
-#if defined(__SANITIZE_ADDRESS__) && defined(HAVE_SANITIZER_LSAN_INTERFACE_H)
-  def->name = strdup(predicateName(def));
-  __lsan_ignore_object(def->name);
-#endif
-  def->shared  = 1;
-  if ( def->functor->arity > 0 )
-  { def->impl.any.args = allocHeapOrHalt(sizeof(arg_info)*def->functor->arity);
-    memset(def->impl.any.args, 0, sizeof(arg_info)*def->functor->arity);
-  } else
-  { def->impl.any.args = NULL;
-  }
   resetProcedure(proc, true);
 
   DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s at %p\n",
@@ -1514,14 +1522,9 @@ abolishProcedure(Procedure proc, Module module)
 
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
-  { Definition ndef	     = allocHeapOrHalt(sizeof(*ndef));
+  { Definition ndef	     = newDefinition(def->functor, module);
     Definition odef          = def;
 
-    memset(ndef, 0, sizeof(*ndef));
-    ndef->functor            = def->functor; /* should be merged with */
-    ndef->impl.any.args	     = allocHeapOrHalt(sizeof(*ndef->impl.any.args)*
-					       def->functor->arity);
-    ndef->module             = module;	     /* lookupProcedure()!! */
     ndef->codes		     = SUPERVISOR(virgin);
     proc->definition         = ndef;
     ATOMIC_INC(&GD->statistics.predicates);
