@@ -3664,10 +3664,10 @@ VMI(S_TABLED, 0, 3, (CA1_CLAUSEREF,CA1_DATA,CA1_DATA))
 
   ARGP = argFrameP(FR, 0);
   FR->predicate = DEF = GD->procedures.trie_gen_compiled2->definition;
-  ClauseRef cref = clause_clref(clref);
-  if ( !cref )				/* single answer */
+  Clause cl = clause_dbref(clref);
+  if ( !cl )				/* single answer */
     VMH_GOTO(trie_gen_single, trie_single_value_node(symbol_trie(clref)));
-  TRUST_CLAUSE(cref);
+  TRUST_CLAUSE(trie_clause_cref(cl));
 }
 END_VMI
 
@@ -5937,7 +5937,7 @@ achieve thread-safe deletion of answer tries.
 VMI(S_TRIE_GEN, 0, 0, ())
 { Word tp = argFrameP(FR, 0);
   atom_t dbref;
-  ClauseRef cref;
+  Clause cl;
 
   deRef(tp);
   dbref = word2atom(*tp);
@@ -5955,7 +5955,7 @@ VMI(S_TRIE_GEN, 0, 0, ())
   if ( dbref == ATOM_fail )
     FRAME_FAILED;
 
-  if ( !(cref = clause_clref(dbref)) )
+  if ( !(cl = clause_dbref(dbref)) )
   { trie *t;
 
     if ( !(t = symbol_trie(dbref)) )
@@ -5984,11 +5984,13 @@ VMI(S_TRIE_GEN, 0, 0, ())
       FRAME_FAILED;
 
     trie_maybe_discard_nodes(t);
-    cref = clause_clref(dbref);
+    cl = clause_dbref(dbref);
+  } else if ( !is_trie_clause(cl) )
+  { goto trie_gen_type_error;
   }
 
   ARGP = argFrameP(FR, 0);
-  TRUST_CLAUSE(cref);
+  TRUST_CLAUSE(trie_clause_cref(cl));
 }
 END_VMI
 

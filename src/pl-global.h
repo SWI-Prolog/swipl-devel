@@ -246,6 +246,7 @@ struct PL_global_data
       size_t	count;			/* entries in chunks[] */
       size_t	size;			/* allocated entries of chunks[] */
     } local_pool;
+    size_t	local_unique;		/* # local atoms in the table */
 #endif
     atom_t     *for_code[256];		/* code --> one-char-atom */
     PL_blob_t  *types;			/* registered atom types */

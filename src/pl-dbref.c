@@ -39,26 +39,49 @@
 #include "pl-rec.h"
 #include "pl-fli.h"
 
-typedef struct recref
-{ RecordRef record;
-} recref;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Clause and record references are PL_BLOB_UNIQUE|PL_BLOB_NOCOPY blobs: the
+data of the blob is the Clause or RecordRef itself.  NOCOPY blobs hash
+on the pointer, so finding the reference of a clause needs no copy of a
+key and no allocation.  While a clause has a reference, it has
+DBREF_CLAUSE and erasing it is completed by the release hook.  The same
+holds for records using R_DBREF.
+
+The references are also PL_BLOB_LOCAL: they start as local atoms of the
+thread that creates them and are promoted when they escape or another
+thread looks up the same reference (see "Thread-local blobs" in
+pl-atom.c).  Use lookup_shared_clref() for references kept in data that
+other threads may access.
+
+The VM used the copy of a clause_ref in the old blobs as frame clause.
+It now builds a clause_ref on the local stack (see pl-cont.c and
+S_TRIE_GEN_COMPILED).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+compare_dbref(atom_t a1, atom_t a2)
+{ void *p1 = PL_blob_data(a1, NULL, NULL);
+  void *p2 = PL_blob_data(a2, NULL, NULL);
+
+  return p1 < p2 ? -1 : p1 > p2 ? 1 : 0;
+}
 
 
 static int
 write_clause_ref(IOSTREAM *s, atom_t aref, int flags)
-{ ClauseRef ref = PL_blob_data(aref, NULL, NULL);
+{ Clause cl = PL_blob_data(aref, NULL, NULL);
   (void)flags;
 
-  Sfprintf(s, "<clause>(%p)", ref->value.clause);
+  Sfprintf(s, "<clause>(%p)", cl);
   return true;
 }
 
 
 static void
 acquire_clause_blob(atom_t aref)
-{ ClauseRef ref = PL_blob_data(aref, NULL, NULL);
+{ Clause cl = PL_blob_data(aref, NULL, NULL);
 
-  set(ref->value.clause, DBREF_CLAUSE);
+  set(cl, DBREF_CLAUSE);
 }
 
 
@@ -68,8 +91,7 @@ acquire_clause_blob(atom_t aref)
 
 static int
 release_clause_blob(atom_t aref)
-{ ClauseRef ref = PL_blob_data(aref, NULL, NULL);
-  Clause cl = ref->value.clause;
+{ Clause cl = PL_blob_data(aref, NULL, NULL);
   unsigned int flags;
 
   do
@@ -87,11 +109,10 @@ release_clause_blob(atom_t aref)
 
 static int
 save_clause_ref(atom_t aref, IOSTREAM *fd)
-{ ClauseRef ref = PL_blob_data(aref, NULL, NULL);
+{ Clause cl = PL_blob_data(aref, NULL, NULL);
   (void)fd;
 
-  return PL_warning("Cannot save reference to <clause>(%p)",
-		    ref->value.clause);
+  return PL_warning("Cannot save reference to <clause>(%p)", cl);
 }
 
 
@@ -105,10 +126,10 @@ load_clause_ref(IOSTREAM *fd)
 
 static PL_blob_t clause_blob =
 { PL_BLOB_MAGIC,
-  PL_BLOB_UNIQUE,
+  PL_BLOB_UNIQUE|PL_BLOB_NOCOPY|PL_BLOB_LOCAL,
   "clause",
   release_clause_blob,
-  NULL,
+  compare_dbref,
   write_clause_ref,
   acquire_clause_blob,
   save_clause_ref,
@@ -118,37 +139,37 @@ static PL_blob_t clause_blob =
 
 static int
 write_record_ref(IOSTREAM *s, atom_t aref, int flags)
-{ recref *ref = PL_blob_data(aref, NULL, NULL);
+{ RecordRef r = PL_blob_data(aref, NULL, NULL);
+  (void)flags;
 
-  Sfprintf(s, "<record>(%p)", ref->record);
+  Sfprintf(s, "<record>(%p)", r);
   return true;
 }
 
 
 static void
 acquire_record(atom_t aref)
-{ recref *ref = PL_blob_data(aref, NULL, NULL);
+{ RecordRef r = PL_blob_data(aref, NULL, NULL);
 
-  set(ref->record->record, R_DBREF);
+  set(r->record, R_DBREF);
 }
 
 
 /* freeRecordRef() runs under L_RECORD and tests R_DBREF to decide who
- * frees the record reference.  We may run with L_REHASH_ATOMS held, so
- * we must not wait for L_RECORD: if it is busy, we refuse and are
- * called again later.
+ * frees `r`.  We may run with L_REHASH_ATOMS held, so we must not wait
+ * for L_RECORD: if it is busy, we refuse and are called again later.
  */
 
 static int
 release_record(atom_t aref)
-{ recref *ref = PL_blob_data(aref, NULL, NULL);
+{ RecordRef r = PL_blob_data(aref, NULL, NULL);
 
   if ( !PL_TRYLOCK(L_RECORD) )
     return false;
-  if ( ref->record->record )
-    clear(ref->record->record, R_DBREF);
+  if ( r->record )
+    clear(r->record, R_DBREF);
   else
-    unallocRecordRef(ref->record);
+    unallocRecordRef(r);
   PL_UNLOCK(L_RECORD);
 
   return true;
@@ -157,10 +178,10 @@ release_record(atom_t aref)
 
 static PL_blob_t record_blob =
 { PL_BLOB_MAGIC,
-  PL_BLOB_UNIQUE,
+  PL_BLOB_UNIQUE|PL_BLOB_NOCOPY|PL_BLOB_LOCAL,
   "record",
   release_record,
-  NULL,
+  compare_dbref,
   write_record_ref,
   acquire_record
 };
@@ -168,30 +189,39 @@ static PL_blob_t record_blob =
 
 atom_t
 lookup_clref(Clause clause)
-{ clause_ref ref;
+{ GET_LD
   int new;
 
-  memset(&ref, 0, SIZEOF_CREF_CLAUSE);
-  ref.value.clause = clause;
+  DEBUG(CHK_SECURE, assert(!onStackArea(local, clause)));
 
-  DEBUG(CHK_SECURE,
-	{ GET_LD
-	  assert(!onStackArea(local, clause));
-	});
-
-  return lookupBlob((const char*)&ref, SIZEOF_CREF_CLAUSE, &clause_blob, &new);
+  return lookupBlob((const char*)clause, sizeof(*clause), &clause_blob, &new);
 }
 
 
-/* Note that the clause may be erased */
+/* As lookup_clref(), for a reference kept in data that other threads
+ * may access.
+ */
 
-ClauseRef
-clause_clref(atom_t aref)
+atom_t
+lookup_shared_clref(Clause clause)
+{ atom_t a = lookup_clref(clause);
+
+  promoteAtomIfLocal(a);
+  return a;
+}
+
+
+/* The clause of a clause reference or NULL if `aref` is not a clause
+ * reference.  Note that the clause may be erased.
+ */
+
+Clause
+clause_dbref(atom_t aref)
 { PL_blob_t *type;
-  ClauseRef ref = PL_blob_data(aref, NULL, &type);
+  Clause cl = PL_blob_data(aref, NULL, &type);
 
   if ( type == &clause_blob )
-    return ref;
+    return cl;
 
   return NULL;
 }
@@ -222,10 +252,7 @@ PL_put_clref(term_t t, Clause clause)
 
 int
 PL_unify_recref(term_t t, RecordRef r)
-{ struct recref ref;
-
-  ref.record = r;
-  return PL_unify_blob(t, &ref, sizeof(ref), &record_blob);
+{ return PL_unify_blob(t, r, sizeof(*r), &record_blob);
 }
 
 
@@ -254,19 +281,18 @@ PL_get_dbref(term_t t, db_ref_type *type_ptr)
   }
 
   if ( type == &clause_blob )
-  { ClauseRef ref = data;
+  { Clause cl = data;
 
-    if ( isoff(ref->value.clause, CL_ERASED) )
+    if ( isoff(cl, CL_ERASED) )
     { *type_ptr = DB_REF_CLAUSE;
-      return ref;
+      return cl;
     }
   } else if ( type == &record_blob )
-  { recref *ref = data;
+  { RecordRef r = data;
 
-    if ( ref->record->record &&
-	 isoff(ref->record->record, R_ERASED) )
+    if ( r->record && isoff(r->record, R_ERASED) )
     { *type_ptr = DB_REF_RECORD;
-      return ref->record;
+      return r;
     }
   } else
   { goto error;
@@ -284,16 +310,16 @@ Returns false: error
 
 int
 PL_get_clref(term_t t, Clause *cl)
-{ ClauseRef ref;
+{ Clause clause;
   PL_blob_t *type;
 
-  if ( !PL_get_blob(t, (void**)&ref, NULL, &type) ||
+  if ( !PL_get_blob(t, (void**)&clause, NULL, &type) ||
        type != &clause_blob )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_db_reference, t);
 
-  *cl = ref->value.clause;
+  *cl = clause;
 
-  if ( ison(ref->value.clause, CL_ERASED) )
+  if ( ison(clause, CL_ERASED) )
     return -1;
 
   return true;
@@ -302,16 +328,15 @@ PL_get_clref(term_t t, Clause *cl)
 
 int
 PL_get_recref(term_t t, RecordRef *rec)
-{ struct recref *ref;
+{ RecordRef r;
   PL_blob_t *type;
 
-  if ( !PL_get_blob(t, (void**)&ref, NULL, &type) ||
+  if ( !PL_get_blob(t, (void**)&r, NULL, &type) ||
        type != &record_blob )
     return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_db_reference, t);
 
-  if ( ref->record->record &&
-       isoff(ref->record->record, R_ERASED) )
-  { *rec = ref->record;
+  if ( r->record && isoff(r->record, R_ERASED) )
+  { *rec = r;
     return true;
   }
 

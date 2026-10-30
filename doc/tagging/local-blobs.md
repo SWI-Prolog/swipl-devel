@@ -1,6 +1,8 @@
 # Thread-local blobs
 
-Status: **design.**  Steps 1–4 of the [plan](#plan) are done.
+Status: **design.**  Steps 1–4 of the [plan](#plan) are done, as are
+local unique blobs and their first users, clause and record references
+(step 5).
 
 Many C objects that Prolog refers to are used by one thread only:
 tabling worklists and SCC components, private answer tries, Janus
@@ -153,8 +155,10 @@ without an explicit close) the `release` hook of the sweep frees them.
   - **Streams.**  Usually opened and closed by one thread.  An alias or
     `stream_property/2` from another thread promotes.
   - **Clause and record references.**  `PL_BLOB_UNIQUE|PL_BLOB_NOCOPY` on
-    the clause pointer: a lookup from another thread finds and promotes
-    the local atom.
+    the `Clause` or `RecordRef`: a lookup from another thread finds and
+    promotes the local atom.  References kept in shared C data use
+    `lookup_shared_clref()` (coverage data, the clause of a compiled
+    trie).
   - **Not:** answer trie nodes.  There are too many; they stay integers
     or are validated through their trie.
 
@@ -406,7 +410,52 @@ safe mode is needed for the local sweep anyway.
         commit: `clause/3` enumeration 10–28% faster, `recorded/3` 8%,
         `assertz/2`+`erase/1` and `reset/3` 3–5%; tabling benchmarks
         98.5% in total; ErgoAI cyc150 unchanged.
-      - Next: local unique blobs (see below).
+      - **Done.**  Local unique blobs, used by clause and record
+        references.  They are in the atom table, so a lookup from
+        another thread finds them; it promotes, a lookup by the owner
+        only adds a reference.  The owner's sweep releases them in a
+        second pass under `L_REHASH_ATOMS`, using the protocol of global
+        AGC: the release hook, then unlink from the bucket, then keep
+        the slot until no lookup is in that bucket.  It takes the lock
+        with a trylock, as global AGC holds it while marking; if that
+        fails, they wait for the next sweep.  If a lookup is in the
+        bucket, the atom goes to global AGC's `invalid_atoms` and its
+        slot leaves the chunk.  Thread exit waits for the lock.
+        Rehashing counts local atoms in the table
+        (`GD->atoms.local_unique`).
+          - `promoting_ref()` takes the type from the caller: a lookup
+            may hold an outdated `references` word of an atom that the
+            sweep has unlinked, which overwrites `type` with
+            `next_invalid`.  Found as a crash with 4 threads enumerating
+            `clause/3`.
+          - The counter is in `GD`, so `PL_cleanup()` resets it.  A
+            first measurement suggested that adding it made
+            `accVariantsComp` 8% slower by shifting the rest of `GD`;
+            rerunning static against `GD` gave equal times (within 1%).
+            `perf mem` (AMD IBS) shows why `GD` layout does not matter
+            much: on `accVariantsComp` 0.2% of the loads and stores hit
+            `GD`, on ErgoAI 1.4% and on 4 threads enumerating
+            `clause/3` 3.3%, with almost no L1 misses (34 of 9,789
+            samples on ErgoAI, 2 of 1,218 with 4 threads).
+          - Cost, measured 2026-10-31 against the previous commit: the
+            tabling benchmarks take 98.9–99.8% in total (single
+            benchmarks ±7%, in both directions over reruns).  Single
+            threaded `clause/3` enumeration with references is ~2%
+            faster, `recorded/3`, `assertz/2`+`erase/1` and `reset/3`
+            are unchanged.  Four threads each enumerating 100,000
+            clause references 20 times: 0.57–0.61 s instead of
+            0.61–0.78 s, with 56–68 instead of 252–285 global AGC runs.
+            ErgoAI cyc150 solves in 29.9–30.2 s instead of 29.3–29.4 s,
+            same peak (9.66 GB).  The extra samples are in functions
+            whose object code is identical in both builds
+            (`S_INCR_DYNAMIC`, `idg_set_add`); `pl-atom.o` grew by
+            2.5 KB, which moves the code that is linked after it.
+          - Tests (`tests/db/test_dbref.pl`): `local_clause`,
+            `local_record`, `shared_identity`, `local_reclaimed`,
+            `local_slots_reused` and `promoted_kept`.  Each detects a
+            mutation of the code it tests.  The hand-off to global AGC
+            when a lookup is in the bucket has no test: it needs a
+            lookup to be in the bucket at the moment of the sweep.
     Candidates:
       - core: streams, clause and record references, closures
         (`pl-wrap.c`), undo (`pl-undo.c`), zippers (`pl-zip.c`);

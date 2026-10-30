@@ -292,11 +292,10 @@ trie_discard_clause(trie *trie)
   if ( (dbref=trie->clause) )
   { if ( COMPARE_AND_SWAP_ATOM(&trie->clause, dbref, 0) &&
 	 GD->halt.cleaning == CLN_NORMAL )		/* otherwise reclaims clause */
-    { ClauseRef cref = clause_clref(dbref);	/* from two ends */
+    { Clause cl = clause_dbref(dbref);	/* from two ends */
 
-      if ( cref )
-      { Clause cl = cref->value.clause;
-	set_trie_clause_general_undefined(cl);	/* TBD: only if undefined */
+      if ( cl )
+      { set_trie_clause_general_undefined(cl);	/* TBD: only if undefined */
 	retractClauseDefinition(cl->predicate, cl, false);
       }
       PL_unregister_atom(dbref);
@@ -365,11 +364,10 @@ trie_empty_take(trie *trie, void (*take)(word value, void *ctx), void *ctx)
 
 static bool
 trie_clause_refers_to_nodes(trie *trie)
-{ ClauseRef cref = clause_clref(trie->clause);
+{ Clause cl = clause_dbref(trie->clause);
 
-  if ( cref )
-  { Clause cl = cref->value.clause;
-    Code PC = cl->codes;
+  if ( cl )
+  { Code PC = cl->codes;
     Code ep = PC + cl->code_size;
 
     for( ; PC < ep; PC = stepPC(PC) )
@@ -2355,10 +2353,10 @@ trie_table_size(trie *atrie)
   atom_t dbref;
 
   if ( (dbref=atrie->clause) && dbref != ATOM_fail )
-  { ClauseRef cref = clause_clref(dbref);
+  { Clause cl = clause_dbref(dbref);
 
-    if ( cref )
-      size += sizeofClause(cref->value.clause->code_size);
+    if ( cl )
+      size += sizeofClause(cl->code_size);
   }
 
   return size;
@@ -4390,9 +4388,9 @@ PRED_IMPL("$trie_property", 2, trie_property, 0)
       } else if ( name == ATOM_compiled_size )
       { atom_t dbref;
 	if ( (dbref = trie->clause) )
-	{ ClauseRef cref = clause_clref(dbref);
-	  if ( cref )
-	  { size_t sz = sizeofClause(cref->value.clause->code_size);
+	{ Clause cl = clause_dbref(dbref);
+	  if ( cl )
+	  { size_t sz = sizeofClause(cl->code_size);
 	    return PL_unify_int64(arg, sz);
 	  }
 	}
@@ -4580,7 +4578,8 @@ and keep it in `elses`.  If the trie is modified between the passes the
 clause is grown using realloc().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define clauseBytes(n) (offsetof(struct clause, codes) + (n))
+#define clauseBytes(n) (offsetof(struct clause, codes) + (n) + \
+			SIZEOF_CREF_CLAUSE) /* see trie_clause_cref() */
 #define baseCodes(state)    ((state)->clause->codes)
 #define entriesCodes(state) ((state)->ctop/sizeof(code))
 #define addCode(state, obj, type) \
@@ -5161,7 +5160,8 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
   Clause cl;
 
   if ( state->ctop != state->cmax )	/* trie changed after sizing */
-    state->clause = PL_realloc(state->clause, sizeofClause(code_size));
+    state->clause = PL_realloc(state->clause,
+			       sizeofClause(code_size) + SIZEOF_CREF_CLAUSE);
   cl = state->clause;
   state->clause = NULL;			/* now owned by the caller */
   cl->predicate = def;
@@ -5169,6 +5169,10 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
   cl->prolog_vars = (clsize_t)(TRIE_VAR_OFFSET + state->maxvar);
   cl->variables = cl->prolog_vars;	/* 2: pseudo arity */
   set(cl, UNIT_CLAUSE);			/* no body */
+  ClauseRef cref = trie_clause_cref(cl);
+  cref->next         = NULL;
+  cref->d.key        = 0;
+  cref->value.clause = cl;
   forAtomsInClause(cl, register_trie_clause_atom, NULL);
   *cp = cl;
 
@@ -5216,7 +5220,7 @@ retry:
 	     create_trie_clause(def, &cl, &state) )
 	{ cref = assertDefinition(def, cl, CL_END);
 	  if ( cref )
-	  { dbref = lookup_clref(cref->value.clause);
+	  { dbref = lookup_shared_clref(cref->value.clause);
 	    if ( !COMPARE_AND_SWAP_ATOM(&trie->clause, 0, dbref) )
 	    { PL_unregister_atom(dbref);
 	      retractClauseDefinition(def, cref->value.clause, false);

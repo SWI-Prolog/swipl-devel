@@ -7614,8 +7614,7 @@ lg_clauses(DECL_LD idg_mdep *mdep, mono_dep_status *s)
 
     for(; base < top; base++)
     { if ( isAtom(*base) )
-      { ClauseRef cref = clause_clref(word2atom(*base));
-	Clause cl = cref->value.clause;
+      { Clause cl = clause_dbref(word2atom(*base));
 
 	if ( !ison(cl, CL_ERASED) )
 	{ if ( cl->generation.created < GEN_TRANSACTION_BASE )
@@ -10353,9 +10352,9 @@ mdep_unify_answers(term_t t, idg_mdep *mdep)
 
   for(; base < top; base++)
   { if ( isAtom(*base) )
-    { ClauseRef cref = clause_clref(word2atom(*base));
+    { Clause cl = clause_dbref(word2atom(*base));
 
-      if ( !ison(cref->value.clause, CL_ERASED) )
+      if ( !ison(cl, CL_ERASED) )
       { if ( !PL_unify_list(tail, head, tail) ||
 	     !PL_unify_atom(head, word2atom(*base)) )
 	  return -1;
@@ -10829,9 +10828,9 @@ mdep_is_empty(idg_mdep *mdep)
       /* see also mdep_unify_answers() */
       for(; base < top; base++)
       { if ( isAtom(*base) )
-	{ ClauseRef cref = clause_clref(word2atom(*base));
+	{ Clause cl = clause_dbref(word2atom(*base));
 
-	  if ( !ison(cref->value.clause, CL_ERASED) )
+	  if ( !ison(cl, CL_ERASED) )
 	    return false;
 	} else
 	{ trie_node *an = word2ptr(trie_node *, *base);

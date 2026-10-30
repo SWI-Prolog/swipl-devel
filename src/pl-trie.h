@@ -235,6 +235,22 @@ valueTriePtr(word w)
 			       trie_clean(t); \
 			   } while(0)
 
+/* A compiled trie clause (see compile_trie()) is followed by a clause_ref
+ * that the VM uses as frame clause when running it from its clause
+ * reference (S_TRIE_GEN_COMPILED).
+ */
+
+static inline bool
+is_trie_clause(const struct clause *cl)
+{ return ( cl->predicate == GD->procedures.trie_gen_compiled3->definition ||
+	   cl->predicate == GD->procedures.trie_gen_compiled2->definition );
+}
+
+static inline ClauseRef
+trie_clause_cref(struct clause *cl)
+{ return addPointer(cl, sizeofClause(cl->code_size));
+}
+
 #define TRIE_ARGS	3
 #define TRIE_VAR_OFFSET (TRIE_ARGS+4)
 

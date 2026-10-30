@@ -39,7 +39,8 @@ typedef enum db_ref_type
 } db_ref_type;
 
 COMMON(atom_t) lookup_clref(Clause clause);
-COMMON(ClauseRef) clause_clref(atom_t aref);
+COMMON(atom_t) lookup_shared_clref(Clause clause);
+COMMON(Clause) clause_dbref(atom_t aref);
 COMMON(int)   PL_put_clref(term_t t, Clause clause);
 COMMON(bool)  PL_unify_clref(term_t t, Clause clause);
 COMMON(int)   PL_unify_recref(term_t t, RecordRef rec);

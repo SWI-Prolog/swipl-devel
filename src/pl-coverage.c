@@ -130,7 +130,7 @@ pc_call_site(coverage *cov, const Clause cl, Code pc)
   { obj = PL_malloc(sizeof(*obj));
     memset(obj, 0, sizeof(*obj));
     obj->type = COV_PC;
-    obj->cref = lookup_clref(cl);
+    obj->cref = lookup_shared_clref(cl);
     obj->pc   = pc;
 
     cov_obj *obj2 = addHTablePP(cov->table, pc, obj);
@@ -166,7 +166,7 @@ clause_site(coverage *cov, Clause cl)
     { obj = PL_malloc(sizeof(*obj));
       memset(obj, 0, sizeof(*obj));
       obj->type = COV_CLAUSE;
-      obj->cref = lookup_clref(cl);
+      obj->cref = lookup_shared_clref(cl);
 
       cov_obj *obj2 = addHTablePP(cov->table, cl, obj);
       if ( obj2 != obj )
@@ -288,11 +288,10 @@ static int
 unify_cov(term_t t, const cov_obj *cov)
 { switch( cov->type )
   { case COV_PC:
-    { ClauseRef cref = clause_clref(cov->cref);
+    { Clause cl = clause_dbref(cov->cref);
 
-      if ( cref )
-      { Clause  cl = cref->value.clause;
-	int64_t pc = cov->pc - cl->codes;
+      if ( cl )
+      { int64_t pc = cov->pc - cl->codes;
 
 	return PL_unify_term(t, PL_FUNCTOR, FUNCTOR_call_site2,
 				  PL_ATOM,  cov->cref,

@@ -468,13 +468,6 @@ cmp_updates(const void *ptr1, const void *ptr2)
 }
 
 
-static int
-is_trie_clause(const Clause cl)
-{ return ( cl->predicate == GD->procedures.trie_gen_compiled3->definition ||
-	   cl->predicate == GD->procedures.trie_gen_compiled2->definition );
-}
-
-
 #define transaction_updates(b) LDFUNC(transaction_updates, b)
 static int
 transaction_updates(DECL_LD Buffer b)

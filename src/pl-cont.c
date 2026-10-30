@@ -439,14 +439,15 @@ garbage collector and subsequently the blob  becomes subject to the atom
 garbage collector, both destroying the clause   reference and the clause
 if it was retracted.
 
-We prevent this by pushing the blob onto the environment stack, where it
+We prevent this by pushing a clause_ref for the frame onto the
+environment stack, just below the frame.  Its key is the blob, where it
 will be found by the atom  garbage   collector.  This  protects both the
 reference and the clause itself as long   as the continuation depends on
-it. Note that the atom is simply pushed  onto the stack where it resides
-between stack frames. This is fine as  atom-gc performs a linear scan of
-the environment stack. Also note that as we push this, it is above lTop.
-This is fine as in  this  stage  the   blob  is  still  protected by the
-continuation.
+it. Note that the clause_ref resides between stack frames. This is fine
+as atom-gc performs a linear scan of the environment stack and the stack
+shifter updates a frame clause on the local stack. Also note that as we
+push this, it is above lTop. This is fine as in this stage the blob is
+still protected by the continuation.
 
 A pushVolatileAtom() is not needed as this   protection only needs to be
 effective after the next GC call and GC won't run concurrently with AGC.
@@ -475,16 +476,15 @@ retry:
     atom_t mname = word2atom(*ep++);
     atom_t blob  = word2atom(*ep++);
 
-    if ( !(cref = clause_clref(blob)) ||
-	 arityFunctor(f->definition) != cref->value.clause->variables + 3 )
+    if ( !(cl = clause_dbref(blob)) ||
+	 arityFunctor(f->definition) != cl->variables + 3 )
     { PL_type_error("continuation", continuation);
       return NULL;
     }
 
-    cl = cref->value.clause;
     pcoffset = (size_t)valInt(*ep++);
 
-    lneeded = ( sizeof(word) +			/* blob (AGC protect) */
+    lneeded = ( SIZEOF_CREF_CLAUSE +		/* clause_ref (*) */
 		sizeof(struct localFrame) +	/* new frame */
 		cl->variables * sizeof(word) );	/* arguments to frame */
     lroom   = roomStack(local);
@@ -494,8 +494,11 @@ retry:
       return NULL;
     }
 
-    *(Word)top = blob;			/* see (*) */
-    fr   = addPointer(top, sizeof(word));
+    cref = (ClauseRef)top;		/* see (*) */
+    cref->next         = NULL;
+    cref->d.key        = blob;
+    cref->value.clause = cl;
+    fr   = addPointer(top, SIZEOF_CREF_CLAUSE);
     top  = addPointer(top, lneeded);
 
     ap = argFrameP(fr, 0);
