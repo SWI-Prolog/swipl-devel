@@ -39,6 +39,8 @@
             prolog_config/2
 	  ]).
 
+:- autoload(library(apply), [maplist/3]).
+
 /** <module> Provide configuration information
 
 This module provides information about   the configuration to facilitate
