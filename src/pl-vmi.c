@@ -5944,6 +5944,7 @@ VMI(S_TRIE_GEN, 0, 0, ())
   if ( !isAtom(dbref) )
   {
   trie_gen_type_error:
+    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
     SAVE_REGISTERS(QID);
     PL_type_error("trie_or_clause", pushWordAsTermRef(argFrameP(FR, 0)));
     popTermRef();

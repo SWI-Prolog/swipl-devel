@@ -163,6 +163,8 @@ test(issue_1277, X == [foo]) :-
 	trie_new(T),
 	trie_insert(T, _, [foo]),
 	trie_gen_compiled(T, _, X).
+test(gen_compiled_type_error, error(type_error(trie_or_clause, foo))) :-
+	trie_gen_compiled(foo, _).
 test(gen_compiled2_free, GData =@= Data) :-
 	setof(D, data(D), Data),
 	trie_new(T),
