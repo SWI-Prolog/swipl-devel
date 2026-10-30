@@ -1302,11 +1302,13 @@ unify_relatives(DECL_LD term_t list, prof_ref *r)
 }
 
 
+/* Quiet: get_handle() offers the term to the other profile types next */
+
 static bool
 get_def(term_t t, void **handle)
 { Procedure proc;
 
-  if ( get_procedure(t, &proc, 0, GP_FIND|GP_NAMEARITY) )
+  if ( get_procedure(t, &proc, 0, GP_FIND|GP_NAMEARITY|GP_TYPE_QUIET) )
   { *handle = proc->definition;
     return true;
   }

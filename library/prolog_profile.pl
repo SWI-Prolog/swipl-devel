@@ -306,6 +306,8 @@ percentage(Part, Total, Percent) :-
 %     - nodes
 %       List of nodes.  Each node provides:
 %       - predicate:PredicateIndicator
+%         or a blob that represents another profiled object, such as an
+%         XPCE method.
 %       - ticks_self:Count
 %       - ticks_siblings:Count
 %         Nanoseconds sampled in the predicate itself and in its
@@ -330,7 +332,7 @@ profile_data(Data) :-
 
 profile_data_(profile{summary:Summary, nodes:Nodes}) :-
     prof_statistics(Summary),
-    findall(Node, profile_procedure_data(_:_, Node), Nodes).
+    findall(Node, procedure_data(_, Node), Nodes).
 
 %!  prof_statistics(-Node) is det.
 %
@@ -363,6 +365,15 @@ prof_mode(false,          cpu,  false).     % no data
 %   profile_data/1 as an element of the `nodes` key.
 
 profile_procedure_data(Pred, Node) :-
+    procedure_data(Pred, Node).
+
+%   procedure_data(?Pred, -Data:dict) is nondet.
+%
+%   As profile_procedure_data/2, but if Pred is unbound, also enumerate
+%   the nodes of other profile types such as XPCE methods.  These are
+%   not qualified.
+
+procedure_data(Pred, Node) :-
     Node = node{predicate:Pred,
                 ticks_self:TicksSelf, ticks_siblings:TicksSiblings,
                 call:Call, redo:Redo, exit:Exit,
