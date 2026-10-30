@@ -142,13 +142,27 @@ write_trie_ref(IOSTREAM *s, atom_t aref, int flags)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 GC a trie. Note that the  Prolog predicate trie_destroy/1 merely empties
 the trie, leaving its destruction to   the  atom garbage collector.
+
+A private answer trie (TRIE_LOCAL) has a thread-local symbol (see
+local_trie_symbol()).  While the variant table node owns the trie,  the
+symbol has no reference for it and the owner's sweep may reclaim the
+symbol, after which a new one is created on demand.  Once the node
+releases the trie (TRIE_ORPHANED), the symbol owns it.  The symbols of
+other tries are shared (see trie_symbol()) and always own their trie.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
 release_trie_ref(atom_t aref)
 { trie *t = PL_blob_data(aref, NULL, NULL);
 
-  trie_destroy(t);
+  if ( isoff(t, TRIE_LOCAL) )
+  { trie_destroy(t);
+  } else if ( ison(t, TRIE_ORPHANED) )
+  { t->symbol = ATOM_nil;		/* see local_trie_symbol() */
+    trie_destroy(t);
+  } else
+  { COMPARE_AND_SWAP_ATOM(&t->symbol, aref, 0);
+  }
 
   return true;
 }
@@ -173,7 +187,7 @@ load_trie(IOSTREAM *fd)
 
 static PL_blob_t trie_blob =
 { PL_BLOB_MAGIC,
-  PL_BLOB_NOCOPY,
+  PL_BLOB_LOCAL|PL_BLOB_OWNED|PL_BLOB_NOCOPY,
   "trie",
   release_trie_ref,
   NULL,
@@ -212,6 +226,7 @@ release_node(trie *trie, trie_node *n)
     tbl_release_node(trie, n);
 }
 static void		release_trie_value(trie *t);
+static void		release_local_trie(trie *t);
 
 
 /* Built-in atoms such as `trienode`, the value of answers, are never
@@ -2350,35 +2365,74 @@ trie_table_size(trie *atrie)
 }
 
 
-/* The atom (handle) of `trie`, created on first use.  Trie blobs are
- * not unique, so two threads that create the atom concurrently would give
- * the trie two atoms, each destroying it when reclaimed.  The variant
- * table of another thread, e.g., the IDG viewer, may ask for it.
+/* The symbol of a private answer trie (TRIE_LOCAL).  Its owner creates
+ * a local blob without a reference.  Another thread, e.g., one that
+ * follows an IDG edge into the tables of the owner, needs a shared
+ * symbol: it promotes the owner's symbol or creates a shared one, which
+ * holds the reference of the trie (see PL_BLOB_OWNED).  Meanwhile the
+ * owner's sweep may reclaim the symbol and reuse its slot, so the
+ * other thread validates the atom and retries.  If the trie was
+ * destroyed, its symbol is ATOM_nil and we return a discarded blob.
  */
+
+static atom_t
+local_trie_symbol(trie *t)
+{ GET_LD
+  bool owner = (t->alloc_pool == LD->tabling.node_pool);
+
+  for(;;)
+  { atom_t symbol = t->symbol;
+
+    if ( symbol == ATOM_nil )
+    { atom_t a = newSharedBlob(t, sizeof(*t), &trie_blob);
+
+      discardBlob(a);
+      PL_unregister_atom(a);
+      return a;
+    } else if ( symbol )
+    { if ( owner )
+	return symbol;
+      if ( shareLocalBlob(symbol, &trie_blob, t) &&
+	   t->symbol == symbol )
+	return symbol;
+    } else				/* see release_local_trie() */
+    { atom_t a = owner ? newLocalBlob(t, sizeof(*t), &trie_blob)
+		       : newSharedBlob(t, sizeof(*t), &trie_blob);
+
+      if ( COMPARE_AND_SWAP_ATOM(&t->symbol, 0, a) )
+	return a;
+      discardBlob(a);
+      if ( !owner )
+	PL_unregister_atom(a);		/* the reference of the trie */
+    }
+  }
+}
+
 
 /* The atom (handle) of `trie`, created on first use.  Trie blobs are
  * not unique, so threads that create it concurrently create an atom each,
  * and each would destroy the trie when reclaimed.  The loser detaches its
  * atom from the trie (as PL_free_blob(), but without releasing the trie),
  * so atom-GC reclaims the atom only.  Nobody else has seen this atom.
+ * Except for private answer tries, the symbol is shared and holds the
+ * reference of the trie's owner.
  */
 
 atom_t
 trie_symbol(trie *trie)
 { atom_t symbol;
 
+  if ( ison(trie, TRIE_LOCAL) )
+    return local_trie_symbol(trie);
+
   if ( !(symbol=trie->symbol) )
-  { int new;
-    atom_t a = lookupBlob((void*)trie, sizeof(*trie), &trie_blob, &new);
+  { GET_LD
+    atom_t a = newSharedBlob((void*)trie, sizeof(*trie), &trie_blob);
 
     if ( COMPARE_AND_SWAP_ATOM(&trie->symbol, 0, a) )
     { symbol = a;
     } else
-    { Atom x = atomValue(a);
-
-      PL_blob_gc_released(x);
-      x->length = 0;
-      x->name = NULL;
+    { discardBlob(a);
       PL_unregister_atom(a);
       symbol = trie->symbol;
     }
@@ -2398,10 +2452,37 @@ static void
 release_trie_value(trie *t)
 { atom_t symbol = t->symbol;
 
-  if ( symbol )
-    PL_unregister_atom(symbol);
-  else
-    trie_destroy(t);
+  if ( ison(t, TRIE_LOCAL) )
+  { release_local_trie(t);
+  } else if ( symbol )
+  { PL_unregister_atom(symbol);
+  } else
+  { trie_destroy(t);
+  }
+}
+
+/* As release_trie_value() for a private answer trie.  If the trie has a
+ * symbol, the symbol now owns it: the owner's sweep or atom-GC destroys
+ * the trie when the symbol is reclaimed.  Otherwise we destroy the
+ * trie, after making sure no other thread installs a symbol for it.
+ */
+
+static void
+release_local_trie(trie *t)
+{ set(t, TRIE_ORPHANED);
+
+  for(;;)
+  { atom_t symbol = t->symbol;
+
+    if ( symbol )
+    { disownBlob(symbol);
+      return;
+    }
+    if ( COMPARE_AND_SWAP_ATOM(&t->symbol, 0, ATOM_nil) )
+    { trie_destroy(t);
+      return;
+    }
+  }
 }
 
 /* The trie from the value of a variant table node */

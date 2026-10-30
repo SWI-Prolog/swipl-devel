@@ -122,6 +122,8 @@ typedef struct trie_node
 #define TRIE_DISCARDABLE 0x0100		/* Discard nodes after compilation */
 #define TRIE_DISCARDED	0x0200		/* Nodes discarded; clause has keys */
 #define TRIE_ISVARIANT	0x0400		/* Trie is a variant table */
+#define TRIE_LOCAL	0x0800		/* Private answer trie: local symbol */
+#define TRIE_ORPHANED	0x1000		/* TRIE_LOCAL: the symbol owns it */
 
 /* Nodes of tries without concurrent writers are allocated from chunks
  * that are freed with the trie (see alloc_trie_node()).  The newest

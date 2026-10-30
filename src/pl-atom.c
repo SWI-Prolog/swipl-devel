@@ -337,14 +337,41 @@ discardBlob(atom_t a)
 }
 
 
+/* The C object of a local PL_BLOB_OWNED blob no longer claims it: it
+ * was freed or its ownership moved to the atom.  If the blob is still
+ * local, its promotion then no longer adds a reference for the object.
+ * Otherwise the object holds a reference, which we drop.  This is a CAS
+ * on the references, so that a promotion by another thread (see
+ * shareLocalBlob()) adds the object's reference if and only if we do
+ * not see a local atom.
+ */
+
+void
+disownBlob(atom_t a)
+{ Atom p = atomValue(a);
+
+  for(;;)
+  { unsigned int ref = p->references;
+
+    if ( !ATOM_IS_LOCAL(ref) )
+    { PL_unregister_atom(a);
+      return;
+    }
+    if ( COMPARE_AND_SWAP_UINT(&p->references, ref,
+			       ref|ATOM_DISOWNED_REFERENCE) )
+      return;
+  }
+}
+
+
 static inline unsigned int
 promoting_ref(unsigned int ref, Atom a)
 { if ( unlikely(ATOM_IS_LOCAL(ref)) )	/* see promoteLocalAtom() */
-  { ref &= ~ATOM_LOCAL_REFERENCE;
+  { if ( ison(a->type, PL_BLOB_OWNED) && !(ref&ATOM_DISOWNED_REFERENCE) )
+      ref++;				/* reference of the object */
+    ref &= ~(ATOM_LOCAL_REFERENCE|ATOM_DISOWNED_REFERENCE);
     if ( GD->atoms.gc_active )
       ref |= ATOM_MARKED_REFERENCE;
-    if ( ison(a->type, PL_BLOB_OWNED) )
-      ref++;				/* reference of the object */
   }
 
   return ref;
@@ -2122,6 +2149,67 @@ promoteLocalAtom(Atom a)
       return true;
     }
   }
+}
+
+/* Make `a` a shared atom, also if it is a local atom of another thread.
+ * This is for a thread that reaches the C object `data` of another
+ * thread and needs its blob, while the owner's sweep may reclaim it and
+ * reuse the slot for another local atom at any time.  Returns true if
+ * `a` is a valid, shared blob of `type` for `data`.  The caller must
+ * check that `data` still refers to `a` afterwards: if `a` was reused,
+ * we may have promoted another atom, which is safe.
+ */
+
+bool
+shareLocalBlob(atom_t a, PL_blob_t *type, const void *data)
+{ Atom p = atomValue(a);
+
+  for(;;)
+  { unsigned int ref = p->references;
+
+    if ( !ATOM_IS_VALID(ref) || p->type != type || p->name != data )
+      return false;
+    if ( !ATOM_IS_LOCAL(ref) )
+      return true;
+
+    unsigned int nref = promoting_ref(ref, p);
+    if ( COMPARE_AND_SWAP_UINT(&p->references, ref, nref) )
+    { promoted_atom(p, nref);
+      return true;
+    }
+  }
+}
+
+/* Create a shared blob of a PL_BLOB_LOCAL|PL_BLOB_NOCOPY type, as
+ * lookupBlob() does for a type without PL_BLOB_LOCAL.  The blob has one
+ * reference, which is the reference of the object for a PL_BLOB_OWNED
+ * type.
+ */
+
+atom_t
+newSharedBlob(DECL_LD void *data, size_t length, PL_blob_t *type)
+{ Atom a;
+
+  if ( unlikely(!type->registered) )
+    PL_register_blob_type(type);
+
+  DEBUG(0, assert(ison(type, PL_BLOB_NOCOPY) && isoff(type, PL_BLOB_UNIQUE)));
+  a = reserveAtom();
+  a->length = length;
+  a->type   = type;
+  a->name   = data;
+#ifdef O_TERMHASH
+  a->hash_value = MurmurHashAligned2(&data, sizeof(data), MURMUR_SEED);
+#endif
+  a->references = 1 | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE;
+  if ( type->acquire )
+    (*type->acquire)(a->atom);
+
+  add_type_live(a);
+  if ( ATOMIC_INC(&GD->statistics.atoms) % 128 == 0 )
+    considerAGC();
+
+  return a->atom;
 }
 
 /* Promote `a` if it is a local atom.  Cheap if it is not: a local atom

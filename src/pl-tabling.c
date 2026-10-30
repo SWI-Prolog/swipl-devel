@@ -537,7 +537,8 @@ tbl_handle(DECL_LD void *obj, atom_t *symbolp, PL_local_data_t *owner,
 	tbl_handle(c, &(c)->symbol, (c)->owner, &component_blob)
 
 /* Discard the blob of an object that is freed.  A promoted blob holds a
- * reference for the object (see PL_BLOB_OWNED), which we drop.
+ * reference for the object (see PL_BLOB_OWNED), which disownBlob() drops.
+ * A local one is marked such that a later promotion does not add it.
  */
 
 static void
@@ -545,12 +546,9 @@ discard_tbl_handle(atom_t *symbolp)
 { atom_t a;
 
   if ( (a=*symbolp) )
-  { bool promoted = !ATOM_IS_LOCAL(atomValue(a)->references);
-
-    *symbolp = 0;
+  { *symbolp = 0;
     discardBlob(a);
-    if ( promoted )
-      PL_unregister_atom(a);
+    disownBlob(a);
   }
 }
 
@@ -3306,7 +3304,8 @@ retry:
 	}
       } else
 #endif
-      { set(node, TN_PRIMARY);		/* symbol when needed */
+      { set(atrie, TRIE_LOCAL);
+	set(node, TN_PRIMARY);		/* symbol when needed */
 	node->value = triePtrValue(atrie);
 	TRIE_COUNT_INC(variants, value_count);
       }
@@ -6490,7 +6489,7 @@ static void
 droppable_table(tbl_component *c, trie *atrie)
 { atom_t symbol = trie_symbol(atrie);
 
-  PL_register_atom(symbol);
+  registerAtomLocally(symbol);		/* components are thread-local */
   c->drop.symbol    = symbol;
   c->drop.size      = trie_table_size(atrie);
   c->drop.gen_calls = atrie->stats.gen_call;
@@ -7743,7 +7742,7 @@ tt_add_table(DECL_LD trie *atrie, int flags)
     atom_t symbol = trie_symbol(atrie);
 
     updateHTable(tt->tables, (table_key_t)symbol, (table_value_t)flags);
-    PL_register_atom(symbol);
+    registerAtomLocally(symbol);	/* transactions are thread-local */
   }
 }
 
@@ -8714,7 +8713,7 @@ typedef struct idg_edge_state
   int		lazy;
   int		force_reeval;
   int		dyn_or_complete;
-  atom_t	deptrie_symbol;
+  trie	       *deptrie;
   idg_mdep     *dependencies;
 } idg_edge_state;
 
@@ -8749,7 +8748,7 @@ retry:
       state->force_reeval = n->force_reeval;
     }
 
-    state->deptrie_symbol = trie_symbol(n->atrie);
+    state->deptrie = n->atrie;		/* no symbol: not a root */
     return true;
   } else
   { if ( !state->fixed_dir && state->dir == ATOM_affected )
@@ -8919,7 +8918,7 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
     }
 
     if ( status )			/* '$idg_false_edge'/3 */
-    { trie *dtrie = symbol_trie(state->deptrie_symbol);
+    { trie *dtrie = state->deptrie;
       atom_t astat;
 
       if ( (astat=table_status_reeval_wait(dtrie)) )
@@ -8937,7 +8936,7 @@ idg_edge_gen(term_t from, term_t dir, term_t To, term_t dep, term_t depref,
       }
     }
 
-    if ( PL_unify_atom(To, state->deptrie_symbol) )
+    if ( PL_unify_atom(To, trie_symbol(state->deptrie)) )
     { if ( state->fixed_dir ||
 	   PL_unify_atom(dir, state->dir) )
       { if ( advance_idg_edge_state(state) )

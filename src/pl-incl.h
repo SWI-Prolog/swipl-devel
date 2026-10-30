@@ -1432,13 +1432,15 @@ typedef struct atom_table
 
 #ifdef O_ATOMGC
 
-#define ATOM_STATE_MASK		((unsigned int)0x1F << (INTBITSIZE-5))
+#define ATOM_STATE_MASK		((unsigned int)0x3F << (INTBITSIZE-6))
 #define ATOM_RESERVED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-1))
 #define ATOM_VALID_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-2))
 #define ATOM_MARKED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-3))
 #define ATOM_DESTROY_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-4))
 					/* thread-local blob (see pl-atom.c) */
 #define ATOM_LOCAL_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-5))
+					/* local PL_BLOB_OWNED: object gone */
+#define ATOM_DISOWNED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-6))
 #define ATOM_PRE_DESTROY_REFERENCE \
 	(ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE)
 
