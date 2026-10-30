@@ -315,6 +315,48 @@ COMPARE_AND_SWAP_ATOM(atom_t *at, atom_t from, atom_t to)
 #define COMPARE_AND_SWAP_ATOM(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
 #endif
 
+/* POPCOUNT64(i) is the number of set bits in i */
+
+static inline unsigned int
+POPCOUNT64(uint64_t i)
+{
+#if defined(_MSC_VER)
+#if SIZEOF_VOIDP == 8
+  return (unsigned int)__popcnt64(i);
+#else
+  return (unsigned int)(__popcnt((unsigned int)i) +
+			__popcnt((unsigned int)(i>>32)));
+#endif
+#else
+  return (unsigned int)__builtin_popcountll(i);
+#endif
+}
+
+/* LSB64(i) is the index of the lowest set bit of i.  i must not be 0. */
+
+static inline unsigned int
+LSB64(uint64_t i)
+{
+#if defined(_MSC_VER) && SIZEOF_VOIDP == 8
+  unsigned long index;
+  _BitScanForward64(&index, i);
+  return (unsigned int)index;
+#elif defined(HAVE__BUILTIN_CLZ)	/* implies __builtin_ctzll() */
+  return (unsigned int)__builtin_ctzll(i);
+#else
+  unsigned int j = 0;
+
+  if ( !(i & 0xffffffff) ) { i >>= 32; j += 32; }
+  if ( !(i &     0xffff) ) { i >>= 16; j += 16; }
+  if ( !(i &       0xff) ) { i >>=  8; j +=  8; }
+  if ( !(i &        0xf) ) { i >>=  4; j +=  4; }
+  if ( !(i &        0x3) ) { i >>=  2; j +=  2; }
+  if ( !(i &        0x1) ) j++;
+
+  return j;
+#endif
+}
+
 #ifndef HAVE_MSB
 #define HAVE_MSB 1
 static inline int

@@ -1432,11 +1432,13 @@ typedef struct atom_table
 
 #ifdef O_ATOMGC
 
-#define ATOM_STATE_MASK		((unsigned int)0xF << (INTBITSIZE-4))
+#define ATOM_STATE_MASK		((unsigned int)0x1F << (INTBITSIZE-5))
 #define ATOM_RESERVED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-1))
 #define ATOM_VALID_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-2))
 #define ATOM_MARKED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-3))
 #define ATOM_DESTROY_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-4))
+					/* thread-local blob (see pl-atom.c) */
+#define ATOM_LOCAL_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-5))
 #define ATOM_PRE_DESTROY_REFERENCE \
 	(ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE)
 
@@ -1445,6 +1447,33 @@ typedef struct atom_table
 #define ATOM_IS_VALID(ref)	((ref) & ATOM_VALID_REFERENCE)
 #define ATOM_IS_MARKED(ref)	((ref) & ATOM_MARKED_REFERENCE)
 #define ATOM_IS_DESTROYED(ref)	((ref) & ATOM_DESTROY_REFERENCE)
+#define ATOM_IS_LOCAL(ref)	((ref) & ATOM_LOCAL_REFERENCE)
+
+/* Blob type flag, internal for now: blobs of this type start owned by
+   the creating thread.  See "Thread-local blobs" in pl-atom.c.
+*/
+#define PL_BLOB_LOCAL		0x100
+typedef void (*atom_mark_func)(atom_t a); /* markAtom(), markLocalAtom() */
+#define LOCAL_AGC_MIN		1024	/* sweep at least this many */
+#define LOCAL_AGC_SCAN_RATIO	16	/* stack words scanned per local atom */
+
+/* Local atoms live in aligned chunks of LOCAL_CHUNK_SIZE atom slots that
+   are owned by one thread.  GD->atoms.local_chunks maps a chunk number
+   (index>>LOCAL_CHUNK_BITS) to its descriptor.
+*/
+#define LOCAL_CHUNK_BITS	6
+#define LOCAL_CHUNK_SIZE	((size_t)1<<LOCAL_CHUNK_BITS) /* = bits in uint64_t */
+
+typedef struct local_atom_chunk
+{ struct PL_local_data *owner;		/* owning thread or engine, or NULL */
+  uint64_t	avail;			/* slots that belong to the chunk */
+  uint64_t	used;			/* slots holding a local atom */
+  uint64_t	marked;			/* marked by the owner's sweep */
+} local_atom_chunk;
+
+typedef struct local_chunk_array
+{ local_atom_chunk *blocks[8*sizeof(void*)]; /* indexed by MSB(chunk) */
+} local_chunk_array;
 
 #define ATOM_REF_COUNT_MASK	(~ATOM_STATE_MASK)
 #define ATOM_REF_COUNT(ref)	((ref) & ATOM_REF_COUNT_MASK)

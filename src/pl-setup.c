@@ -821,8 +821,12 @@ agc_handler(int sig)
 { GET_LD
   (void)sig;
 
-  if ( AGC_wanted() && !gc_status.blocked )
-    pl_garbage_collect_atoms();
+  if ( gc_status.blocked )
+    return;
+  if ( AGC_wanted() && !agcByGCThread() )
+    pl_garbage_collect_atoms();		/* also does the local sweep */
+  else if ( LD->atoms.local.live >= LD->atoms.local.threshold )
+    considerLocalSweep();
 }
 
 

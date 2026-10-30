@@ -5766,10 +5766,13 @@ patterns of strings,  big integers, floats, ...).  We  must however be
 aware that near the  end of the stack things are dirty  and need to be
 careful not to crash.   As above, as long as we do  not crash, we only
 can mark some atoms too many.
+
+If `safe` is true, the thread  owning   `ld`  calls us at a safe point.
+The stack is consistent, so we can trust the indirect headers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-markAtomsOnGlobalStack(PL_local_data_t *ld)
+markAtomsOnGlobalStack(PL_local_data_t *ld, atom_mark_func mark, bool safe)
 { Word gbase = ld->stacks.global.base;
   Word gtop  = ld->stacks.global.top;
   Word current;
@@ -5785,13 +5788,17 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
   { w = *current;
 
     if ( isAtom(w) )
-    { markAtom(word2atom(w));
+    { (*mark)(word2atom(w));
     } else if ( unlikely(isIndirectHdr(w)) )
     { word sz = wsizeofInd(w) + 1; /* = _careful_ offset_word() */
-      if ( gtop - current > sz )
-	current += sz;
-      else
-	break;
+      if ( safe )
+      { current += sz;
+	DEBUG(CHK_SECURE, assert(current < gtop && *current == w));
+      } else if ( gtop - current > sz )
+      { current += sz;
+      } else
+      { break;
+      }
     }
   }
 }
@@ -5805,7 +5812,7 @@ markAtomsOnGlobalStack(PL_local_data_t *ld)
 	((sizeof(struct localFrame) + MAXARITY*sizeof(word))/sizeof(word))
 
 static void
-markAtomsOnLocalStack(PL_local_data_t *ld)
+markAtomsOnLocalStack(PL_local_data_t *ld, atom_mark_func mark)
 { Word lbase = (Word)ld->stacks.local.base;
   Word ltop  = (Word)ld->stacks.local.top;
   Word lmax  = (Word)ld->stacks.local.max;
@@ -5817,7 +5824,7 @@ markAtomsOnLocalStack(PL_local_data_t *ld)
   { word w = *current;
 
     if ( isAtom(w) )
-      markAtom(word2atom(w));
+      (*mark)(word2atom(w));
   }
 }
 
@@ -5830,11 +5837,17 @@ should not make any assumptions  on   the  initialised  variables in the
 stack-frames, but it is allowed to mark atoms from uninitialised data as
 this causes some atoms not to  be   GC-ed  this  time (maybe better next
 time).
+
+`ctx` is NULL or an atom_mark_ctx. The latter is used by the local sweep
+of thread-local blobs (see collectLocalAtoms()), which calls this for its
+own `ld` at a safe point.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
 markAtomsOnStacks(PL_local_data_t *ld, void *ctx)
-{ (void)ctx;
+{ const atom_mark_ctx *mc = ctx;
+  atom_mark_func mark = mc ? mc->mark : markAtom;
+  bool safe = mc ? mc->safe : false;
 
   assert(!ld->gc.status.active);
 
@@ -5850,12 +5863,12 @@ markAtomsOnStacks(PL_local_data_t *ld, void *ctx)
 	if ( atomLogFd )
 	  Sfprintf(atomLogFd, "Mark atoms.unregistering\n"));
 #endif
-  markAtom(ld->atoms.unregistering);	/* see PL_unregister_atom() */
-  markAtomsOnLocalStack(ld);
-  markAtomsOnGlobalStack(ld);
-  markAtomsFindall(ld);
+  (*mark)(ld->atoms.unregistering);	/* see PL_unregister_atom() */
+  markAtomsOnLocalStack(ld, mark);
+  markAtomsOnGlobalStack(ld, mark, safe);
+  markAtomsFindall(ld, mark);
 #ifdef O_PLMT
-  markAtomsThreadMessageQueue(ld);
+  markAtomsThreadMessageQueue(ld, mark);
 #endif
 }
 

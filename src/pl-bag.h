@@ -44,7 +44,7 @@
 		 *    FUNCTION DECLARATIONS	*
 		 *******************************/
 
-void		markAtomsFindall(PL_local_data_t *ld);
+void		markAtomsFindall(PL_local_data_t *ld, atom_mark_func mark);
 void		cleanup_bags(PL_local_data_t *ld);
 
 #endif /*_PL_BAG_H*/

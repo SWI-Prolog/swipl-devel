@@ -240,6 +240,12 @@ struct PL_global_data
     size_t	unregistered;		/* # candidate GC atoms */
     double	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
+    local_chunk_array local_chunks;	/* See "Thread-local blobs" */
+    struct
+    { size_t *	chunks;			/* returned chunks, for reuse */
+      size_t	count;			/* entries in chunks[] */
+      size_t	size;			/* allocated entries of chunks[] */
+    } local_pool;
 #endif
     atom_t     *for_code[256];		/* code --> one-char-atom */
     PL_blob_t  *types;			/* registered atom types */
@@ -690,6 +696,16 @@ struct PL_local_data
       unsigned	count;			/* slots in index[] */
       size_t	index[ATOM_RESERVE_BATCH]; /* reserved atom slots */
     } reserved;				/* See reserveAtom() */
+    struct
+    { size_t *	chunks;			/* numbers of the chunks we own */
+      size_t	count;			/* entries in chunks[] */
+      size_t	size;			/* allocated entries of chunks[] */
+      size_t	cursor;			/* chunks before this are full */
+      size_t	live;			/* # live local atoms */
+      size_t	threshold;		/* sweep when live reaches this */
+      size_t	collected;		/* total reclaimed by the sweep */
+      unsigned	sweeps;			/* # sweeps done */
+    } local;				/* See "Thread-local blobs" */
   } atoms;
 
   struct

@@ -72,6 +72,12 @@ void		clearUninitialisedVarsFrame(LocalFrame, Code);
 void		clearLocalVariablesFrame(LocalFrame fr);
 void		setLTopInBody(void);
 word		check_foreign(void);	/* DEBUG(CHK_SECURE...) stuff */
+/* Context for markAtomsOnStacks().  NULL is markAtom(), not safe. */
+typedef struct atom_mark_ctx
+{ atom_mark_func mark;			/* markAtom() or markLocalAtom() */
+  bool		safe;			/* called by ld itself at a safe point */
+} atom_mark_ctx;
+
 void		markAtomsOnStacks(PL_local_data_t *ld, void *ctx);
 void		markPredicatesInEnvironments(PL_local_data_t *ld,
 					     void *ctx);

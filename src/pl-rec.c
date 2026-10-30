@@ -1776,12 +1776,12 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-markAtomsRecord(DECL_LD Record record) must be called on all records that
-use the R_NOLOCK option.
+markAtomsRecord(Record  record,  atom_mark_func  mark)  must  be  called
+using markAtom() on all records that use the R_NOLOCK option.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-markAtomsRecord(Record record)
+markAtomsRecord(Record record, atom_mark_func mark)
 {
 #ifdef O_ATOMGC
   copy_info ci;
@@ -1792,7 +1792,7 @@ markAtomsRecord(Record record)
 
   ci.base = ci.data = dataRecord(record);
   ci.version_map = NULL;
-  scanAtomsRecord(&ci, markAtom);
+  scanAtomsRecord(&ci, mark);
   assert(ci.data == addPointer(record, record->size));
 #endif
 }

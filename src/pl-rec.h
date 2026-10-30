@@ -70,7 +70,7 @@ void		unallocRecordRef(RecordRef r);
 bool		unifyKey(term_t key, word val);
 int		getKeyEx(term_t key, word *k);
 word		pl_term_complexity(term_t t, term_t mx, term_t count);
-void		markAtomsRecord(Record record);
+void		markAtomsRecord(Record record, atom_mark_func mark);
 int		PL_record_az(word k, term_t term, term_t ref, record_az az);
 
 #undef LDFUNC_DECLARATIONS

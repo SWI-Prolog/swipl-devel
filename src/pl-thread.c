@@ -791,6 +791,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 
     cleanupLocalDefinitions(ld);
     releaseReservedAtoms(ld);
+    releaseLocalAtoms(ld);
 
     DEBUG(MSG_THREAD, Sdprintf("Destroying data\n"));
     ld->magic = 0;
@@ -5029,7 +5030,7 @@ get_message(DECL_LD message_queue *queue, term_t msg,
       { DEBUG(MSG_QUEUE, Sdprintf("%d: match\n", PL_thread_self()));
 
 	if (GD->atoms.gc_active)
-	  markAtomsRecord(msgp->message);
+	  markAtomsRecord(msgp->message, markAtom);
 
 #ifdef O_PLMT
 	simpleMutexLock(&queue->gc_mutex);	/* see (*) */
@@ -7384,6 +7385,26 @@ signalGCThread(int sig)
 }
 
 
+/* True if global atom-GC is done by the gc thread, so a SIG_ATOM_GC
+   raised in another thread only asks for its local sweep (see
+   agc_handler()).
+*/
+
+bool
+agcByGCThread(void)
+{
+#ifdef O_PLMT
+  GET_LD
+
+  return ( truePrologFlag(PLFLAG_GCTHREAD) &&
+	   !GD->bootsession &&
+	   gc_running() > 0 );
+#else
+  return false;
+#endif
+}
+
+
 bool
 isSignalledGCThread(DECL_LD int sig)
 {
@@ -7937,21 +7958,21 @@ significantly better.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
-markAtomsMessageQueue(message_queue *queue)
+markAtomsMessageQueue(message_queue *queue, atom_mark_func mark)
 { thread_message *msg;
 
   for(msg=queue->head; msg; msg=msg->next)
-  { markAtomsRecord(msg->message);
+  { markAtomsRecord(msg->message, mark);
   }
 }
 
 
 void
-markAtomsThreadMessageQueue(PL_local_data_t *ld)
+markAtomsThreadMessageQueue(PL_local_data_t *ld, atom_mark_func mark)
 { message_queue *q = &ld->thread.messages;
 
   simpleMutexLock(&q->gc_mutex);
-  markAtomsMessageQueue(q);
+  markAtomsMessageQueue(q, mark);
   simpleMutexUnlock(&q->gc_mutex);
 }
 
@@ -7972,7 +7993,7 @@ markAtomsMessageQueues(void)
       message_queue *q = val2ptr(tv);
       simpleMutexLock(&q->gc_mutex);
       simpleMutexUnlock(&queueTable_mutex);
-      markAtomsMessageQueue(q);
+      markAtomsMessageQueue(q, markAtom);
       simpleMutexUnlock(&q->gc_mutex);
     }
     freeTableEnum(e);
@@ -8265,6 +8286,11 @@ signalGCThread(int sig)
 { GET_LD
 
   return raiseSignal(LD, sig);
+}
+
+bool
+agcByGCThread(void)
+{ return false;
 }
 
 bool
