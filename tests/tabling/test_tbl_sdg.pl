@@ -38,7 +38,9 @@
           ]).
 :- use_module(library(plunit)).
 :- use_module(library(lists)).
+:- if(current_prolog_flag(threads, true)).
 :- use_module(library(thread)).
+:- endif.
 
 /** <module> Test '$tbl_sdg'/3, the subgoal dependency graph
 
@@ -172,13 +174,16 @@ test(child, [ Cs == [0-c1('$VAR'(0)), 1-c2('$VAR'(0))],
                     ]
             ]) :-
     sdg(c1(_), Cs, Ts, _).
-test(hidden, Ts == [ table(a('$VAR'(0)), 0, 0, [pending]),
-                     table(b('$VAR'(0)), 0, 0, [pending])
-                   ]) :-
+test(hidden, [ condition(current_prolog_flag(threads, true)),
+               Ts == [ table(a('$VAR'(0)), 0, 0, [pending]),
+                       table(b('$VAR'(0)), 0, 0, [pending])
+                     ]
+             ]) :-
     sdg(( thread_create(in_break(a(_)), Id),
           thread_join(Id)
         ), _, Ts, _).
-test(other_thread, [ true(length(Cs, 1)),
+test(other_thread, [ condition(current_prolog_flag(threads, true)),
+                     true(length(Cs, 1)),
                      V-Es == w('$VAR'(0))-[edge(T, T, positive, 1)]
                    ]) :-
     abolish_all_tables,
@@ -260,7 +265,9 @@ test(exception, T-S == 0-0) :-
     abolish_all_tables,
     catch(ce(_), oops, true),
     counts(T, S).
-test(other_thread, T-S == 1-1) :-
+test(other_thread, [ condition(current_prolog_flag(threads, true)),
+                     T-S == 1-1
+                   ]) :-
     abolish_all_tables,
     thread_create(w(_), Id),
     wait_for_table(Id, 50, _, _, _),

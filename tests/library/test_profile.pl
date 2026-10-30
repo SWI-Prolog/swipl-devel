@@ -37,6 +37,7 @@
           [ test_profile/0
           ]).
 :- use_module(library(plunit)).
+:- if(exists_source(library(prolog_profile))).
 :- use_module(library(prolog_profile)).
 :- use_module(library(lists)).
 
@@ -179,3 +180,9 @@ exact_profile(Goal, Data, Mode) :-
         Goal,
         profiler(_, false)),
     profile_data(Data).
+
+:- else.                                % no profiler in this build
+
+test_profile.
+
+:- endif.
