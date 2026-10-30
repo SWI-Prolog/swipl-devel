@@ -343,6 +343,31 @@ trie_empty_take(trie *trie, void (*take)(word value, void *ctx), void *ctx)
 }
 
 
+/* True if the clause of `trie` refers to its nodes.  T_DELAY refers to a
+ * conditional answer.  Simplification can make the answer unconditional
+ * after the trie is compiled without discarding the clause (see T_DELAY),
+ * so a trie without conditional answers may still have such a clause.
+ */
+
+static bool
+trie_clause_refers_to_nodes(trie *trie)
+{ ClauseRef cref = clause_clref(trie->clause);
+
+  if ( cref )
+  { Clause cl = cref->value.clause;
+    Code PC = cl->codes;
+    Code ep = PC + cl->code_size;
+
+    for( ; PC < ep; PC = stepPC(PC) )
+    { if ( fetchop(PC) == T_DELAY && PC[1] )
+	return true;
+    }
+  }
+
+  return false;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Once a complete answer trie is compiled, the clause holds all its keys and
 we may discard the nodes.  This is allowed if the trie is not modified
@@ -361,9 +386,11 @@ void
 trie_discard_nodes(trie *trie)
 { assert(trie->clause && !trie->references);
 
+  clear(trie, TRIE_DISCARDABLE);
+  if ( trie_clause_refers_to_nodes(trie) )
+    return;
   DEBUG(MSG_TRIE_GC, Sdprintf("Discarding nodes of trie %p\n", trie));
   trie_clear_nodes(trie);
-  clear(trie, TRIE_DISCARDABLE);
   set(trie, TRIE_DISCARDED);
 }
 
