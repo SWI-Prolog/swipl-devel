@@ -2708,6 +2708,14 @@ remove this answer from its worklist and thus accesses freed memory.  We
 therefore first destroy the delay info of all tables, while the variant
 trie keeps all answer tries alive.
 
+(**) Another thread may be enumerating the variant table, e.g., using
+trie_gen/3 in an engine, and thus hold a reference.  As it is marked
+TRIE_CMAGIC, the last release_trie() empties it (trie_clean()).  We
+hold a reference ourselves while deciding, so exactly one thread, the
+one whose release brings the count to zero, empties the table.  If
+there are readers we do the delay info pass (*) while our reference
+prevents them from emptying the table concurrently.
+
 A private variant table is torn down in bulk (abolish_all_tables/0 on
 ErgoAI's cyc150 took 28s for 12.9M tables, mostly cache misses):
 
@@ -2869,6 +2877,38 @@ sort_table_values(bulk_reset *br)
   free(tmp);
 }
 
+/* Empty the variant table vtrie that has no readers.  If `delays_done`,
+ * the delay info pass (*) was already done.
+ */
+
+static void
+empty_variant_table(PL_local_data_t *ld, trie *vtrie, bool delays_done)
+{ bulk_reset br = { .size = vtrie->value_count };
+
+  if ( ld && !delays_done && br.size &&
+       (br.values = malloc(br.size*sizeof(word))) )
+  { br.registry = ld->tabling.idg_registry;
+    if ( ld->tabling.concurrent_idg_nodes )
+      map_trie_node(&vtrie->root, idg_unlink_concurrent_table, NULL);
+    ld->tabling.idg_registry = NULL;
+    trie_empty_take(vtrie, take_table_value, &br);
+    sort_table_values(&br);		/* creation order: fewer cache misses */
+    for(size_t i=0; i<br.count; i++)
+      reset_table_bulk(br.values[i], &br);
+    if ( br.registry )			/* the nodes' and the thread's */
+      idg_registry_release_n(br.registry, br.idg_nodes+1);
+    for(size_t i=0; i<br.count; i++)
+      trie_release_value(br.values[i]);
+    free(br.values);
+    ld->tabling.concurrent_idg_nodes = 0;
+    ld->tabling.dyn_orphan_events = 0;
+  } else
+  { if ( !delays_done )
+      map_trie_node(&vtrie->root, destroy_delay_info_table, NULL); /* (*) */
+    trie_empty(vtrie);
+  }
+}
+
 /* Clear the variant table *vtriep and the start node cache *startp.
  * `ld` is the owner of a private variant table or NULL for the shared
  * one.
@@ -2880,32 +2920,17 @@ clear_variant_table(PL_local_data_t *ld, trie **vtriep, node_array **startp)
   node_array *sa;
 
   if ( (vtrie=*vtriep) )
-  { vtrie->magic = TRIE_CMAGIC;
-    if ( ison(vtrie, TRIE_ISSHARED) )
-      release_trie(vtrie);			/* acquired in variant_table() */
-    bulk_reset br = { .size = vtrie->value_count };
+  { bool readers;
 
-    if ( ld && !vtrie->references && br.size &&
-	 (br.values = malloc(br.size*sizeof(word))) )
-    { br.registry = ld->tabling.idg_registry;
-      if ( ld->tabling.concurrent_idg_nodes )
-	map_trie_node(&vtrie->root, idg_unlink_concurrent_table, NULL);
-      ld->tabling.idg_registry = NULL;
-      trie_empty_take(vtrie, take_table_value, &br);
-      sort_table_values(&br);		/* creation order: fewer cache misses */
-      for(size_t i=0; i<br.count; i++)
-	reset_table_bulk(br.values[i], &br);
-      if ( br.registry )		/* the nodes' and the thread's */
-	idg_registry_release_n(br.registry, br.idg_nodes+1);
-      for(size_t i=0; i<br.count; i++)
-	trie_release_value(br.values[i]);
-      free(br.values);
-      ld->tabling.concurrent_idg_nodes = 0;
-      ld->tabling.dyn_orphan_events = 0;
-    } else
-    { map_trie_node(&vtrie->root, destroy_delay_info_table, NULL); /* (*) */
-      trie_empty(vtrie);
-    }
+    acquire_trie(vtrie);			/* (**) */
+    vtrie->magic = TRIE_CMAGIC;
+    if ( ison(vtrie, TRIE_ISSHARED) )
+      ATOMIC_DEC(&vtrie->references);		/* acquired in variant_table() */
+    if ( (readers = (vtrie->references > 1)) )
+      map_trie_node(&vtrie->root, destroy_delay_info_table, NULL); /* (*) */
+    if ( ATOMIC_DEC(&vtrie->references) == 0 )
+      empty_variant_table(ld, vtrie, readers);
+					/* else the last reader empties it */
     PL_unregister_atom(vtrie->symbol);
     *vtriep = NULL;
   }
