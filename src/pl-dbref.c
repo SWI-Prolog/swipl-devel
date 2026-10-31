@@ -62,15 +62,24 @@ acquire_clause_blob(atom_t aref)
 }
 
 
+/* Clearing DBREF_CLAUSE and testing DBREF_ERASED_CLAUSE must be one
+ * atomic step, as freeClause() tests the first and sets the second.
+ */
+
 static int
 release_clause_blob(atom_t aref)
 { ClauseRef ref = PL_blob_data(aref, NULL, NULL);
+  Clause cl = ref->value.clause;
+  unsigned int flags;
 
-  clear(ref->value.clause, DBREF_CLAUSE);
-  if ( ison(ref->value.clause, CL_ERASED) )
+  do
+  { flags = cl->flags;
+  } while ( !COMPARE_AND_SWAP_UINT(&cl->flags, flags, flags&~DBREF_CLAUSE) );
+
+  if ( (flags&CL_ERASED) )
     ATOMIC_DEC(&GD->clauses.db_erased_refs);
-  if ( ison(ref->value.clause, DBREF_ERASED_CLAUSE) )
-    unallocClause(ref->value.clause);
+  if ( (flags&DBREF_ERASED_CLAUSE) )
+    unallocClause(cl);
 
   return true;
 }
@@ -124,14 +133,23 @@ acquire_record(atom_t aref)
 }
 
 
+/* freeRecordRef() runs under L_RECORD and tests R_DBREF to decide who
+ * frees the record reference.  We may run with L_REHASH_ATOMS held, so
+ * we must not wait for L_RECORD: if it is busy, we refuse and are
+ * called again later.
+ */
+
 static int
 release_record(atom_t aref)
 { recref *ref = PL_blob_data(aref, NULL, NULL);
 
+  if ( !PL_TRYLOCK(L_RECORD) )
+    return false;
   if ( ref->record->record )
     clear(ref->record->record, R_DBREF);
   else
     unallocRecordRef(ref->record);
+  PL_UNLOCK(L_RECORD);
 
   return true;
 }

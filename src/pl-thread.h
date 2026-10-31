@@ -301,6 +301,16 @@ countingMutexLock(counting_mutex *cm)
   cm->lock_count++;
 }
 
+static inline bool
+countingMutexTryLock(counting_mutex *cm)
+{ if ( !simpleMutexTryLock(&cm->mutex) )
+    return false;
+
+  cm->count++;
+  cm->lock_count++;
+  return true;
+}
+
 static inline void
 countingMutexUnlock(counting_mutex *cm)
 { assert(cm->lock_count > 0);
@@ -325,6 +335,10 @@ countingMutexUnlock(counting_mutex *cm)
 #define PL_LOCK(id)   IF_MT(id, countingMutexLock(&_PL_mutexes[id]))
 #define PL_UNLOCK(id) IF_MT(id, countingMutexUnlock(&_PL_mutexes[id]))
 #endif
+/* True if we got the lock.  PL_UNLOCK() releases it */
+#define PL_TRYLOCK(id) \
+	( (id) == L_THREAD || GD->thread.enabled \
+		? countingMutexTryLock(&_PL_mutexes[id]) : true )
 
 #define LOCKDEF(def)   PL_LOCK(L_PREDICATE)
 #define UNLOCKDEF(def) PL_UNLOCK(L_PREDICATE)
@@ -594,6 +608,7 @@ void	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 #ifndef O_PLMT
 #define PL_LOCK(id)		(void)0
 #define PL_UNLOCK(id)		(void)0
+#define PL_TRYLOCK(id)		true
 
 #define LOCKDEF(def)		(void)0
 #define UNLOCKDEF(def)		(void)0

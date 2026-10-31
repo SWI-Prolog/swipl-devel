@@ -1764,10 +1764,16 @@ void
 freeClause(Clause c)
 { forAtomsInClause(c, unregister_atom_clause, NULL);
 
-  if ( ison(c, DBREF_CLAUSE) )		/* will be freed from symbol */
-    set(c, DBREF_ERASED_CLAUSE);
-  else
-    unallocClause(c);
+  for(;;)				/* see release_clause_blob() */
+  { unsigned int flags = c->flags;
+
+    if ( !(flags&DBREF_CLAUSE) )
+    { unallocClause(c);
+      return;
+    }
+    if ( COMPARE_AND_SWAP_UINT(&c->flags, flags, flags|DBREF_ERASED_CLAUSE) )
+      return;				/* will be freed from symbol */
+  }
 }
 
 
