@@ -158,6 +158,17 @@ S__destroyed(IOSTREAM *s)
 
 #endif /*O_DEBUG_STREAM_REFERENCES*/
 
+/* S__close() adds SIO_REF_CLOSED to the references of the stream when it
+   is done.  The stream is freed when it is closed and has no references.
+   Exactly one of S__close() and the last Sunreference() finds this state:
+   the one for which Sunreference_free() is true, which must call
+   unallocStream().
+*/
+
+#define SIO_REF_CLOSED	  0x40000000
+#define SIO_REF_COUNT(r)  ((r) & ~SIO_REF_CLOSED)
+#define Sunreference_free(s) (Sunreference(s) == SIO_REF_CLOSED)
+
 #ifdef O_DEBUG
 #ifndef Sdprintf
 #define Sdprintf(fmt...) Sdprintf_ex(NULL, __FILE__, __LINE__, fmt)

@@ -379,7 +379,7 @@ Sunlock(IOSTREAM *s)
   { assert(0);
   }
 
-  unalloc = (Sunreference(s) == 0 && s->erased);
+  unalloc = Sunreference_free(s);
 
   SUNLOCK(s);
   if ( unalloc )
@@ -425,7 +425,7 @@ Sacquire(IOSTREAM *s)
 
 int
 Srelease(IOSTREAM *s)
-{ if ( Sunreference(s) == 0 && s->erased )
+{ if ( Sunreference_free(s) )
   { unallocStream(s);
     return true;
   }
@@ -2254,6 +2254,25 @@ associated stream.
 
 #define SIO_CLOSE_GC	0x4
 
+/* Add SIO_REF_CLOSED to the references and return the old value.  See
+   Sunreference_free().
+*/
+
+static int
+S__mark_closed(IOSTREAM *s)
+{
+#if defined(O_PLMT) && defined(_MSC_VER)
+  return _InterlockedOr((long*)&s->references, SIO_REF_CLOSED);
+#elif defined(O_PLMT)
+  return __atomic_fetch_or(&s->references, SIO_REF_CLOSED, __ATOMIC_SEQ_CST);
+#else
+  int old = s->references;
+
+  s->references |= SIO_REF_CLOSED;
+  return old;
+#endif
+}
+
 static int
 S__close(IOSTREAM *s, int flags)
 { int rval = 0;
@@ -2322,10 +2341,9 @@ S__close(IOSTREAM *s, int flags)
     free(s->message);
   if ( s->locale )
     releaseLocale(s->locale);
-  if ( s->references == 0 )
+  s->erased = true;
+  if ( SIO_REF_COUNT(S__mark_closed(s)) == 0 )
     unallocStream(s);
-  else
-    s->erased = true;
 
   return rval;
 }
@@ -3316,9 +3334,9 @@ Sset_filter(IOSTREAM *parent, IOSTREAM *filter)
     { assert(filter->downstream == parent);
       filter->downstream = NULL;
       parent->upstream = NULL;
-      if ( Sunreference(filter) == 0 && filter->erased )
+      if ( Sunreference_free(filter) )
 	unallocStream(filter);
-      if ( Sunreference(parent) == 0 && parent->erased )
+      if ( Sunreference_free(parent) )
 	unallocStream(parent);
     }
   }

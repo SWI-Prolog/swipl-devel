@@ -756,9 +756,7 @@ the safe side.
 
 static void
 gc_close_stream(atom_t aref, IOSTREAM *s)
-{ if ( s->erased )
-  { unallocStream(s);
-  } else if ( s->magic == SIO_MAGIC && !ison(s, SIO_CLOSING) )
+{ if ( s->magic == SIO_MAGIC && !ison(s, SIO_CLOSING) )
   { int doit;
 
     WITH_LD(&PL_local_data)
@@ -784,18 +782,30 @@ gc_close_stream(atom_t aref, IOSTREAM *s)
 }
 
 
+/* Drop the reference of a handle to `s`.  If it is the last reference
+   to an open stream we may close it.  We keep our reference while doing
+   so: a concurrent close by another thread then cannot free the stream
+   under us.  Whoever drops the last reference to a closed stream frees
+   it (see Sunreference_free()).
+*/
+
+static void
+release_stream(atom_t aref, IOSTREAM *s)
+{ if ( SIO_REF_COUNT(s->references) == 1 )
+    gc_close_stream(aref, s);
+  if ( Sunreference_free(s) )
+    unallocStream(s);
+}
+
+
 static int
 release_stream_ref(atom_t aref)
 { stream_ref *ref = PL_blob_data(aref, NULL, NULL);
 
   if ( ref->read )
-  { if ( Sunreference(ref->read) == 0 )
-      gc_close_stream(aref, ref->read);
-  }
+    release_stream(aref, ref->read);
   if ( ref->write )
-  { if ( Sunreference(ref->write) == 0 )
-      gc_close_stream(aref, ref->write);
-  }
+    release_stream(aref, ref->write);
 
   return true;
 }
