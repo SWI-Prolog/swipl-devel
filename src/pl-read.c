@@ -1399,7 +1399,7 @@ setCurrentSourceLocation(DECL_LD ReadData _PL_rd)
 { atom_t a;
   IOSTREAM *s = rb.stream;
 
-  if ( (a = fileNameStream(s)) )
+  if ( (a = fileNameStreamLocked(s)) )	/* we hold the stream lock */
     _PL_rd->start_of_term.file = a;
   else
     _PL_rd->start_of_term.file = NULL_ATOM;

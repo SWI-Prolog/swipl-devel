@@ -90,6 +90,7 @@ bool		reportStreamError(IOSTREAM *s);
 bool		streamStatus(IOSTREAM *s);
 int		setFileNameStream(IOSTREAM *s, atom_t name);
 atom_t		fileNameStream(IOSTREAM *s);
+atom_t		fileNameStreamLocked(IOSTREAM *s);
 int		getSingleChar(IOSTREAM *s, int signals);
 int		readLine(IOSTREAM *in, IOSTREAM *out, char *buffer);
 int		LockStream(void);

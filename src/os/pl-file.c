@@ -536,6 +536,19 @@ fileNameStream(IOSTREAM *s)
   return name;
 }
 
+/* As fileNameStream(), for a caller that holds the lock of `s`, e.g.,
+   the reader.  The stream cannot be closed while we hold its lock, so
+   its context is not freed and we do not need L_FILE.  A stream without
+   context has no file name.
+*/
+
+atom_t
+fileNameStreamLocked(IOSTREAM *s)
+{ stream_context *ctx = getExistingStreamContext(s);
+
+  return ctx ? ctx->filename : NULL_ATOM;
+}
+
 void
 initIO(void)
 { GET_LD
