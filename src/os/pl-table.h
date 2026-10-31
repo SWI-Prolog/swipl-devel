@@ -93,6 +93,7 @@ TABLE_STRUCT(table_pw);		/* ptr -> word */
 struct kvs
 { size_t len;			/* size of key-value map */
   int resizing;			/* true while resizing */
+  int copied;			/* all entries are in next */
   int accesses;			/* number of accesses */
   KVS next;			/* next map */
   KVS prev;			/* last map */
