@@ -120,7 +120,7 @@ isReservedSymbol(word w)
 
 static atom_t
 new_reserved_symbol(size_t len, const char *s)
-{ int new;
+{ bool new;
 
   return lookupBlob(s, len, &reserved_symbol, &new);
 }

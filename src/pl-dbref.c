@@ -190,7 +190,7 @@ static PL_blob_t record_blob =
 atom_t
 lookup_clref(Clause clause)
 { GET_LD
-  int new;
+  bool new;
 
   DEBUG(CHK_SECURE, assert(!onStackArea(local, clause)));
 
@@ -239,7 +239,7 @@ PL_unify_clref(term_t t, Clause clause)
 }
 
 
-int
+bool
 PL_put_clref(term_t t, Clause clause)
 { atom_t a = lookup_clref(clause);
 
@@ -250,13 +250,13 @@ PL_put_clref(term_t t, Clause clause)
 }
 
 
-int
+bool
 PL_unify_recref(term_t t, RecordRef r)
 { return PL_unify_blob(t, r, sizeof(*r), &record_blob);
 }
 
 
-int
+bool
 PL_is_dbref(term_t t)
 { PL_blob_t *type;
 
@@ -326,7 +326,7 @@ PL_get_clref(term_t t, Clause *cl)
 }
 
 
-int
+bool
 PL_get_recref(term_t t, RecordRef *rec)
 { RecordRef r;
   PL_blob_t *type;

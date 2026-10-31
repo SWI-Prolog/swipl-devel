@@ -120,7 +120,7 @@ static PL_blob_t undo_blob =
 static atom_t
 save_undo(term_t goal)
 { record_t r = PL_record(goal);
-  int new;
+  bool new;
 
   return lookupBlob((const char*)r, sizeof(r), &undo_blob, &new);
 }

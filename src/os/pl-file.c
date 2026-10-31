@@ -869,7 +869,7 @@ the safe side.
 static void
 gc_close_stream(atom_t aref, IOSTREAM *s)
 { if ( s->magic == SIO_MAGIC && !ison(s, SIO_CLOSING) )
-  { int doit;
+  { bool doit;
 
     WITH_LD(&PL_local_data)
       doit = truePrologFlag(PLFLAG_AGC_CLOSE_STREAMS);
@@ -1434,12 +1434,12 @@ static
 PRED_IMPL("stream_pair", 3, stream_pair, 0)
 { PRED_LD
   IOSTREAM *in = NULL, *out = NULL;
-  int rc = false;
+  bool rc = false;
 
   if ( !PL_is_variable(A1) )
   { stream_ref ref;
     atom_t a = 0;
-    int rc = true;
+    bool rc = true;
 
     if ( PL_get_atom(A1, &a) && get_stream_ref(a, &ref) )
     { if ( ref.read && !ref.read->erased )
@@ -4886,8 +4886,8 @@ PRED_IMPL("open_null_stream", 1, open_null_stream, 0)
 }
 
 
-static int
-do_close(IOSTREAM *s, int force)
+static bool
+do_close(IOSTREAM *s, bool force)
 { if ( force )
   { if ( !s )
       return true;
@@ -4912,8 +4912,8 @@ do_close(IOSTREAM *s, int force)
 
 
 #define pl_close(stream, force) LDFUNC(pl_close, stream, force)
-static int
-pl_close(DECL_LD term_t stream, int force)
+static bool
+pl_close(DECL_LD term_t stream, bool force)
 { IOSTREAM *s;
   atom_t a;
   stream_ref ref;
@@ -4922,7 +4922,7 @@ pl_close(DECL_LD term_t stream, int force)
     return not_a_stream(stream, SH_ALIAS);
 
   if ( get_stream_ref(a, &ref) )	/* close(Stream[pair], ...) */
-  { int rc = true;
+  { bool rc = true;
 
     if ( ref.read && ref.write )
     { assert(ref.read->references);

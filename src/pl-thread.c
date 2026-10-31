@@ -2646,7 +2646,7 @@ create_thread_handle(DECL_LD PL_thread_info_t *info)
       ref = PL_malloc(sizeof(*ref));
 
     if ( ref )
-    { int new;
+    { bool new;
 
       memset(ref, 0, sizeof(*ref));
 #ifdef O_PLMT
@@ -5602,7 +5602,7 @@ unlocked_message_queue_create(term_t queue, long max_size)
   q->type = QTYPE_QUEUE;
   if ( !id )
   { mqref ref;
-    int new;
+    bool new;
 
     ref.queue = q;
     q->id = lookupBlob((void*)&ref, sizeof(ref), &message_queue_blob, &new);

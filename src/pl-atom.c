@@ -211,7 +211,7 @@ Note that threads can mark their atoms and continue execution because:
       that they can safely be walked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int	rehashAtoms(void);
+static bool	rehashAtoms(void);
 static void	considerAGC(void);
 static unsigned int register_atom(volatile Atom p, bool promote);
 static void	 unregister_atom(volatile Atom p);
@@ -389,7 +389,7 @@ promoting_ref(unsigned int ref, const PL_blob_t *type)
 
 static void	promoted_atom(Atom a, unsigned int nref);
 
-static inline int
+static inline bool
 bump_atom_references(Atom a, unsigned int ref, const PL_blob_t *type)
 { for(;;)
   { unsigned int nref = promoting_ref(ref+1, type);
@@ -421,7 +421,7 @@ bump_atom_references(Atom a, unsigned int ref, const PL_blob_t *type)
 
 #define bump_local_references(a, ref, type) \
 	LDFUNC(bump_local_references, a, ref, type)
-static int
+static bool
 bump_local_references(DECL_LD Atom a, unsigned int ref, const PL_blob_t *type)
 { if ( localAtomOwner(a->atom) != LD )
     return bump_atom_references(a, ref, type);
@@ -832,7 +832,7 @@ lookupLiveBlob(atom_t type_name, const char *text, size_t len)
 atom_t
 newDeadBlob(atom_t type_name, const char *text, size_t len, bool resolve)
 { GET_LD
-  int new;
+  bool new;
 
   if ( resolve )
   { atom_t live;
@@ -1131,7 +1131,7 @@ bypassed the LOCK as either GD->atoms.rehashing is true or the new table
 is activated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 same_name(const Atom a, const char *s, size_t length, const PL_blob_t *type)
 { if ( isoff(type, PL_BLOB_NOCOPY) )
     return length == 0 || memcmp(s, a->name, length) == 0;
@@ -1154,7 +1154,7 @@ atomTableNeedsRehash(void)
 
 
 atom_t
-lookupBlob(DECL_LD const char *s, size_t length, PL_blob_t *type, int *new)
+lookupBlob(DECL_LD const char *s, size_t length, PL_blob_t *type, bool *new)
 { unsigned int v0, v = 0, ref;
   Atom *table = NULL;
   int buckets;
@@ -1213,7 +1213,7 @@ redo:
     }
 
     if ( atomTableNeedsRehash() )
-    { int rc;
+    { bool rc;
 
       PL_LOCK(L_REHASH_ATOMS);
       rc = rehashAtoms();
@@ -1313,7 +1313,7 @@ redo:
 
 atom_t
 lookupAtom(DECL_LD const char *s, size_t length)
-{ int new;
+{ bool new;
 
   return lookupBlob(s, length, &text_atom, &new);
 }
@@ -1565,7 +1565,7 @@ chainInvalidAtom(Atom a, Atom *chain)
   a->length = 0;
 }
 
-static int
+static bool
 invalidateAtom(Atom a, unsigned int ref)
 { if ( !preDestroyAtom(a, ref) )
     return false;
@@ -3023,7 +3023,7 @@ checkAtoms_src(const char *file, int line)
 		 *	    REHASH TABLE	*
 		 *******************************/
 
-static int
+static bool
 rehashAtoms(void)
 { AtomTable newtab;
   uintptr_t mask;

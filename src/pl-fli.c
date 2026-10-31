@@ -736,7 +736,7 @@ PL_new_blob(void *blob, size_t len, PL_blob_t *type)
 { if ( !GD->initialised )
     initAtoms();
 
-  int new;
+  bool new;
   return (atom_t)lookupBlob(blob, len, type, &new);
 }
 
@@ -851,7 +851,7 @@ isUCSAtom(Atom a)
 
 atom_t
 lookupUCSAtom(const pl_wchar_t *s, size_t len)
-{ int new;
+{ bool new;
 
   return lookupBlob((const char *)s, len*sizeof(pl_wchar_t),
 		    &ucs_atom, &new);
@@ -3547,7 +3547,7 @@ uncachedCodeToAtom(int chrcode)
   } else
   { wchar_t tmp[2];
     wchar_t *end;
-    int new;
+    bool new;
 
     end = put_wchar(tmp, chrcode);
 
@@ -4383,7 +4383,7 @@ _PL_put_atomic(term_t t, PL_atomic_t a)
 bool
 PL_unify_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 { GET_LD
-  int new;
+  bool new;
   valid_term_t(t);
   atom_t a = lookupBlob(blob, len, type, &new);
   bool rval = PL_unify_atom(t, a);
@@ -4397,7 +4397,7 @@ PL_unify_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 bool
 PL_put_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 { GET_LD
-  int new;
+  bool new;
   valid_user_term_t(t);
   atom_t a = lookupBlob(blob, len, type, &new);
 

@@ -545,7 +545,7 @@ getAtom(IOSTREAM *fd, PL_blob_t *type)
     *s++ = (char)c;
   }
   if ( type )
-  { int new;
+  { bool new;
 
     a = lookupBlob(tmp, len, type, &new);
   } else

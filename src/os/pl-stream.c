@@ -361,7 +361,7 @@ StryLock(IOSTREAM *s)
 int
 Sunlock(IOSTREAM *s)
 { int rval = 0;
-  int unalloc;
+  bool unalloc;
 
 #ifdef DEBUG_IO_LOCKS
   if ( s->locks > 3 )
@@ -423,7 +423,7 @@ Sacquire(IOSTREAM *s)
   return s;
 }
 
-int
+bool
 Srelease(IOSTREAM *s)
 { if ( Sunreference_free(s) )
   { unallocStream(s);

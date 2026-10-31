@@ -55,7 +55,7 @@
 #define checkAtoms()	checkAtoms_src(__FILE__, __LINE__)
 atom_t		lookupAtom(const char *s, size_t len);
 atom_t		lookupBlob(const char *s, size_t len,
-			   PL_blob_t *type, int *new);
+			   PL_blob_t *type, bool *new);
 foreign_t	pl_atom_hashstat(term_t i, term_t n);
 void		do_init_atoms(void);
 int		resetListAtoms(void);

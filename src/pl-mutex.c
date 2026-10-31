@@ -200,7 +200,7 @@ mutexCreate(DECL_LD atom_t name)
 
     if ( name == NULL_ATOM )
     { mutexref ref;
-      int new;
+      bool new;
 
       ref.mutex = m;
       m->id = lookupBlob((void*)&ref, sizeof(ref), &mutex_blob, &new);
