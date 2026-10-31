@@ -1103,6 +1103,28 @@ which effectively ensures the atom will never be collected.  It is
 advised to use the *_chars() or *_nchars() functions whenever
 applicable.
 
+\paragraph{Passing atoms to other threads}
+An atom obtained from a term, e.g., using PL_get_atom(), may be a
+\jargon{local} atom of the calling thread.  This is the case for a new
+atom created by PL_unify_chars() and friends, by read_term/2 or
+PL_chars_to_term(), and for blobs of a type with \const{PL_BLOB_LOCAL}
+(see \secref{blobtype}).  Such an atom is reclaimed by the owning thread
+as soon as its own stacks no longer reference it, regardless of whether
+another thread uses the handle.  \textbf{Foreign code that hands an
+\ctype{atom_t} to another thread, e.g., by storing it in a C variable,
+a queue or a data structure that is shared between threads, must call
+PL_register_atom() before doing so}.  PL_register_atom() turns the atom
+into an ordinary atom, which the atom garbage collector protects as long
+as any thread references it.  The other thread may therefore call
+PL_unregister_atom() as soon as the atom is reachable from one of its
+own term references, e.g., after PL_put_atom().  Strictly, this was always required, but before local
+atoms existed the omission was usually harmless because the global atom
+garbage collector scans the stacks of all threads.  Without the
+registration, the other thread may use an atom that has been reclaimed,
+which leads to wrong results or a crash.  Debug builds of SWI-Prolog
+report the use of another thread's local atom through the foreign
+language interface as an API error.
+
 
 \subsection{Input and output}
 \label{sec:input-and-output}
@@ -2414,6 +2436,17 @@ PL_get_chars() for a definition of the representation types. If
 \arg{len} is \const{-1} \arg{chars} must be zero-terminated and the length
 is computed from \arg{chars} using strlen().
 
+If the target type is \const{PL_ATOM} and the atom does not yet exist,
+it is created as a thread-local atom (see \const{PL_BLOB_LOCAL} in
+\secref{blobtype}): the atom is only referenced from the term.  This
+avoids global atom garbage collection for temporary atoms.  It becomes
+an ordinary atom if another thread looks up the same text or as soon as
+it is stored where other threads can find it.  Foreign code that keeps
+the atom must use PL_register_atom(), as for any atom obtained from a
+term.  This notably applies to passing the atom to another thread (see
+\secref{atomgc}).  Atoms created by PL_new_atom() and friends are
+ordinary atoms.
+
 If \arg{flags} includes \const{PL_DIFF_LIST} and type is one of
 \const{PL_CODE_LIST} or \const{PL_CHAR_LIST}, the text is converted
 to a \jargon{difference list}.  The tail of the difference list is
@@ -3102,7 +3135,9 @@ variables, tables), sent to a message queue, or used by another thread,
 for example because another thread does a lookup of the same
 \const{PL_BLOB_UNIQUE} blob.  The \ctype{atom_t} handle does not change.
 PL_register_atom() also promotes the atom, so foreign code that keeps a
-handle uses the same rules as for any other atom.
+handle uses the same rules as for any other atom.  Foreign code that
+passes the handle to another thread must register it first (see
+\secref{atomgc}).
 
 For a blob of this type, the release() function is called by the thread
 that created the blob, at a safe point of that thread.  This may be

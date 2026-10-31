@@ -530,6 +530,57 @@ safe mode is needed for the local sweep anyway.
         blobs reclaimed by the thread's sweep.  Test
         `undo:local_reclaimed`; dropping the flag or registering the
         scheduled goals with `PL_register_atom()` is detected.
+      - **Done.**  Text atoms created by `unify_text()` (`PL_ATOM`), and
+        thus by `PL_unify_chars()`, `atom_concat/3`, `atom_codes/2` and
+        the other builtins that unify text with an atom, are local.
+        `lookupBlobEx()` creates a local atom for a type without
+        `PL_BLOB_LOCAL` if asked; `unify_text()` puts the atom on the
+        stack and drops its reference.  They are in the atom table, so
+        another thread looking up the same text finds and promotes them;
+        storing them in clauses, the functor table, flags, records or
+        tries promotes them.  Atoms created with a reference that the
+        caller may keep (`PL_new_atom()`, `textToAtom()`, the reader,
+        caches such as `for_code`) remain ordinary atoms.
+          - 1,000,000 `atom_concat/3`, CPUs 0–3: one thread 0.12–0.17 s
+            with no global AGC instead of 0.15–0.21 s with 58–61 runs
+            and 0.13–0.20 s AGC CPU; 4 threads 0.31–0.34 s instead of
+            0.42–0.44 s and 0.9–1.0 s AGC CPU.  Tabling benchmarks
+            100%, ErgoAI cyc150 the same (29.6 s against 29.4–30.0 s),
+            `bench/` 98.8% (geometric mean).
+          - `answer_discard:atom_keep_discarded` expected no atoms to
+            survive; in the debug build 3 now survive, marked by the
+            conservative scan of stale local stack cells, as its sibling
+            `atom_keep_deep` already allows.
+          - Tests (unit `local_text`): `atom_concat`, `same_text`,
+            `assert`, `functor`, `reclaimed`, `read_is_global`; making
+            `unify_text()` create ordinary atoms is detected.  The
+            `gc_margin` tests now count local sweeps as collections.
+          - Risk: foreign code that passes an `atom_t` obtained from a
+            term to another thread without `PL_register_atom()`.  That
+            was always wrong, but global AGC forgave it because it
+            scans all stacks.  The manual (`sec:atomgc`, "Passing atoms
+            to other threads") warns about it; debug builds report the
+            use through `check_atom_t()`.
+      - **Done.**  The atoms of name tokens of read_term/2 are local
+        (`textToLocalAtom()` in `get_token()`).  The reader keeps a
+        reference while parsing, which does not promote; the atoms of
+        functors are promoted by the functor table.  Reading 300,000
+        facts with 4 new atoms each and discarding them: 0.36 s process
+        CPU and no global AGC instead of 0.50–0.65 s and 91 AGC runs.
+        Loading the same file is unchanged (1.86–1.90 s against
+        1.85–1.87 s) after two fixes this exposed:
+          - load_files/2 runs in sig_atomic/1, so the signal for the
+            local sweep stayed pending: every call took the slow path
+            and every new atom raised it again (12% slower).
+            handleSignals() now does the local sweep in a critical
+            section (`criticalAtomGC()`); global AGC still waits.
+          - Atoms promoted by their owner counted as live until a
+            sweep, causing about 2,000 sweeps that reclaimed nothing.
+            `promoted_atom()` now discounts them.
+          - Tests (unit `local_text`): `read`, `read_quoted`,
+            `read_arg`, `read_functor`, `read_assert`,
+            `read_reclaimed`, `sig_atomic`, `promoted`; each change is
+            detected by reverting it.
     Candidates:
       - core: streams, clause and record references, closures
         (`pl-wrap.c`), undo (`pl-undo.c`), zippers (`pl-zip.c`);

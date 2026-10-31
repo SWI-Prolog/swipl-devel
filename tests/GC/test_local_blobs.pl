@@ -48,7 +48,8 @@ test_local_blobs :-
     run_tests([ local_blobs,
                 local_margin,
                 local_find,
-                local_streams
+                local_streams,
+                local_text
               ]).
 
 :- dynamic
@@ -114,8 +115,9 @@ in_thread(Goal) :-                      % single threaded: use an engine
 :- begin_tests(local_blobs, [cleanup(retractall(kept(_)))]).
 
 test(reclaim, [true(Collected > 15_000), true(Live < 2_048)]) :-
-    reclaimed(20_000, Collected),
-    '$local_atoms'(live, Live).
+    in_thread(( reclaimed(20_000, Collected), % fresh sweep threshold
+                '$local_atoms'(live, Live)
+              )).
 test(no_global_atoms, true(Grown < 100)) :-
     statistics(atoms, A0),
     churn(20_000),
@@ -526,3 +528,114 @@ sweep_until(S0) :-
     ).
 
 :- end_tests(local_streams).
+
+
+%   Text atoms that PL_unify_text() creates, e.g., by atom_concat/3, are
+%   local atoms.  They are unique: if another thread creates the same
+%   text it finds the local atom and promotes it.  Storing them in shared
+%   data promotes them.  Atoms created with a reference that the caller
+%   may keep, such as by the reader, are ordinary atoms.
+
+:- begin_tests(local_text).
+
+:- dynamic lt_fact/1.
+
+text_local(Prefix, I, A, Local) :-
+    atom_concat(Prefix, I, A),
+    local_flag(A, Local).
+
+test(atom_concat, Local == true) :-
+    in_thread(text_local(lt_concat_, 1, _, Local)).
+test(same_text, [condition(current_prolog_flag(threads, true)),
+                 Mine == false, Theirs == false]) :-
+    thread_self(Me),
+    thread_create(text_owner(Me, lt_shared_, 42), Id),
+    thread_get_message(created),
+    text_local(lt_shared_, 42, _, Mine),
+    thread_send_message(Id, check),
+    thread_get_message(local(Theirs)),
+    thread_join(Id).
+test(assert, [Before == true, After == false,
+              cleanup(retractall(lt_fact(_)))]) :-
+    in_thread(( text_local(lt_assert_, 1, A, Before),
+                assertz(lt_fact(A)),
+                local_flag(A, After)
+              )).
+test(functor, [Before == true, After == false]) :-
+    in_thread(( text_local(lt_functor_, 1, A, Before),
+                functor(_, A, 2),
+                local_flag(A, After)
+              )).
+test(reclaimed, [true(Collected > 15_000), true(Grown < 1_000)]) :-
+    in_thread(( statistics(atoms, A0),
+                '$local_atoms'(collected, C0),
+                forall(between(1, 20_000, I), atom_concat(lt_churn_, I, _)),
+                '$local_atoms'(collected, C1),
+                statistics(atoms, A1),
+                Collected is C1-C0,
+                Grown is A1-A0
+              )).
+test(read, Local == true) :-
+    in_thread(( term_string(A, "lt_read_atom_xyz"),
+                local_flag(A, Local)
+              )).
+test(read_quoted, Local == true) :-
+    in_thread(( term_string(A, "'lt read quoted'"),
+                local_flag(A, Local)
+              )).
+test(read_arg, Local == true) :-
+    in_thread(( term_string(f(A), "f(lt_read_arg)"),
+                local_flag(A, Local)
+              )).
+test(read_functor, Local == false) :-
+    in_thread(( term_string(T, "lt_read_functor(x)"),
+                functor(T, A, _),
+                local_flag(A, Local)
+              )).
+test(read_assert, [Before == true, After == false,
+                   cleanup(retractall(lt_fact(_)))]) :-
+    in_thread(( term_string(A, "lt_read_assert"),
+                local_flag(A, Before),
+                assertz(lt_fact(A)),
+                local_flag(A, After)
+              )).
+test(read_reclaimed, [true(Collected > 15_000), true(Grown < 1_000)]) :-
+    in_thread(( statistics(atoms, A0),
+                '$local_atoms'(collected, C0),
+                forall(between(1, 20_000, I),
+                       ( format(string(S), "lt_read_churn_~d", [I]),
+                         term_string(_, S)
+                       )),
+                '$local_atoms'(collected, C1),
+                statistics(atoms, A1),
+                Collected is C1-C0,
+                Grown is A1-A0
+              )).
+test(sig_atomic, true(Collected > 15_000)) :-
+    in_thread(sig_atomic(( '$local_atoms'(collected, C0),
+                           forall(between(1, 20_000, I),
+                                  atom_concat(lt_atomic_, I, _)),
+                           '$local_atoms'(collected, C1),
+                           Collected is C1-C0
+                         ))).
+test(promoted, [true(Sweeps < 3), cleanup(retractall(lt_fact(_)))]) :-
+    in_thread(( '$local_atoms'(sweeps, S0),
+                forall(between(1, 20_000, I),
+                       ( atom_concat(lt_promoted_, I, A),
+                         assertz(lt_fact(A))
+                       )),
+                '$local_atoms'(sweeps, S1),
+                Sweeps is S1-S0
+              )).
+
+%   Create the atom Prefix+I, tell Parent and tell whether it is still
+%   local when asked.
+
+text_owner(Parent, Prefix, I) :-
+    text_local(Prefix, I, A, _),
+    thread_send_message(Parent, created),
+    thread_get_message(check),
+    local_flag(A, Local),
+    thread_send_message(Parent, local(Local)).
+
+:- end_tests(local_text).

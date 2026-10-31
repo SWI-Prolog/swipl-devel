@@ -79,6 +79,15 @@ filler(Bytes, Atom) :-
     atom_codes(Atom, Codes),
     assertz(filler_cache(Bytes, Atom)).
 
+%  Collections: global atom-GC runs plus sweeps of our local atoms.  Text
+%  atoms made by atom_of/3 are local atoms of this thread, for which the
+%  thread sweeps itself when the gc_margin of their type is reached.
+
+collections(N) :-
+    statistics(agc, G),
+    '$local_atoms'(sweeps, S),
+    N is G+S.
+
 make_atoms(Count, Bytes) :-
     forall(between(1, Count, I),
            ( atom_of(Bytes, I, A),
@@ -170,20 +179,22 @@ test(unknown_property, [throws(error(domain_error(blob_type_property, _), _))]) 
 test(count_margin_ignores_size,
      [ setup(setup_agc(S)), cleanup(cleanup_agc(S)) ]) :-
     set_blob_type(text, gc_margin(0)),
-    statistics(agc, C0),
+    collections(C0),
     make_atoms(200, 100 000),
-    statistics(agc, C1),
+    collections(C1),
     assertion(C1 =:= C0).
 
 test(byte_margin_collects,
      [ setup(setup_agc(S)), cleanup(cleanup_agc(S)) ]) :-
     set_blob_type(text, gc_margin(4 000 000)),
-    statistics(agc, C0),
+    collections(C0),
     make_atoms(200, 100 000),
-    statistics(agc, C1),
+    collections(C1),
     assertion(C1 > C0),
     blob_type_property(text, unregistered(Unregistered)),
-    assertion(Unregistered < 4 000 000).        % kept near the budget
+    assertion(Unregistered < 4 000 000),        % kept near the budget
+    '$local_atoms'(units, Units),
+    assertion(Units < 4 100 000).
 
 %  A type whose blobs are live must stop asking rather than spin: the
 %  survivors raise non_garbage, so the next request needs a further margin
@@ -193,9 +204,9 @@ test(byte_margin_collects,
 test(live_atoms_do_not_thrash,
      [ setup(setup_agc(S)), cleanup(cleanup_agc(S)) ]) :-
     set_blob_type(text, gc_margin(4 000 000)),
-    statistics(agc, C0),
+    collections(C0),
     keep_atoms(200, 100 000, Atoms),
-    statistics(agc, C1),
+    collections(C1),
     length(Atoms, N),
     assertion(N == 200),
     Runs is C1-C0,
@@ -216,9 +227,9 @@ test(global_disable_wins,
         ( current_prolog_flag(agc_margin, Old),
           set_prolog_flag(agc_margin, 0) ),
         ( set_blob_type(text, gc_margin(1000)),
-          statistics(agc, C0),
+          collections(C0),
           make_atoms(100, 100 000),
-          statistics(agc, C1),
+          collections(C1),
           assertion(C1 =:= C0) ),
         set_prolog_flag(agc_margin, Old)).
 

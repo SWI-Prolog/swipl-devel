@@ -236,6 +236,7 @@ bool		PL_is_list(term_t t);
 /* PL_same_term(term_t t1, term_t t2) moved to pl-prims.h */
 bool		isUCSAtom(Atom a);
 atom_t		lookupUCSAtom(const pl_wchar_t *s, size_t len);
+atom_t		lookupLocalUCSAtom(const pl_wchar_t *s, size_t len);
 int		charCode(word w);
 bool		isCallable(word w);
 bool		PL_unify_arg_sz(size_t index, term_t t, term_t a);

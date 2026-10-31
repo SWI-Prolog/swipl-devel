@@ -488,6 +488,32 @@ textToAtom(DECL_LD PL_chars_t *text)
 }
 
 
+/* As textToAtom(), but a new atom is local to the calling thread.  The
+ * reference does not promote it: the caller must drop it or keep it in
+ * data of this thread (see lookupBlobEx()).
+ */
+
+atom_t
+textToLocalAtom(DECL_LD PL_chars_t *text)
+{ atom_t a;
+  int rc;
+
+  PL_STRINGS_MARK();
+  if ( (rc=PL_canonicalise_text(text)) == true )
+  { if ( text->encoding == ENC_ISO_LATIN_1 )
+      a = lookupLocalAtom(text->text.t, text->length);
+    else
+      a = lookupLocalUCSAtom(text->text.w, text->length);
+  } else
+  { text_error(text, rc);
+    a = 0;
+  }
+  PL_STRINGS_RELEASE();
+
+  return a;
+}
+
+
 word
 textToString(DECL_LD PL_chars_t *text)
 { word w;
@@ -531,7 +557,7 @@ static bool
 unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 { switch(type)
   { case PL_ATOM:
-    { atom_t a = textToAtom(text);
+    { atom_t a = textToLocalAtom(text);
 
       if ( a )
       { bool rval = PL_unify_atomic(term, a);

@@ -77,6 +77,7 @@ typedef struct
 #if USE_LD_MACROS
 #define	PL_get_text(l, text, flags)	LDFUNC(PL_get_text, l, text, flags)
 #define textToAtom(text)		LDFUNC(textToAtom, text)
+#define textToLocalAtom(text)		LDFUNC(textToLocalAtom, text)
 #define textToString(text)		LDFUNC(textToString, text)
 #endif /*USE_LD_MACROS*/
 
@@ -120,6 +121,7 @@ typedef enum
 
 get_text_t	PL_get_text(term_t l, PL_chars_t *text, int flags);
 atom_t		textToAtom(PL_chars_t *text);
+atom_t		textToLocalAtom(PL_chars_t *text);
 word		textToString(PL_chars_t *text);
 
 IOSTREAM *	Sopen_text(PL_chars_t *text, const char *mode);

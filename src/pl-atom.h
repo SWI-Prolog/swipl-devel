@@ -42,6 +42,9 @@
 #if USE_LD_MACROS
 #define lookupBlob(s, len, type, new) LDFUNC(lookupBlob, s, len, type, new)
 #define lookupAtom(s, len) LDFUNC(lookupAtom, s, len)
+#define lookupLocalAtom(s, len) LDFUNC(lookupLocalAtom, s, len)
+#define lookupBlobEx(s, len, type, new, local) \
+	LDFUNC(lookupBlobEx, s, len, type, new, local)
 #define newLocalBlob(data, length, type) LDFUNC(newLocalBlob, data, length, type)
 #define newSharedBlob(data, length, type) LDFUNC(newSharedBlob, data, length, type)
 #endif
@@ -54,6 +57,9 @@
 #define LDFUNC_DECLARATIONS
 #define checkAtoms()	checkAtoms_src(__FILE__, __LINE__)
 atom_t		lookupAtom(const char *s, size_t len);
+atom_t		lookupLocalAtom(const char *s, size_t len);
+atom_t		lookupBlobEx(const char *s, size_t len, PL_blob_t *type,
+			     bool *new, bool local);
 atom_t		lookupBlob(const char *s, size_t len,
 			   PL_blob_t *type, bool *new);
 foreign_t	pl_atom_hashstat(term_t i, term_t n);

@@ -12561,7 +12561,7 @@ always returns the same value as the one without ``self''.
 agc		& Number of atom garbage collections performed \\
 agc_gained	& Number of atoms removed \\
 agc_time	& Time spent in atom garbage collections \\
-atoms           & Total number of defined atoms \\
+atoms           & Total number of defined atoms, without thread-local atoms (see \const{PL_BLOB_LOCAL}) \\
 atom_space      & Bytes used to represent atoms \\
 c_stack		& System (C-) stack limit.  0 if not known. \\
 cgc		& Number of clause garbage collections performed \\

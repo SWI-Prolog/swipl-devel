@@ -816,6 +816,13 @@ initAltSignalStack(void)
   return false;
 }
 
+#define localSweepWanted(_) LDFUNC(localSweepWanted, _)
+static inline bool
+localSweepWanted(DECL_LD)
+{ return ( LD->atoms.local.live >= LD->atoms.local.threshold ||
+	   LD->atoms.local.units_due );
+}
+
 static void
 agc_handler(int sig)
 { GET_LD
@@ -825,9 +832,27 @@ agc_handler(int sig)
     return;
   if ( AGC_wanted() && !agcByGCThread() )
     pl_garbage_collect_atoms();		/* also does the local sweep */
-  else if ( LD->atoms.local.live >= LD->atoms.local.threshold ||
-	    LD->atoms.local.units_due )
+  else if ( localSweepWanted() )
     considerLocalSweep();
+}
+
+/* SIG_ATOM_GC in a critical section such as sig_atomic/1, which notably
+ * runs load_files/2.  The local sweep calls no Prolog, so we do it now.
+ * Otherwise the signal remains pending until the section ends, which
+ * makes every call take the slow path and every new local atom raise
+ * the signal again.  Global AGC may print messages, so it must wait.
+ */
+
+#define criticalAtomGC(_) LDFUNC(criticalAtomGC, _)
+static void
+criticalAtomGC(DECL_LD)
+{ if ( AGC_wanted() && !agcByGCThread() )
+    return;
+
+  WSIGMASK_CLEAR(LD->signal.pending, SIG_ATOM_GC);
+  if ( !gc_status.blocked && localSweepWanted() )
+    considerLocalSweep();
+  updateAlerted(LD);
 }
 
 
@@ -1242,7 +1267,9 @@ handleSignals(DECL_LD)
     return done;
 #endif
   if ( LD->critical )
-  { DEBUG(MSG_THREAD_SIGNAL,
+  { if ( WSIGMASK_ISSET(LD->signal.pending, SIG_ATOM_GC) )
+      criticalAtomGC();
+    DEBUG(MSG_THREAD_SIGNAL,
 	  Sdprintf("[%d]: ignoring signal (critical = %d)\n",
 		   PL_thread_self(), LD->critical));
     return 0;

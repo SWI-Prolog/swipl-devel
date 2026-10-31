@@ -1153,8 +1153,25 @@ atomTableNeedsRehash(void)
 }
 
 
+/* lookupBlob() for a PL_BLOB_LOCAL type creates local atoms.  For
+ * other types, lookupBlobEx() can create a local atom if `local` is
+ * true.  This is for PL_BLOB_UNIQUE types whose atoms only data of the
+ * calling thread will refer to, e.g., a text atom that is unified with a
+ * term after which the caller drops its reference (see unify_text()) or
+ * the atoms of the tokens of read_term/2 (see pl-read.c).  A
+ * lookup that finds a local atom of another thread promotes it, so the
+ * atom is still unique.
+ */
+
 atom_t
 lookupBlob(DECL_LD const char *s, size_t length, PL_blob_t *type, bool *new)
+{ return lookupBlobEx(s, length, type, new, ison(type, PL_BLOB_LOCAL));
+}
+
+
+atom_t
+lookupBlobEx(DECL_LD const char *s, size_t length, PL_blob_t *type, bool *new,
+	     bool local)
 { unsigned int v0, v = 0, ref;
   Atom *table = NULL;
   int buckets;
@@ -1228,7 +1245,7 @@ redo:
   }
 
 #ifdef O_ATOMGC
-  a = ison(type, PL_BLOB_LOCAL) ? reserveLocalAtom() : reserveAtom();
+  a = local ? reserveLocalAtom() : reserveAtom();
 #else
   a = reserveAtom();
 #endif
@@ -1266,7 +1283,7 @@ redo:
       a->name = "<race>";
       MEMORY_BARRIER();
 #ifdef O_ATOMGC
-      if ( ison(type, PL_BLOB_LOCAL) )
+      if ( local )
 	unreserveLocalAtom(a);
       else
 #endif
@@ -1276,7 +1293,7 @@ redo:
   }
 
 #ifdef O_ATOMGC
-  if ( ison(type, PL_BLOB_LOCAL) )
+  if ( local )
     a->references = ( 1 | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE |
 		      ATOM_LOCAL_REFERENCE );
   else
@@ -1296,7 +1313,7 @@ redo:
   release_atom_bucket();
 
 #ifdef O_ATOMGC
-  if ( ison(type, PL_BLOB_LOCAL) )	/* see lookupLocalBlob() */
+  if ( local )				/* see lookupLocalBlob() */
   { if ( ison(type, PL_BLOB_UNIQUE) )	/* for rehashing */
       ATOMIC_INC(&GD->atoms.local_unique);
     addLocalUnits(a);
@@ -1316,6 +1333,18 @@ lookupAtom(DECL_LD const char *s, size_t length)
 { bool new;
 
   return lookupBlob(s, length, &text_atom, &new);
+}
+
+/* As lookupAtom(), creating a local atom if it does not exist.  Only for
+ * callers that drop the reference after putting the atom on the stacks
+ * of the calling thread.
+ */
+
+atom_t
+lookupLocalAtom(DECL_LD const char *s, size_t length)
+{ bool new;
+
+  return lookupBlobEx(s, length, &text_atom, &new, true);
 }
 
 
@@ -2486,11 +2515,19 @@ never reclaims such a blob while its object lives, and the release hook,
 which updates the object, only runs in the owner's local sweep.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-/* Account for an atom that was promoted to `nref` */
+/* Account for an atom that was promoted to `nref`.  If we own it, it no
+ * longer counts as live: atoms that are created locally and promoted
+ * soon, such as the atoms read by load_files/2, would otherwise trigger
+ * sweeps that reclaim nothing.  The sweep recomputes `live`.
+ */
 
 static void
 promoted_atom(Atom a, unsigned int nref)
-{ ATOMIC_INC(&GD->statistics.atoms);
+{ GET_LD
+
+  if ( HAS_LD && LD->atoms.local.live && localAtomOwner(a->atom) == LD )
+    LD->atoms.local.live--;
+  ATOMIC_INC(&GD->statistics.atoms);
   if ( ison(a->type, PL_BLOB_UNIQUE) )
     ATOMIC_DEC(&GD->atoms.local_unique);
   add_type_live(a);

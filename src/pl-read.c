@@ -3742,7 +3742,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 	    txt.storage   = PL_CHARS_HEAP;
 	    txt.encoding  = ENC_UTF8;
 	    txt.canonical = false;
-	    cur_token.value.atom = textToAtom(&txt);
+	    cur_token.value.atom = textToLocalAtom(&txt);
 	    NeedUnlock(cur_token.value.atom);
 	    PL_free_text(&txt);
 	    cur_token.type = rdhere[0] == '(' ? TK_FUNCTOR : TK_NAME;
@@ -3826,7 +3826,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		      break;
 		  }
 
-		  cur_token.value.atom = textToAtom(&txt);
+		  cur_token.value.atom = textToLocalAtom(&txt);
 		  NeedUnlock(cur_token.value.atom);
 		  PL_free_text(&txt);
 
@@ -4014,7 +4014,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  txt.storage   = PL_CHARS_HEAP;
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = false;
-		  cur_token.value.atom = textToAtom(&txt);
+		  cur_token.value.atom = textToLocalAtom(&txt);
 		  NeedUnlock(cur_token.value.atom);
 		  PL_free_text(&txt);
 		  if ( rdhere[0] == '(' )

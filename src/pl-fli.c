@@ -857,6 +857,17 @@ lookupUCSAtom(const pl_wchar_t *s, size_t len)
 		    &ucs_atom, &new);
 }
 
+/* As lookupUCSAtom(), creating a local atom.  See lookupLocalAtom(). */
+
+atom_t
+lookupLocalUCSAtom(const pl_wchar_t *s, size_t len)
+{ GET_LD
+  bool new;
+
+  return lookupBlobEx((const char *)s, len*sizeof(pl_wchar_t),
+		      &ucs_atom, &new, true);
+}
+
 
 atom_t
 PL_new_atom_wchars(size_t len, const wchar_t *s)
