@@ -159,6 +159,12 @@ Atoms are reclaimed by collectAtoms(), which is a two pass process.
 				       not found so insert at atoms[v]
 	  CAS ref -> ref+1
 
+A lookup that matches an atom that is being invalidated retries until
+the atom is unlinked.  Only then may it create a new blob for the same
+data: the release hook of the old blob must have completed before the
+acquire hook of the new one runs, as both update the same object (e.g.,
+DBREF_CLAUSE of a clause).
+
 The dynamic array gets holes and  we   remember  the  first free hole to
 avoid too much search. Alternatively, we could  turn the holes into some
 form of linked list, for example by   encoding an integer that expresses
@@ -951,7 +957,7 @@ redo:
 #ifdef O_ATOMGC
         if ( indexAtom(a->atom) >= GD->atoms.builtin &&
 	     !likely(bump_atom_references(a, ref)) )
-	  break;			/* atom was just GCed.  Re-create */
+	  goto redo;			/* being GCed: wait until unlinked */
 #endif
 #ifdef O_DEBUG_ATOMGC
         if ( atomLogFd && tracking(a) )
