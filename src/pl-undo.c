@@ -148,10 +148,13 @@ PRED_IMPL("$undo", 1, undo, 0)
       TrailAssignment(ul);
       DEBUG(MSG_UNDO, Sdprintf("Trailed %p\n", ul));
       *ul = consCompound(p);
+      PL_unregister_atom(u);		/* the undo list refers to it */
 
       return true;
     } else
+    { PL_unregister_atom(u);
       return false;
+    }
   } else
     return PL_permission_error("undo", "goal", A1);
 }

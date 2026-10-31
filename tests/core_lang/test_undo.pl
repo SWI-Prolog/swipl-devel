@@ -70,6 +70,11 @@ test(error2) :-
     \+ a(3).
 test(cleanup, fail) :-                 % issue #1414
     \+ \+ once((undo(true), fail)).
+test(reclaimed, true(Left < 100)) :-    % undo goals were never reclaimed
+    forall(between(1, 1000, _), (undo(true), fail ; true)),
+    garbage_collect,
+    garbage_collect_atoms,
+    aggregate_all(count, current_blob(_, undo), Left).
 
 ok.
 
