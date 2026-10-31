@@ -81,9 +81,17 @@ Transitioning between states is performed using CAS.
 
 #ifdef O_PLMT
 
+/* Announce that we access `k`, so htable_maybe_free_kvs() does not free
+   it.  If t->kvs changed while we announced, the map we announced may
+   already be freed, so we try again.
+*/
+
 #define acquire_kvs(t, k) \
-  { LD->thread.info->access.kvs = t->kvs; \
-    k = LD->thread.info->access.kvs; \
+  { do \
+    { k = t->kvs; \
+      LD->thread.info->access.kvs = k; \
+      MEMORY_BARRIER(); \
+    } while ( k != t->kvs ); \
   }
 
 #define release_kvs() \
@@ -195,6 +203,7 @@ htable_maybe_free_kvs(Table ht)
   { return;
   }
 
+  MEMORY_BARRIER();			/* see acquire_kvs() */
   kvs = ht->kvs;
 
   while( kvs->prev )
