@@ -75,6 +75,15 @@ test(reclaimed, true(Left < 100)) :-    % undo goals were never reclaimed
     garbage_collect,
     garbage_collect_atoms,
     aggregate_all(count, current_blob(_, undo), Left).
+test(local_reclaimed, true(Collected >= 4000)) :- % thread-local blobs
+    engine_create(C, undo_churn(5000, C), E),  % fresh sweep threshold
+    call_cleanup(engine_next(E, Collected), engine_destroy(E)).
+
+undo_churn(N, Collected) :-
+    '$local_atoms'(collected, C0),
+    forall(between(1, N, _), (undo(true), fail ; true)),
+    '$local_atoms'(collected, C1),
+    Collected is C1-C0.
 
 ok.
 

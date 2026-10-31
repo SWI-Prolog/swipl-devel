@@ -519,6 +519,17 @@ safe mode is needed for the local sweep anyway.
         `local_streams`): `local_handle`, `reclaimed`, `alias_promotes`
         and `no_local_close`; removing the flag, the refusal or the
         promotion of refused atoms is detected.
+      - **Done.**  Undo goals (`undo/1`) are `PL_BLOB_NOCOPY|PL_BLOB_LOCAL`
+        blobs on the record of the goal; they are not unique, as every
+        call records its goal, so they skip the atom table.  The
+        scheduled goals are registered with `registerAtomLocally()`.
+        This needed a fix first (on master): `$undo/1` never dropped the
+        reference that creating the blob returns, so undo blobs and
+        their records were never reclaimed.  1,000,000 `undo(true)`
+        calls followed by backtracking: 0.557 s, no global AGC, 999,554
+        blobs reclaimed by the thread's sweep.  Test
+        `undo:local_reclaimed`; dropping the flag or registering the
+        scheduled goals with `PL_register_atom()` is detected.
     Candidates:
       - core: streams, clause and record references, closures
         (`pl-wrap.c`), undo (`pl-undo.c`), zippers (`pl-zip.c`);

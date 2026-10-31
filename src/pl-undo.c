@@ -62,8 +62,7 @@ free_undo_data(PL_local_data_t *ld)
 
 static int
 write_undo_ref(IOSTREAM *s, atom_t aref, int flags)
-{ record_t *ref = PL_blob_data(aref, NULL, NULL);
-  record_t r = *ref;
+{ record_t r = PL_blob_data(aref, NULL, NULL);
   (void)flags;
 
   Sfprintf(s, "<undo>(%p)", r);
@@ -77,8 +76,7 @@ acquire_undo_blob(atom_t aref)
 
 static int
 release_undo_blob(atom_t aref)
-{ record_t *ref = PL_blob_data(aref, NULL, NULL);
-  record_t r = *ref;
+{ record_t r = PL_blob_data(aref, NULL, NULL);
 
   PL_erase(r);
   return true;
@@ -86,8 +84,7 @@ release_undo_blob(atom_t aref)
 
 static int
 save_undo_ref(atom_t aref, IOSTREAM *fd)
-{ record_t *ref = PL_blob_data(aref, NULL, NULL);
-  record_t r = *ref;
+{ record_t r = PL_blob_data(aref, NULL, NULL);
   (void)fd;
 
   return PL_warning("Cannot save reference to <undo>(%p)",
@@ -101,9 +98,16 @@ load_undo_ref(IOSTREAM *fd)
   return PL_new_atom("<saved-undo-ref>");
 }
 
+/* The blob data is the record of the goal.  Every call to undo/1 records
+ * its goal, so the blob need not be unique.  The blob is local to the
+ * thread: it is on the undo list of the thread and its goal runs in the
+ * thread.  The local sweep reclaims it when the undo list no longer
+ * holds it.
+ */
+
 static PL_blob_t undo_blob =
 { PL_BLOB_MAGIC,
-  PL_BLOB_UNIQUE,
+  PL_BLOB_NOCOPY|PL_BLOB_LOCAL,
   "undo",
   release_undo_blob,
   NULL,
@@ -118,13 +122,12 @@ save_undo(term_t goal)
 { record_t r = PL_record(goal);
   int new;
 
-  return lookupBlob((const char*)&r, sizeof(r), &undo_blob, &new);
+  return lookupBlob((const char*)r, sizeof(r), &undo_blob, &new);
 }
 
 static bool
 put_undo(term_t t, atom_t u)
-{ record_t *ref = PL_blob_data(u, NULL, NULL);
-  record_t r = *ref;
+{ record_t r = PL_blob_data(u, NULL, NULL);
 
   return PL_recorded(r, t);
 }
@@ -183,7 +186,7 @@ push_undo(DECL_LD Word p)
       initBuffer(LD->undo.scheduled);
     }
 
-    PL_register_atom(u);
+    registerAtomLocally(u);		/* the buffer belongs to this thread */
     addBuffer(LD->undo.scheduled, u, atom_t);
 
     if ( !(LD->alerted&ALERT_UNDO) )
