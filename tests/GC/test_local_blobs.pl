@@ -45,7 +45,9 @@ local sweep.
 */
 
 test_local_blobs :-
-    run_tests([ local_blobs
+    run_tests([ local_blobs,
+                local_margin,
+                local_find
               ]).
 
 :- dynamic
@@ -278,3 +280,160 @@ atoms_and_agc(N) :-
            )).
 
 :- end_tests(local_blobs).
+
+
+%   gc_margin for local blobs.  '$local_unique_test_blob'(+Units, -B)
+%   creates a PL_BLOB_UNIQUE|PL_BLOB_NOCOPY|PL_BLOB_LOCAL blob as
+%   foreign code referencing external objects does, counting Units
+%   towards the gc_margin of its type.  20 blobs are far below the
+%   count that triggers a local sweep.  Each test runs in a new thread
+%   for fresh sweep statistics.
+
+:- begin_tests(local_margin,
+               [ setup('$local_unique_test_blob'(1, _)), % registers the type
+                 cleanup(set_blob_type(local_unique_test, gc_margin(0)))
+               ]).
+
+margin_churn(Margin, Units, N, Sweeps, Collected) :-
+    set_blob_type(local_unique_test, gc_margin(Margin)),
+    in_thread(margin_churn(Units, N, Sweeps, Collected)).
+
+margin_churn(Units, N, Sweeps, Collected) :-
+    '$local_atoms'(sweeps, S0),
+    '$local_atoms'(collected, C0),
+    forall(between(1, N, _), '$local_unique_test_blob'(Units, _)),
+    '$local_atoms'(sweeps, S1),
+    '$local_atoms'(collected, C1),
+    Sweeps is S1-S0,
+    Collected is C1-C0.
+
+margin_hold(Margin, Units, N, Sweeps, Collected) :-
+    set_blob_type(local_unique_test, gc_margin(Margin)),
+    in_thread(margin_hold(Units, N, Sweeps, Collected)).
+
+margin_hold(Units, N, Sweeps, Collected) :-
+    '$local_atoms'(sweeps, S0),
+    '$local_atoms'(collected, C0),
+    length(L, N),
+    maplist('$local_unique_test_blob'(Units), L),
+    '$local_atoms'(sweeps, S1),
+    '$local_atoms'(collected, C1),
+    Sweeps is S1-S0,
+    Collected is C1-C0,
+    length(L, N).			% keep L alive
+
+test(no_margin, [Sweeps == 0, Collected == 0]) :-
+    margin_churn(0, 1_000_000, 20, Sweeps, Collected).
+test(margin, [true(Sweeps >= 4), true(Sweeps =< 6), true(Collected >= 15)]) :-
+    margin_churn(4_000_000, 1_000_000, 20, Sweeps, Collected).
+test(margin_kept, [true(Sweeps >= 4), true(Sweeps =< 6), Collected == 0]) :-
+    margin_hold(4_000_000, 1_000_000, 20, Sweeps, Collected).
+test(margin_units, Units == 3_000_000) :-
+    set_blob_type(local_unique_test, gc_margin(100_000_000)),
+    in_thread(( length(L, 3),
+                maplist('$local_unique_test_blob'(1_000_000), L),
+                '$local_atoms'(units, Units),
+                length(L, 3)
+              )).
+
+:- end_tests(local_margin).
+
+
+%   Finding local blobs by enumeration and by their printed form.  The
+%   owner enumerates its local blobs with current_blob/2 and they stay
+%   local.  Other threads do not see them: enumerating would promote
+%   them and their slots may be reused under our feet.  read_term/2,3
+%   with blob(resolve) finds the local PL_BLOB_UNIQUE|PL_BLOB_NOCOPY blob
+%   of another thread in the atom table, which promotes it.
+
+:- begin_tests(local_find).
+
+local_flag(B, Local) :-
+    (   '$local_atom'(B)
+    ->  Local = true
+    ;   Local = false
+    ).
+
+test(enum_own, [Found == true, Local == true]) :-
+    in_thread(enum_own(Found, Local)).
+
+enum_own(Found, Local) :-
+    '$local_unique_test_blob'(1, B),
+    (   current_blob(B2, local_unique_test), B2 == B
+    ->  Found = true
+    ;   Found = false
+    ),
+    local_flag(B, Local).
+
+test(enum_other, [condition(current_prolog_flag(threads, true)),
+                  Local == true, Found == false]) :-
+    thread_self(Me),
+    thread_create(owner(Me), Id),
+    thread_get_message(created(_Text)),
+    findall(B, current_blob(B, local_unique_test), Bs),
+    thread_send_message(Id, check),     % before sending Bs promotes them
+    thread_get_message(local(Local)),
+    thread_send_message(Id, member(Bs)),
+    thread_get_message(member(Found)),
+    thread_send_message(Id, done),
+    thread_join(Id).
+
+test(resolve_own, [Same == true, Local == true]) :-
+    in_thread(resolve_own(Same, Local)).
+
+resolve_own(Same, Local) :-
+    '$local_unique_test_blob'(1, B),
+    format(string(Text), '~q', [B]),
+    term_string(B2, Text, [blob(resolve)]),
+    ( B2 == B -> Same = true ; Same = false ),
+    local_flag(B, Local).
+
+test(resolve_other, [condition(current_prolog_flag(threads, true)),
+                     Type == local_unique_test, Same == true,
+                     Local == false]) :-
+    thread_self(Me),
+    thread_create(owner(Me), Id),
+    thread_get_message(created(Text)),
+    term_string(B, Text, [blob(resolve)]),
+    blob(B, Type),
+    thread_send_message(Id, same(B)),
+    thread_get_message(same(Same)),
+    thread_send_message(Id, check),
+    thread_get_message(local(Local)),
+    thread_send_message(Id, done),
+    thread_join(Id).
+
+%   Create a local blob, tell its printed form and answer questions
+%   about it until told we are done.
+
+owner(Parent) :-
+    '$local_unique_test_blob'(1, B),
+    format(string(Text), '~q', [B]),
+    thread_send_message(Parent, created(Text)),
+    owner_loop(Parent, B).
+
+owner_loop(Parent, B) :-
+    thread_get_message(Msg),
+    (   Msg = same(B2)
+    ->  ( B2 == B -> Same = true ; Same = false ),
+        thread_send_message(Parent, same(Same)),
+        owner_loop(Parent, B)
+    ;   Msg = member(Bs)
+    ->  ( memberchk_eq(B, Bs) -> Found = true ; Found = false ),
+        thread_send_message(Parent, member(Found)),
+        owner_loop(Parent, B)
+    ;   Msg == check
+    ->  local_flag(B, Local),
+        thread_send_message(Parent, local(Local)),
+        owner_loop(Parent, B)
+    ;   Msg == done
+    ->  true
+    ).
+
+memberchk_eq(X, [Y|T]) :-
+    (   X == Y
+    ->  true
+    ;   memberchk_eq(X, T)
+    ).
+
+:- end_tests(local_find).

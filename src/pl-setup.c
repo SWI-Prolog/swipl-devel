@@ -825,7 +825,8 @@ agc_handler(int sig)
     return;
   if ( AGC_wanted() && !agcByGCThread() )
     pl_garbage_collect_atoms();		/* also does the local sweep */
-  else if ( LD->atoms.local.live >= LD->atoms.local.threshold )
+  else if ( LD->atoms.local.live >= LD->atoms.local.threshold ||
+	    LD->atoms.local.units_due )
     considerLocalSweep();
 }
 

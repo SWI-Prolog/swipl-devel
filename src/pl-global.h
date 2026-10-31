@@ -705,6 +705,9 @@ struct PL_local_data
       local_atom_chunk *current;	/* = chunks[cursor] or NULL */
       size_t	live;			/* # live local atoms */
       size_t	threshold;		/* sweep when live reaches this */
+      size_t	units;			/* gc_margin units of live atoms */
+      size_t	units_kept;		/* units after the last sweep */
+      bool	units_due;		/* a gc_margin was reached */
       size_t	collected;		/* total reclaimed by the sweep */
       unsigned	sweeps;			/* # sweeps done */
     } local;				/* See "Thread-local blobs" */

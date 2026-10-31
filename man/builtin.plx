@@ -12747,7 +12747,8 @@ what stops a type whose blobs are live from asking repeatedly.
         \termitem{space}{Units}
 The number of blobs of this type that exist and what they hold.  Unlike
 counting current_blob/2 these are maintained as blobs come and go and do
-not scan the atom table.
+not scan the atom table.  Thread-local blobs (see \const{PL_BLOB_LOCAL}
+in \secref{blobtype}) are not counted until they are promoted.
     \end{description}
 
     \predicate{set_blob_type}{2}{+Type, +Property}

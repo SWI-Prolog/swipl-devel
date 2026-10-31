@@ -230,8 +230,9 @@ safe mode is needed for the local sweep anyway.
       - The sweep releases `used & ~marked` atoms without references.
         Afterwards, empty chunks go to the pool as long as the thread
         keeps at least its new threshold of slots.
-      - `current_blob/2` does not enumerate local atoms, and they are not
-        counted in `GD->statistics.atoms` or towards the AGC margin.
+      - `current_blob/2` only enumerates local atoms in their owner, and
+        they are not counted in `GD->statistics.atoms` or towards the
+        AGC margin.
       - When a thread terminates, its local atoms without references are
         released; the others become ordinary atoms.  Its chunks go to the
         pool, without the slots of the promoted atoms.
@@ -456,6 +457,37 @@ safe mode is needed for the local sweep anyway.
             mutation of the code it tests.  The hand-off to global AGC
             when a lookup is in the bucket has no test: it needs a
             lookup to be in the bucket at the moment of the sweep.
+      - **Done.**  `PL_BLOB_LOCAL` is public (`SWI-Prolog.h`, documented
+        with the blob flags in the manual), so foreign blob types such
+        as xpce's `pce_blob` and Janus' `PY_OBJECT` can use it.  These
+        reference external objects and use `gc_margin` to express what
+        they keep alive.  Local atoms are not in the type's global
+        accounting, so a thread now counts the `len` of the local blobs
+        it creates of types with a margin (`LD->atoms.local.units`).
+        When the units created since its last sweep reach the margin it
+        raises `SIG_ATOM_GC` and sweeps, regardless of the stack scan
+        ratio.  The sweep recounts the units of the survivors
+        (`units_kept`), so live blobs do not cause a sweep per new blob.
+        The units of all types with a margin are counted together.
+        Tests (`tests/GC/test_local_blobs.pl`, unit `local_margin`, on
+        `'$local_unique_test_blob'/2`, a `UNIQUE|NOCOPY|LOCAL` blob on a
+        malloc()ed object): `no_margin`, `margin`, `margin_kept` and
+        `margin_units`.  Each of 4 mutations (no signal, no survivor
+        discount, sweep test ignores the margin, unique blobs not
+        counted) is detected.
+      - **Done.**  Scans of the atom array (`current_blob/2`,
+        `read_term/2,3` with `blob(resolve)`) take a reference with
+        `bump_scanned_references()`: our own local atoms without
+        promoting them, local atoms of other threads not at all.  Their
+        owner releases and reuses the slots without synchronising with
+        the scan, so the scanned `references` and `type` may be
+        outdated, and passing an outdated type to `promoting_ref()`
+        mishandles `PL_BLOB_OWNED` references.  `blob(resolve)` finds a
+        local `UNIQUE|NOCOPY` blob of another thread through the atom
+        table (`localBlobsByAddress()`), where the bucket protocol makes
+        promotion safe.  Tests (unit `local_find`): `enum_own`,
+        `enum_other`, `resolve_own` and `resolve_other`; each of 4
+        mutations is detected.
     Candidates:
       - core: streams, clause and record references, closures
         (`pl-wrap.c`), undo (`pl-undo.c`), zippers (`pl-zip.c`);

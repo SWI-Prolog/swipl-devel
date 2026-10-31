@@ -807,6 +807,7 @@ PL_EXPORT(bool)		PL_syntax_error(const char *msg, IOSTREAM *in);
 #define PL_BLOB_TEXT	0x02		/* blob contains text */
 #define PL_BLOB_NOCOPY	0x04		/* do not copy the data */
 #define PL_BLOB_WCHAR	0x08		/* wide character string */
+#define PL_BLOB_LOCAL	0x100		/* starts owned by the creating thread */
 
 typedef struct PL_blob_t
 { uintptr_t		magic;		/* PL_BLOB_MAGIC */

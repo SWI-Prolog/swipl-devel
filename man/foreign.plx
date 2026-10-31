@@ -3089,6 +3089,40 @@ type that reports a size should provide a write() function, as the
 default writer would otherwise dump that many bytes of the referenced
 object.
 
+    \constitem{PL_BLOB_LOCAL}
+A new blob of this type starts as a \jargon{local} atom of the thread
+that creates it.  As long as only this thread uses it, the thread
+reclaims it in a sweep of its own, which only scans the stacks of this
+thread and runs at a safe point of this thread.  This avoids the global
+atom garbage collector and the shared counters it needs, and it releases
+the blob much sooner.  The atom becomes an ordinary atom, managed by the
+atom garbage collector, as soon as it may be reachable from another
+thread: if it is stored in the database (assert/1, recorda/3, global
+variables, tables), sent to a message queue, or used by another thread,
+for example because another thread does a lookup of the same
+\const{PL_BLOB_UNIQUE} blob.  The \ctype{atom_t} handle does not change.
+PL_register_atom() also promotes the atom, so foreign code that keeps a
+handle uses the same rules as for any other atom.
+
+For a blob of this type, the release() function is called by the thread
+that created the blob, at a safe point of that thread.  This may be
+while the thread executes Prolog code called from C, and, for a
+\const{PL_BLOB_UNIQUE} type, with the atom table locked.  So release()
+must neither call Prolog nor wait for locks that may be held by the code
+that called Prolog.  Blobs that need such a lock, e.g., to release an
+object of an embedded language, may queue the object and release it
+when they next hold the lock.  If
+the blob was promoted, release() is called by the atom garbage
+collector as for any other blob.  current_blob/2 only enumerates local
+atoms in the thread that owns them.  read_term/2,3 with the option
+\term{blob}{resolve} finds a local blob of another thread if it is
+\const{PL_BLOB_UNIQUE\chr{|}PL_BLOB_NOCOPY} and its write() function
+prints the blob data as first argument using \verb$%p$, as the
+default for such blobs does; this promotes the blob.  The flag is intended for blobs that reference external
+objects, typically combined with
+\const{PL_BLOB_UNIQUE\chr{|}PL_BLOB_NOCOPY}.  A \const{gc_margin} is
+respected per thread; see \secref{blobgc}.
+
     \constitem{PL_BLOB_WCHAR}
 If \const{PL_BLOB_TEXT} is also set, then the text is made up of
 \const{pl_wchar_t} items and the blob's lenght is the number of bytes
@@ -3452,6 +3486,12 @@ static PL_blob_t my_blob =
   16*1024*1024			/* gc_margin: collect per 16Mb */
 };
 \end{code}
+
+For a \const{PL_BLOB_LOCAL} type, each thread counts the units of the
+local blobs it created and starts its own sweep when the units created
+since its last sweep reach the margin.  The units of all types with a
+margin are counted together.  Promoted blobs count towards the budget
+of the atom garbage collector.
 
 The default, \exam{0}, leaves the type to \prologflag{agc_margin} alone,
 which is the behaviour of all types that do not set the field.  Setting

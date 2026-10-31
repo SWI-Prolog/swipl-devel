@@ -136,10 +136,13 @@ test(flags_are_bare_atoms) :-
     assertion(\+ memberchk(nocopy, Props)).     % absent flags are skipped
 
 %  live/1 and space/1 are maintained as blobs come and go, so they answer
-%  without the full scan of the atom array current_blob/2 needs.
+%  without the full scan of the atom array current_blob/2 needs.  They
+%  do not count thread-local blobs, which current_blob/2 enumerates in
+%  their owner.
 
 test(live_agrees_with_a_scan) :-
-    aggregate_all(count, current_blob(_, clause), Scanned),
+    aggregate_all(count, (current_blob(B, clause), \+ '$local_atom'(B)),
+                  Scanned),
     blob_type_property(clause, live(Counted)),
     assertion(Counted =:= Scanned).
 

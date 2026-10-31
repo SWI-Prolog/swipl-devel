@@ -1451,10 +1451,9 @@ typedef struct atom_table
 #define ATOM_IS_DESTROYED(ref)	((ref) & ATOM_DESTROY_REFERENCE)
 #define ATOM_IS_LOCAL(ref)	((ref) & ATOM_LOCAL_REFERENCE)
 
-/* Blob type flag, internal for now: blobs of this type start owned by
-   the creating thread.  See "Thread-local blobs" in pl-atom.c.
+/* Internal blob type flag, see "Thread-local blobs" in pl-atom.c.
+   PL_BLOB_LOCAL is in SWI-Prolog.h.
 */
-#define PL_BLOB_LOCAL		0x100
 #define PL_BLOB_OWNED		0x200	/* local blob owned by a C object */
 typedef void (*atom_mark_func)(atom_t a); /* markAtom(), markLocalAtom() */
 #define LOCAL_AGC_MIN		1024	/* sweep at least this many */
