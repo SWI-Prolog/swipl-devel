@@ -11899,7 +11899,7 @@ file system.
 
     \termitem{file_type}{Type}
 Defines extensions. Current mapping: \const{txt} implies \const{['']},
-\const{prolog} implies \const{['.pl', '']}, \const{executable} implies
+\const{prolog} implies \const{['.pl', '.prolog', '.qlf', '']}, \const{executable} implies
 \const{['.so', '']} and \const{qlf} implies \const{['.qlf', '']}. The
 \arg{Type} \const{directory} implies \const{['']} and causes this
 predicate to generate (only) directories. The \arg{Type} \const{regular}
