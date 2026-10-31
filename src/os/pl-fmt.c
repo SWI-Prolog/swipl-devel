@@ -64,7 +64,7 @@ typedef foreign_t (*Func1)(term_t a1);
 struct rubber
 { size_t where;				/* where is rubber in output */
   size_t size;				/* how big should it be */
-  int pad;				/* padding character (code point) */
+  pl_wchar_t pad;			/* padding character */
 };
 
 typedef struct
@@ -84,8 +84,8 @@ static WUNUSED bool emit_rubber(format_state *state);
 
 #define BUFSIZE		1024
 #define DEFAULT		INT_MIN
-#define SHIFT		{ argc--; argv++; }
-#define NEED_ARG	{ if ( argc <= 0 ) \
+#define SHIFT		{ argc1--; argv1++; }
+#define NEED_ARG	{ if ( argc1 <= 0 ) \
 			  { FMT_ERROR("not enough arguments"); \
 			  } \
 			}
@@ -505,7 +505,7 @@ get_int_expression(term_t t, Number i)
 		********************************/
 
 bool
-do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
+do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc0, term_t argv0, Module m)
 { GET_LD
   format_state state;			/* complete state */
   unsigned int here = 0;
@@ -522,6 +522,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
   else
     memset(&state.pos, 0, sizeof(state.pos));
 
+  size_t argc1 = argc0;
+  term_t argv1 = argv0;
+  bool positional = false;		/* any positional arguments? */
+
   while(here < fmt->length)
   { int c = get_chr_from_text(fmt, here);
 
@@ -529,9 +533,54 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
     { case '~':
 	{ int arg = DEFAULT;		/* Numeric argument */
 	  int mod_colon = false;	/* Used colon modifier */
+	  int pos = -1;			/* Positional argument */
 	  bool neg = false;
 	  predicate_t proc;
+
+	  /* do we have a positional argument like ~1$w? */
+	  unsigned int here0 = here;
+	  c = get_chr_from_text(fmt, ++here);
+	  if ( isDigitW(c) )
+	  { arg = c - '0';
+	    here++;
+	    while(here < fmt->length)
+	    { c = get_chr_from_text(fmt, here);
+	      if ( c == '$' )
+	      {	pos = arg - 1;
+		if ( pos == -1 ) // ~0$w or ~00$w
+		{ FMT_ERROR("positional argument must be positive");
+		}
+		if ( pos >= argc0 )
+		{ FMT_ERROR("overflow in positional argument");
+		}
+		positional = true;
+		argc1 = argc0 - pos;
+		argv1 = argv0 + pos;
+		break;
+	      }
+	      if ( isDigitW(c) )
+	      { int dw = c - '0';
+		int arg2 = arg*10 + dw;
+
+		if ( (arg2 - dw)/10 != arg )	/* see mul64() in pl-arith.c */
+		{ FMT_ERROR("argument overflow");
+		}
+		arg = arg2;
+		here++;
+		continue;
+	      }
+	      pos = -1;
+	      break;
+	    }
+	  }
+
+	  /* if not, restart */
+	  if ( pos == -1 )
+	  { here = here0 ;
+	  }
+	  
 					/* Get the numeric argument */
+	  arg = DEFAULT;
 	  c = get_chr_from_text(fmt, ++here);
 	  if ( c == '-' )
 	  { neg = true;
@@ -569,23 +618,20 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	    AR_CTX
 
 	    AR_BEGIN();
-	    if ( !get_int_expression(argv, &i) ||
+	    if ( !get_int_expression(argv1, &i) ||
 		 i.type != V_INTEGER ||
 		 i.value.i < 0 ||
 		 i.value.i > INT_MAX )
 	    { AR_CLEANUP();
-	      FMT_ARGC(c, argv);
+	      FMT_ARGC(c, argv1);
 	    }
 	    SHIFT;
 	    arg = (int) i.value.i; /* dubious cast */
 	    AR_END();
 	    c = get_chr_from_text(fmt, ++here);
 	  } else if ( c == '`' && here < fmt->length )
-	  { size_t u = ++here;		/* may be a surrogate pair */
-
-	    arg = text_next_code(fmt, &u);
-	    here = (unsigned int)u;
-	    c = get_chr_from_text(fmt, here);
+	  { arg = get_chr_from_text(fmt, ++here);
+	    c = get_chr_from_text(fmt, ++here);
 	  }
 
 	  if ( c == ':' )
@@ -610,7 +656,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 	    for(size_t i=1; i < arity; i++)
 	    { NEED_ARG;
-	      PL_put_term(av+i, argv);
+	      PL_put_term(av+i, argv1);
 	      SHIFT;
 	    }
 
@@ -629,8 +675,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		{ PL_chars_t txt;
 
 		  NEED_ARG;
-		  if ( !PL_get_text(argv, &txt, CVT_ATOM|CVT_STRING) )
-		    FMT_ARG("a", argv);
+		  if ( !PL_get_text(argv1, &txt, CVT_ATOM|CVT_STRING) )
+		    FMT_ARG("a", argv1);
 		  SHIFT;
 		  rc = outtext(&state, &txt);
 		  if ( !rc )
@@ -642,7 +688,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		{ int chr;
 
 		  NEED_ARG;
-		  if ( PL_get_integer(argv, &chr) && VALID_CODE_POINT(chr) )
+		  if ( PL_get_integer(argv1, &chr) && VALID_CODE_POINT(chr) )
 		  { int times = (arg == DEFAULT ? 1 : arg);
 
 		    SHIFT;
@@ -652,7 +698,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 			goto out;
 		    }
 		  } else
-		    FMT_ARG("c", argv);
+		    FMT_ARG("c", argv1);
 		  here++;
 		  break;
 		}
@@ -674,14 +720,14 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 		  NEED_ARG;
 		  AR_BEGIN();
-		  if ( !PL_get_number(argv, &n) )
-		  { if ( !valueExpression(argv, &n) )
+		  if ( !PL_get_number(argv1, &n) )
+		  { if ( !valueExpression(argv1, &n) )
 		    { char f[2];
 
 		      f[0] = (char)c;
 		      f[1] = EOS;
 		      AR_CLEANUP();
-		      FMT_ARG(f, argv); /* returns error */
+		      FMT_ARG(f, argv1); /* returns error */
 		    }
 		  }
 		  SHIFT;
@@ -715,9 +761,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 		  NEED_ARG;
 		  AR_BEGIN();
-		  if ( !get_int_expression(argv, &i) )
+		  if ( !get_int_expression(argv1, &i) )
 		  { AR_CLEANUP();
-		    FMT_ARGC(c, argv); /* return with error */
+		    FMT_ARGC(c, argv1); /* return with error */
 		  }
 		  SHIFT;
 
@@ -785,8 +831,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		{ PL_chars_t txt;
 
 		  NEED_ARG;
-		  if ( !PL_get_text(argv, &txt, CVT_ATOM|CVT_LIST|CVT_STRING) )
-		    FMT_ARG("s", argv);
+		  if ( !PL_get_text(argv1, &txt, CVT_ATOM|CVT_LIST|CVT_STRING) )
+		    FMT_ARG("s", argv1);
 
 		  if ( arg == DEFAULT )
 		    arg = (int) txt.length; /* dubious cast */
@@ -831,7 +877,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 		  if ( !(rc=prepare_sub_format(&sstate, &state, fd)) )
 		    goto out;
-		  rc = (int)(*f)(argv);
+		  rc = (int)(*f)(argv1);
 		  rc = end_sub_format(&sstate, rc);
 
 		  if ( !rc )
@@ -844,13 +890,13 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	      case 'W':			/* write_term(Value, Options) */
 	       { sub_state sstate;
 
-		 if ( argc < 2 )
+		 if ( argc1 < 2 )
 		 { FMT_ERROR("not enough arguments");
 		 }
 
 		 if ( !(rc=prepare_sub_format(&sstate, &state, fd)) )
 		   goto out;
-		 rc = pl_write_term3(0, argv, argv+1);
+		 rc = pl_write_term3(0, argv1, argv1+1);
 		 rc = end_sub_format(&sstate, rc);
 
 		 if ( !rc )
@@ -866,7 +912,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		  sub_state sstate;
 		  fid_t fid;
 
-		  if ( argc < 1 )
+		  if ( argc1 < 1 )
 		  { FMT_ERROR("not enough arguments");
 		  }
 
@@ -874,7 +920,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		    goto out;
 
 		  rc = ( (fid=PL_open_foreign_frame()) &&
-			 callProlog(m, argv, PL_Q_CATCH_EXCEPTION, &ex) );
+			 callProlog(m, argv1, PL_Q_CATCH_EXCEPTION, &ex) );
 		  if ( rc )
 		    PL_rewind_foreign_frame(fid);
 		  rc = end_sub_format(&sstate, rc);
@@ -921,7 +967,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 		  state.rub[state.pending_rubber].where = state.buffered;
 		  state.rub[state.pending_rubber].pad   =
-					(arg == DEFAULT ? ' ' : arg);
+					(arg == DEFAULT ? (pl_wchar_t)' '
+							: (pl_wchar_t)arg);
 		  state.rub[state.pending_rubber].size = 0;
 		  state.pending_rubber++;
 		  here++;
@@ -991,12 +1038,10 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	  break;			/* the '~' switch */
 	}
       default:
-	{ size_t u = here;		/* may be a surrogate pair */
-
-	  rc = outchr(&state, text_next_code(fmt, &u));
+	{ rc = outchr(&state, c);
 	  if ( !rc )
 	    goto out;
-	  here = (unsigned int)u;
+	  here++;
 	  break;
 	}
     }
@@ -1006,7 +1051,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
   { if ( !(rc=emit_rubber(&state)) )
       goto out;
   }
-  if ( argc != 0 )
+  if ( argc1 != 0 && !positional)
     FMT_ERROR("too many arguments");
 
 out:
