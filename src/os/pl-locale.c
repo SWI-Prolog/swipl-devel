@@ -264,7 +264,7 @@ alias_locale(PL_locale *l, atom_t alias)
   { addNewHTableWP(GD->locale.localeTable, alias, l);
     l->alias = alias;
     PL_register_atom(alias);
-    l->references++;	/* acquireLocale(), but that will deadlock */
+    acquireLocale(l);
     rc = true;
   }
   PL_UNLOCK(L_LOCALE);
@@ -305,8 +305,8 @@ static int
 release_locale_ref(atom_t aref)
 { locale_ref *ref = PL_blob_data(aref, NULL, NULL);
 
-  PL_LOCK(L_LOCALE);
-  if ( --ref->data->references == 0 )
+  PL_LOCK(L_LOCALE);			/* see releaseLocale() */
+  if ( ATOMIC_DEC(&ref->data->references) == 0 )
     free_locale(ref->data);
   else
     ref->data->symbol = 0;
@@ -859,7 +859,7 @@ PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
 
       if ( deleteHTableWP(GD->locale.localeTable, alias) == l )
       { l->alias = 0;
-	l->references--;
+	ATOMIC_DEC(&l->references);
 	PL_unregister_atom(alias);
       }
     }
@@ -982,11 +982,17 @@ initStreamLocale(IOSTREAM *s)
 }
 
 
+/* The reference count is updated atomically.  Every stream, the blob
+   and the alias of a locale hold a reference, so who drops the last
+   reference may free the locale.  Only that needs L_LOCALE, which also
+   serialises us with release_locale_ref() clearing `symbol`.  Every new
+   stream acquires the locale of its thread, so not taking L_LOCALE here
+   matters if threads create streams concurrently.
+*/
+
 PL_locale *
 acquireLocale(PL_locale *l)
-{ PL_LOCK(L_LOCALE);
-  l->references++;
-  PL_UNLOCK(L_LOCALE);
+{ ATOMIC_INC(&l->references);
 
   return l;
 }
@@ -994,11 +1000,15 @@ acquireLocale(PL_locale *l)
 
 void
 releaseLocale(PL_locale *l)
-{ PL_LOCK(L_LOCALE);
-  assert(l->references > 0);
-  if ( --l->references == 0 && l->symbol == 0 && l->alias == 0 )
-    free_locale(l);
-  PL_UNLOCK(L_LOCALE);
+{ int refs = ATOMIC_DEC(&l->references);
+
+  assert(refs >= 0);
+  if ( refs == 0 )
+  { PL_LOCK(L_LOCALE);
+    if ( l->symbol == 0 && l->alias == 0 )
+      free_locale(l);
+    PL_UNLOCK(L_LOCALE);
+  }
 }
 
 
