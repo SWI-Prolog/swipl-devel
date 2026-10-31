@@ -488,6 +488,37 @@ safe mode is needed for the local sweep anyway.
         promotion safe.  Tests (unit `local_find`): `enum_own`,
         `enum_other`, `resolve_own` and `resolve_other`; each of 4
         mutations is detected.
+      - **Done.**  Stream handles no longer copy their key: they are
+        `PL_BLOB_UNIQUE|PL_BLOB_NOCOPY` on the `IOSTREAM`.  A stream pair
+        is a `stream_pair` record, found back from its streams in a list
+        under `L_FILE`, so a pair keeps a unique handle.  The record has
+        its magic (`SIO_PMAGIC`) at the offset of the `IOSTREAM` magic,
+        which tells the two apart.  Releasing a pair only tries
+        `L_FILE`: `stream_property/2` creates handles holding it, and the
+        release may run with `L_REHASH_ATOMS`.  `blob(resolve)` now finds
+        a stream by address.  Measured: 200,000 `open_string/2`,
+        `read/2`, `close/1` take 0.120 s instead of 0.126–0.177 s.
+        Tests: `stream_pair` unit of `tests/core_text/test_io.pl`
+        (`unique`, `parts`, `distinct`, `no_pair`, `recreate`,
+        `recreate_other`) and `blob_resolve:stream_pair`; removing the
+        search for the record, the magic test or the unlink is
+        detected.
+      - **Done.**  Stream handles are `PL_BLOB_LOCAL`.  Another thread
+        that finds the stream (`stream_property/2`, an alias) gets the
+        same handle and promotes it; sending a handle promotes it.  The
+        local sweep must not call Prolog, which closing a stream may do
+        (`open_prolog_stream/4`).  So, with `agc_close_streams`, the
+        release refuses if it would close an open stream while
+        `LD->atoms.local.sweeping`, and a local atom whose release
+        refuses is now promoted, which leaves it to global AGC.  This
+        also promotes a record handle whose release finds `L_RECORD`
+        busy.  Measured, 200,000 `open_string/2`, `read/2`, `close/1`:
+        1 thread 0.125–0.154 s and no global AGC, instead of
+        0.171–0.194 s and 17; 4 threads 3–6 global AGC runs instead of
+        78–112, same time (0.36–0.85 s, bimodal in both).  Tests (unit
+        `local_streams`): `local_handle`, `reclaimed`, `alias_promotes`
+        and `no_local_close`; removing the flag, the refusal or the
+        promotion of refused atoms is detected.
     Candidates:
       - core: streams, clause and record references, closures
         (`pl-wrap.c`), undo (`pl-undo.c`), zippers (`pl-zip.c`);

@@ -2277,6 +2277,11 @@ finishLocalAtoms(local_release *lr)
  * Without lr->locked, PL_BLOB_UNIQUE atoms are skipped, setting
  * lr->deferred.  With it, we only release PL_BLOB_UNIQUE atoms.
  * Returns the number of released atoms.
+ *
+ * If the release hook of a local atom refuses, we promote the atom, so
+ * global AGC retries it rather than every sweep of this thread.  A hook
+ * refuses if it cannot do its work here, e.g., because it needs a lock
+ * that is busy or must call Prolog (see LD->atoms.local.sweeping).
  */
 
 static size_t
@@ -2300,9 +2305,14 @@ releaseLocalCandidates(local_atom_chunk *c, size_t chunk, uint64_t candidates,
 	  lr->deferred = true;
 	else if ( unlinkLocalAtom(a, ref, lr) )
 	  released++;			/* finishLocalAtoms() clears `used` */
-      } else if ( !lr->locked && destroyLocalAtom(a, ref) )
-      { c->used &= ~mask;
-	released++;
+	else
+	  promoteLocalAtom(a);		/* release refused: see above */
+      } else if ( !lr->locked )
+      { if ( destroyLocalAtom(a, ref) )
+	{ c->used &= ~mask;
+	  released++;
+	} else
+	  promoteLocalAtom(a);
       }
     }
   }
@@ -2383,6 +2393,7 @@ collectLocalAtoms(void)
 
   markAtomsOnStacks(LD, (void*)&ctx);
 
+  LD->atoms.local.sweeping = true;
   local_release lr = {0};
   for(size_t i=0; i<LD->atoms.local.count; i++)
   { size_t chunk = LD->atoms.local.chunks[i];
@@ -2401,6 +2412,7 @@ collectLocalAtoms(void)
     finishLocalAtoms(&lr);
     PL_UNLOCK(L_REHASH_ATOMS);
   }
+  LD->atoms.local.sweeping = false;
 
   size_t units = 0;
   for(size_t i=0; i<LD->atoms.local.count; i++)
@@ -2612,7 +2624,12 @@ localAtomOwner(atom_t a)
 
 void
 releaseLocalAtoms(PL_local_data_t *ld)
-{ local_release lr = {0};
+{ GET_LD
+  local_release lr = {0};
+  bool sweeping = LD && LD->atoms.local.sweeping;
+
+  if ( LD )				/* LD may differ from ld */
+    LD->atoms.local.sweeping = true;
 
   for(size_t i=0; i<ld->atoms.local.count; i++)
   { size_t chunk = ld->atoms.local.chunks[i];
@@ -2632,6 +2649,8 @@ releaseLocalAtoms(PL_local_data_t *ld)
     finishLocalAtoms(&lr);
     PL_UNLOCK(L_REHASH_ATOMS);
   }
+  if ( LD )
+    LD->atoms.local.sweeping = sweeping;
 
   for(size_t i=0; i<ld->atoms.local.count; i++)
   { size_t chunk = ld->atoms.local.chunks[i];

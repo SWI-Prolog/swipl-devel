@@ -47,7 +47,8 @@ local sweep.
 test_local_blobs :-
     run_tests([ local_blobs,
                 local_margin,
-                local_find
+                local_find,
+                local_streams
               ]).
 
 :- dynamic
@@ -289,6 +290,14 @@ atoms_and_agc(N) :-
 %   count that triggers a local sweep.  Each test runs in a new thread
 %   for fresh sweep statistics.
 
+%   Local is true if B is a local atom.
+
+local_flag(B, Local) :-
+    (   '$local_atom'(B)
+    ->  Local = true
+    ;   Local = false
+    ).
+
 :- begin_tests(local_margin,
                [ setup('$local_unique_test_blob'(1, _)), % registers the type
                  cleanup(set_blob_type(local_unique_test, gc_margin(0)))
@@ -347,12 +356,6 @@ test(margin_units, Units == 3_000_000) :-
 %   of another thread in the atom table, which promotes it.
 
 :- begin_tests(local_find).
-
-local_flag(B, Local) :-
-    (   '$local_atom'(B)
-    ->  Local = true
-    ;   Local = false
-    ).
 
 test(enum_own, [Found == true, Local == true]) :-
     in_thread(enum_own(Found, Local)).
@@ -437,3 +440,89 @@ memberchk_eq(X, [Y|T]) :-
     ).
 
 :- end_tests(local_find).
+
+
+%   Stream handles are local blobs.  The sweep of the thread reclaims
+%   them.  Another thread that finds the stream promotes its handle.
+%   The local sweep does not close open streams: if agc_close_streams
+%   is true it promotes the handle and leaves closing to global atom
+%   garbage collection, as closing may call Prolog.
+
+:- begin_tests(local_streams).
+
+stream_churn(N) :-
+    forall(between(1, N, _),
+           ( open_string("a.", S), read(S, _), close(S) )).
+
+test(local_handle, Local == true) :-
+    setup_call_cleanup(
+        open_null_stream(S),
+        local_flag(S, Local),
+        close(S)).
+test(reclaimed, true(Collected >= 4_000)) :-
+    in_thread(stream_reclaimed(5_000, Collected)).
+
+stream_reclaimed(N, Collected) :-
+    '$local_atoms'(collected, C0),
+    stream_churn(N),
+    '$local_atoms'(collected, C1),
+    Collected is C1-C0.
+
+test(alias_promotes, [condition(current_prolog_flag(threads, true)),
+                      Before == true, After == false]) :-
+    thread_self(Me),
+    thread_create(alias_owner(Me), Id),
+    thread_get_message(local(Before)),
+    stream_property(_, alias(local_stream_test)),
+    thread_send_message(Id, check),
+    thread_get_message(local(After)),
+    thread_join(Id).
+
+alias_owner(Parent) :-
+    open_null_stream(S),
+    set_stream(S, alias(local_stream_test)),
+    local_flag(S, L0),
+    thread_send_message(Parent, local(L0)),
+    thread_get_message(check),
+    local_flag(S, L1),
+    thread_send_message(Parent, local(L1)),
+    close(S).
+
+test(no_local_close, [Open == true, Local == false]) :-
+    current_prolog_flag(agc_close_streams, Old),
+    setup_call_cleanup(
+        set_prolog_flag(agc_close_streams, true),
+        in_thread(dropped_open_stream(Open, Local)),
+        set_prolog_flag(agc_close_streams, Old)).
+
+%   Open a stream and drop its handle, without closing.  Sweep locally
+%   until the handle was considered, then find the stream back from its
+%   printed form.
+
+dropped_open_stream(Open, Local) :-
+    drop_open_stream(Text),
+    '$local_atoms'(sweeps, S0),
+    sweep_until(S0),
+    term_string(S, Text, [blob(resolve)]),
+    (   is_stream(S)
+    ->  Open = true,
+        local_flag(S, Local),
+        close(S)
+    ;   Open = false,
+        Local = unknown
+    ).
+
+drop_open_stream(Text) :-		% backtracking drops the handle
+    findall(T, ( open_null_stream(S),
+                 format(string(T), '~q', [S])
+               ), [Text]).
+
+sweep_until(S0) :-
+    stream_churn(2_000),
+    '$local_atoms'(sweeps, S1),
+    (   S1 > S0+1
+    ->  true
+    ;   sweep_until(S0)
+    ).
+
+:- end_tests(local_streams).

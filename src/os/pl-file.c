@@ -726,23 +726,122 @@ symbol_stream_wrong_mode(atom_t symbol, atom_t action)
 		 *	  PROLOG HANDLES	*
 		 *******************************/
 
-typedef struct stream_ref
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A stream handle is a PL_BLOB_UNIQUE|PL_BLOB_NOCOPY blob.  For a stream,
+the blob data is the IOSTREAM.  For a stream pair, it is a stream_pair
+record that we find back from its two streams, so a pair has a unique
+handle.  We tell them apart by the magic: stream_pair puts its magic at
+the offset of the magic of an IOSTREAM.  The blob holds a reference to
+its stream(s), so the IOSTREAM remains allocated, possibly as an erased
+stream with SIO_CMAGIC, while the blob exists.
+
+Stream pairs are rare.  Their records are in a list, protected by
+L_FILE.
+
+Handles are also PL_BLOB_LOCAL: they start as local atoms of the thread
+that creates them, which reclaims them in its own sweep, and they are
+promoted if another thread may reach them, e.g., if another thread gets
+the handle of the same stream from stream_property/2 or if the handle is
+sent to another thread.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define SIO_PMAGIC (7212678)		/* magic of a stream_pair */
+
+typedef struct stream_pair
+{ char		pad[offsetof(IOSTREAM, magic)];
+  int		magic;			/* SIO_PMAGIC */
+  IOSTREAM     *read;
+  IOSTREAM     *write;
+  struct stream_pair *next;		/* next in stream_pairs */
+} stream_pair;
+
+static_assert(offsetof(stream_pair, magic) == offsetof(IOSTREAM, magic),
+	      "stream_pair magic must be at the offset of IOSTREAM magic");
+
+static stream_pair *stream_pairs;	/* L_FILE */
+
+typedef struct stream_ref		/* the streams of a handle */
 { IOSTREAM *read;
   IOSTREAM *write;
 } stream_ref;
 
+static inline bool
+is_stream_pair_data(const void *data)
+{ return ((const stream_pair*)data)->magic == SIO_PMAGIC;
+}
+
+/* The streams of the blob data `data`.  A stream is the read or write
+   stream depending on its mode, as Prolog handles always did.
+*/
+
+static stream_ref
+data_stream_ref(void *data)
+{ stream_ref ref;
+
+  if ( is_stream_pair_data(data) )
+  { stream_pair *p = data;
+
+    ref.read  = p->read;
+    ref.write = p->write;
+  } else
+  { IOSTREAM *s = data;
+
+    if ( (s->flags & SIO_INPUT) )
+    { ref.read  = s;
+      ref.write = NULL;
+    } else
+    { ref.read  = NULL;
+      ref.write = s;
+    }
+  }
+
+  return ref;
+}
+
+/* The streams of `a`.  False if `a` is not a stream handle. */
+
+static bool
+get_stream_ref(atom_t a, stream_ref *ref)
+{ PL_blob_t *type;
+  void *data = PL_blob_data(a, NULL, &type);
+
+  if ( type == &stream_blob && data )
+  { *ref = data_stream_ref(data);
+    return true;
+  }
+
+  return false;
+}
+
+static stream_ref
+blob_stream_ref(atom_t aref)
+{ return data_stream_ref(PL_blob_data(aref, NULL, NULL));
+}
+
+static int
+compare_stream_ref(atom_t a, atom_t b)
+{ stream_ref ra = blob_stream_ref(a);
+  stream_ref rb = blob_stream_ref(b);
+
+  if ( ra.read != rb.read )
+    return ra.read < rb.read ? -1 : 1;
+  if ( ra.write != rb.write )
+    return ra.write < rb.write ? -1 : 1;
+  return 0;
+}
+
 
 static int
 write_stream_ref(IOSTREAM *s, atom_t aref, int flags)
-{ stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+{ stream_ref ref = blob_stream_ref(aref);
   (void)flags;
 
-  if ( ref->read && ref->write )
-    Sfprintf(s, "<stream>(%p,%p)", ref->read, ref->write);
-  else if ( ref->read )
-    Sfprintf(s, "<stream>(%p)", ref->read);
+  if ( ref.read && ref.write )
+    Sfprintf(s, "<stream>(%p,%p)", ref.read, ref.write);
+  else if ( ref.read )
+    Sfprintf(s, "<stream>(%p)", ref.read);
   else
-    Sfprintf(s, "<stream>(%p)", ref->write);
+    Sfprintf(s, "<stream>(%p)", ref.write);
 
   return true;
 }
@@ -750,12 +849,12 @@ write_stream_ref(IOSTREAM *s, atom_t aref, int flags)
 
 static void
 acquire_stream_ref(atom_t aref)
-{ stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+{ stream_ref ref = blob_stream_ref(aref);
 
-  if ( ref->read )
-    Sacquire(ref->read);
-  if ( ref->write )
-    Sacquire(ref->write);
+  if ( ref.read )
+    Sacquire(ref.read);
+  if ( ref.write )
+    Sacquire(ref.write);
 }
 
 
@@ -811,14 +910,69 @@ release_stream(atom_t aref, IOSTREAM *s)
 }
 
 
+/* Remove the record of a pair blob that is being released.  We may run
+   with L_REHASH_ATOMS held, while stream_property/2 holds L_FILE while
+   creating stream handles.  So we only try L_FILE and refuse the release
+   if it is busy.  Returns false in that case.
+*/
+
+static bool
+unlink_stream_pair(stream_pair *p)
+{ if ( !PL_TRYLOCK(L_FILE) )
+    return false;
+  for(stream_pair **pp = &stream_pairs; *pp; pp = &(*pp)->next)
+  { if ( *pp == p )
+    { *pp = p->next;
+      break;
+    }
+  }
+  PL_UNLOCK(L_FILE);
+
+  return true;
+}
+
+
+/* True if releasing our reference to `s` would make gc_close_stream()
+   close it.  Closing calls the close function of the stream, which may
+   call Prolog, e.g., for open_prolog_stream/4.
+*/
+
+static bool
+would_gc_close(IOSTREAM *s)
+{ GET_LD
+
+  return ( s && SIO_REF_COUNT(s->references) == 1 &&
+	   !s->erased && s->magic == SIO_MAGIC && !ison(s, SIO_CLOSING) &&
+	   LD && truePrologFlag(PLFLAG_AGC_CLOSE_STREAMS) &&
+	   standardStreamIndexFromStream(s) < 0 );
+}
+
+
+/* The release hook.  A thread's sweep of its local atoms must not call
+   Prolog, so there we refuse if we would close an open stream.  The
+   sweep then promotes the handle, and atom garbage collection closes the
+   stream.
+*/
+
 static int
 release_stream_ref(atom_t aref)
-{ stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+{ GET_LD
+  void *data = PL_blob_data(aref, NULL, NULL);
+  stream_ref ref = data_stream_ref(data);
+  bool pair = is_stream_pair_data(data);  /* else release frees `data` */
 
-  if ( ref->read )
-    release_stream(aref, ref->read);
-  if ( ref->write )
-    release_stream(aref, ref->write);
+  if ( LD && LD->atoms.local.sweeping &&
+       (would_gc_close(ref.read) || would_gc_close(ref.write)) )
+    return false;
+  if ( pair && !unlink_stream_pair(data) )
+    return false;
+
+  if ( ref.read )
+    release_stream(aref, ref.read);
+  if ( ref.write )
+    release_stream(aref, ref.write);
+  if ( pair )
+    freeHeap(data, sizeof(stream_pair));
 
   return true;
 }
@@ -826,11 +980,11 @@ release_stream_ref(atom_t aref)
 
 static int
 save_stream_ref(atom_t aref, IOSTREAM *fd)
-{ stream_ref *ref = PL_blob_data(aref, NULL, NULL);
+{ stream_ref ref = blob_stream_ref(aref);
   (void)fd;
 
   return PL_warning("Cannot save reference to <stream>(%p,%p)",
-		    ref->read, ref->write);
+		    ref.read, ref.write);
 }
 
 
@@ -844,10 +998,10 @@ load_stream_ref(IOSTREAM *fd)
 
 static PL_blob_t stream_blob =
 { PL_BLOB_MAGIC,
-  PL_BLOB_UNIQUE,
+  PL_BLOB_UNIQUE|PL_BLOB_NOCOPY|PL_BLOB_LOCAL,
   "stream",
   release_stream_ref,
-  NULL,
+  compare_stream_ref,
   write_stream_ref,
   acquire_stream_ref,
   save_stream_ref,
@@ -877,21 +1031,19 @@ check_stream_mode(atom_t a, IOSTREAM *s, int flags)
 #define get_stream_handle(a, sp, flags) LDFUNC(get_stream_handle, a, sp, flags)
 static bool
 get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
-{ stream_ref *ref;
-  PL_blob_t *type;
+{ stream_ref ref;
   IOSTREAM *s;
 
-  ref = PL_blob_data(a, NULL, &type);
-  if ( type == &stream_blob )
-  { if ( ref->read  ) assert(ref->read->references);
-    if ( ref->write ) assert(ref->write->references);
+  if ( get_stream_ref(a, &ref) )
+  { if ( ref.read  ) assert(ref.read->references);
+    if ( ref.write ) assert(ref.write->references);
 
-    if ( ref->read )
-    { if ( ref->write )
+    if ( ref.read )
+    { if ( ref.write )
       { if ( (flags&SH_OUTPUT) )
-	  s = ref->write;
+	  s = ref.write;
 	else if ( (flags&SH_INPUT) )
-	  s = ref->read;
+	  s = ref.read;
 	else if ( (flags&SH_NOPAIR) )
 	{ if ( truePrologFlag(PLFLAG_ERROR_AMBIGUOUS_STREAM_PAIR) )
 	  { return symbol_stream_pair_not_allowed(a);
@@ -905,14 +1057,14 @@ get_stream_handle(DECL_LD atom_t a, IOSTREAM **sp, int flags)
 				   PL_TERM, t) )
 		return false;
 	    }
-	    s = ref->read;
+	    s = ref.read;
 	  }
 	} else
-	  s = ref->read;			/* dubious */
+	  s = ref.read;			/* dubious */
       } else
-	s = ref->read;
+	s = ref.read;
     } else
-      s = ref->write;
+      s = ref.write;
 
     if ( s->erased )
        goto noent;
@@ -1041,16 +1193,9 @@ PL_get_stream_from_blob(atom_t a, IOSTREAM **s, int flags)
 static bool
 unify_stream_ref(term_t t, IOSTREAM *s)
 { GET_LD
-  stream_ref ref;
   bool rval;
 
-  memset(&ref, 0, sizeof(ref));
-  if ( s->flags & SIO_INPUT )
-    ref.read = s;
-  else
-    ref.write = s;
-
-  rval = PL_unify_blob(t, &ref, sizeof(ref), &stream_blob);
+  rval = PL_unify_blob(t, s, sizeof(*s), &stream_blob);
 
   if ( !rval && !PL_is_variable(t) )
     return PL_error(NULL, 0, "stream-argument", ERR_UNINSTANTIATION, 0, t);
@@ -1292,18 +1437,15 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
   int rc = false;
 
   if ( !PL_is_variable(A1) )
-  { stream_ref *ref;
+  { stream_ref ref;
     atom_t a = 0;
-    PL_blob_t *type;
     int rc = true;
 
-    if ( PL_get_atom(A1, &a) &&
-	 (ref=PL_blob_data(a, NULL, &type)) &&
-	 type == &stream_blob )
-    { if ( ref->read && !ref->read->erased )
-	rc = rc && PL_unify_stream_or_alias(A2, ref->read);
-      if ( ref->write && !ref->write->erased )
-	rc = rc && PL_unify_stream_or_alias(A3, ref->write);
+    if ( PL_get_atom(A1, &a) && get_stream_ref(a, &ref) )
+    { if ( ref.read && !ref.read->erased )
+	rc = rc && PL_unify_stream_or_alias(A2, ref.read);
+      if ( ref.write && !ref.write->erased )
+	rc = rc && PL_unify_stream_or_alias(A3, ref.write);
 
       return rc;
     } else
@@ -1324,15 +1466,27 @@ PRED_IMPL("stream_pair", 3, stream_pair, 0)
 
   if ( getInputStream(A2, S_DONTCARE, &in) &&
        getOutputStream(A3, S_DONTCARE, &out) )
-  { stream_ref ref;
+  { stream_pair *p;
 
-    ref.read = in;
-    ref.write = out;
-
-    rc = PL_unify_blob(A1, &ref, sizeof(ref), &stream_blob);
+    PL_LOCK(L_FILE);			/* find or create the unique record */
+    for(p=stream_pairs; p; p=p->next)
+    { if ( p->read == in && p->write == out )
+	break;
+    }
+    if ( !p )
+    { p = allocHeapOrHalt(sizeof(*p));
+      memset(p, 0, sizeof(*p));
+      p->magic = SIO_PMAGIC;
+      p->read  = in;
+      p->write = out;
+      p->next  = stream_pairs;
+      stream_pairs = p;
+    }
+    rc = PL_unify_blob(A1, p, sizeof(*p), &stream_blob);
+    PL_UNLOCK(L_FILE);
     if ( rc )
-    { assert(ref.read->references >= 2);
-      assert(ref.write->references >= 2);
+    { assert(in->references >= 2);
+      assert(out->references >= 2);
     }
   }
 
@@ -2586,8 +2740,7 @@ PRED_IMPL("set_stream", 2, set_stream, 0)
 { PRED_LD
   IOSTREAM *s;
   atom_t sblob, aname;
-  stream_ref *ref;
-  PL_blob_t *type;
+  stream_ref ref;
   int rc;
   size_t arity;
   const set_stream_info *info;
@@ -2611,29 +2764,28 @@ found:
   if ( !PL_get_atom(stream, &sblob) )
     return not_a_stream(stream, SH_ALIAS);
 
-  ref = PL_blob_data(sblob, NULL, &type);
-  if ( type == &stream_blob )		/* got a stream handle */
-  { if ( ref->read && ref->write &&	/* stream pair */
+  if ( get_stream_ref(sblob, &ref) )	/* got a stream handle */
+  { if ( ref.read && ref.write &&	/* stream pair */
 	 (info->flags & SS_NOPAIR) )
       return symbol_stream_pair_not_allowed(sblob);
 
     rc = true;
     bool lock = !(info->flags&SS_NOLOCK);
-    if ( ref->read && (info->flags&SS_READ))
-    { s = prop_get_stream(sblob, ref->read, lock);
+    if ( ref.read && (info->flags&SS_READ))
+    { s = prop_get_stream(sblob, ref.read, lock);
       if ( !s )
 	return false;
       rc = set_stream(s, stream, aname, aval);
       if ( lock )
-	releaseStream(ref->read);
+	releaseStream(ref.read);
     }
-    if ( rc && ref->write && (info->flags&SS_WRITE) )
-    { s = prop_get_stream(sblob, ref->write, lock);
+    if ( rc && ref.write && (info->flags&SS_WRITE) )
+    { s = prop_get_stream(sblob, ref.write, lock);
       if ( !s )
 	return false;
       rc = set_stream(s, stream, aname, aval);
       if ( lock )
-	releaseStream(ref->write);
+	releaseStream(ref.write);
     }
   } else if ( PL_get_stream_handle(stream, &s) )
   { rc = set_stream(s, stream, aname, aval);
@@ -4764,30 +4916,28 @@ static int
 pl_close(DECL_LD term_t stream, int force)
 { IOSTREAM *s;
   atom_t a;
-  stream_ref *ref;
-  PL_blob_t *type;
+  stream_ref ref;
 
   if ( !PL_get_atom(stream, &a) )
     return not_a_stream(stream, SH_ALIAS);
 
-  ref = PL_blob_data(a, NULL, &type);
-  if ( type == &stream_blob )		/* close(Stream[pair], ...) */
+  if ( get_stream_ref(a, &ref) )	/* close(Stream[pair], ...) */
   { int rc = true;
 
-    if ( ref->read && ref->write )
-    { assert(ref->read->references);
-      assert(ref->write->references);
-      if ( ref->write && !ref->write->erased )
-	rc = do_close(getStream(ref->write), force);
-      if ( ref->read && !ref->read->erased )
-	rc = do_close(getStream(ref->read), force) && rc;
+    if ( ref.read && ref.write )
+    { assert(ref.read->references);
+      assert(ref.write->references);
+      if ( ref.write && !ref.write->erased )
+	rc = do_close(getStream(ref.write), force);
+      if ( ref.read && !ref.read->erased )
+	rc = do_close(getStream(ref.read), force) && rc;
     } else
-    { if ( ref->read )
-      { assert(ref->read->references);
-	rc = do_close(getStream(ref->read), force);
-      } else if ( ref->write )
-      { assert(ref->write->references);
-	rc = do_close(getStream(ref->write), force);
+    { if ( ref.read )
+      { assert(ref.read->references);
+	rc = do_close(getStream(ref.read), force);
+      } else if ( ref.write )
+      { assert(ref.write->references);
+	rc = do_close(getStream(ref.write), force);
       }
     }
 

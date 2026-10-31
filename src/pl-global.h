@@ -708,6 +708,7 @@ struct PL_local_data
       size_t	units;			/* gc_margin units of live atoms */
       size_t	units_kept;		/* units after the last sweep */
       bool	units_due;		/* a gc_margin was reached */
+      bool	sweeping;		/* releasing our local atoms */
       size_t	collected;		/* total reclaimed by the sweep */
       unsigned	sweeps;			/* # sweeps done */
     } local;				/* See "Thread-local blobs" */

@@ -180,6 +180,14 @@ test(stream, S == S2) :-
           read_resolve(Text, S2)
         ),
         close(S)).
+test(stream_pair, P == P2) :-
+    setup_call_cleanup(
+        open_null_stream(S),
+        ( stream_pair(P, user_input, S),
+          written(P, Text),
+          read_resolve(Text, P2)
+        ),
+        close(S)).
 test(clause_ref, R == R2) :-              % a PL_BLOB_UNIQUE type
     setup_call_cleanup(
         assertz(unit_test_fact(1), R),

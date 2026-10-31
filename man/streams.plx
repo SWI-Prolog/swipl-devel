@@ -318,7 +318,11 @@ Unify \arg{t} with a \jargon{blob} that points at \arg{s}.  Note that
 a blob provides a unique and reliable reference to a stream.  Blobs
 are subject to \jargon{atom garbage collection}.  If an open stream
 is garbage collected the behaviour depends on the Prolog flag
-\prologflag{agc_close_streams}.  See also Sgcclose().
+\prologflag{agc_close_streams}.  See also Sgcclose().  The blob is a
+thread-local blob (see \const{PL_BLOB_LOCAL} in \secref{blobtype}):
+the thread that creates it reclaims it as soon as it is no longer
+referenced.  If closing is needed, this is left to the atom garbage
+collector.
 \end{description}
 
 

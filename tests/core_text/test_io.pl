@@ -132,6 +132,47 @@ test(close, true) :-
 			true)),
 	stream_pair(Pair, _In, Out),
 	assertion(var(Out)).
+test(unique, P1 == P2) :-
+	open_null_stream(S),
+	stream_pair(P1, user_input, S),
+	stream_pair(P2, user_input, S),
+	close(S).
+test(parts, [In-Out == user_input-S]) :-
+	open_null_stream(S),
+	stream_pair(P, user_input, S),
+	stream_pair(P, In, Out),
+	close(S).
+test(distinct, true(P1 \== P2)) :-
+	open_null_stream(S1),
+	open_null_stream(S2),
+	stream_pair(P1, user_input, S1),
+	stream_pair(P2, user_input, S2),
+	close(S1),
+	close(S2).
+test(no_pair, error(type_error(stream, _))) :-
+	open_null_stream(S),
+	stream_pair(P, user_input, S),
+	call_cleanup(set_stream(P, line_position(0)), close(S)).
+test(recreate, Out == S) :-		% the record of a released pair is gone
+	open_null_stream(S),
+	forall(between(1, 1000, _), stream_pair(_, user_input, S)),
+	garbage_collect_atoms,
+	stream_pair(P, user_input, S),
+	stream_pair(P, _, Out),
+	close(S).
+test(recreate_other, Outs == [S1,S2,S1]) :- % reuses the freed records
+	open_null_stream(S1),
+	open_null_stream(S2),
+	forall(between(1, 100, _), stream_pair(_, user_input, S1)),
+	garbage_collect_atoms,
+	forall(between(1, 100, _), stream_pair(_, user_input, S2)),
+	garbage_collect_atoms,
+	findall(Out, ( member(S, [S1,S2,S1]),
+		       stream_pair(P, user_input, S),
+		       stream_pair(P, _, Out)
+		     ), Outs),
+	close(S1),
+	close(S2).
 
 :- end_tests(stream_pair).
 
