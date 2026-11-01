@@ -1038,6 +1038,15 @@ implies the properties \jargon{dynamic} and \jargon{volatile}.
 Thread-local dynamic predicates are intended for maintaining
 thread-specific state or intermediate results of a computation.
 
+The clauses of a thread-local predicate can only be accessed by the
+thread that owns them.  If another thread gets hold of a clause
+reference to such a clause, e.g., because it was sent in a message,
+using it, for example with clause/3, clause_property/2, nth_clause/3 or
+erase/1, raises a \term{permission_error}{access, thread_local_clause,
+Ref}.  Calling a continuation (see \secref{delcont}) that refers to such
+a clause in another thread raises a \term{permission_error}{call,
+thread_local_clause, Continuation}.
+
 It is not recommended to put clauses for a thread-local predicate into
 a file, as in the example below, because the clause is only visible from the
 thread that loaded the source file.  All other threads start with an

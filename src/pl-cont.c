@@ -481,6 +481,10 @@ retry:
     { PL_type_error("continuation", continuation);
       return NULL;
     }
+    if ( foreignLocalClause(cl) )
+    { PL_permission_error("call", "thread_local_clause", continuation);
+      return NULL;
+    }
 
     pcoffset = (size_t)valInt(*ep++);
 

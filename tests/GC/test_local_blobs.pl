@@ -49,7 +49,8 @@ test_local_blobs :-
                 local_margin,
                 local_find,
                 local_streams,
-                local_text
+                local_text,
+                local_thread_local
               ]).
 
 :- dynamic
@@ -639,3 +640,67 @@ text_owner(Parent, Prefix, I) :-
     thread_send_message(Parent, local(Local)).
 
 :- end_tests(local_text).
+
+
+%   Only the owner can access the clauses of thread-local predicates.
+%   Another thread that gets hold of a reference to such a clause gets a
+%   permission error.
+
+:- begin_tests(local_thread_local).
+
+:- thread_local tl_fact/1, tl_rule/0.
+
+test(clause, [ condition(current_prolog_flag(threads, true)),
+               setup(other_ref(Ref, Id)), cleanup(end_ref(Id)),
+               error(permission_error(access, thread_local_clause, _))
+             ]) :-
+    clause(_, _, Ref).
+test(clause_property,
+     [ condition(current_prolog_flag(threads, true)),
+       setup(other_ref(Ref, Id)), cleanup(end_ref(Id)),
+       error(permission_error(access, thread_local_clause, _))
+     ]) :-
+    clause_property(Ref, _).
+test(nth_clause, [ condition(current_prolog_flag(threads, true)),
+                   setup(other_ref(Ref, Id)), cleanup(end_ref(Id)),
+                   error(permission_error(access, thread_local_clause, _))
+                 ]) :-
+    nth_clause(_, _, Ref).
+test(erase, [ condition(current_prolog_flag(threads, true)),
+              setup(other_ref(Ref, Id)), cleanup(end_ref(Id)),
+              error(permission_error(access, thread_local_clause, _))
+            ]) :-
+    erase(Ref).
+test(continuation, [condition(current_prolog_flag(threads, true)),
+                    error(permission_error(call, thread_local_clause, _))]) :-
+    thread_self(Me),
+    thread_create(cont_owner(Me), Id),
+    thread_get_message(cont(Cont)),
+    call_cleanup(call(Cont),
+                 ( thread_send_message(Id, done),
+                   thread_join(Id)
+                 )).
+%   Get a reference to a clause of tl_fact/1 of thread Id.  Id stays
+%   alive until end_ref/1: if it terminates, its clauses are erased.
+
+other_ref(Ref, Id) :-
+    thread_self(Me),
+    thread_create(ref_owner(Me), Id),
+    thread_get_message(ref(Ref)).
+
+end_ref(Id) :-
+    thread_send_message(Id, done),
+    thread_join(Id).
+
+ref_owner(Parent) :-
+    assertz(tl_fact(tl_other_ref), Ref),
+    thread_send_message(Parent, ref(Ref)),
+    thread_get_message(done).
+
+cont_owner(Parent) :-
+    assertz((tl_rule :- shift(here), atom_length(tl_cont_atom, _))),
+    reset(tl_rule, here, Cont),
+    thread_send_message(Parent, cont(Cont)),
+    thread_get_message(done).
+
+:- end_tests(local_thread_local).

@@ -38,6 +38,7 @@
 #include "pl-proc.h"
 #include "pl-rec.h"
 #include "pl-fli.h"
+#include "pl-wam.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clause and record references are PL_BLOB_UNIQUE|PL_BLOB_NOCOPY blobs: the
@@ -211,8 +212,37 @@ lookup_shared_clref(Clause clause)
 }
 
 
+/* True if `cl` is a clause of a thread-local predicate of another
+ * thread.  Only the owner may access such a clause.  Other threads that
+ * get hold of a reference to the clause get a permission error.
+ */
+
+bool
+foreignLocalClause(Clause cl)
+{ Definition def = cl->predicate;
+
+  if ( likely(isoff(def, P_LOCALISED)) )
+    return false;
+
+  GET_LD
+  Procedure proc = isCurrentProcedure(def->functor->functor, def->module);
+
+  return ( !proc ||
+	   getProcDefinitionForThread(proc->definition,
+				      LD->thread.info->pl_tid) != def );
+}
+
+
+static bool
+foreign_local_clause_error(term_t ref)
+{ return PL_error(NULL, 0, NULL, ERR_PERMISSION,
+		  ATOM_access, ATOM_thread_local_clause, ref);
+}
+
+
 /* The clause of a clause reference or NULL if `aref` is not a clause
- * reference.  Note that the clause may be erased.
+ * reference.  Note that the clause may be erased or belong to another
+ * thread (see foreignLocalClause()).
  */
 
 Clause
@@ -284,7 +314,11 @@ PL_get_dbref(term_t t, db_ref_type *type_ptr)
   { Clause cl = data;
 
     if ( isoff(cl, CL_ERASED) )
-    { *type_ptr = DB_REF_CLAUSE;
+    { if ( foreignLocalClause(cl) )
+      { foreign_local_clause_error(t);
+	return NULL;
+      }
+      *type_ptr = DB_REF_CLAUSE;
       return cl;
     }
   } else if ( type == &record_blob )
@@ -321,6 +355,8 @@ PL_get_clref(term_t t, Clause *cl)
 
   if ( ison(clause, CL_ERASED) )
     return -1;
+  if ( foreignLocalClause(clause) )
+    return foreign_local_clause_error(t);
 
   return true;
 }
