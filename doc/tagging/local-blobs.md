@@ -581,6 +581,56 @@ safe mode is needed for the local sweep anyway.
             `read_arg`, `read_functor`, `read_assert`,
             `read_reclaimed`, `sig_atomic`, `promoted`; each change is
             detected by reverting it.
+      - **Done.**  Clauses of thread-local predicates keep their atoms
+        local.  `compileClause()` registers the atoms of a clause for a
+        `P_LOCALISED` definition with `registerAtomLocally()`
+        (`registerClauseAtom()`), as does `'$clause_copy'/2` for a
+        thread-local target.  This is safe because only the owner can
+        access these clauses: `PL_get_clref()` and `PL_get_dbref()` raise
+        `permission_error(access, thread_local_clause, Ref)` for a clause
+        of another thread's local definition (`foreignLocalClause()`),
+        and calling a continuation that refers to one raises
+        `permission_error(call, thread_local_clause, Cont)`.  The owner
+        is found without a new field: the master procedure's definition
+        for the calling thread must be the clause's definition.
+        Freeing a retracted clause from the gc thread drops the local
+        reference atomically; at thread exit, atoms still referenced by
+        clauses that clause GC has not freed become ordinary atoms.
+          - 20 × (50,000 `atom_concat/3` + `assertz/1` into a
+            thread-local predicate, then `retractall/1`): 0.60 s process
+            CPU without AGC instead of 0.75 s.
+          - The atoms are reclaimed once clause GC frees the retracted
+            clauses, which may take two clause GC passes, as for any
+            dynamic predicate.
+          - **Done.**  Local clause GC: the owner frees the erased
+            clauses of its thread-local predicates itself.  Retract
+            counts them in `LD->clauses.local` instead of registering the
+            definition with the global clause GC
+            (`registerErasedClauses()`).  At a threshold it signals
+            SIG_CLAUSE_GC to itself; `localClauseGC()` marks the
+            generations of its own frames and `predicate_references`
+            and calls `cleanDefinition()`.  Clause references unlinked
+            during the pass go to a thread-local list and are freed at
+            its end, rather than lingering until a global clause GC.  A
+            definition the thread walks from C (`access.predicate`),
+            definitions registered globally (destroyed ones) and
+            transactions are left alone.  In a critical section the pass
+            runs unless there is an event hook for erased clauses.
+            1,000,000 `assertz/1`+`retract/1` of integers on a
+            thread-local predicate: 0.81 s process CPU and no global
+            clause GC instead of 1.62–1.70 s and about 680 runs.  The
+            atom benchmark above: 0.47 s instead of 0.65 s.
+          - `agcByGCThread()` became `gcByGCThread()`: `cgc_handler()`
+            uses it to tell a local clause GC request from a global one.
+          - Tests: `local_cgc`, `cgc_iterate`, `cgc_retract`,
+            `cgc_indexed`, `cgc_choicepoint`, `cgc_sig_atomic`; always
+            registering globally, not marking the own frames, and
+            not handling the signal in critical sections are detected.
+          - Tests (unit `local_thread_local`): `assert`, `retract`,
+            `own_ref`, `reclaimed`, `clause`, `clause_property`,
+            `nth_clause`, `erase`, `continuation`, `exit`; making the
+            compiler register globally or dropping the access check is
+            detected.
     Candidates:
       - core: streams, clause and record references, closures
         (`pl-wrap.c`), undo (`pl-undo.c`), zippers (`pl-zip.c`);

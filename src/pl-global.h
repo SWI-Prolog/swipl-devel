@@ -932,6 +932,14 @@ struct PL_local_data
   struct
   { size_t	erased_skipped;		/* # erased clauses skipped */
     int64_t	cgc_inferences;		/* Inferences at last cgc consider */
+    struct
+    { size_t	erased;			/* Erased in thread-local predicates */
+      size_t	threshold;		/* Run local clause GC at erased */
+      bool	active;			/* Local clause GC is running */
+      ClauseRef	lingering;		/* Unlinked by local clause GC */
+      size_t	collections;		/* # local clause GCs */
+      size_t	reclaimed;		/* # clauses they reclaimed */
+    } local;
   } clauses;
 
 #ifdef O_COVERAGE

@@ -398,6 +398,7 @@ typedef struct
   size_t	arity;			/* arity of top-goal */
   unsigned int	vartablesize;		/* size of the vartable */
   bool		islocal;		/* Temporary local clause */
+  bool		local_atoms;		/* Atoms stay local (P_LOCALISED) */
   bool		subclausearg;		/* processing subclausearg */
   bool		head_unify;		/* In unifications against arguments */
   int		argvars;		/* islocal argument pseudo vars */
@@ -417,6 +418,19 @@ typedef struct
   tmp_buffer	branch_varbuf;		/* Store for branch_vars */
   tmp_buffer	codes;			/* scratch code table */
 } compileInfo, *CompileInfo;
+
+/* Register an atom that the clause we compile refers to.  The clauses of
+ * a thread-local predicate are only accessible to their thread, so its
+ * atoms may stay local (see clause_dbref()).
+ */
+
+static inline void
+registerClauseAtom(atom_t a, const compileInfo *ci)
+{ if ( ci->local_atoms )
+    registerAtomLocally(a);
+  else
+    PL_register_atom(a);
+}
 
 
 		 /*******************************
@@ -2015,6 +2029,7 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
 
   if ( head )
   { ci->islocal       = false;
+    ci->local_atoms   = ison(def, P_LOCALISED);
     ci->subclausearg  = false;
     ci->arity         = (int)def->functor->arity;
     ci->procedure     = proc;
@@ -2030,6 +2045,7 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
   { Word g = varFrameP(lTop, VAROFFSET(1));
 
     ci->islocal      = true;
+    ci->local_atoms  = false;
     ci->subclausearg = false;
     ci->argvars	     = 1;
     ci->argvar       = 1;
@@ -3049,7 +3065,7 @@ A void.  Generate either B_VOID or H_VOID.
       {	Output_0(ci, (where & A_BODY) ? B_NIL : H_NIL);
       } else
       { if ( !ci->islocal )
-	  PL_register_atom(word2atom(*arg));
+	  registerClauseAtom(word2atom(*arg), ci);
 	Output_1(ci, (where & A_BODY) ? B_ATOM : H_ATOM, word2code(*arg));
       }
       rc = true;
@@ -3786,7 +3802,7 @@ lco(CompileInfo ci, size_t pc0)
 #endif
       case B_ATOM:
       { code a = *s++;
-	PL_register_atom(a);		/* TBD: unregister on failure */
+	registerClauseAtom(a, ci);	/* TBD: unregister on failure */
 	Output_2(ci, L_ATOM, VAROFFSET(oarg), a);
 	break;
       }
@@ -4284,7 +4300,7 @@ compileBodyUnify(DECL_LD Word arg, compileInfo *ci)
     if ( is_portable_constant(*a2) )
     { Output_2(ci, first ? B_UNIFY_FC : B_UNIFY_VC, VAROFFSET(i1), word2code(*a2));
       if ( isAtom(*a2) )
-	PL_register_atom(word2atom(*a2));
+	registerClauseAtom(word2atom(*a2), ci);
     } else
     { int where = (first ? A_BODY : A_HEAD|A_ARG);
       Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(i1));
@@ -4377,7 +4393,7 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
       Output_1(ci, C_VAR, VAROFFSET(i1));
     Output_2(ci, B_EQ_VC, VAROFFSET(i1), word2code(*a2));
     if ( isAtom(*a2) )
-      PL_register_atom(word2atom(*a2));
+      registerClauseAtom(word2atom(*a2), ci);
     return true;
   }
   if ( i2 >= 0 && is_portable_constant(*a1) )	/* const == Var */
@@ -4387,7 +4403,7 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
       Output_1(ci, C_VAR, VAROFFSET(i2));
     Output_2(ci, B_EQ_VC, VAROFFSET(i2), word2code(*a1));
     if ( isAtom(*a1) )
-      PL_register_atom(word2atom(*a1));
+      registerClauseAtom(word2atom(*a1), ci);
     return true;
   }
 
@@ -4463,7 +4479,7 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
       Output_1(ci, C_VAR, VAROFFSET(i1));
     Output_2(ci, B_NEQ_VC, VAROFFSET(i1), word2code(*a2));
     if ( isAtom(*a2) )
-      PL_register_atom(word2atom(*a2));
+      registerClauseAtom(word2atom(*a2), ci);
     return true;
   }
   if ( i2 >= 0 && is_portable_constant(*a1) )	/* const == Var */
@@ -4473,7 +4489,7 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
       Output_1(ci, C_VAR, VAROFFSET(i2));
     Output_2(ci, B_NEQ_VC, VAROFFSET(i2), word2code(*a1));
     if ( isAtom(*a1) )
-      PL_register_atom(word2atom(*a1));
+      registerClauseAtom(word2atom(*a1), ci);
     return true;
   }
 

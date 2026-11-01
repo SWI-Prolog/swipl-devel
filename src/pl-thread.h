@@ -666,7 +666,7 @@ void		markAccessedPredicates(PL_local_data_t *ld);
 bool		cgc_thread_stats(cgc_stats *stats);
 bool		signalGCThread(int sig);
 bool		isSignalledGCThread(int sig);
-bool		agcByGCThread(void);
+bool		gcByGCThread(void);
 double		ThreadCPUTime(int which);
 void		updatePendingThreadSignals(void);
 bool		require_c_stack(size_t needed);

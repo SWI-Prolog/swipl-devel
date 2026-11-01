@@ -7387,13 +7387,14 @@ signalGCThread(int sig)
 }
 
 
-/* True if global atom-GC is done by the gc thread, so a SIG_ATOM_GC
-   raised in another thread only asks for its local sweep (see
-   agc_handler()).
+/* True if global atom and clause GC are done by the gc thread, so a
+   SIG_ATOM_GC or SIG_CLAUSE_GC raised in another thread only asks for
+   its local sweep or local clause GC (see agc_handler() and
+   cgc_handler()).
 */
 
 bool
-agcByGCThread(void)
+gcByGCThread(void)
 {
 #ifdef O_PLMT
   GET_LD
@@ -8291,7 +8292,7 @@ signalGCThread(int sig)
 }
 
 bool
-agcByGCThread(void)
+gcByGCThread(void)
 { return false;
 }
 

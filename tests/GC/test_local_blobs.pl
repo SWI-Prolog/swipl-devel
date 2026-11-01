@@ -642,14 +642,41 @@ text_owner(Parent, Prefix, I) :-
 :- end_tests(local_text).
 
 
-%   Only the owner can access the clauses of thread-local predicates.
-%   Another thread that gets hold of a reference to such a clause gets a
-%   permission error.
+%   Clauses of thread-local predicates keep their atoms local: only the
+%   owner can access these clauses.  Another thread that gets hold of a
+%   reference to such a clause gets a permission error.
 
 :- begin_tests(local_thread_local).
 
 :- thread_local tl_fact/1, tl_rule/0.
 
+test(assert, [Before == true, After == true]) :-
+    in_thread(( atom_concat(tl_assert_, 1, A),
+                local_flag(A, Before),
+                assertz(tl_fact(A)),
+                local_flag(A, After)
+              )).
+test(retract, Local == true) :-
+    in_thread(( atom_concat(tl_retract_, 1, A),
+                assertz(tl_fact(A)),
+                retract(tl_fact(B)),
+                local_flag(B, Local)
+              )).
+test(own_ref, [H-B == tl_fact(tl_own_ref)-true]) :-
+    in_thread(( assertz(tl_fact(tl_own_ref), Ref),
+                clause(H, B, Ref)
+              )).
+test(reclaimed, true(Collected > 15_000)) :-
+    in_thread(( '$local_atoms'(collected, C0),
+                forall(between(1, 20_000, I),
+                       ( atom_concat(tl_churn_, I, A),
+                         assertz(tl_fact(A))
+                       )),
+                retractall(tl_fact(_)),
+                reclaim_local(C0, 15_000, 10),
+                '$local_atoms'(collected, C1),
+                Collected is C1-C0
+              )).
 test(clause, [ condition(current_prolog_flag(threads, true)),
                setup(other_ref(Ref, Id)), cleanup(end_ref(Id)),
                error(permission_error(access, thread_local_clause, _))
@@ -680,6 +707,118 @@ test(continuation, [condition(current_prolog_flag(threads, true)),
                  ( thread_send_message(Id, done),
                    thread_join(Id)
                  )).
+test(exit) :-
+    in_thread(forall(between(1, 1_000, I),
+                     ( atom_concat(tl_exit_, I, A),
+                       assertz(tl_fact(A))
+                     ))),
+    garbage_collect_clauses,
+    garbage_collect_atoms.
+
+
+%   Local clause GC: the owner reclaims the erased clauses of its
+%   thread-local predicates at a safe point, without the global clause
+%   GC.  The logical update view must hold while it does so.
+
+:- thread_local tl_kv/2.
+
+tl_fill(N) :-
+    forall(between(1, N, I),
+           ( atom_concat(tl_key_, I, K),
+             assertz(tl_kv(K, I))
+           )).
+
+test(local_cgc, [true(Collections > 0), true(Reclaimed > 4_500)]) :-
+    in_thread(( '$local_clauses'(collections, C0),
+                '$local_clauses'(reclaimed, R0),
+                tl_fill(5_000),
+                retractall(tl_kv(_,_)),
+                true,                   % safe point
+                '$local_clauses'(collections, C1),
+                '$local_clauses'(reclaimed, R1),
+                Collections is C1-C0,
+                Reclaimed is R1-R0
+              )).
+test(cgc_iterate, [Seen == 20_000, true(Collections > 0)]) :-
+    in_thread(( '$local_clauses'(collections, C0),
+                tl_fill(20_000),
+                aggregate_all(count, (tl_kv(K,_), retract(tl_kv(K,_))), Seen),
+                '$local_clauses'(collections, C1),
+                Collections is C1-C0
+              )).
+test(cgc_retract, [Seen == 20_000]) :-
+    in_thread(( tl_fill(20_000),
+                aggregate_all(count, retract(tl_kv(_,_)), Seen)
+              )).
+test(cgc_indexed, [Missing == 0]) :-
+    in_thread(( tl_fill(20_000),
+                aggregate_all(count,
+                              ( between(1, 20_000, I),
+                                atom_concat(tl_key_, I, K),
+                                retract(tl_kv(K, I)),
+                                J is I+1, J =< 20_000,
+                                atom_concat(tl_key_, J, K2),
+                                \+ tl_kv(K2, J)
+                              ),
+                              Missing),
+                retractall(tl_kv(_,_))
+              )).
+test(cgc_choicepoint, [Len == 5_000]) :-
+    in_thread(( tl_fill(5_000),
+                findall(I, ( tl_kv(_, I),
+                             (   I =:= 1
+                             ->  retractall(tl_kv(_,_)),
+                                 garbage_collect_clauses,
+                                 tl_fill(10)
+                             ;   true
+                             )
+                           ),
+                        L),
+                length(L, Len),
+                retractall(tl_kv(_,_))
+              )).
+test(cgc_sig_atomic, true(Collections > 0)) :-
+    in_thread(cgc_in_sig_atomic(Collections)).
+test(cgc_sig_atomic_no_gc_thread,
+     [ setup(stop_gc_thread(Old)),
+       cleanup(set_prolog_gc_thread(Old)),
+       true(Collections > 0)
+     ]) :-
+    in_thread(cgc_in_sig_atomic(Collections)).
+
+cgc_in_sig_atomic(Collections) :-
+    sig_atomic(( '$local_clauses'(collections, C0),
+                 tl_fill(5_000),
+                 retractall(tl_kv(_,_)),
+                 true,
+                 '$local_clauses'(collections, C1),
+                 Collections is C1-C0
+               )).
+
+%   Without a gc thread, SIG_CLAUSE_GC may also ask for the global clause
+%   GC, which must wait until the critical section ends.
+
+stop_gc_thread(Old) :-
+    current_prolog_flag(gc_thread, Old),
+    set_prolog_gc_thread(false).
+
+%   Run clause and atom GC until at least Min more local atoms have been
+%   collected since C0.  Freeing retracted clauses may take more than
+%   one clause GC.
+
+reclaim_local(C0, Min, Tries) :-
+    garbage_collect_clauses,
+    garbage_collect_atoms,
+    '$local_atoms'(collected, C1),
+    (   C1-C0 >= Min
+    ->  true
+    ;   Tries > 1
+    ->  sleep(0.01),
+        Tries1 is Tries-1,
+        reclaim_local(C0, Min, Tries1)
+    ;   true
+    ).
+
 %   Get a reference to a clause of tl_fact/1 of thread Id.  Id stays
 %   alive until end_ref/1: if it terminates, its clauses are erased.
 

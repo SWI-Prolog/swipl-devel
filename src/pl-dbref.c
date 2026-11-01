@@ -213,8 +213,10 @@ lookup_shared_clref(Clause clause)
 
 
 /* True if `cl` is a clause of a thread-local predicate of another
- * thread.  Only the owner may access such a clause.  Other threads that
- * get hold of a reference to the clause get a permission error.
+ * thread.  Only the owner may access such a clause, which allows its
+ * atoms to remain local atoms of the owner (see registerClauseAtom()).
+ * Other threads that get hold of a reference to the clause get a
+ * permission error.
  */
 
 bool

@@ -830,7 +830,7 @@ agc_handler(int sig)
 
   if ( gc_status.blocked )
     return;
-  if ( AGC_wanted() && !agcByGCThread() )
+  if ( AGC_wanted() && !gcByGCThread() )
     pl_garbage_collect_atoms();		/* also does the local sweep */
   else if ( localSweepWanted() )
     considerLocalSweep();
@@ -843,10 +843,31 @@ agc_handler(int sig)
  * the signal again.  Global AGC may print messages, so it must wait.
  */
 
+/* SIG_CLAUSE_GC in a critical section.  The local clause GC calls no
+ * Prolog unless there is an event hook for erased clauses.  If it cannot
+ * run, we postpone it.  The global clause GC must wait, so without a gc
+ * thread the signal remains pending if there are dirty predicates.
+ */
+
+#define criticalClauseGC(_) LDFUNC(criticalClauseGC, _)
+static void
+criticalClauseGC(DECL_LD)
+{ if ( localClauseGCDue() )
+  { if ( *event_list_location(PLEV_ERASED_CLAUSE) )
+      postponeLocalClauseGC();
+    else
+      localClauseGC();
+  }
+  if ( gcByGCThread() || GD->procedures.dirty->size == 0 )
+  { WSIGMASK_CLEAR(LD->signal.pending, SIG_CLAUSE_GC);
+    updateAlerted(LD);
+  }
+}
+
 #define criticalAtomGC(_) LDFUNC(criticalAtomGC, _)
 static void
 criticalAtomGC(DECL_LD)
-{ if ( AGC_wanted() && !agcByGCThread() )
+{ if ( AGC_wanted() && !gcByGCThread() )
     return;
 
   WSIGMASK_CLEAR(LD->signal.pending, SIG_ATOM_GC);
@@ -870,11 +891,22 @@ gc_tune_handler(int sig)
   call_tune_gc_hook();
 }
 
+/* SIG_CLAUSE_GC reaches a thread that is not the gc thread to run the
+ * global clause GC if there is no gc thread, or to run the local clause
+ * GC for its thread-local predicates (see localClauseGC()).
+ */
+
 static void
 cgc_handler(int sig)
-{ (void)sig;
+{ GET_LD
+  (void)sig;
 
-  pl_garbage_collect_clauses();
+  if ( gcByGCThread() )
+  { if ( localClauseGCDue() )
+      localClauseGC();
+  } else
+  { pl_garbage_collect_clauses();	/* also does the local clause GC */
+  }
 }
 
 
@@ -1269,6 +1301,8 @@ handleSignals(DECL_LD)
   if ( LD->critical )
   { if ( WSIGMASK_ISSET(LD->signal.pending, SIG_ATOM_GC) )
       criticalAtomGC();
+    if ( WSIGMASK_ISSET(LD->signal.pending, SIG_CLAUSE_GC) )
+      criticalClauseGC();
     DEBUG(MSG_THREAD_SIGNAL,
 	  Sdprintf("[%d]: ignoring signal (critical = %d)\n",
 		   PL_thread_self(), LD->critical));

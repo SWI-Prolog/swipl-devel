@@ -1045,7 +1045,11 @@ using it, for example with clause/3, clause_property/2, nth_clause/3 or
 erase/1, raises a \term{permission_error}{access, thread_local_clause,
 Ref}.  Calling a continuation (see \secref{delcont}) that refers to such
 a clause in another thread raises a \term{permission_error}{call,
-thread_local_clause, Continuation}.
+thread_local_clause, Continuation}.  This allows atoms that only appear
+in these clauses to be reclaimed by the thread, without global atom
+garbage collection (see \secref{atomgc}), and the thread to reclaim
+retracted clauses of these predicates itself, without global clause
+garbage collection.
 
 It is not recommended to put clauses for a thread-local predicate into
 a file, as in the example below, because the clause is only visible from the
