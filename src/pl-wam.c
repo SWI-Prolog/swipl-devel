@@ -3907,6 +3907,7 @@ variables used in the B_THROW instruction.
   { fid_t fid = QF->foreign_frame;
     QF->foreign_frame = 0;
     PL_close_foreign_frame(fid);
+    environment_frame = FR;		/* shallow backtracking keeps it */
     BODY_FAILED;
   } else				/* first call */
     VMH_GOTO(depart_or_retry_continue);
