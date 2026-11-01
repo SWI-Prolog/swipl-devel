@@ -98,7 +98,9 @@ char *		BaseName(const char *f, char *buf);
 char *		DirName(const char *f, char *buf);
 atom_t		TemporaryFile(const char *id,
 			      const char *ext, int *fdp);
-int		DeleteTemporaryFile(atom_t name);
+atom_t		TemporaryDirectory(const char *id);
+bool		DeleteTemporaryFile(atom_t name);
+void		ForgetTemporaryDirectory(atom_t name);
 char *		findExecutable(const char *module, char *buf, size_t len);
 
 

@@ -12059,6 +12059,21 @@ process terminates \emph{gracefully}. Calling delete_file/1 using
 \arg{FileName} removes the file and removes the entry from the
 administration of files-to-be-deleted.
 
+    \predicate{tmp_directory}{2}{+Base, -Directory}
+Create a new directory \arg{Directory} for temporary files.
+\arg{Base} is used as for tmp_file/2 and the directory is created in
+the directory defined by the Prolog flag \prologflag{tmp_dir}. The
+directory is only accessible to the current user. Unlike tmp_file/2,
+this predicate creates the directory and, if the generated name
+already exists, tries a new name. It is thus safe if multiple processes
+create temporary directories concurrently.
+
+If the Prolog process terminates \emph{gracefully}, \arg{Directory} is
+removed if it is empty after removing the temporary files, including
+those created by tmp_file_stream/3 inside \arg{Directory}.  Removing the content is the responsibility of
+the application, for example using delete_directory_and_contents/1 from
+\pllib{filesex}.
+
     \predicate{make_directory}{1}{+Directory}
 Create a new directory (folder) on the filesystem.  Raises an exception
 on failure.  On Unix systems, the directory is created with default

@@ -842,6 +842,25 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
 		    ATOM_create, ATOM_temporary_file, A1);
 }
 
+/** tmp_directory(+Base, -Dir)
+*/
+
+static
+PRED_IMPL("tmp_directory", 2, tmp_directory, 0)
+{ PRED_LD
+  char *n;
+  atom_t dn;
+
+  if ( !PL_get_chars(A1, &n, CVT_ALL|CVT_EXCEPTION) )
+    return false;
+
+  if ( (dn=TemporaryDirectory(n)) )
+    return PL_unify_atom(A2, dn);
+  else
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		    ATOM_create, ATOM_temporary_directory, A1);
+}
+
 /** tmp_file_stream(+Ext, +Encoding, -File, -Stream)
 */
 
@@ -922,8 +941,12 @@ PRED_IMPL("delete_directory", 1, delete_directory, 0)
     return false;
 
   if ( rmdir(n) == 0 )
+  { atom_t aname;
+
+    if ( PL_get_atom(A1, &aname) )
+      ForgetTemporaryDirectory(aname);
     return true;
-  else
+  } else
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_delete, ATOM_directory, A1);
 }
@@ -1207,6 +1230,7 @@ BeginPredDefs(files)
   PRED_DEF("exists_file", 1, exists_file, 0)
   PRED_DEF("exists_directory", 1, exists_directory, 0)
   PRED_DEF("tmp_file", 2, tmp_file, 0)
+  PRED_DEF("tmp_directory", 2, tmp_directory, 0)
   PRED_DEF("$tmp_file_stream", 4, tmp_file_stream, 0)
   PRED_DEF("delete_file", 1, delete_file, 0)
   PRED_DEF("delete_directory", 1, delete_directory, 0)

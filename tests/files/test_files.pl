@@ -38,6 +38,9 @@
 :- use_module(library(plunit)).
 :- use_module(library(debug)).
 :- use_module(library(apply)).
+:- if(exists_source(library(process))).
+:- use_module(library(process), [process_create/3, process_wait/2]).
+:- endif.
 
 /** <module> Test file-handling
 
@@ -66,6 +69,54 @@ test(tmp_cleanup) :-
 	;   tmp_atoms(Atoms1)
 	),
         subset(Atoms0, Atoms1).
+
+test(tmp_directory, [true(Dir1 \== Dir2), cleanup(rm_dirs([Dir1,Dir2]))]) :-
+	tmp_directory(test, Dir1),
+	tmp_directory(test, Dir2),
+	assertion(exists_directory(Dir1)),
+	assertion(exists_directory(Dir2)),
+	current_prolog_flag(tmp_dir, Tmp),
+	file_directory_name(Dir1, Parent),
+	assertion(same_file(Parent, Tmp)).
+test(tmp_directory_clash,		% the next name exists: skip it
+     [ condition(\+ current_prolog_flag(windows, true)),
+       true(Dir \== Next),
+       cleanup(rm_dirs([Next,Dir]))
+     ]) :-
+	tmp_file(test, Name),
+	atomic_list_concat(Parts, '_', Name),
+	once(append(Prefix, [N0], Parts)),
+	atom_number(N0, N),
+	N1 is N+1,
+	append(Prefix, [N1], NextParts),
+	atomic_list_concat(NextParts, '_', Next),
+	make_directory(Next),
+	tmp_directory(test, Dir),
+	assertion(exists_directory(Dir)).
+
+test(tmp_directory_halt,		% halt removes files before their dir
+     [ condition(exists_source(library(process))),
+       Left == []
+     ]) :-
+	tmp_directory(halt, Parent),
+	format(string(Goal),		% 10 nested dirs, each with a file
+	       "set_prolog_flag(tmp_dir, ~q),\c
+		forall(between(1, 10, _),\c
+		       ( tmp_directory(nested, D),\c
+			 set_prolog_flag(tmp_dir, D),\c
+			 tmp_file_stream(text, _, S), close(S)\c
+		       ))", [Parent]),
+	current_prolog_flag(executable, Exe),
+	process_create(Exe, ['-f', none, '-g', Goal, '-t', halt],
+		       [process(PID)]),
+	process_wait(PID, exit(0)),
+	directory_files(Parent, Entries),
+	subtract(Entries, ['.', '..'], Left),
+	delete_directory_and_contents(Parent).
+
+rm_dirs(Dirs) :-
+	forall(member(Dir, Dirs),
+	       catch(delete_directory(Dir), error(_,_), true)).
 
 tmp_atoms(List) :-
 	flush_unregistering,
