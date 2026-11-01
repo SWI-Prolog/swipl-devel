@@ -704,6 +704,7 @@ struct PL_local_data
       size_t	cursor;			/* chunks before this are full */
       local_atom_chunk *current;	/* = chunks[cursor] or NULL */
       size_t	live;			/* # live local atoms */
+      size_t	created;		/* # created since the last sweep */
       size_t	threshold;		/* sweep when live reaches this */
       size_t	units;			/* gc_margin units of live atoms */
       size_t	units_kept;		/* units after the last sweep */

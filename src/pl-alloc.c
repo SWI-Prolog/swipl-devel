@@ -1914,11 +1914,13 @@ PRED_IMPL("thread_idle", 2, thread_idle, PL_FA_TRANSPARENT)
 
   if ( how == ATOM_short )
   { trimStacks(true);
+    idleLocalSweep();
     WEAK_TRY_CALL_VOID(MallocExtension_MarkThreadTemporarilyIdle);
   } else if ( how == ATOM_long )
   { LD->trim_stack_requested = true;
     garbageCollect(GC_USER);
     LD->trim_stack_requested = false;
+    idleLocalSweep();
     WEAK_TRY_CALL_VOID(MallocExtension_MarkThreadIdle);
   }
 

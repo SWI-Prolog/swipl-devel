@@ -7078,7 +7078,10 @@ PL_set_engine(PL_engine_t new, PL_engine_t *old)
 { PL_engine_t current = PL_current_engine();
 
   if ( new != current && new != PL_ENGINE_CURRENT )
-  { PL_LOCK(L_THREAD);
+  { if ( current && current->magic == LD_MAGIC && !current->query )
+      idleLocalSweep();			/* the engine goes idle */
+
+    PL_LOCK(L_THREAD);
 
     if ( new )
     { if ( new == PL_ENGINE_MAIN )

@@ -1397,6 +1397,11 @@ relative to the engine for which they are created. Behaviour when
 passing one of these types from one engine to another is undefined. The
 engine to which a query belongs can be requested using PL_query_engine()
 
+Detaching an engine that has no open queries releases the unreferenced
+thread-local blobs it created.  Otherwise they remain until the engine
+is used again, which may keep resources such as the Java objects of JPL
+claimed for a long time.
+
 In versions that do not support engines this call only succeeds if
 \arg{engine} refers to the main engine.
 

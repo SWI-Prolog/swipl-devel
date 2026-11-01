@@ -71,6 +71,7 @@ void		markAtom(atom_t a);
 void		markLocalAtom(atom_t a);
 size_t		collectLocalAtoms(void);
 void		considerLocalSweep(void);
+void		idleLocalSweep(void);
 void		releaseLocalAtoms(PL_local_data_t *ld);
 void		discardBlob(atom_t a);
 void		disownBlob(atom_t a);

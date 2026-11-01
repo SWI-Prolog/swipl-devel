@@ -121,6 +121,20 @@ stack size as the GC thresholds do, the owner sweeps at a safe point:
 No other thread is involved.  Global AGC skips atoms that are still
 local.  When a thread terminates, its local atoms are released.
 
+As no other thread sweeps them, a thread or engine that does not run
+keeps its dead local atoms, and so the resources of their blobs.  A
+Prolog thread blocked in `thread_get_message/1` with 53,000 dead JPL
+references kept them all, where global AGC used to release them.
+Therefore an idle thread or engine sweeps if it created local atoms
+since its last sweep (`idleLocalSweep()`):
+
+  - `thread_idle/2`, after its stack trimming or GC.  Servers wait
+    for the next request using this, e.g., the HTTP workers and
+    pengines.  The thread above keeps 15 references.
+  - `PL_set_engine()` detaching an engine without open queries, as a
+    JPL query does when it returns its engine to the pool.  The stacks
+    are empty, so the sweep is cheap.
+
 ### Object lifetime: discard
 
 Discarding decouples freeing the C object from reclaiming its atom:

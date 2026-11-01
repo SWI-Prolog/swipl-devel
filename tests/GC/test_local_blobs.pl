@@ -50,7 +50,8 @@ test_local_blobs :-
                 local_find,
                 local_streams,
                 local_text,
-                local_thread_local
+                local_thread_local,
+                local_idle
               ]).
 
 :- dynamic
@@ -349,6 +350,38 @@ test(margin_units, Units == 3_000_000) :-
               )).
 
 :- end_tests(local_margin).
+
+
+%   thread_idle/2 sweeps the local atoms created since the last sweep,
+%   as nobody else releases them while the thread waits.  1,000 blobs
+%   are below the count that triggers a sweep.
+
+idle_live(How, Before, After) :-
+    churn(1_000),
+    '$local_atoms'(live, Before),
+    thread_idle(true, How),
+    '$local_atoms'(live, After).
+
+idle_again(Sweeps) :-
+    '$local_test_blob'(Keep),		% else a sweep finds nothing to do
+    churn(1_000),
+    thread_idle(true, short),
+    '$local_atoms'(sweeps, S0),
+    thread_idle(true, short),
+    '$local_atoms'(sweeps, S1),
+    Sweeps is S1-S0,
+    '$local_atom'(Keep).
+
+:- begin_tests(local_idle).
+
+test(short, [true(Before >= 1_000), true(After < 100)]) :-
+    in_thread(idle_live(short, Before, After)).
+test(long, [true(Before >= 1_000), true(After < 100)]) :-
+    in_thread(idle_live(long, Before, After)).
+test(nothing_new, Sweeps == 0) :-
+    in_thread(idle_again(Sweeps)).
+
+:- end_tests(local_idle).
 
 
 %   Finding local blobs by enumeration and by their printed form.  The

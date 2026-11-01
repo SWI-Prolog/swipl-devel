@@ -12994,6 +12994,10 @@ Calls garbage_collect/0 and trim_stacks/0 and, if tcmalloc is used,
 calls MallocExtension_MarkThreadIdle() which releases all
 thread-specific allocation data structures.
     \end{description}
+
+In both cases the thread also releases the unreferenced thread-local
+blobs it created since it last did so, as no other thread releases
+them while it waits.
 \end{description}
 
 

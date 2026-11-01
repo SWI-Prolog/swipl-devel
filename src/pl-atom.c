@@ -2089,6 +2089,7 @@ reserveLocalAtom(DECL_LD)
 
   if ( !LD->atoms.local.threshold )
     LD->atoms.local.threshold = LOCAL_AGC_MIN;
+  LD->atoms.local.created++;
   if ( ++LD->atoms.local.live >= LD->atoms.local.threshold )
     raiseSignal(LD, SIG_ATOM_GC);	/* handled by agc_handler() */
 
@@ -2457,6 +2458,7 @@ collectLocalAtoms(void)
   LD->atoms.local.units = LD->atoms.local.units_kept = units;
   LD->atoms.local.units_due = false;
   LD->atoms.local.live = live;
+  LD->atoms.local.created = 0;
   LD->atoms.local.cursor = 0;
   LD->atoms.local.current = NULL;
   LD->atoms.local.threshold = live*2 > LOCAL_AGC_MIN ? live*2
@@ -2487,6 +2489,22 @@ considerLocalSweep(void)
     collectLocalAtoms();
   else
     LD->atoms.local.threshold = needed;
+}
+
+
+/* The thread or engine is going to idle: it calls thread_idle/2 or it
+ * is detached without open queries.  Only its own sweep releases its
+ * local atoms, so it sweeps now if it created local atoms since the last
+ * sweep.  Else the resources of their blobs, such as the Java objects of
+ * JPL, remain claimed for as long as it idles.
+ */
+
+void
+idleLocalSweep(void)
+{ GET_LD
+
+  if ( LD && LD->atoms.local.created && !LD->atoms.local.sweeping )
+    collectLocalAtoms();
 }
 
 
