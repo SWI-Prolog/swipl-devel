@@ -266,7 +266,7 @@ not_in_memory :-
     retractall(test_ct_in_memory(_)).
 
 theme_file_dir(Dir-Ref) :-
-    tmp_file(themes, Dir),
+    tmp_directory(themes, Dir),
     directory_file_path(Dir, theme, ThemeDir),
     make_directory_path(ThemeDir),
     directory_file_path(ThemeDir, 'test_ct_mem.pl', File),
