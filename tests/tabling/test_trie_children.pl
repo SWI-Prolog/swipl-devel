@@ -248,7 +248,10 @@ test(incremental) :-                    % re-evaluate a large answer trie
            )),
     q_answers(L), assertion(length(L, 2000)),
     clear_d.
-test(registered) :-                     % atom-GC registers full chunks
+test(registered,                        % atom-GC registers full chunks
+     [ setup(stop_gc_thread(Old)),
+       cleanup(set_prolog_gc_thread(Old))
+     ]) :-
     abolish_all_tables,
     \+ \+ reg_atom(_),
     reg_atom_count(N0),                 % first scan: chunks are full
@@ -294,6 +297,14 @@ reg_atom(X) :-
 
 if_reliable_agc :-
     getenv('SWIPL_TEST_FAIL_ON_UNLIKELY', y).
+
+%   Explicit clause and atom GC return immediately if a background
+%   collection is active.  Stop the GC thread while testing immediate
+%   reclamation and restore its previous setting in the cleanup.
+
+stop_gc_thread(Old) :-
+    current_prolog_flag(gc_thread, Old),
+    set_prolog_gc_thread(false).
 
 reg_atom_count(N) :-
     garbage_collect_atoms,
