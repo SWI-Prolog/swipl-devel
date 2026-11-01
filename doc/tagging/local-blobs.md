@@ -152,6 +152,9 @@ without an explicit close) the `release` hook of the sweep frees them.
   - **Janus.**  Python object references are created in bulk and mostly
     temporary.  The sweep runs in the owner thread, which simplifies
     acquiring the GIL in the `release` hook.
+  - **JPL.**  Java object references and Strings returned by Java.
+    The release hook deletes a JNI global reference in the owner
+    thread, which is attached to the JVM.
   - **Streams.**  Usually opened and closed by one thread.  An alias or
     `stream_property/2` from another thread promotes.
   - **Clause and record references.**  `PL_BLOB_UNIQUE|PL_BLOB_NOCOPY` on
@@ -637,9 +640,20 @@ safe mode is needed for the local sweep anyway.
       - Janus: `PY_OBJECT`;
       - xpce: `pce_blob` (`UNIQUE|NOCOPY`, with a `gc_margin`), whose
         lifetime interacts with xpce's own reference counting;
-      - JPL: `jref_blob` (`UNIQUE`).  Its release hook deletes a JNI
-        global reference, so running it in the owner thread, which is
-        attached to the JVM, is an advantage;
+      - **Done.**  JPL: `jref_blob` is `UNIQUE|LOCAL`.  Its release
+        hook deletes a JNI global reference, now in the owner thread,
+        which is attached to the JVM, rather than in the gc thread.
+        Strings that Java returns and `org.jpl7.Atom` terms that Java
+        puts into Prolog become atoms through `PL_unify_wchars()`, so
+        new ones are local; `Prolog.new_atom()` keeps `PL_new_atom()`.
+        200,000 `jpl_new('java.lang.Object', [], _)`: 0.54–0.71 s
+        instead of 2.0 s and 19 AGCs; the reference table stays at a
+        few hundred entries instead of about 6,000.  Release used to
+        find its table entry by scanning the whole table; it now uses
+        the slot of the object's `identityHashCode()` (50,000 live
+        references, releasing 65,536 others: 0.28 s instead of 19 s).
+        Tests: `jpl_local` in
+        `test_jpl.pl`; dropping any of the three changes is detected;
       - packages: archive, bdb, memfile, socket, alarm (clib), pcre,
         semweb snapshots and turtle parsers, ssl/crypto contexts, tipc,
         yaml emitters.
