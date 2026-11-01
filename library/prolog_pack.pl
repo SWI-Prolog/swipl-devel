@@ -2577,8 +2577,7 @@ prepare_build_location(Pack, Dir, Clean, Options) :-
         ->  delete_directory_contents(Dir)
         ;   true
         )
-    ;   tmp_file(pack, Dir),
-        make_directory(Dir),
+    ;   tmp_directory(pack, Dir),
         Clean = true
     ),
     (   option(isolated(false), Options)
