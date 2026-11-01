@@ -727,7 +727,9 @@ retry:
 
       unsigned int hi = hashIndex(chp->key, best_index->buckets);
       const ClauseBucket bkt = &best_index->entries[hi];
-      if ( bkt->key && chp->key != bkt->key )
+				/* read once: an assert may reset it to 0 */
+      word bkey = ((volatile const struct clause_bucket *)bkt)->key;
+      if ( bkey && chp->key != bkey )
 	return NULL;
       chp->cref = bkt->head;
       return nextClauseFromBucket(best_index, argv, ctx);
