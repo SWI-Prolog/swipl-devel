@@ -400,7 +400,7 @@ isascii(int c)				/* missing from gmp.lib */
 An MPZ number on the stack is represented as:
 
   - Indirect Header
-  - Size shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+  - Size (number of limbs), negative size is negative MPZ
 if O_BF
   - exponent
 endif
@@ -409,8 +409,8 @@ endif
 
 An MPQ number on the stack is represented as:
   - Indirect Header
-  - Size numerator shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
-  - Size denominator shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+  - Size numerator (number of limbs), negative size is negative MPQ
+  - Size denominator (number of limbs)
 if O_BF
   - exponent numerator
   - exponent denominator
@@ -446,7 +446,7 @@ mpz_wsize(const mpz_t mpz, size_t *s)
 An MPZ when emulated using LibBF is represented as:
 
   - Indirect Header
-  - Size shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+  - Size (number of limbs), negative size is negative MPZ
   - Exponent
   - Limbs
   - Indirect Header
@@ -539,7 +539,7 @@ globalMPQ(DECL_LD Word at, mpq_t mpq)
   copy:
     num_wsz = mpz_wsize(num, &num_size);
     den_wsz = mpz_wsize(den, &den_size);
-    m       = mkIndHdr(num_wsz+den_wsz+2*MPZ_STACK_EXTRA, TAG_INTEGER);
+    m       = mkIndHdr(num_wsz+den_wsz+2*MPZ_STACK_EXTRA, KIND_MPQ);
 
     if ( wsizeofInd(m) != num_wsz+den_wsz+2*MPZ_STACK_EXTRA )
     { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_rational);
@@ -551,13 +551,13 @@ globalMPQ(DECL_LD Word at, mpq_t mpq)
     p = gTop;
     gTop += num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA;
 
-    *at = consIndirect(p, TAG_INTEGER);
+    *at = consIndirect(p, KIND_MPQ);
     *p++ = m;
-    *p++ = mpq_size_stack(MPZ_LIMB_SIZE(num));
+    *p++ = mpz_size_stack(MPZ_LIMB_SIZE(num));
 #if O_BF
     *p++ = num->expn;
 #endif
-    *p++ = mpq_size_stack(MPZ_LIMB_SIZE(den));
+    *p++ = mpz_size_stack(MPZ_LIMB_SIZE(den));
 #if O_BF
     *p++ = den->expn;
 #endif
@@ -578,10 +578,10 @@ globalMPQ(DECL_LD Word at, mpq_t mpq)
 	    size_t den_size;
 	    size_t num_wsz = mpz_wsize(num, &num_size);
 	    size_t den_wsz = mpz_wsize(den, &den_size);
-	    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, TAG_INTEGER));
+	    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, KIND_MPQ));
 	    assert((Word)MPZ_LIMBS(den) == (Word)MPZ_LIMBS(num) + num_wsz);
 	  });
-    *at = consIndirect(p, TAG_INTEGER);
+    *at = consIndirect(p, KIND_MPQ);
   }
 
   return true;
@@ -670,7 +670,7 @@ get_rational_no_int(DECL_LD word w, Number n)
 { Word p = addressIndirect(w);
 
   p++;
-  if ( (*p&MP_RAT_MASK) )
+  if ( tagex(w) == TAGEX_INDIRECT_MPQ )
   { n->type = V_MPQ;
     get_mpq_from_stack(p, n->value.mpq);
   } else
@@ -924,14 +924,14 @@ loadMPQFromCharp(const char *data, Word r, Word *store)
 
   p = *store;
   *store += wsize+2+2*MPZ_STACK_EXTRA;
-  *r = consIndirect(p, TAG_INTEGER);
-  m = mkIndHdr(wsize+2*MPZ_STACK_EXTRA, TAG_INTEGER);
+  *r = consIndirect(p, KIND_MPQ);
+  m = mkIndHdr(wsize+2*MPZ_STACK_EXTRA, KIND_MPQ);
   *p++ = m;
-  *p++ = mpq_size_stack((int) (num_neg ? -num_limbsize : num_limbsize)); /* dubious cast */
+  *p++ = mpz_size_stack((int) (num_neg ? -num_limbsize : num_limbsize)); /* dubious cast */
 #if O_BF
   *p++ = num_bf.expn;
 #endif
-  *p++ = mpq_size_stack((int) (den_neg ? -den_limbsize : den_limbsize)); /* dubious cast */
+  *p++ = mpz_size_stack((int) (den_neg ? -den_limbsize : den_limbsize)); /* dubious cast */
 #if O_BF
   *p++ = den_bf.expn;
 #endif
@@ -1254,7 +1254,7 @@ bignum_index(const word *p)
 
   if ( n <= KEY_INDEX_MAX )
   { return murmur_key(p, n*sizeof(*p));
-  } else if ( (p[0]&MP_RAT_MASK) )
+  } else if ( indKind(m) == KIND_MPQ )
   { word data[4];
 #if O_GMP
     data[0] = p[0]^p[1]<<(sizeof(p[0])*4);

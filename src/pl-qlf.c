@@ -1275,13 +1275,13 @@ qlf_mpq_load(IOSTREAM *fd, Buffer buf)
   bf_import_dimension(&dbf, (const unsigned char*)dbuf, den_bytes);
   den_wsize = BF_WSIZE(dbf);
   wsize = num_wsize + den_wsize;
-  m     = mkIndHdr(wsize+4, TAG_INTEGER);
+  m     = mkIndHdr(wsize+4, KIND_MPQ);
   p     = allocFromBuffer(buf, sizeof(word)*(wsize+5));
 
   *p++ = m;
-  *p++ = mpq_size_stack(mp_cpsign(num_hdrsize, nbf.len));
+  *p++ = mpz_size_stack(mp_cpsign(num_hdrsize, nbf.len));
   *p++ = nbf.expn;
-  *p++ = mpq_size_stack(mp_cpsign(den_hdrsize, dbf.len));
+  *p++ = mpz_size_stack(mp_cpsign(den_hdrsize, dbf.len));
   *p++ = dbf.expn;
   p[num_wsize-1] = 0;
   nbf.tab = (mp_limb_t*)p;
@@ -1296,12 +1296,12 @@ qlf_mpq_load(IOSTREAM *fd, Buffer buf)
   mpz_hdr_size(num_hdrsize, num, &num_wsize);
   mpz_hdr_size(den_hdrsize, den, &den_wsize);
   wsize = num_wsize + den_wsize;
-  m     = mkIndHdr(wsize+2, TAG_INTEGER);
+  m     = mkIndHdr(wsize+2, KIND_MPQ);
   p     = allocFromBuffer(buf, sizeof(word)*(wsize+3));
 
   *p++ = m;
-  *p++ = mpq_size_stack(mp_cpsign(num_hdrsize, num->_mp_size));
-  *p++ = mpq_size_stack(mp_cpsign(den_hdrsize, den->_mp_size));
+  *p++ = mpz_size_stack(mp_cpsign(num_hdrsize, num->_mp_size));
+  *p++ = mpz_size_stack(mp_cpsign(den_hdrsize, den->_mp_size));
   p[num_wsize-1] = 0;
   num->_mp_d = (mp_limb_t*)p;
   mpz_import(num, num_bytes, 1, 1, 1, 0, nbuf);

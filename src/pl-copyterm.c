@@ -942,6 +942,7 @@ back the result of memcpy(), which cannot be store-forwarded.
 #define RELOC_BM ( EXBIT(TAGEX_ATTVAR) | \
 		   EXBIT(TAGEX_INDIRECT_FLOAT) | \
 		   EXBIT(TAGEX_INDIRECT_INT) | \
+		   EXBIT(TAGEX_INDIRECT_MPQ) | \
 		   EXBIT(TAGEX_INDIRECT_STRING) | \
 		   EXBIT(TAGEX_COMPOUND) | \
 		   EXBIT(TAGEX_REF) )
@@ -949,13 +950,14 @@ back the result of memcpy(), which cannot be store-forwarded.
 #define needs_relocation(w) ((RELOC_BM>>tagex(w))&1)
 
 #define RM(i) (((RELOC_BM>>(i))&1) ? ~(word)0 : (word)0)
-static_assert(TAGEX_COUNT == 32, "reloc_mask[] assumes 32 tagex() values");
+#define RM8(i) RM(i), RM(i+1), RM(i+2), RM(i+3), \
+	       RM(i+4), RM(i+5), RM(i+6), RM(i+7)
+static_assert(TAGEX_COUNT == 64, "reloc_mask[] assumes 64 tagex() values");
 static const word reloc_mask[TAGEX_COUNT] =
-{ RM(0),  RM(1),  RM(2),  RM(3),  RM(4),  RM(5),  RM(6),  RM(7),
-  RM(8),  RM(9),  RM(10), RM(11), RM(12), RM(13), RM(14), RM(15),
-  RM(16), RM(17), RM(18), RM(19), RM(20), RM(21), RM(22), RM(23),
-  RM(24), RM(25), RM(26), RM(27), RM(28), RM(29), RM(30), RM(31)
+{ RM8(0),  RM8(8),  RM8(16), RM8(24),
+  RM8(32), RM8(40), RM8(48), RM8(56)
 };
+#undef RM8
 #undef RM
 
 fastheap_term *

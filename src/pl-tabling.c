@@ -473,9 +473,8 @@ free_tbl_free_objects(PL_local_data_t *ld, bool closed)
  * unify_table_status()).
  * When no slot is in use, which is typically the case after the leader
  * completes, the array is truncated.  The serial is never reset, so
- * old handles do not match the check of new ones until it wraps (22
- * bits).  Handles use 52 bits, so they remain small integers if the
- * tags move to the top of the cell (see doc/tagging/top-tags.md).
+ * old handles do not match the check of new ones until it wraps (25
+ * bits).
  */
 
 typedef struct tbl_handle_slot
@@ -487,7 +486,7 @@ typedef struct tbl_handle_slot
 #define TBL_HANDLE_COMPONENT	1
 #define TBL_HANDLE_INDEX_BITS	28
 #define TBL_HANDLE_INDEX_MASK	(((size_t)1<<TBL_HANDLE_INDEX_BITS)-1)
-#define TBL_HANDLE_BITS		52	/* small int in all cell layouts */
+#define TBL_HANDLE_BITS		(TAGGED_INT_BITS-1) /* positive small int */
 #define TBL_HANDLE_CHECK_BITS	(TBL_HANDLE_BITS-1-TBL_HANDLE_INDEX_BITS)
 #define TBL_HANDLE_SERIAL_MASK	(((size_t)1<<(TBL_HANDLE_CHECK_BITS-1))-1)
 #define TBL_HANDLE_FREE		((size_t)-1)

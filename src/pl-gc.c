@@ -2661,7 +2661,7 @@ update_relocation_chain(DECL_LD Word current, Word dest)
 
     clear_first(current);
     current = valPtr(val);
-    tag = (int)tag(val);
+    tag = (int)indKind(val);
     val = get_value(current);
     DEBUG(MSG_GC_RELOC,
 	  { FliFrame f;
@@ -2688,7 +2688,7 @@ into_relocation_chain(DECL_LD Word current, int stg)
 
   head = valPtr(val);			/* FIRST/MASK already gone */
   set_value(current, get_value(head));
-  set_value(head, consPtr(current, stg|tag(val)));
+  set_value(head, consPtr(current, stg|indKind(val)));
 
   DEBUG(MSG_GC_RELOC,
 	char b1[64]; char b2[64];

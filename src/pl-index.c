@@ -179,6 +179,7 @@ hashIndex(word key, unsigned int buckets)
   const word fib64 = 0x9E3779B97F4A7C15LL;
   const int  shift = key_bits-MSB(buckets);
 
+  key >>= CELL_VAL_SHIFT;		/* consecutive values step by 1 */
   key ^= key >> shift;
   return (unsigned int) ((fib64*key) >> shift);
 }

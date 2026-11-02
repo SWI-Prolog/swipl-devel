@@ -564,7 +564,8 @@ sizeof_block(const trie_children_block *b)
 
 static inline unsigned
 child_hash(word key, unsigned bits)
-{ return (unsigned)(((uint64_t)key * 0x9e3779b97f4a7c15ULL) >> (64-bits));
+{ return (unsigned)(((uint64_t)(key>>CELL_VAL_SHIFT) * 0x9e3779b97f4a7c15ULL)
+		    >> (64-bits));
 }
 
 /* Position of the entry for `key` in `b` or -1 */
@@ -3281,6 +3282,7 @@ unify_key(DECL_LD ukey_state *state, word key)
 #endif /*O_TRIE_ATTVAR*/
     assert(0);
     case TAGEX_INDIRECT_INT:		/* indirect data */
+    case TAGEX_INDIRECT_MPQ:
     case TAGEX_INDIRECT_STRING:
     case TAGEX_INDIRECT_FLOAT:
     { word w;
@@ -5015,6 +5017,7 @@ next:
       break;
     }
     case TAGEX_INDIRECT_INT:		/* indirect data */
+    case TAGEX_INDIRECT_MPQ:
     case TAGEX_INDIRECT_STRING:
     case TAGEX_INDIRECT_FLOAT:
     { size_t index = (size_t)valTagged(key);

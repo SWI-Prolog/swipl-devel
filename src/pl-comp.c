@@ -4676,11 +4676,7 @@ typedef struct type_test
   bool		(*test)(word);
 } type_test;
 
-#if O_BIGNUM
-static bool fisInteger(word w)  { GET_LD return isInteger(w);  }
-#else
 static bool fisInteger(word w)  { return isInteger(w);  }
-#endif
 static bool fisRational(word w) { return isRational(w);  }
 static bool fisFloat(word w)    { return isFloat(w);    }
 static bool fisNumber(word w)   { return isNumber(w);   }

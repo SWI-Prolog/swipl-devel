@@ -164,25 +164,20 @@ clearNumber(Number n)
   }
 }
 
-static inline word
-mpz_size_stack(int sz)
-{ return ((word)sz<<1) & ~(word)MP_RAT_MASK;
-}
+/* The size words of MPZ and MPQ numbers on the stack hold the signed
+   number of limbs.  The cell kind tells MPZ from MPQ (see KIND_MPQ).
+*/
 
 static inline word
-mpq_size_stack(int sz)
-{ return ((word)sz<<1) | MP_RAT_MASK;
+mpz_size_stack(int sz)
+{ return (word)(sword)sz;
 }
 
 static inline int
 mpz_stack_size(word w)
-{ return (int)w>>1;
+{ return (int)(sword)w;
 }
 
-static inline int
-mpq_stack_size(word w)
-{ return (int)w>>1;
-}
 
 #ifdef O_GMP
 static inline void

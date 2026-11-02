@@ -61,8 +61,7 @@ The latter was used to indicate the   memory  area of the (old) relative
 pointer, but still keeps its role  as   type  indication. For example, a
 string is represented as `TAG_STRING|STG_GLOBAL`   as Prolog data, while
 the string itself is stored on the  global stack guarded by an _indirect
-guard_ tagged as `TAG_STRING|STG_LOCAL`. Future   versions  will combine
-these and reorganise the tag space.
+guard_ tagged as `TAG_STRING|STG_LOCAL`.
 
 Types:
 ======
@@ -92,15 +91,31 @@ Reference	7      LG
 Bit layout
 ==========
 
- - Value are the top-bits, so extracting the value is just a
+```
+ 63                                     8 7 6 5 4 3 2 1 0
++----------------------------------------+-+-+-+---+-----+
+|                 value                  |F|M|V|stg| tag |
++----------------------------------------+-+-+-+---+-----+
+```
+
+ - The value is in the top 56 bits, so extracting it is just a
    shift.
 
- - GC masks follow, so, as they are normally both 0, shifting
-   suffices for this too.
+ - Type is the low 3-bits, so a simple mask yields the coarse type.
 
- - Type is the low 3-bits, so a simple mask yields the type.
+ - Storage in bits 3 and 4 and the variant bit (V) in bit 5.  Together
+   with the tag these form the kind of the cell, tagex().  The variant
+   bit tells kinds apart that share tag and storage: KIND_MPQ marks
+   rationals.
 
- - Storage in bits 4 and 5
+ - GC masks (M: mark, F: first) in bits 6 and 7.  As they are normally
+   both 0, shifting suffices for this too.
+
+ - An aligned pointer has 000 in the tag, which no atom or functor has,
+   so raw pointers on the stacks never look like atoms.
+
+ - Keeping the kind in the top byte instead was implemented and
+   measured; it is slower on x86-64 and ARM64 (doc/tagging/top-tags.md).
 
 Variables
 =========
@@ -149,7 +164,7 @@ be kept consistent.
 
 #include "os/pl-buffer.h"
 
-#define LMASK_BITS	7		/* total # mask bits */
+#define LMASK_BITS	8		/* total # mask bits */
 
 #define TAG_MASK	0x00000007L	/* mask for tag */
 #define TAG_VAR		0x00000000L	/* tag for variable (= 0L) */
@@ -180,8 +195,22 @@ be kept consistent.
 #define STG_INLINE	STG_STATIC
 #define STG_TRAIL	STG_STATIC
 
-#define MARK_MASK	(0x1<<5)	/* GC mark */
-#define FIRST_MASK	(0x2<<5)	/* GC first mark */
+/* The variant bit distinguishes kinds that share a tag and storage, such
+   as integers and rationals.  tagex() includes it.
+*/
+#define VARIANT_BIT	(0x1<<5)
+#define TAGEX_MASK	(TAG_MASK|STG_MASK|VARIANT_BIT)
+
+/* The kind of an indirect is its tagex() without the storage: the
+   tag or, for rationals, KIND_MPQ.  consIndirect() and mkIndHdr() take
+   a kind and indKind() returns it for a cell or a header, so the kind
+   survives copying an indirect.
+*/
+#define KIND_MPQ	(TAG_INTEGER|VARIANT_BIT)
+#define indKind(w)	((word)tagex(w) & ~(word)STG_MASK)
+
+#define MARK_MASK	(0x1<<6)	/* GC mark */
+#define FIRST_MASK	(0x2<<6)	/* GC first mark */
 
 #define set_marked(p)	do { *(p) |= MARK_MASK; } while(0)
 #define set_first(p)	do { *(p) |= FIRST_MASK; } while(0)
@@ -197,21 +226,28 @@ be kept consistent.
 #define hasTag(w, t)	(tag(w) == (t))
 #define valInt(w)	((sword)(w) >> LMASK_BITS)
 #define valUInt(w)	((word)(w) >> LMASK_BITS)
+#define CELL_VAL_SHIFT	LMASK_BITS
+/* CELL_VAL_SHIFT is the lowest bit of the value of a small integer or
+   index cell.  Multiplicative hashes of cells shift it out first, so
+   consecutive values step by 1 (see child_hash() in pl-trie.c).
+*/
 
 		 /*******************************
 		 *	  EXTENDED TAG		*
 		 *******************************/
 
-#define EXBIT(w)	(1<<(w))
+#define EXBIT(w)	((word)1<<(w))
 #define INDIRECT_BM	( EXBIT(STG_GLOBAL|TAG_INTEGER) | \
 			  EXBIT(STG_LOCAL|TAG_INTEGER) | \
+			  EXBIT(STG_GLOBAL|KIND_MPQ) | \
+			  EXBIT(STG_LOCAL|KIND_MPQ) | \
 			  EXBIT(STG_GLOBAL|TAG_FLOAT) | \
 			  EXBIT(STG_LOCAL|TAG_FLOAT) | \
 			  EXBIT(STG_GLOBAL|TAG_STRING) | \
 			  EXBIT(STG_LOCAL|TAG_STRING) \
 			)
 
-#define tagex(w)	((w) & (TAG_MASK|STG_MASK))
+#define tagex(w)	((w) & TAGEX_MASK)
 #define isIndirect(w)	(EXBIT(tagex(w)) & INDIRECT_BM)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -225,13 +261,14 @@ labels. The second group are cells   that  never appear as Prolog data:
 private markers of the compiler, read/1, tries and variant/2.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define TAGEX_COUNT		32	/* tagex() is in 0..TAGEX_COUNT-1 */
+#define TAGEX_COUNT		64	/* tagex() is in 0..TAGEX_COUNT-1 */
 
 #define TAGEX_VAR		(TAG_VAR|STG_STATIC)
 #define TAGEX_ATTVAR		(TAG_ATTVAR|STG_GLOBAL)
 #define TAGEX_INDIRECT_FLOAT	(TAG_FLOAT|STG_GLOBAL)
 #define TAGEX_TAGGED_INT	(TAG_INTEGER|STG_INLINE)
-#define TAGEX_INDIRECT_INT	(TAG_INTEGER|STG_GLOBAL)
+#define TAGEX_INDIRECT_INT	(TAG_INTEGER|STG_GLOBAL)	/* MPZ (int64) */
+#define TAGEX_INDIRECT_MPQ	(KIND_MPQ|STG_GLOBAL)
 #define TAGEX_INDIRECT_STRING	(TAG_STRING|STG_GLOBAL)
 #define TAGEX_ATOM		(TAG_ATOM|STG_STATIC)
 #define TAGEX_FUNCTOR		(TAG_ATOM|STG_GLOBAL)
@@ -312,7 +349,7 @@ and while loading .wic files.  It comes at no price.
 
 #if O_BIGNUM
 #define isInteger(w)	( isTaggedInt(w) || \
-			  (hasTag(w, TAG_INTEGER) && !isMPQNum(w)) )
+			  tagex(w) == TAGEX_INDIRECT_INT )
 #else
 #define isInteger(w)	isRational(w)
 #endif
@@ -342,8 +379,8 @@ and while loading .wic files.  It comes at no price.
 
 #define consCompound(p)	consPtr(p, TAGEX_COMPOUND)
 #define consAttVar(p)	consPtr(p, TAGEX_ATTVAR)
-/* tag is TAG_FLOAT, TAG_INTEGER or TAG_STRING */
-#define consIndirect(p, tag) consPtr(p, (tag)|STG_GLOBAL)
+/* kind is TAG_FLOAT, TAG_INTEGER, KIND_MPQ or TAG_STRING */
+#define consIndirect(p, kind) consPtr(p, (kind)|STG_GLOBAL)
 
 
 		 /*******************************
@@ -407,7 +444,6 @@ wsizeofInd(word w)
 */
 #define isInlineInt(w)	(storage(w) == STG_INLINE)
 
-#define MP_RAT_MASK	(0x1)
 
 /* valFloat(w) moved to pl-inline.h */
 #define isBString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'B')

@@ -55,7 +55,7 @@ VM_globalIndirectFromCode(DECL_LD Code pc)
   Word p = allocGlobal(n+2);
 
   if ( p )
-  { word r = consIndirect(p, tag(m));
+  { word r = consIndirect(p, indKind(m));
 
     *p++ = m;
     memcpy(p, data, sizeof(*data)*n);

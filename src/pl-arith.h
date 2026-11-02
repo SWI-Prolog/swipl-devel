@@ -186,25 +186,13 @@ popArgvArithStack(DECL_LD int n)
 #define isMPQNum(w) LDFUNC(isMPQNum, w)
 static inline int
 isMPQNum(DECL_LD word w)
-{ if ( tagex(w) == TAGEX_INDIRECT_INT )
-  { Word p = addressIndirect(w);
-
-    return p[1]&MP_RAT_MASK;
-  }
-
-  return false;
+{ return tagex(w) == TAGEX_INDIRECT_MPQ;
 }
 
 #define isMPZNum(w) LDFUNC(isMPZNum, w)
 static inline int
 isMPZNum(DECL_LD word w)
-{ if ( tagex(w) == TAGEX_INDIRECT_INT )
-  { Word p = addressIndirect(w);
-
-    return !(p[1]&MP_RAT_MASK);
-  }
-
-  return false;
+{ return tagex(w) == TAGEX_INDIRECT_INT;
 }
 
 #endif /*PL_ARITH_H*/

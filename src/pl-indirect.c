@@ -395,7 +395,7 @@ extern_indirect(DECL_LD indirect_table *tab, word val, Word *gp)
   else
     gTop = p;
 
-  return consIndirect(r, tag(val));
+  return consIndirect(r, indKind(val));
 }
 
 
@@ -415,7 +415,7 @@ extern_indirect_no_shift(DECL_LD indirect_table *tab, word val)
     p += wsize;
     *p++ = h->header;
 
-    return consIndirect(r, tag(val));
+    return consIndirect(r, indKind(val));
   } else
     return 0;
 }
