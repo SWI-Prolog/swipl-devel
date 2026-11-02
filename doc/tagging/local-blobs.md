@@ -298,6 +298,46 @@ safe mode is needed for the local sweep anyway.
         (`diploidnumberfordogs-2`) solves in 30.0–30.3 s instead of
         28.5–28.6 s (+5.5%) with a peak of 10.34 GB instead of 9.83 GB.
         Each fresh table creates two blobs (component and worklist).
+      - Later, worklists lost their blob for an integer handle: an index
+        in a per-thread slot array (`LD->tabling.handles`) and a check,
+        made of a per-thread serial and the kind of object.  Freeing the
+        worklist frees its slot, so a stale handle raises an existence
+        error, also if the slot was reused.  Decoding costs an integer
+        test, two loads and a compare.  The array is truncated when no
+        slot is in use, which is the case after a leader completes: in
+        cyc150 it peaks at 625k slots (16 MB).  Handles are valid only in
+        their thread.  A worklist that another thread takes over gets a
+        new handle; its old slot stays until the old owner truncates.
+      - An earlier attempt used the handle of the answer trie, which
+        exists anyway, and found the worklist through `data.worklist`
+        plus an owner check, as the handle of a shared table is shared.
+        cyc150 gained 2.5%, but the tabling benchmarks took 101% (shuttle
+        and DoubleFirst up to 104%): the per-answer decode follows the
+        atom, its blob type, the trie and the worklist.
+      - Cost of the integer handles, measured 2026-11-02 against the
+        parent commit (pinned, both builds core plus the packages ErgoAI
+        needs, two runs): the tabling benchmarks take 98.8% and 99.0% in
+        total (shuttle 96–99%, DoubleFirst 97–101%, pingpong 94–99%).
+        cyc150 solves A in 29.4 s instead of 29.1–29.8 s and B in
+        11.5–11.6 s instead of 11.6–11.8 s, with a peak of 9.64 GB
+        instead of 9.67 GB.  After abolishing, RSS is 6.57 GB instead of
+        5.19 GB, but tcmalloc reports the same allocated bytes (37 MB):
+        the difference is free pages not yet returned; after
+        `trim_heap/0` RSS is 423 MB instead of 480 MB.
+      - Components followed, using the same slots.  The check includes
+        the kind of object, so a worklist handle is not a component.
+        Creating a table no longer creates an atom.  The scheduling
+        component keeps its handle when it gets a new leader, and a
+        handle survives merges, as `run_leader/6` needs, and identifies a
+        freed component, as `tbl_leader_finished()` needs.  Measured
+        2026-11-02 against the base of both steps (two runs each): the
+        tabling benchmarks take 98.4% and 98.7% in total against 100.3%
+        and 99.8% for the worklists alone, no benchmark above 101%.
+        cyc150 solves A in 28.9–29.1 s instead of 29.4–29.5 s and B in
+        11.4–11.5 s instead of 11.8–11.9 s, with a peak of 9.67 GB
+        (equal).  RSS after abolishing says little: tcmalloc kept 9.8 GB
+        of free pages in this run while 36 MB was allocated (base 37 MB);
+        after `trim_heap/0` RSS is 373 MB instead of 480 MB.
       - Tests: `tests/tabling/test_tbl_handles.pl`.
  3. **Done.**  Promotion (`promoteLocalAtom()`): clear
     `ATOM_LOCAL_REFERENCE`, account the atom globally and, if global AGC

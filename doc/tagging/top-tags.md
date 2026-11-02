@@ -1,8 +1,24 @@
 # Moving the type tags to the top of the cell
 
-Status: **design.**  Step 2 of the [plan](#plan) is done
-(d755bdc49): code outside `src/pl-data.h` no longer depends on the bit
-layout.  Nothing is measured yet.
+Status: **rejected** (2026-11-02).  Step 3 was implemented as the
+compile-time option `O_TOP_TAGS` and passed all tests, but it is slower
+on both x86-64 (0.5-3%) and ARM64 (~5%), so it was removed again; the code is not in the history.  The
+low-bit layout was cleaned up instead: see [kind-byte.md](kind-byte.md).
+What the top-tag work found (layout dependencies, hash clustering,
+packages that shift `atom_t`) is fixed there.
+
+ARM64 (Apple M1, Apple clang, kind-byte before squashing (code as 7c7a5ef6e, with `O_TOP_TAGS` still available) against
+origin/master 08abe65e9, fresh builds, 3 interleaved rounds of
+`bench/ --speedup=4`): kind byte 0.995-1.003 of master, top tags
+1.043-1.055 (geometric mean); top tags >4% slower in all rounds for 15
+of 36 programs (det 1.29, qsort 1.20, eval 1.20, meta_qsort 1.19), only
+tak faster (0.94).  nreverse: top tags 1.060 time, 1.087 instructions,
+1.057 cycles of the kind byte.  Top Byte Ignore does not make up for
+the extra instructions for top-byte constants and tag tests.  semweb
+crashed with top tags because the M1 still had the semweb commit that
+shifts `atom_t` (fixed in semweb ea4ee3c).
+
+The rest of this note is the design as it was.
 
 This note works out what it would take to replace the current low-bit
 tagging (`src/pl-data.h`) with a layout that keeps the type in the top
@@ -13,7 +29,8 @@ byte of the 64-bit cell.  The goals are:
   - Free tags for new types, notably a _pointer integer_: an integer
     that can only be created from C, so Prolog code cannot hand an
     invalid pointer to the system.  Candidates are the answer pointers
-    in tabling and the trie pointers in private tries.
+    in tabling, the trie pointers in private tries and the many
+    foreign libraries that use `PL_unify_pointer()`.
   - Allow using a pointer cell as an address without decoding it on
     hardware that ignores the top byte.
 
@@ -209,10 +226,27 @@ of the target is managed elsewhere, as in tabling today.
 Users:
 
   - Tabling: `delay_to_data()`/`word_to_answer()` (`pl-tabling.c`) and the
-    other `pointerToInt()` sites.
+    other `pointerToInt()` sites: answer trie nodes, monotonic
+    dependencies.  Worklists and components no longer need it: they
+    use integer handles into a per-thread slot array (see
+    [local blobs](local-blobs.md)), which also detect stale handles.
+  - Foreign code using `PL_unify_pointer()`/`PL_get_pointer()`.
   - Private tries: `TRIE_PTR_TAG` node values become ordinary cells.  A
     trie can then be passed to Prolog without first creating its atom
     handle.
+
+Alternatives considered for the tabling and trie pointers (2026-11-02):
+
+  - `<trie,N>` handles for trie nodes, with a node array per trie.
+    Private tries allocate their first nodes individually and then from
+    chunks of growing size that are swept, and concurrent tries (all
+    user tries and shared tables) allocate each node with several
+    writers at once, so each insert would pay for an atomic index.
+    Tabling manages the lifetime of the nodes it hands out, so a lookup
+    per decode buys nothing there.  `trie_term/2` has no trie argument,
+    so the handle of `trie_insert/4` would have to become a compound.
+  - A global handle table for the nodes `trie_insert/4` returns only.
+    Safe and cheap, but left for now.
 
 Open decision: should `PL_get_pointer()` accept only pointer integers?
 That closes a crash path from Prolog, but breaks foreign code that
@@ -272,10 +306,22 @@ casts.  This also affects VM operands such as `H_ATOM` and
 
 ## Plan
 
- 1. Measure first.  Write a micro-benchmark of `deRef()`, `do_unify()`
-    and `compare_primitives()` with the decode cost changed in isolation
-    (x86-64 and ARM64), and count how many tagged integers fall in
-    2^52..2^56 on the benchmark suite.  Decide between (A) and (B).
+ 1. **Done** (2026-11-02, x86-64 only).  Measure first.
+      - Tagged integers created at or above 2^52 (counted in
+        `consInt()`): `bench/` 0.1% of 21.3M, the tabling benchmarks
+        0.0008% of 605M, ErgoAI cyc150 20 of 61M (from `pl-gmp.c`).
+        The tabling handles of `new_tbl_handle()` gave another 5.7M
+        in cyc150 and are now limited to 52 bits.  So (B) moves almost
+        nothing to indirects.
+      - A synthetic loop (`deRef()` of 0–2 references, type dispatch,
+        compare) on a randomly linked heap: memory-bound (4M roots)
+        current 42–50 ns per pair, (A) 52–58 ns, (B) 43–51 ns.
+        Cache-resident (4K roots, gcc) current 5.5–8.2 ns, (A) 2.3 ns,
+        (B) 1.9 ns; clang (A) 2.2 ns, (B) 2.3–2.4 ns.  The loop is
+        dominated by misses and branch prediction, so this ranks the
+        encodings only: (A) is never better than (B) with gcc, and
+        loses in the memory-bound run.  ARM64 is not measured.
+      - Decision: (B).
  2. **Done** (d755bdc49).  Abstract: route every remaining raw use of
     `LMASK_BITS`, `<<7` and the storage bits through named macros in
     `pl-data.h`, without changing the encoding.  `pl-data.h` now has:
@@ -292,5 +338,66 @@ casts.  This also affects VM operands such as `H_ATOM` and
     Verified by comparing the objects of all core sources before and
     after, for release and `O_DEBUG` flags: identical except for
     `assert()` texts and a few rewrites shown to be equivalent.
- 3. Switch the encoding behind those macros, with GC as the main work.
+ 3. **Done**, then removed (see the status above).  Switch the encoding behind
+    those macros.  `O_TOP_TAGS` selects the layout.  It needs 64-bit
+    pointers and is off by default, as it is slower on x86-64 (below).
+    The commits: a cleanup that hides the remaining raw tag bits and
+    leaves the generated code unchanged (compared per object), the hash
+    fix below, and the layout itself.
+      - The top byte of a cell that is not a small integer is its
+        `tagex()` value (0x00..0x3f since the kind byte, see
+        [kind-byte.md](kind-byte.md)), so all `TAG_*`, `STG_*` and
+        `TAGEX_*` values and the switches on them are unchanged.
+        `tagex(w)` is `w&4 ? TAGEX_TAGGED_INT : w>>56`.  Tests for one
+        coarse tag other than var and integer are
+        `hasTag(w, t)`: `(w>>56 & 0xc7) == t`, as the mask maps the
+        integer top bytes 0x00 and 0xff to 0x00 and 0xc7 (0xe7 before
+        the variant bit).  `isAtom()`
+        and `isFunctor()` compare the top byte.
+      - `consInt(n)` keeps the low 53 bits of `n`, sign-extended, so no
+        cell it builds has another top byte, and the existing
+        `valInt(consInt(n)) == n` tests decide whether `n` fits.
+      - The GC bits moved to bits 0 and 1.  Pointers are aligned and
+        integer and index values start at bit 3, so the marking of term
+        walks is unaffected.
+      - Stack addresses must have a zero top byte; `stack_malloc()` and
+        `stack_realloc()` check this (memory tagging on ARM64 would
+        violate it).  Raw pointers, small numbers and generations
+        (0x7f.., 0x80..0xff..) on the stacks then never pass
+        `isAtom()`, which atom-GC uses to scan the local stack.
+    Layout dependencies that step 2 missed:
+      - GC: `ttag()` read the trail tag from bit 0, now the mark bit, and
+        the downward scan tested the header bit, which negative small
+        integers (top byte 0xff) also have
+        (`isMarkedOrIndHdr()`).
+      - The XR table of QLF files relied on bit 0 of atoms and functors
+        to keep them apart from pointers, and trie values told records
+        from atoms and integers by the low two bits.
+      - Packages: semweb packed atoms into 32-bit ids and datums by
+        shifting `atom_t`; it now uses `PL_atom_index()` and
+        `PL_atom_from_index()`.  snowball hashed `atom_t>>7`.
+    Cost, measured 2026-11-02 on x86-64 (AMD Ryzen AI Max+ 395, pinned,
+    both builds core plus the packages ErgoAI needs, against the parent
+    with the hash fix below applied to both):
+      - The first measurement was much worse: the tabling benchmarks
+        took 105–106% and 200pDoubleFirst had 32M instead of 7M branch
+        mispredictions.  Branch sampling (`perf record -j any`) put them
+        in the probe loop of the trie child index: its Fibonacci hash
+        spreads consecutive keys only if they step by 1, and small
+        integers now step by 8 instead of 128.  Both `child_hash()` and
+        `hashIndex()` now shift out `CELL_VAL_SHIFT` first.
+      - Then: tabling benchmarks 102.6% and 103.4% in total, ErgoAI
+        cyc150 solves A in 29.4 s instead of 28.9–29.1 s and B in
+        11.6 s instead of 11.3–11.4 s, `bench/` 100.4% (geometric
+        mean; nreverse 108%, mu 107%, zebra and sieve 106%, divide10
+        and times10 93%).
+      - The extra cost is instructions, not misses: nreverse executes
+        5.7% more.  x86-64 has no 64-bit immediates, so masks such as
+        `0xe7<<56`, the address mask and constants such as `ATOM_nil`
+        and `FUNCTOR_dot2` each need a 10-byte `movabs` into a register,
+        where the old layout used 32-bit immediates and a shift.
+        Testing the upper 32 bits (`topWord()`) brings nreverse to 4.1%
+        more instructions; the constants and the address mask remain.
+      - Not measured: ARM64, where Top Byte Ignore would make `valPtr()`
+        free and a 64-bit constant with only a top byte is one `movz`.
  4. Add `T_PTRINT`; convert tabling and private tries.
