@@ -782,6 +782,14 @@ struct PL_local_data
       unsigned short count[4];		/* Length of list[] */
       bool closed;			/* Thread is terminating */
     } free_objects;
+    struct				/* Prolog handles (see pl-tabling.c) */
+    { struct tbl_handle_slot *slots;	/* Handle index --> object */
+      size_t size;			/* Allocated slots */
+      size_t top;			/* Slots in use or on the free list */
+      size_t free;			/* First free slot + 1, or 0 */
+      size_t live;			/* # slots in use */
+      size_t serial;			/* Serial of the last handle */
+    } handles;
     struct
     { atom_t max_table_subgoal_size_action;
       size_t max_table_subgoal_size;

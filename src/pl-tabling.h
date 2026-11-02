@@ -77,7 +77,7 @@ typedef enum
 
 typedef struct tbl_component
 { int			magic;			/* COMPONENT_MAGIC */
-  atom_t		symbol;			/* Prolog handle (local blob) */
+  word		handle;			/* Prolog handle (integer) or 0 */
   struct PL_local_data *owner;			/* Thread that created me */
   scc_status		status;			/* SCC_* */
   scc_neg_status	neg_status;		/* SCC_NEG_* */
@@ -130,7 +130,7 @@ typedef struct worklist
   cluster      *riac;			/* rightmost inner answer cluster */
   cluster      *free_clusters;		/* clusters to reuse */
   int		magic;			/* WORKLIST_MAGIC */
-  atom_t	symbol;			/* Prolog handle (local blob) */
+  word		handle;			/* Prolog handle (integer) or 0 */
   struct PL_local_data *owner;		/* Thread completing my table */
   unsigned	ground : 1;		/* Ground call (early completion) */
   unsigned	executing : 1;		/* $tbl_wkl_work/3 in progress */

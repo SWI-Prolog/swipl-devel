@@ -39,8 +39,9 @@
 
 /** <module> Handles to worklists, components and private answer tries
 
-Prolog refers to tabling worklists and components using thread-local
-blobs.  A handle to a freed object raises an existence error, and other
+Prolog refers to tabling worklists and components using integer
+handles.  A handle to a freed object raises an existence error, also if
+a new object reuses its slot, and other
 threads see a table that is being completed as `incomplete`.  Private
 answer tries also have thread-local handles.  Another thread that reaches
 such a trie, e.g., through an IDG edge, gets the same handle, promoted.
@@ -56,20 +57,23 @@ threads :-
 :- dynamic
     saved/2.
 
-:- table t/0, w/0, same/2.
+:- table t/0, w/0, same/1, kind/0.
 
 t :-
     '$tbl_scc'(SCC),
     assertz(saved(scc, SCC)).
 
-same(Same, Refs) :-			% handle identity after promotion
+same(Same) :-				% the component keeps its handle
     '$tbl_scc'(S1),
-    recorda(tbl_handle_test, S1, Ref),	% registers, which promotes
-    erase(Ref),				% drops that reference
-    '$atom_references'(S1, Refs),	% the reference of the component
     garbage_collect_atoms,
     '$tbl_scc'(S2),
     (   S1 == S2 -> Same = true ; Same = false ).
+
+kind :-					% a live worklist is no component
+    '$tbl_variant_table'(VT),
+    trie_gen(VT, test_tbl_handles:kind, ATrie),
+    '$tbl_table_status'(ATrie, WL),
+    '$tbl_scc_data'(WL, _).
 
 w :-
     '$tbl_variant_table'(VT),
@@ -79,11 +83,9 @@ w :-
 
 :- table w2/0.
 
-w2 :-					% global variables do not promote
-    '$tbl_variant_table'(VT),
-    trie_gen(VT, test_tbl_handles:w2, ATrie),
-    '$tbl_table_status'(ATrie, WL),
-    nb_setval(tbl_handle_test, WL).
+w2 :-					% reuses the slot of w/0
+    saved(wl, WL),
+    '$tbl_wkl_table'(WL, _).
 
 %   Promote a handle whose object is gone.  It must not get a reference
 %   for the object: Refs is the number of references besides the clause.
@@ -199,7 +201,7 @@ own_pr(Hold, Parent) :-
 
 :- begin_tests(tbl_handles, [cleanup(retractall(saved(_,_)))]).
 
-test(handles, [true(blob(SCC, table_component)), true(blob(WL, worklist))]) :-
+test(handles, [true(integer(SCC)), true(integer(WL))]) :-
     abolish_all_tables,
     t, w,
     saved(scc, SCC),
@@ -216,18 +218,20 @@ test(stale_worklist, error(existence_error(worklist, _))) :-
     w,
     saved(wl, WL),
     '$tbl_wkl_table'(WL, _).
-test(promoted_identity, [Same == true, Refs == 1]) :-
+test(identity, Same == true) :-
     abolish_all_tables,
-    same(Same, Refs).
+    same(Same).
+test(kind, error(type_error(table_component, _))) :-
+    abolish_all_tables,
+    kind.
 test(incomplete, [condition(threads), Status == incomplete]) :-
     abolish_all_tables,
     shared_status(Status).
-test(disowned_worklist, Refs == 0) :-
+test(reused_slot, error(existence_error(worklist, _))) :-
     abolish_all_tables,
-    w2,
-    nb_getval(tbl_handle_test, WL),
-    nb_delete(tbl_handle_test),
-    promote_stale(WL, Refs).
+    retractall(saved(_,_)),
+    w,
+    w2.
 test(trie_disowned, Refs == 0) :-
     abolish_all_tables,
     forall(p(_), true),

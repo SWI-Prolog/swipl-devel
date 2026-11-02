@@ -456,124 +456,223 @@ free_tbl_free_objects(PL_local_data_t *ld, bool closed)
 		 *	  PROLOG HANDLES	*
 		 *******************************/
 
-/* Prolog refers to worklists and components using thread-local blobs
- * (see "Thread-local blobs" in pl-atom.c).  An object creates its blob
- * on demand and remembers it in `symbol`.  While local, it holds no
- * reference, so the blob lives as long as Prolog refers to it; the owner's
- * local sweep then calls the release hook, which clears `symbol`.  If
- * the owner stores a handle, e.g., using assert/1, the blob is promoted.
- * As the types are PL_BLOB_OWNED, promotion adds a reference for the
- * object, so `symbol` remains valid while the object lives and the hook
- * never runs in another thread.  Freeing the object discards its blob,
- * such that stale handles no longer reach the object (which may be
- * recycled by tbl_alloc()), and drops that reference.
+/* Prolog refers to worklists and components using integer handles.  A
+ * handle is a small integer that combines an index in the thread's slot
+ * array (LD->tabling.handles) with a check: a serial of the thread and
+ * the kind of object.  An object gets its handle on demand and keeps it
+ * in `handle`.  Freeing the object frees its slot, so a stale handle no
+ * longer matches the check of its slot, also if the slot is reused (by
+ * an object that tbl_alloc() may have recycled).  Decoding a handle
+ * costs a compare and two loads, which matters as each answer decodes
+ * the handle of its worklist (see frame_worklist()).
  *
  * Worklists and components are private to the thread that created them
- * (`owner`).  Other threads never get a handle: a table whose worklist
+ * (`owner`) and handles are only valid in that thread (the slots are per
+ * thread).  Other threads never get a handle: a table whose worklist
  * belongs to another thread has status `incomplete` for them (see
  * unify_table_status()).
+ * When no slot is in use, which is typically the case after the leader
+ * completes, the array is truncated.  The serial is never reset, so
+ * old handles do not match the check of new ones until it wraps (22
+ * bits).  Handles use 52 bits, so they remain small integers if the
+ * tags move to the top of the cell (see doc/tagging/top-tags.md).
  */
 
-static int
-release_worklist_handle(atom_t a)
-{ worklist *wl = PL_blob_data(a, NULL, NULL);
+typedef struct tbl_handle_slot
+{ void   *object;		/* Object, or next free slot + 1 if free */
+  size_t check;			/* serial<<1|kind, or TBL_HANDLE_FREE */
+} tbl_handle_slot;
 
-  if ( wl )
-  { assert(wl->magic == WORKLIST_MAGIC && wl->symbol == a);
-    wl->symbol = 0;
+#define TBL_HANDLE_WORKLIST	0
+#define TBL_HANDLE_COMPONENT	1
+#define TBL_HANDLE_INDEX_BITS	28
+#define TBL_HANDLE_INDEX_MASK	(((size_t)1<<TBL_HANDLE_INDEX_BITS)-1)
+#define TBL_HANDLE_BITS		52	/* small int in all cell layouts */
+#define TBL_HANDLE_CHECK_BITS	(TBL_HANDLE_BITS-1-TBL_HANDLE_INDEX_BITS)
+#define TBL_HANDLE_SERIAL_MASK	(((size_t)1<<(TBL_HANDLE_CHECK_BITS-1))-1)
+#define TBL_HANDLE_FREE		((size_t)-1)
+#define TBL_HANDLE_SHRINK	1024	/* Free larger arrays when empty */
+
+#define new_tbl_handle(obj, kind) LDFUNC(new_tbl_handle, obj, kind)
+static word
+new_tbl_handle(DECL_LD void *obj, int kind)
+{ size_t idx, check;
+  tbl_handle_slot *slot;
+
+  if ( LD->tabling.handles.free )
+  { idx = LD->tabling.handles.free-1;
+    slot = &LD->tabling.handles.slots[idx];
+    LD->tabling.handles.free = (size_t)slot->object;
+  } else
+  { if ( LD->tabling.handles.top == LD->tabling.handles.size )
+    { size_t size = LD->tabling.handles.size ? LD->tabling.handles.size*2
+					       : 256;
+
+      if ( size > TBL_HANDLE_INDEX_MASK+1 )
+	size = TBL_HANDLE_INDEX_MASK+1;
+      if ( size == LD->tabling.handles.size )
+	return 0;
+      LD->tabling.handles.slots = PL_realloc(LD->tabling.handles.slots,
+					     size*sizeof(tbl_handle_slot));
+      LD->tabling.handles.size = size;
+    }
+    idx = LD->tabling.handles.top++;
+    slot = &LD->tabling.handles.slots[idx];
   }
 
-  return true;
+  check = ((++LD->tabling.handles.serial & TBL_HANDLE_SERIAL_MASK)<<1)|kind;
+  slot->object = obj;
+  slot->check = check;
+  LD->tabling.handles.live++;
+
+  return consInt((check<<TBL_HANDLE_INDEX_BITS)|idx);
 }
 
-static int
-release_component_handle(atom_t a)
-{ tbl_component *c = PL_blob_data(a, NULL, NULL);
+#define free_tbl_handle(handle) LDFUNC(free_tbl_handle, handle)
+static void
+free_tbl_handle(DECL_LD word handle)
+{ size_t idx = valUInt(handle) & TBL_HANDLE_INDEX_MASK;
+  tbl_handle_slot *slot;
 
-  if ( c )
-  { assert(c->magic == COMPONENT_MAGIC && c->symbol == a);
-    c->symbol = 0;
+  if ( !LD->tabling.handles.slots )	/* thread terminated */
+    return;
+  assert(idx < LD->tabling.handles.top);
+  slot = &LD->tabling.handles.slots[idx];
+  assert(slot->check == valUInt(handle) >> TBL_HANDLE_INDEX_BITS);
+  slot->check = TBL_HANDLE_FREE;
+
+  if ( --LD->tabling.handles.live == 0 )
+  { LD->tabling.handles.top = 0;
+    LD->tabling.handles.free = 0;
+    if ( LD->tabling.handles.size > TBL_HANDLE_SHRINK )
+    { PL_free(LD->tabling.handles.slots);
+      LD->tabling.handles.slots = NULL;
+      LD->tabling.handles.size = 0;
+    }
+  } else
+  { slot->object = (void*)LD->tabling.handles.free;
+    LD->tabling.handles.free = idx+1;
   }
-
-  return true;
 }
-
-static PL_blob_t worklist_blob =
-{ PL_BLOB_MAGIC,
-  PL_BLOB_LOCAL|PL_BLOB_OWNED|PL_BLOB_NOCOPY,
-  "worklist",
-  release_worklist_handle
-};
-
-static PL_blob_t component_blob =
-{ PL_BLOB_MAGIC,
-  PL_BLOB_LOCAL|PL_BLOB_OWNED|PL_BLOB_NOCOPY,
-  "table_component",
-  release_component_handle
-};
-
-/* The handle of an object.  The caller must put it on the stacks before
- * the next safe point, where the local sweep may reclaim it.
- */
-
-#define tbl_handle(obj, symbolp, owner, type) \
-	LDFUNC(tbl_handle, obj, symbolp, owner, type)
-static inline atom_t
-tbl_handle(DECL_LD void *obj, atom_t *symbolp, PL_local_data_t *owner,
-	   PL_blob_t *type)
-{ (void)owner;
-  DEBUG(0, assert(owner == LD));
-
-  if ( unlikely(!*symbolp) )
-    *symbolp = newLocalBlob(obj, type == &worklist_blob ? sizeof(worklist)
-						      : sizeof(tbl_component),
-			    type);
-  return *symbolp;
-}
-
-#define worklist_symbol(wl) \
-	tbl_handle(wl, &(wl)->symbol, (wl)->owner, &worklist_blob)
-#define component_symbol(c) \
-	tbl_handle(c, &(c)->symbol, (c)->owner, &component_blob)
-
-/* Discard the blob of an object that is freed.  A promoted blob holds a
- * reference for the object (see PL_BLOB_OWNED), which disownBlob() drops.
- * A local one is marked such that a later promotion does not add it.
- */
 
 static void
-discard_tbl_handle(atom_t *symbolp)
-{ atom_t a;
-
-  if ( (a=*symbolp) )
-  { *symbolp = 0;
-    discardBlob(a);
-    disownBlob(a);
+free_tbl_handles(PL_local_data_t *ld)
+{ if ( ld->tabling.handles.slots )
+  { PL_free(ld->tabling.handles.slots);
+    memset(&ld->tabling.handles, 0, sizeof(ld->tabling.handles));
   }
 }
 
-/* The object of a handle.  Returns NULL if `t` is not a handle of `type`
- * and sets `*discarded` if it is a handle of an object that was freed.
+/* The object of handle `w` of `kind`.  Returns NULL if `w` is not a
+ * handle of `kind` and sets `*stale` if it is one of an object that was
+ * freed.
  */
 
-static void *
-get_tbl_handle(term_t t, PL_blob_t *type, bool *discarded)
-{ GET_LD
-  Word p = valTermRef(t);
+#define tbl_handle_object(w, kind, stale) \
+	LDFUNC(tbl_handle_object, w, kind, stale)
+static inline void *
+tbl_handle_object(DECL_LD word w, int kind, bool *stale)
+{ if ( likely(isTaggedInt(w)) )
+  { size_t v = valUInt(w);
+    size_t idx = v & TBL_HANDLE_INDEX_MASK;
+    size_t check = v >> TBL_HANDLE_INDEX_BITS;
 
-  *discarded = false;
-  deRef(p);
-  if ( isAtom(*p) )
-  { Atom a = atomValue(*p);
-
-    if ( a->type == type )
-    { if ( !a->name )
-	*discarded = true;
-      return a->name;
+    if ( likely((check&1) == (size_t)kind) )
+    { if ( likely(idx < LD->tabling.handles.top &&
+		  LD->tabling.handles.slots[idx].check == check) )
+	return LD->tabling.handles.slots[idx].object;
+      *stale = true;
     }
   }
 
   return NULL;
+}
+
+/* The handle of an object.  Returns 0 if we are out of slots.
+ */
+
+#define worklist_handle(wl) LDFUNC(worklist_handle, wl)
+static inline word
+worklist_handle(DECL_LD worklist *wl)
+{ DEBUG(0, assert(wl->owner == LD));
+
+  if ( unlikely(!wl->handle) )
+    wl->handle = new_tbl_handle(wl, TBL_HANDLE_WORKLIST);
+  return wl->handle;
+}
+
+#define component_handle(c) LDFUNC(component_handle, c)
+static inline word
+component_handle(DECL_LD tbl_component *c)
+{ DEBUG(0, assert(c->owner == LD));
+
+  if ( unlikely(!c->handle) )
+    c->handle = new_tbl_handle(c, TBL_HANDLE_COMPONENT);
+  return c->handle;
+}
+
+#define unify_handle(t, h) LDFUNC(unify_handle, t, h)
+static bool
+unify_handle(DECL_LD term_t t, word h)
+{ if ( h )
+    return PL_unify_atomic(t, h);
+  return PL_resource_error("table_handles");
+}
+
+#define unify_worklist(t, wl)  unify_handle(t, worklist_handle(wl))
+#define unify_component(t, c)  unify_handle(t, component_handle(c))
+
+/* Release the handle of an object that is freed or, for a worklist,
+ * taken over by another thread.  Only the owner frees the slot: the slot
+ * array is per thread.
+ */
+
+#define release_obj_handle(handlep, owner) \
+	LDFUNC(release_obj_handle, handlep, owner)
+static void
+release_obj_handle(DECL_LD word *handlep, PL_local_data_t *owner)
+{ if ( *handlep )
+  { if ( owner == LD )
+      free_tbl_handle(*handlep);
+    *handlep = 0;
+  }
+}
+
+#define release_worklist_handle(wl) \
+	release_obj_handle(&(wl)->handle, (wl)->owner)
+#define release_component_handle(c) \
+	release_obj_handle(&(c)->handle, (c)->owner)
+
+#define word_worklist(w, stale) LDFUNC(word_worklist, w, stale)
+static inline worklist *
+word_worklist(DECL_LD word w, bool *stale)
+{ worklist *wl = tbl_handle_object(w, TBL_HANDLE_WORKLIST, stale);
+
+  DEBUG(0, assert(!wl || (wl->magic == WORKLIST_MAGIC && wl->handle == w)));
+  return wl;
+}
+
+#define handle_worklist(t, stale) LDFUNC(handle_worklist, t, stale)
+static worklist *
+handle_worklist(DECL_LD term_t t, bool *stale)
+{ Word p = valTermRef(t);
+
+  *stale = false;
+  deRef(p);
+  return word_worklist(*p, stale);
+}
+
+#define handle_component(t, stale) LDFUNC(handle_component, t, stale)
+static tbl_component *
+handle_component(DECL_LD term_t t, bool *stale)
+{ Word p = valTermRef(t);
+  tbl_component *c;
+
+  *stale = false;
+  deRef(p);
+  c = tbl_handle_object(*p, TBL_HANDLE_COMPONENT, stale);
+  DEBUG(0, assert(!c || (c->magic == COMPONENT_MAGIC && c->handle == *p)));
+  return c;
 }
 
 
@@ -679,7 +778,7 @@ free_component(tbl_component *c, int flags)
     if ( c->merged )
       push_component_set(&stack, c->merged);
 
-    discard_tbl_handle(&c->symbol);
+    release_component_handle(c);
     tbl_free(TBL_FREE_COMPONENT, c);
   }
 
@@ -3363,7 +3462,9 @@ clearThreadTablingData(PL_local_data_t *ld, bool exit)
   clear_variant_table(ld, &ld->tabling.variant_table, &ld->tabling.start_nodes);
   free_tbl_free_objects(ld, exit);
   if ( exit )
-    idg_release_registry(ld);
+  { idg_release_registry(ld);
+    free_tbl_handles(ld);
+  }
 }
 
 
@@ -4055,7 +4156,7 @@ free_worklist(worklist *wl)
   discardBuffer(&wl->delays);
   discardBuffer(&wl->pos_undefined);
 
-  discard_tbl_handle(&wl->symbol);
+  release_worklist_handle(wl);
   tbl_free(TBL_FREE_WORKLIST, wl);
 }
 
@@ -4359,25 +4460,26 @@ unify_fresh(DECL_LD term_t t, trie *atrie, Definition def, int create)
     if ( wl )
     { functor_t f = ison(atrie, TRIE_ISSHARED) ? FUNCTOR_fresh_shared2
 						: FUNCTOR_fresh2;
-      atom_t a1, a2;
+      word w1, w2;
       Word p, v;
 
       wl->predicate = def;
+      if ( !(w1 = component_handle(scc)) ||
+	   !(w2 = worklist_handle(wl)) )
+	return PL_resource_error("table_handles");
       if ( !(p = allocGlobal(3)) )
 	return false;
-      a1 = component_symbol(scc);		/* see tbl_handle() */
-      a2 = worklist_symbol(wl);
       v = valTermRef(t);
       p[0] = f;
-      p[1] = atom2word(a1);
-      p[2] = atom2word(a2);
+      p[1] = w1;
+      p[2] = w2;
       deRef(v);
       if ( canBind(*v) )
 	return bindConst(v, consCompound(p));
 
       return PL_unify_term(t, PL_FUNCTOR, f,
-				 PL_ATOM, a1,
-				 PL_ATOM, a2);
+				 PL_INT64, (int64_t)valInt(w1),
+				 PL_INT64, (int64_t)valInt(w2));
     } else
     { return false;
     }
@@ -4464,7 +4566,7 @@ unify_table_status(DECL_LD term_t t, trie *trie, Definition def, int create)
 
       if ( wl->owner != LD )		/* another thread completes it */
 	return PL_unify_atom(t, ATOM_incomplete);
-      return PL_unify_atom(t, worklist_symbol(wl));
+      return unify_worklist(t, wl);
     }
 
     if ( wl == WL_DYNAMIC )
@@ -4521,15 +4623,15 @@ unify_skeleton(DECL_LD trie *atrie, term_t wrapper, term_t skeleton)
 
 static bool
 get_scc(term_t t, tbl_component **cp)
-{ bool discarded;
-  tbl_component *c = get_tbl_handle(t, &component_blob, &discarded);
+{ GET_LD
+  bool stale;
+  tbl_component *c = handle_component(t, &stale);
 
   if ( c )
-  { assert(c->magic == COMPONENT_MAGIC);
-    *cp = c;
+  { *cp = c;
     return true;
   }
-  if ( discarded )
+  if ( stale )
     return PL_existence_error("table_component", t),false;
 
   return PL_type_error("table_component", t),false;
@@ -4538,15 +4640,14 @@ get_scc(term_t t, tbl_component **cp)
 #define get_worklist(t, wlp) LDFUNC(get_worklist, t, wlp)
 static bool
 get_worklist(DECL_LD term_t t, worklist **wlp)
-{ bool discarded;
-  worklist *wl = get_tbl_handle(t, &worklist_blob, &discarded);
+{ bool stale;
+  worklist *wl = handle_worklist(t, &stale);
 
   if ( wl )
-  { assert(wl->magic == WORKLIST_MAGIC);
-    *wlp = wl;
+  { *wlp = wl;
     return true;
   }
-  if ( discarded )
+  if ( stale )
     return PL_existence_error("worklist", t),false;
 
   return PL_type_error("worklist", t),false;
@@ -4556,12 +4657,11 @@ get_worklist(DECL_LD term_t t, worklist **wlp)
 static bool
 tnot_get_worklist(term_t t, worklist **wlp, int *is_tnot)
 { GET_LD
-  bool discarded;
+  bool stale;
   worklist *wl;
 
-  if ( (wl=get_tbl_handle(t, &worklist_blob, &discarded)) )
-  { assert(wl->magic == WORKLIST_MAGIC);
-    *wlp = wl;
+  if ( (wl=handle_worklist(t, &stale)) )
+  { *wlp = wl;
     *is_tnot = false;
     return true;
   }
@@ -4569,9 +4669,8 @@ tnot_get_worklist(term_t t, worklist **wlp, int *is_tnot)
   if ( PL_is_functor(t, FUNCTOR_tnot1) )
   { term_t a = PL_new_term_ref();
     _PL_get_arg(1, t, a);
-    if ( (wl=get_tbl_handle(a, &worklist_blob, &discarded)) )
-    { assert(wl->magic == WORKLIST_MAGIC);
-      *wlp = wl;
+    if ( (wl=handle_worklist(a, &stale)) )
+    { *wlp = wl;
       *is_tnot = true;
       return true;
     }
@@ -4589,7 +4688,7 @@ tbl_add_worklist(trie *atrie, tbl_component *scc)
   if ( !WL_IS_WORKLIST(wl=atrie->data.worklist) )
   { wl = new_worklist(atrie);
   } else if ( wl->owner != LD )		/* taken over from another thread */
-  { discard_tbl_handle(&wl->symbol);
+  { wl->handle = 0;			/* in the slots of the old owner */
     wl->owner = LD;
   }
 
@@ -4832,7 +4931,7 @@ PRED_IMPL("$tbl_pop_worklist", 2, tbl_pop_worklist, 0)
     { worklist *wl;
 
       if ( (wl=pop_worklist(scc)) )
-	return PL_unify_atom(A2, worklist_symbol(wl));
+	return unify_worklist(A2, wl);
 
       if (
 #ifndef O_AC_EAGER
@@ -4840,7 +4939,7 @@ PRED_IMPL("$tbl_pop_worklist", 2, tbl_pop_worklist, 0)
 #endif
 	    scc->neg_status != SCC_NEG_NONE )
       { if ( (wl=negative_worklist(scc)) )
-	  return PL_unify_atom(A2, worklist_symbol(wl));
+	  return unify_worklist(A2, wl);
       }
     }
   }
@@ -5048,25 +5147,16 @@ PRED_IMPL("$tbl_wkl_add_answer", 4, tbl_wkl_add_answer, 0)
 static inline worklist *
 frame_worklist(DECL_LD LocalFrame fr)
 { Word p = argFrameP(fr, 3);
+  bool stale = false;
+  worklist *wl;
 
   deRef(p);
-  if ( likely(isAtom(*p)) )
-  { Atom a = atomValue(*p);
+  if ( likely((wl=word_worklist(*p, &stale)) != NULL) )
+    return wl;
 
-    if ( likely(a->type == &worklist_blob && a->name) )
-    { worklist *wl = (worklist*)a->name;
-
-      assert(wl->magic == WORKLIST_MAGIC);
-      return wl;
-    }
-  }
-
-  { worklist *wl;
-
-    if ( get_worklist(consTermRef(argFrameP(fr, 3)), &wl) )
-      return wl;
-    return NULL;
-  }
+  if ( get_worklist(consTermRef(argFrameP(fr, 3)), &wl) )
+    return wl;
+  return NULL;
 }
 
 bool
@@ -6788,7 +6878,7 @@ tbl_leader_finished(DECL_LD term_t old, term_t catcher,
     bool discarded;
 
     if ( a == ATOM_exit && c &&
-	 get_tbl_handle(scc, &component_blob, &discarded) == c &&
+	 handle_component(scc, &discarded) == c &&
 	 c->status == SCC_COMPLETED && !c->parent )
     { free_component(c, FC_DESTROY);
       assert(LD->tabling.component == NULL);
@@ -6912,7 +7002,7 @@ PRED_IMPL("$tbl_scc", 1, tbl_scc, 0)
 { PRED_LD
 
   if ( LD->tabling.component )
-    return PL_unify_atom(A1, component_symbol(LD->tabling.component));
+    return unify_component(A1, LD->tabling.component);
 
   return false;
 }
@@ -6927,7 +7017,7 @@ unify_wl_set(term_t l, worklist_set *wls)
   term_t head = PL_new_term_ref();
   for(i=0; i<n; i++)
   { if ( !PL_unify_list(tail, head, tail) ||
-	 !PL_unify_atom(head, worklist_symbol(p[i])) )
+	 !unify_worklist(head, p[i]) )
       return false;
   }
 
@@ -6946,7 +7036,7 @@ unify_scc_set(term_t l, component_set *cs)
 
     for(; c < top; c++)
     { if ( !PL_unify_list(tail, head, tail) ||
-	   !PL_unify_atom(head, component_symbol(*c)) )
+	   !unify_component(head, *c) )
 	return false;
     }
   }
@@ -6959,7 +7049,7 @@ unify_component_or_null(term_t t, tbl_component *c)
 { GET_LD
 
   if ( c )
-    return PL_unify_atom(t, component_symbol(c));
+    return unify_component(t, c);
   else
     return PL_unify_atom_chars(t, "null");
 }
@@ -7057,7 +7147,7 @@ PRED_IMPL("$tbl_worklist_data", 2, tbl_worklist_data, 0)
   { term_t av = PL_new_term_refs(5);
     term_t t = PL_new_term_ref();
 
-    return ( PL_unify_atom(av+0, component_symbol(wl->component)) &&
+    return ( unify_component(av+0, wl->component) &&
 	     PL_unify_atomic(av+1, trie_symbol(wl->table)) &&
 	     PL_unify_bool(av+2, wl->in_global_wl) &&
 	     PL_unify_bool(av+3, wl->executing) &&
@@ -9791,7 +9881,7 @@ sdg_count_edges(DECL_LD worklist *wl, pair_map *tables, pair_map *edges)
 	}
 	if ( PL_is_functor(t, FUNCTOR_sdg_dependency5) &&
 	     _PL_get_arg(4, t, a) &&
-	     (caller=get_tbl_handle(a, &worklist_blob, &discarded)) &&
+	     (caller=handle_worklist(a, &discarded)) &&
 	     pair_map_find(tables->entries, tables->size,
 			   (uintptr_t)caller, 0)->a )
 	  pair_map_get(edges, (uintptr_t)caller,
