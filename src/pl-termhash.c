@@ -40,10 +40,39 @@
 #include "pl-fli.h"
 #include "os/pl-text.h"
 #include "pl-arith.h"
+#include "pl-gmp.h"
 #include "pl-pro.h"
 #include "pl-bisim.h"
 #define AC_TERM_WALK 1
 #include "pl-termwalk.c"
+
+/* Hashes are the same on all machines.  MurmurHashAligned2() and SHA1
+ * read bytes in a fixed order, so the data we hash must be the same:
+ * integers are hashed as fixed-width little-endian values (le32(),
+ * le64()), sizes as 64-bit integers and wide text as little-endian
+ * code points.
+ */
+
+static inline uint32_t
+le32(uint32_t v)
+{
+#if WORDS_BIGENDIAN
+  return __builtin_bswap32(v);
+#else
+  return v;
+#endif
+}
+
+static inline uint64_t
+le64(uint64_t v)
+{
+#if WORDS_BIGENDIAN
+  return __builtin_bswap64(v);
+#else
+  return v;
+#endif
+}
+
 #undef LD
 #define LD LOCAL_LD
 
@@ -71,6 +100,91 @@ typedef struct th_data
 } th_data;
 
 
+/* Numbers are hashed by value, so the hash does not depend on how they
+ * are stored (cell layout, range of small integers, GMP or LibBF): an
+ * integer that fits in 64 bits as int64_t, a larger integer as its sign
+ * and its magnitude in big-endian bytes, a rational as its numerator
+ * and denominator and a float as its double.
+ *
+ * number_hash_data() returns true and sets *ip if the number is an
+ * integer that fits in 64 bits.  Otherwise it adds the data to hash to
+ * `b`.
+ */
+
+#ifdef O_BIGNUM
+static void
+add_mpz_hash_data(mpz_t mpz, Buffer b)
+{ size_t bytes = (mpz_sizeinbase(mpz, 2)+7)/8;
+  size_t count;
+  char *p;
+
+  uint64_t lebytes = le64(bytes);
+
+  addBuffer(b, (char)(mpz_sgn(mpz) < 0 ? '-' : '+'), char);
+  addMultipleBuffer(b, (char*)&lebytes, sizeof(lebytes), char);
+  p = allocFromBuffer(b, bytes);
+  mpz_export(p, &count, 1, 1, 1, 0, mpz);
+  DEBUG(0, assert(count == bytes));
+}
+#endif
+
+#define number_hash_data(w, ip, b) LDFUNC(number_hash_data, w, ip, b)
+static bool
+number_hash_data(DECL_LD word w, int64_t *ip, Buffer b)
+{ number n;
+  bool rc = false;
+
+  if ( isTaggedInt(w) )
+  { *ip = valInt(w);
+    return true;
+  }
+
+  get_number(w, &n);
+  switch(n.type)
+  { case V_INTEGER:
+      *ip = n.value.i;
+      rc = true;
+      break;
+#ifdef O_BIGNUM
+    case V_MPZ:
+      if ( mpz_to_int64(n.value.mpz, ip) )
+	rc = true;
+      else
+	add_mpz_hash_data(n.value.mpz, b);
+      break;
+    case V_MPQ:
+      add_mpz_hash_data(mpq_numref(n.value.mpq), b);
+      add_mpz_hash_data(mpq_denref(n.value.mpq), b);
+      break;
+#endif
+    case V_FLOAT:
+    { uint64_t bits;
+
+      memcpy(&bits, &n.value.f, sizeof(bits));
+      bits = le64(bits);
+      addMultipleBuffer(b, (char*)&bits, sizeof(bits), char);
+      break;
+    }
+    default:
+      assert(0);
+  }
+  clearNumber(&n);
+
+  return rc;
+}
+
+
+/* A variable numbered by variant_sha1/2 or variant_hash/2 is hashed by
+ * its number, not by the marked cell, which depends on the cell layout.
+ */
+
+#define HASH_VAR(p) \
+	do { uint64_t vnum = le64(valTagged(*(p))); \
+	     HASH("V", 1); \
+	     HASH(&vnum, sizeof(vnum)); \
+	   } while(0)
+
+
 #define primitiveHashValue(term, hval) LDFUNC(primitiveHashValue, term, hval)
 static int
 primitiveHashValue(DECL_LD word term, unsigned int *hval)
@@ -79,8 +193,9 @@ primitiveHashValue(DECL_LD word term, unsigned int *hval)
     case TAG_ATTVAR:
       return false;
     case TAG_ATOM:
-    { *hval = MurmurHashAligned2(&atomValue(term)->hash_value,
-				 sizeof(unsigned int), *hval);
+    { uint32_t ah = le32(atomValue(term)->hash_value);
+
+      *hval = MurmurHashAligned2(&ah, sizeof(ah), *hval);
       return true;
     }
     case TAG_STRING:
@@ -102,8 +217,8 @@ primitiveHashValue(DECL_LD word term, unsigned int *hval)
       return true;
     }
     case TAG_INTEGER:
-      if ( isInlineInt(term) )
-      { int64_t v = valInt(term);
+      if ( isTaggedInt(term) )
+      { uint64_t v = le64(valInt(term));
 
 	*hval = MurmurHashAligned2(&v, sizeof(v), *hval);
 
@@ -111,13 +226,22 @@ primitiveHashValue(DECL_LD word term, unsigned int *hval)
       }
     /*FALLTHROUGH*/
     case TAG_FLOAT:
-      { Word p = addressIndirect(term);
-	size_t n = wsizeofInd(*p);
+    { int64_t v;
+      tmp_buffer b;
 
-	*hval = MurmurHashAligned2(p+1, n*sizeof(word), *hval);
+      initBuffer(&b);
+      if ( number_hash_data(term, &v, (Buffer)&b) )
+      { uint64_t lv = le64(v);
 
-	return true;
+	*hval = MurmurHashAligned2(&lv, sizeof(lv), *hval);
       }
+      else
+	*hval = MurmurHashAligned2(baseBuffer(&b, char),
+				   entriesBuffer(&b, char), *hval);
+      discardBuffer(&b);
+
+      return true;
+    }
     default:
       assert(0);
       return false;
@@ -137,8 +261,8 @@ start_term(DECL_LD th_data *work, Buffer b, word w)
   work->in_cycle = 0;
 
   name = nameFunctor(work->functor);
-  work->hash = MurmurHashAligned2(&atomValue(name)->hash_value,
-				  sizeof(unsigned int), work->hash);
+  uint32_t ah = le32(atomValue(name)->hash_value);
+  work->hash = MurmurHashAligned2(&ah, sizeof(ah), work->hash);
 
   DEBUG(1, Sdprintf("Added node %ld, %s/%d, hash=%d\n",
 		    nodeID(work, b),
@@ -176,7 +300,7 @@ next_arg(DECL_LD th_data **workp, Buffer b)
     { th_data *parent = nodePTR(work->parent_offset, b);
       unsigned int myhash;
 
-      myhash = work->in_cycle ? CYCLE_CONST : work->hash;
+      myhash = le32(work->in_cycle ? CYCLE_CONST : work->hash);
       parent->hash = MurmurHashAligned2(&myhash, sizeof(myhash),
 					parent->hash);
       if ( work->in_cycle /*&& parent->functor == work->functor*/ ) /* (*) */
@@ -200,7 +324,7 @@ next_arg(DECL_LD th_data **workp, Buffer b)
 
 static void
 update_cycle(th_data *here, th_data *start, Buffer b)
-{ unsigned int myhash = CYCLE_CONST;
+{ uint32_t myhash = le32(CYCLE_CONST);
 
   here->hash = MurmurHashAligned2(&myhash, sizeof(myhash),
 				  here->hash);
@@ -257,7 +381,7 @@ termHashValue(DECL_LD Word p, unsigned int *hval)
 	  { DEBUG(1, Sdprintf("cycle to %ld\n", valInt(t->definition)));
 	    update_cycle(work, seen, b);
 	  } else
-	  { unsigned int shash = seen->in_cycle ? CYCLE_CONST : seen->hash;
+	  { uint32_t shash = le32(seen->in_cycle ? CYCLE_CONST : seen->hash);
 
 	    work->hash = MurmurHashAligned2(&shash, sizeof(shash), work->hash);
 	    DEBUG(1, Sdprintf("shared with %ld, reusing hash %d node %ld -> %d\n",
@@ -312,7 +436,7 @@ PRED_IMPL("term_hash", 2, term_hash, 0)
   if ( rc < 0 )
     return PL_resource_error("memory");
   else if ( rc )
-    return PL_unify_integer(A2, hash);
+    return PL_unify_int64(A2, (int64_t)hash);
 
   return true;			/* term is non-ground */
 }
@@ -435,6 +559,64 @@ push_attvar(Word p, sha1_state *state)
 	    hash_compile(state->ctx.murmur, (const unsigned char*)(p), (l)); \
 	} while(0)
 
+/* Hash text as its length (in characters, as a 64-bit little-endian
+ * integer) followed by the characters: bytes or, for wide text,
+ * little-endian 32-bit code points (see MurmurHashWide()).
+ */
+
+static void
+hash_text(sha1_state *state, const char *s, size_t len)
+{ uint64_t l = le64(len);
+
+  HASH(&l, sizeof(l));
+  HASH(s, (unsigned long)len);
+}
+
+static void
+hash_wide_text(sha1_state *state, const pl_wchar_t *s, size_t len)
+{
+#if !WORDS_BIGENDIAN && SIZEOF_WCHAR_T == 4
+  uint64_t l = le64(len);
+
+  HASH(&l, sizeof(l));
+  HASH(s, (unsigned long)(len*sizeof(*s)));
+#else
+  const pl_wchar_t *e = s+len;
+  uint64_t n = 0;
+
+  for(const pl_wchar_t *q=s; q<e; q++)	/* count code points */
+  {
+#if SIZEOF_WCHAR_T == 2
+    if ( *q >= 0xd800 && *q < 0xdc00 && q+1 < e &&
+	 q[1] >= 0xdc00 && q[1] < 0xe000 )
+      q++;
+#endif
+    n++;
+  }
+  n = le64(n);
+  HASH(&n, sizeof(n));
+  while(s < e)
+  { uint32_t c = (uint32_t)*s++;
+#if SIZEOF_WCHAR_T == 2
+    if ( c >= 0xd800 && c < 0xdc00 && s < e &&
+	 (uint32_t)*s >= 0xdc00 && (uint32_t)*s < 0xe000 )
+      c = 0x10000 + ((c-0xd800)<<10) + ((uint32_t)*s++ - 0xdc00);
+#endif
+    c = le32(c);
+    HASH(&c, sizeof(c));
+  }
+#endif
+}
+
+static void
+hash_atom_text(sha1_state *state, Atom a)
+{ if ( ison(a->type, PL_BLOB_WCHAR) )
+    hash_wide_text(state, (const pl_wchar_t*)a->name,
+		   a->length/sizeof(pl_wchar_t));
+  else
+    hash_text(state, a->name, a->length);
+}
+
 #define variant_sha1(agenda, state) LDFUNC(variant_sha1, agenda, state)
 static status
 variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
@@ -444,9 +626,7 @@ variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
   { word w = *p;
 
     switch(tag(w))
-    { const char *type;
-
-      case TAG_ATTVAR:
+    { case TAG_ATTVAR:
       { if ( state->algorithm == HASH_SHA1 )
 	{ return E_ATTVAR;
 	} else
@@ -457,8 +637,7 @@ variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
 	      return E_RESOURCE;
 	    *p = consTagged(i, TAGEX_VAR)|MARK_MASK;
 	  }
-	  HASH("V", 1);
-	  HASH(p, sizeof(word));
+	  HASH_VAR(p);
 	  continue;
 	}
       }
@@ -470,43 +649,47 @@ variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
 	    return E_RESOURCE;
 	  *p = consTagged(i, TAGEX_VAR)|MARK_MASK;
 	}
-        HASH("V", 1);
-	HASH(p, sizeof(word));
+	HASH_VAR(p);
 	continue;
       }
       case TAG_ATOM:
       { Atom av = atomValue(w);
+
 	HASH("A", 1);
-	HASH(&av->length, sizeof(av->length));
-	HASH(av->name, (unsigned long)av->length);
+	hash_atom_text(state, av);
 	HASH(av->type->name, (unsigned long)strlen(av->type->name));
 
 					/* TBD: Include type */
 	continue;
       }
       case TAG_INTEGER:
-      { if ( !isIndirect(w) )
-	{ int64_t val = valInt(w);
+      case TAG_FLOAT:
+      { int64_t val;
+	tmp_buffer b;
+
+	initBuffer(&b);
+	if ( number_hash_data(w, &val, (Buffer)&b) )
+	{ uint64_t lv = le64(val);
 
 	  HASH("i", 1);
-	  HASH(&val, sizeof(val));
-	  continue;
+	  HASH(&lv, sizeof(lv));
+	} else
+	{ HASH(tag(w) == TAG_FLOAT ? "F" : "I", 1);
+	  HASH(baseBuffer(&b, char), (unsigned long)entriesBuffer(&b, char));
 	}
-	type = "I";
-	goto hash_indirect;
+	discardBuffer(&b);
+	continue;
       }
       case TAG_STRING:
-	type = "S";
-        goto hash_indirect;
-      case TAG_FLOAT:
-	type = "F";
-      hash_indirect:
-      { Word d = addressIndirect(w);
-	size_t n = wsizeofInd(*d)*sizeof(word);
+      { size_t len;
+	char *s;
+	pl_wchar_t *ws;
 
-        assert(tag(w) != TAG_FLOAT || n == sizeof(double));
-	HASH(type, 1);
-	HASH(d+1, (unsigned long)n);
+	HASH("S", 1);
+	if ( (s=getCharsString(w, &len)) )
+	  hash_text(state, s, len);
+	else if ( (ws=getCharsWString(w, &len)) )
+	  hash_wide_text(state, ws, len);
 	continue;
       }
       case TAG_COMPOUND:
@@ -523,10 +706,11 @@ variant_sha1(DECL_LD ac_term_agenda *agenda, sha1_state *state)
 
 	    Atom fn = atomValue(fd->name);
 
+	    uint64_t ar  = le64(arity);
+
 	    HASH("T", 1);
-	    HASH(&fn->length, sizeof(fn->length));
-	    HASH(fn->name, (unsigned long)fn->length);
-	    HASH(&arity, sizeof(arity));   /* here */
+	    hash_atom_text(state, fn);
+	    HASH(&ar, sizeof(ar));
 	  }
 	}
 	continue;

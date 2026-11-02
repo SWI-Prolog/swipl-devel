@@ -4311,12 +4311,12 @@ argument indexing to find complex terms more quickly.
 
 The hash key does not rely on temporary information like addresses of
 atoms and may be assumed constant over different invocations and
-versions of SWI-Prolog.\footnote{Last change: version 9.3.28} The
-term_hash/2 predicate is cycle-safe.\bug{All arguments that (indirectly)
-lead to a cycle have the same hash key.}
-\bug{Hashes differ between big and little endian machines and hashes for
-big integers (currently $> 2^56$) differ depending on the big integer
-\jargon{backend} (GMP or LibBF).  See \prologflag{gmp_version}.}
+versions of SWI-Prolog.\footnote{Last change: version 10.1.20} Numbers are
+hashed by their value, so the hash does not depend on how a number is
+represented.  The term_hash/2 predicate is cycle-safe.\bug{All
+arguments that (indirectly) lead to a cycle have the same hash key.}
+Hashes are the same on all platforms (byte order, word size and
+size of \ctype{wchar_t}).
 
     \predicate[det]{term_hash}{4}{+Term, +Depth, +Range, -HashKey}
 As term_hash/2, but only considers \arg{Term} to the specified
@@ -4334,8 +4334,7 @@ Compute a SHA1-hash from \arg{Term}. The hash is represented as a
 40-byte hexadecimal atom. Unlike term_hash/2 and friends, this predicate
 produces a hash key for non-ground terms. The hash is invariant over
 variable-renaming (see \predref{=@=}{2}) and constants over different
-invocations of Prolog.\bug{The hash depends on word order
-(big/little-endian) and the wordsize (32/64 bits).}
+invocations of Prolog and is the same on all platforms.
 
 This predicate raises an exception when trying to compute the hash on an
 attributed term.  Attributed terms are not handled because subsumes_chk/2

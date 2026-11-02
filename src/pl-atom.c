@@ -1189,6 +1189,8 @@ lookupBlobEx(DECL_LD const char *s, size_t length, PL_blob_t *type, bool *new,
 
   if ( ison(type, PL_BLOB_NOCOPY) )
     v0 = MurmurHashAligned2(&s, sizeof(s), MURMUR_SEED);
+  else if ( ison(type, PL_BLOB_WCHAR) )	/* same on all machines */
+    v0 = MurmurHashWide((const pl_wchar_t*)s, length, MURMUR_SEED);
   else
     v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
 

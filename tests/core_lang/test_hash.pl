@@ -63,6 +63,22 @@ test(shared, Hash1 == Hash2) :-
 	A = x(C),
 	variant_sha1(x(A,A), Hash1),
 	variant_sha1(x(x(C),x(C)), Hash2).
+test(numbered_vars,		% variables are hashed by number, not by cell
+     [ Hash == '669ed46a96591cd32bc02101dbc2d1341d242700',
+       VHash == 13_096_724
+     ]) :-
+	variant_sha1(f(X,Y,X,Y), Hash),
+	variant_hash(f(X,Y,X,Y), VHash).
+test(platform,			% the same hash on all platforms
+     [ Hash == '6afcd5544dd2de42ffa7a721af18f08fd77c2130',
+       WHash == d07c530ffa18a37458b596e1d9c0c7ef17310536,
+       SHash == '457c2c0c8fa8a026e7ddb87716e229aa82646fc4'
+     ]) :-
+	variant_sha1(f(aap, "str", 1.5, 42, [x]), Hash),
+	atom_codes(W, [0x1F600, 0x3B1, 0x61]),
+	variant_sha1(f(W), WHash),
+	string_codes(S, [0x1F600, 0x3B1]),
+	variant_sha1(f(S), SHash).
 					% cyclic terms
 test(cycle, [sto(rational_trees)]) :-
 	A = a(A),
@@ -170,61 +186,41 @@ v(_).
                  *           TERM-HASH          *
                  *******************************/
 
-% TBD: Big Endian must be updated after change to the
-% range in 9.3.2
+% Hashes are the same on all platforms: integers are hashed as
+% little-endian 64-bit values, wide text as little-endian code points,
+% and numbers by value (GMP and LibBF agree).
 
-test(simple_1) :-
-    term_hash(aap, X),
-    assertion(memberchk(X, [ 3_331_158_974,   % little endian
-			     1509846866,      % big endian
-			     -963808322	      % WASM
-			   ])).
-
-test(simple_2) :-                  % small int
-    term_hash(42, X),
-    assertion(memberchk(X, [ 1_220_239_556,   % little endian
-			     3381815141       % big endian
-			   ])).
-test(simple_3) :-                  % Big int
+test(simple_1, X == 3_331_158_974) :-
+    term_hash(aap, X).
+test(simple_2, X == 1_220_239_556) :-    % small int
+    term_hash(42, X).
+test(simple_3, X == 2_344_943_952) :-    % big int
     Num is 366454713<<64,
-    term_hash(Num, X),
-    assertion(
-	memberchk(X, [ 347171279,    % little endian (GMP)
-		       1214499792,   % big endian (GMP)
-		       3784382378,   % LibBF, little endian (HAVE_INT128)
-		       3289800483,   % LibBF, big endian (HAVE_INT128)
-		       -510584918,   % WASM
-		       1902251786,   % LibBF, little endian (no HAVE_INT128)
-		       835805437     % 32-bits little endian (GMP)
-		     ])).
-test(simple_4) :-
+    term_hash(Num, X).
+test(simple_4, X == 4_260_353_184) :-
     A is pi,
-    term_hash(A, X),
-    assertion(memberchk(X, [ 4_260_353_184,   % little endian
-			     1776496028,      % big endian
-			     -34614112	      % WASM
-			   ])).
+    term_hash(A, X).
 test(simple_5, X == 1_540_712_431) :-
     string_codes(S, "hello world"),
     term_hash(S, X).
-test(compound_1) :-
-    term_hash(hello(world), X),
-    assertion(memberchk(X, [ 3_978_712_206,   % little endian
-			     3577832249,      % big endian
-			     -316255090	      % WASM
-			   ])).
-test(compound_2) :-
+test(simple_6, X == 2_089_503_823) :-    % small or big depending on the layout
+    N is 2**60+1,
+    term_hash(N, X).
+test(simple_7,                           % rational
+     [ condition(current_prolog_flag(bounded, false)),
+       X == 1_619_139_142
+     ]) :-
+    R is rdiv(1, 3),
+    term_hash(R, X).
+test(simple_8, X == 1_634_837_417) :-    % wide atom
+    atom_codes(A, [0x1F600, 0x3B1]),
+    term_hash(A, X).
+test(compound_1, X == 3_978_712_206) :-
+    term_hash(hello(world), X).
+test(compound_2, X == 3_797_822_550) :-
     A = x(a),
-    term_hash(hello(A, A), X),
-    assertion(memberchk(X, [ 3_797_822_550,   % little endian
-			     1371988747,      % big endian
-			     -497144746	      % WASM
-			   ])).
-test(compound_3) :-
-    term_hash(hello(x(a), x(a)), X),
-    assertion(memberchk(X, [ 3_797_822_550,   % little endian
-			     1371988747,      % big endian
-			     -497144746	      % WASM
-			   ])).
+    term_hash(hello(A, A), X).
+test(compound_3, X == 3_797_822_550) :-
+    term_hash(hello(x(a), x(a)), X).
 
 :- end_tests(term_hash2).
