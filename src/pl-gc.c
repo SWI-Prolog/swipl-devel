@@ -237,7 +237,10 @@ domark(DECL_LD Word p)
 #define onLocal(p)	onStackArea(local, p)
 #define onTrail(p)	topPointerOnStack(trail, p)
 
-#define ttag(x)		((x)&TAG_TRAILMASK)
+/* The trail tag of a trail entry between tag_trail() and untag_trail(),
+   when it is a cell.  Outside, use isTrailVal() on the raw address.
+*/
+#define ttag(x)		(tag(x)&TAG_TRAILMASK)
 
 
 		 /*******************************
@@ -1573,7 +1576,7 @@ early_reset_vars(DECL_LD mark *m, Word top, TrailEntry te)
   for( ; te >= tm; te-- )		/* early reset of vars */
   {
 #if O_DESTRUCTIVE_ASSIGNMENT
-    if ( isTrailVal(te->as_word) )
+    if ( ttag(te->as_word) == TAG_TRAILVAL )
     { Word tard = valPtr(te[-1].as_word);
       Word gp = valPtr(te->as_word);
 
@@ -2951,7 +2954,7 @@ sweep_global_mark(DECL_LD gc_wordptr *m)
   for(;;)
   { Word prev = gm-1;
 
-    while( !(*prev & (MARK_MASK|FIRST_MASK|INDHDR_BIT)) )
+    while( !isMarkedOrIndHdr(*prev) )
     { if ( tag(*prev) == TAG_VAR && *prev != 0 )
       { gm = gBase + valVar(*prev);
 	goto done;			/* (*) */
@@ -3395,7 +3398,7 @@ downskip_combine_garbage(DECL_LD Word current, Word dest)
 { Word top_gc = current + offset_cell(current);
 
   for(current-- ; ; current-- )
-  { if ( (*current & (MARK_MASK|FIRST_MASK|INDHDR_BIT)) )
+  { if ( isMarkedOrIndHdr(*current) )
     { if ( is_marked(current) )
       { DEBUG(MSG_GC_HOLE, Sdprintf("Normal-non-GC cell at %p\n", current));
 	return make_gc_hole(current+1, top_gc);

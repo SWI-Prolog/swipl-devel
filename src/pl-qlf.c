@@ -2448,7 +2448,7 @@ conflict with pointers. We assume -as in  many other places in the code-
 that pointers are 4-byte aligned.
 
 savedXRConstant()  must  be  used  for    atom_t  and  functor_t,  while
-savedXRPointer  must  be  used  for   the    pointers.   The  value  for
+savedXRPointer  must  be  used  for   the    pointers.   The  key  for
 savedXRConstant() is or-ed with 0x1 to avoid conflict with pointers.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
@@ -2479,11 +2479,10 @@ savedXR(DECL_LD wic_state *state, void *xr)
 
 static int
 savedXRConstant(DECL_LD wic_state *state, word w)
-{ word key = w;
+{ word key = w|0x1;			/* Cannot conflict with pointers */
   uint32_t id;
 
   assert(tag(w) == TAG_ATOM);		/* Only functor_t and atom_t */
-  assert((w&0x3));			/* Cannot conflict with pointers */
 
   if ( (id = (uint32_t)lookupHTable(state->savedXRTable, key)) )
   { IOSTREAM *fd = state->wicFd;

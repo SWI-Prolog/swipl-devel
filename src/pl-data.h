@@ -194,6 +194,7 @@ be kept consistent.
 
 #define tag(w)		((w) & TAG_MASK)
 #define storage(w)	((w) & STG_MASK)
+#define hasTag(w, t)	(tag(w) == (t))
 #define valInt(w)	((sword)(w) >> LMASK_BITS)
 #define valUInt(w)	((word)(w) >> LMASK_BITS)
 
@@ -266,8 +267,9 @@ private markers of the compiler, read/1, tries and variant/2.
        also true for a functor_t, so callers that may see a functor
        must test isFunctor() first.
      - isIndirectHdr(w) is true if a cell _on the global stack_ is the
-       guard of an indirect.  INDHDR_BIT is set in all such guards and
-       in no other global stack cell.
+       guard of an indirect.  isMarkedOrIndHdr(w) is true if the cell
+       has a GC bit set or is such a guard; GC uses it to scan the
+       global stack downward.
      - isLocalPtr(w) is true if a cell _outside the global stack_ points
        into the local stack.  Such cells only exist during GC and stack
        shifts and in PushPtr()/PopPtr() references.
@@ -275,13 +277,14 @@ private markers of the compiler, read/1, tries and variant/2.
 #define isGlobalPtr(w)		(storage(w) == STG_GLOBAL)
 #define INDHDR_BIT		STG_LOCAL
 #define isIndirectHdr(w)	(storage(w) == STG_LOCAL)
+#define isMarkedOrIndHdr(w)	((w) & (MARK_MASK|FIRST_MASK|INDHDR_BIT))
 #define isLocalPtr(w)		(storage(w) == STG_LOCAL)
 #define isLocalRef(w)		(tagex(w) == TAGEX_REF_LOCAL)
 
 /* nonFunctorKey(k) modifies a hash key such that it differs from any
    functor_t.  Used for clause index keys of indirect data.
 */
-#define nonFunctorKey(k)	((k) & ~(word)STG_GLOBAL)
+#define nonFunctorKey(k)	((k) & ~consTagged(0, STG_GLOBAL))
 
 
 		 /*******************************
@@ -301,15 +304,15 @@ and while loading .wic files.  It comes at no price.
 #define isFunctor(w)	(tagex(w) == (TAG_ATOM|STG_GLOBAL))
 #define isTextAtom(w)	(isAtom(w) && ison(atomValue(w)->type, PL_BLOB_TEXT))
 #define isCallableAtom(w) (isTextAtom(w) || (w == ATOM_nil))
-#define isRational(w)	(tag(w)   == TAG_INTEGER)
-#define isFloat(w)	(tag(w)   == TAG_FLOAT)
-#define isString(w)	(tag(w)   == TAG_STRING)
-#define isTerm(w)	(tag(w)   == TAG_COMPOUND)
+#define isRational(w)	hasTag(w, TAG_INTEGER)
+#define isFloat(w)	hasTag(w, TAG_FLOAT)
+#define isString(w)	hasTag(w, TAG_STRING)
+#define isTerm(w)	hasTag(w, TAG_COMPOUND)
 #define isConst(w)	(isAtom(w) || isTaggedInt(w)) /* H_ATOM, B_ATOM, H_SMALLINT, B_SMALLINT */
 
 #if O_BIGNUM
 #define isInteger(w)	( isTaggedInt(w) || \
-			  ((tag(w) == TAG_INTEGER) && !isMPQNum(w)) )
+			  (hasTag(w, TAG_INTEGER) && !isMPQNum(w)) )
 #else
 #define isInteger(w)	isRational(w)
 #endif
@@ -318,7 +321,7 @@ and while loading .wic files.  It comes at no price.
 		 *	    REFERENCES		*
 		 *******************************/
 
-#define isRef(w)	(tag(w) == TAG_REFERENCE)
+#define isRef(w)	hasTag(w, TAG_REFERENCE)
 #define unRef(w)	valPtr(w)
 #define deRef(p)	{ while(isRef(*(p))) (p) = unRef(*(p)); }
 #define deRef2(p, d)	{ (d) = (p); deRef(d); }
@@ -361,7 +364,7 @@ and while loading .wic files.  It comes at no price.
 		 *     ATTRIBUTED VARIABLES	*
 		 *******************************/
 
-#define isAttVar(w)	(tag(w) == TAG_ATTVAR)
+#define isAttVar(w)	hasTag(w, TAG_ATTVAR)
 #define valPAttVar(w)	valPtr(w)
 
 #define canBind(w)	needsRef(w)
@@ -380,21 +383,20 @@ and while loading .wic files.  It comes at no price.
 
 static inline word
 mkIndHdr(size_t size, int tag)
-{ word w = size;
-  return (w<<(LMASK_BITS+PADBITS))|tag|STG_LOCAL;
+{ return consTagged((word)size<<PADBITS, tag|STG_LOCAL);
 }
 
 static inline size_t
 wsizeofInd(word w)
-{ return (size_t)(w>>(LMASK_BITS+PADBITS));
+{ return (size_t)(valTagged(w)>>PADBITS);
 }
 
 #define addressIndirect(w)	valPtr(w)		/* Pointer to start guard */
 #define valIndirectP(w)		(((Word)valPtr(w))+1)	/* Pointer to the blob data */
 
-#define padHdr(iw)		((size_t)(((iw)>>LMASK_BITS & PADMASK) ?	\
-					  ((iw)>>LMASK_BITS & PADMASK) : sizeof(word)))
-#define mkPadHdr(n)		(((n)&PADMASK) << LMASK_BITS)
+#define padHdr(iw)		((size_t)((valTagged(iw) & PADMASK) ?	\
+					  (valTagged(iw) & PADMASK) : sizeof(word)))
+#define mkPadHdr(n)		consTagged((n)&PADMASK, 0)
 #define mkBlobHdr(n,pad,tag)	(mkIndHdr(n, tag)|mkPadHdr(pad))
 #define wsizeofIndirect(w)	(wsizeofInd(*addressIndirect(w)))
 
@@ -418,7 +420,7 @@ wsizeofInd(word w)
 /* TODO: putting a prototype here to satisfy the compiler, but fetchAtomArray()
  * may want to be moved somewhere else.  */
 static inline Atom	fetchAtomArray(size_t index);
-#define indexAtom(w)	((size_t)((w)>>LMASK_BITS))
+#define indexAtom(w)	((size_t)valTagged(w))
 #define atomValue(w)	fetchAtomArray(indexAtom(w))
 #define stringAtom(w)	(atomValue(w)->name)
 
@@ -428,12 +430,12 @@ static inline Atom	fetchAtomArray(size_t index);
 
 #define F_ARITY_BITS	5		/* upto 32 inlined arity */
 #define F_ARITY_MASK	((1<<F_ARITY_BITS)-1)
-#define MK_FUNCTOR(n, a) (functor_t)(((((n)<<F_ARITY_BITS)|(a))<<LMASK_BITS) | \
-			  TAG_ATOM|STG_GLOBAL)
-#define functorHashValue(f, n)	((f)>>(LMASK_BITS) & ((n)-1))
-#define indexFunctor(w)	((size_t)((w)>>(LMASK_BITS+F_ARITY_BITS)))
+#define MK_FUNCTOR(n, a) (functor_t)consTagged(((word)(n)<<F_ARITY_BITS)|(a), \
+					       TAG_ATOM|STG_GLOBAL)
+#define functorHashValue(f, n)	(valTagged(f) & ((n)-1))
+#define indexFunctor(w)	((size_t)(valTagged(w)>>F_ARITY_BITS))
 #define valueFunctor(w) fetchFunctorArray(indexFunctor(w))
-#define _arityFunc_(w)	((size_t)(((w) >> LMASK_BITS) & F_ARITY_MASK))
+#define _arityFunc_(w)	((size_t)(valTagged(w) & F_ARITY_MASK))
 #define arityFunctor(w) (unlikely(_arityFunc_(w) == F_ARITY_MASK) \
 				? valueFunctor(w)->arity \
 				: _arityFunc_(w) )

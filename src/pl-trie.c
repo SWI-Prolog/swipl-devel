@@ -2627,15 +2627,16 @@ PRED_IMPL("trie_destroy", 1, trie_destroy, 0)
 }
 
 
-#define isRecord(w) (((w)&0x3) == 0)
+/* A node value is an atom, a small integer, a record (aligned pointer)
+ * or a trie (isTriePtrValue()).
+ */
+#define isRecord(w) (((w)&0x7) == 0 && !isAtom(w))
 
 #define intern_value(value) LDFUNC(intern_value, value)
 static word
 intern_value(DECL_LD term_t value)
 { if ( value )
   { Word vp = valTermRef(value);
-
-    DEBUG(0, assert((TAG_INTEGER&0x3) && (TAG_ATOM&0x3)));
 
     deRef(vp);
     if ( isAtom(*vp) || isTaggedInt(*vp) )
