@@ -2477,21 +2477,29 @@ PL_get_float_ex(term_t t, double *f)
 #define ULL(x) x ## ULL
 #endif
 
+/* PL_get_pointer() only accepts pointer integers (see pl-data.h), so a
+ * plain integer typed or computed in Prolog is not taken for a C pointer.
+ * With O_BIG_ADDRESS, PL_put_pointer() and PL_unify_pointer() create a
+ * plain integer for a pointer that does not fit a small integer; these
+ * are accepted.
+ */
+
 bool
 PL_get_pointer(DECL_LD term_t t, void **ptr)
-{ int64_t p;
+{ word w = valHandle(t);
 
-  if ( PL_get_int64(t, &p) )
-  {
-#if SIZEOF_VOIDP == 4
-    if ( p & ULL(0xffffffff00000000) )
-      return false;
-#endif
-
-    *ptr = intToPointer((uintptr_t)p);
-
+  if ( likely(isPtrInt(w)) )
+  { *ptr = intToPointer((uintptr_t)valInt(w));
     return true;
   }
+#if O_BIG_ADDRESS
+  int64_t p;
+
+  if ( isIndirect(w) && PL_get_int64(t, &p) )
+  { *ptr = intToPointer((uintptr_t)p);
+    return true;
+  }
+#endif
 
   return false;
 }
@@ -3296,8 +3304,17 @@ PL_put_pointer(term_t t, void *ptr)
 { GET_LD
   valid_user_term_t(t);
   uint64_t i = pointerToInt(ptr);
+  word w = consPtrInt(i);
 
+  if ( likely((uint64_t)valInt(w) == i) )
+  { setHandle(t, w);
+    return true;
+  }
+#if O_BIG_ADDRESS
   return PL_put_int64(t, (int64_t)i);
+#else
+  return PL_representation_error("address");
+#endif
 }
 
 
@@ -3829,8 +3846,15 @@ API_STUB(bool)
 bool
 PL_unify_pointer(DECL_LD term_t t, void *ptr)
 { uint64_t i = pointerToInt(ptr);
+  word w = consPtrInt(i);
 
+  if ( likely((uint64_t)valInt(w) == i) )
+    return PL_unify_atomic(t, w);
+#if O_BIG_ADDRESS
   return unify_int64_ex(t, (int64_t)i, false);
+#else
+  return PL_representation_error("address");
+#endif
 }
 
 

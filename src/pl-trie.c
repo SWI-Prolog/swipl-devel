@@ -3315,6 +3315,7 @@ unify_key(DECL_LD ukey_state *state, word key)
       pushVolatileAtom(word2atom(key));
       /*FALLTHROUGH*/
     case TAG_INTEGER:
+    case TAGEX_PTRINT:
     { DEBUG(MSG_TRIE_PUT_TERM,
 	    char buf[64];
 	    Sdprintf("U %s\n", print_val(key, buf)));
@@ -4745,6 +4746,16 @@ add_smallint(trie_compile_state *state, vmi c1, vmi c2, word w)
 #endif
 }
 
+/* A small integer or, as T_PTRINT, a pointer integer (see isPtrInt()) */
+
+static void
+add_int(trie_compile_state *state, word w)
+{ if ( unlikely(isPtrInt(w)) )
+    add_vmi_d(state, T_PTRINT, (code)valInt(w));
+  else
+    add_smallint(state, T_SMALLINT, T_SMALLINTW, w);
+}
+
 static void
 add_vmi_else_i(trie_compile_state *state, vmi c1, vmi c2, word w)
 { sword i = valInt(w);
@@ -4873,7 +4884,7 @@ compile_trie_value(DECL_LD Word v, trie_compile_state *state)
 	  break;
 	case TAG_INTEGER:
 	  if ( isInlineInt(w))
-	  { add_smallint(state, T_SMALLINT, T_SMALLINTW, w);
+	  { add_int(state, w);
 #ifdef O_BIGNUM
 	  } else
 	  { add_indirect(state, T_MPZ, w);
@@ -5067,6 +5078,13 @@ next:
 	add_smallint(state, T_SMALLINT, T_SMALLINTW, key);
       break;
     }
+    case TAGEX_PTRINT:
+    { if ( state->try )
+	add_vmi_else_d(state, T_TRY_PTRINT, (code)valInt(key));
+      else
+	add_int(state, key);
+      break;
+    }
     default:
       assert(0);
   }
@@ -5107,7 +5125,7 @@ children:
 	{ if ( isAtom(n->value) )
 	  { add_vmi_d(state, T_ATOM, word2code(n->value));
 	  } else
-	  { add_smallint(state, T_SMALLINT, T_SMALLINTW, n->value);
+	  { add_int(state, n->value);
 	  }
 	} else
 	{ term_t t2;

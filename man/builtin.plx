@@ -1868,6 +1868,13 @@ True if \arg{Term} is bound to an integer.
     \predicate[ISO]{float}{1}{@Term}
 True if \arg{Term} is bound to a floating point number.
 
+    \predicate{is_address}{1}{@Term}
+True if \arg{Term} is a C pointer handed to Prolog by PL_put_pointer()
+or PL_unify_pointer().  Such a \jargon{pointer integer} is an integer
+that is not identical to the plain integer with the same value.  A
+plain integer, e.g., the result of arithmetic or read/1, is not an
+address.  See PL_get_pointer() for details.
+
     \predicate{rational}{1}{@Term}
 True if \arg{Term} is bound to a rational number.  Rational numbers
 include integers.

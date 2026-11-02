@@ -915,7 +915,7 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
       { DEBUG(MSG_WIN_API,
 	      SdprintfX("AddDllDirectory(%Ws) ok\n", dirw));
 
-	return PL_unify_int64(A2, (int64_t)(uintptr_t)cookie);
+	return PL_unify_pointer(A2, cookie);
       }
 
       switch((eno=GetLastError()))
@@ -934,11 +934,11 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
 
 static
 PRED_IMPL("win_remove_dll_directory", 1, win_remove_dll_directory, 0)
-{ int64_t icookie;
+{ void *cookie;
 
-  if ( PL_get_int64_ex(A1, &icookie) )
+  if ( PL_get_pointer_ex(A1, &cookie) )
   { if ( f_RemoveDllDirectory )
-    { if ( (*f_RemoveDllDirectory)((DLL_DIRECTORY_COOKIE)(uintptr_t)icookie) )
+    { if ( (*f_RemoveDllDirectory)(cookie) )
 	return true;
 
       return PL_error(NULL, 0, WinError(), ERR_SYSCALL, "RemoveDllDirectory()");

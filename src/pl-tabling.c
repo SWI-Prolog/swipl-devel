@@ -1536,7 +1536,14 @@ simplify_delay_set(delay_info *di, delay_set *ds)
 #define word_to_answer(w) LDFUNC(word_to_answer, w)
 static inline trie_node *
 word_to_answer(DECL_LD word w)
-{ assert(isTaggedInt(w));
+{
+#if O_BIG_ADDRESS
+  int64_t i;
+
+  if ( !isTaggedInt(w) && get_int64(w, &i) )
+    return intToPointer((uintptr_t)i);
+#endif
+  assert(isTaggedInt(w));
 
   return intToPointer((uintptr_t)valInt(w));
 }
@@ -1887,15 +1894,15 @@ delay_to_data(DECL_LD trie_node *answer, Word wrapper)
   { return consInt(0);
   } else if ( is_ground_trie_node(answer) )
   {
-#if SIZEOF_WORD == 8
-    word rc = consInt(pointerToInt(answer));
+#if SIZEOF_WORD == 8 && !O_BIG_ADDRESS
+    word rc = consPtrInt(pointerToInt(answer));
     DEBUG(0, assert(intToPointer((uintptr_t)valInt(rc)) == answer));
     return rc;
 #else
     word rc;
     intptr_t i = pointerToInt(answer);
 
-    rc = consInt(i);
+    rc = consPtrInt(i);
     if ( i == valInt(rc) )
     { return rc;
     } else

@@ -215,6 +215,7 @@ resource_error(Resource) :-
 %   types.
 %
 %   | acyclic | Acyclic term (tree); see acyclic_term/1 |
+%   | address | A C pointer; see is_address/1 |
 %   | any | any term |
 %   | between(FloatL,FloatU) | Number [FloatL..FloatU] |
 %   | between(IntL,IntU) | Integer [IntL..IntU] |
@@ -355,6 +356,7 @@ is_of_type(Type, _) :-
     element_types/2.
 
 has_type(any, _).
+has_type(address, X)      :- is_address(X).
 has_type(atom, X)         :- atom(X).
 has_type(atomic, X)       :- atomic(X).
 has_type(between(L,U), X) :-

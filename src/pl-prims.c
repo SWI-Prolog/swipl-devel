@@ -909,6 +909,17 @@ PRED_IMPL("ground", 1, ground, PL_FA_ISO)
   return ground(valTermRef(A1)) == NULL;
 }
 
+/** is_address(@Term)
+ * True if Term is a pointer integer, i.e., PL_get_pointer() accepts it.
+ */
+
+static
+PRED_IMPL("is_address", 1, is_address, 0)
+{ void *ptr;
+
+  return PL_get_pointer(A1, &ptr);
+}
+
 static
 PRED_IMPL("nonground", 2, nonground, 0)
 { PRED_LD
@@ -1876,7 +1887,14 @@ compare_primitives(DECL_LD Word p1, Word p2, cmp_mode mode)
 
       if ( isInlineInt(w1) &&
 	   isInlineInt(w2) )
-	return SCALAR_TO_CMP(valInt(w1), valInt(w2));
+      { sword v1 = valInt(w1), v2 = valInt(w2);
+
+	if ( likely(v1 != v2) )
+	  return SCALAR_TO_CMP(v1, v2);
+	if ( mode == CMP_MODE_EQUAL )	/* w1 != w2: one is a pointer */
+	  return CMP_NOTEQ;
+	return SCALAR_TO_CMP(isPtrInt(w1), isPtrInt(w2));
+      }
 
       get_rational(w1, &n1);
       get_rational(w2, &n2);
@@ -6603,6 +6621,7 @@ BeginPredDefs(prims)
   PRED_DEF("atom", 1, atom, PL_FA_ISO)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
+  PRED_DEF("is_address", 1, is_address, 0)
   PRED_DEF("nonground", 2, nonground, 0)
   PRED_DEF("$term_size", 3, term_size, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, PL_FA_ISO)

@@ -256,6 +256,7 @@ typedef struct
 #define PL_REC_MPQ		(19)	/* GMP rational */
 
 #define PL_TYPE_EXT_COMPOUND_V2	(20)	/* Read V2 external records */
+#define PL_TYPE_PTRINT		(21)	/* pointer integer (not external) */
 
 static const int v2_map[] =
 { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,		/* variable..string */
@@ -544,7 +545,8 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 
 	if ( isTaggedInt(w) )
 	{ val = valInt(w);
-	  addOpCode(info, PL_TYPE_TAGGED_INTEGER);
+	  addOpCode(info, isPtrInt(w) && !info->external ? PL_TYPE_PTRINT
+							 : PL_TYPE_TAGGED_INTEGER);
 	  addInt64(info, val);
 	} else
 	{ number n;
@@ -1436,6 +1438,11 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	*p = consInt(val);
 	continue;
       }
+      case PL_TYPE_PTRINT:
+      { int64_t val = fetchInt64(b);
+	*p = consPtrInt(val);
+	continue;
+      }
       case PL_TYPE_INTEGER:
       { size_t i;
 	union
@@ -1725,6 +1732,7 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 	continue;
       }
       case PL_TYPE_TAGGED_INTEGER:
+      case PL_TYPE_PTRINT:
       case PL_TYPE_INTEGER:
       { skipLong(b);
 	continue;

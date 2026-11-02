@@ -484,6 +484,18 @@ VMI(H_SMALLINT, 0, 1, (CA1_INTEGER))
 }
 END_VMI
 
+/* H_PTRINT and B_PTRINT are a pointer integer (see isPtrInt()) in the
+   head or body.  The argument is the pointer value.
+*/
+
+VMI(H_PTRINT, 0, 1, (CA1_INTEGER))
+{ IF_WRITE_MODE_GOTO(B_PTRINT);
+
+  word c = consPtrInt((uint64_t)*PC++);
+  VMH_GOTO(h_const, c);
+}
+END_VMI
+
 VMI(H_SMALLINTW, 0, CODES_PER_WORD, (CA1_WORD))
 {
 #if CODES_PER_WORD > 1
@@ -955,6 +967,12 @@ END_VMI
 VMI(B_SMALLINT, VIF_LCO, 1, (CA1_INTEGER))
 { scode i = (scode)*PC++;
   *ARGP++ = consInt(i);
+  NEXT_INSTRUCTION;
+}
+END_VMI
+
+VMI(B_PTRINT, 0, 1, (CA1_INTEGER))
+{ *ARGP++ = consPtrInt((uint64_t)*PC++);
   NEXT_INSTRUCTION;
 }
 END_VMI
@@ -6619,6 +6637,18 @@ VMI(T_SMALLINT, 0, 1, (CA1_INTEGER))
 { scode i = (scode)*PC++;
   DEBUG(MSG_TRIE_VM, Sdprintf("T_SMALLINT %lld\n", (long long)i));
   VMH_GOTO(t_const, consInt(i));
+}
+END_VMI
+
+VMI(T_TRY_PTRINT, 0, 2, (CA1_JUMP,CA1_INTEGER))
+{ TRIE_TRY;
+  VMI_GOTO(T_PTRINT);
+}
+END_VMI
+
+VMI(T_PTRINT, 0, 1, (CA1_INTEGER))
+{ word c = consPtrInt((uint64_t)*PC++);
+  VMH_GOTO(t_const, c);
 }
 END_VMI
 

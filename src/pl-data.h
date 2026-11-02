@@ -269,6 +269,7 @@ private markers of the compiler, read/1, tries and variant/2.
 #define TAGEX_TAGGED_INT	(TAG_INTEGER|STG_INLINE)
 #define TAGEX_INDIRECT_INT	(TAG_INTEGER|STG_GLOBAL)	/* MPZ (int64) */
 #define TAGEX_INDIRECT_MPQ	(KIND_MPQ|STG_GLOBAL)
+#define TAGEX_PTRINT		(TAG_INTEGER|STG_INLINE|VARIANT_BIT)
 #define TAGEX_INDIRECT_STRING	(TAG_STRING|STG_GLOBAL)
 #define TAGEX_ATOM		(TAG_ATOM|STG_STATIC)
 #define TAGEX_FUNCTOR		(TAG_ATOM|STG_GLOBAL)
@@ -437,7 +438,28 @@ wsizeofInd(word w)
 #define mkBlobHdr(n,pad,tag)	(mkIndHdr(n, tag)|mkPadHdr(pad))
 #define wsizeofIndirect(w)	(wsizeofInd(*addressIndirect(w)))
 
-#define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))
+/* isTaggedInt() is true for small integers and pointer integers: both
+   hold their value as a small integer.  A pointer integer (TAGEX_PTRINT,
+   with the variant bit) holds a C pointer created by PL_put_pointer() and
+   friends.  It is an integer to Prolog, but never identical to a plain
+   integer: unification fails and compare/3 orders it directly after the
+   plain integer with the same value.  Prolog code cannot create one.
+*/
+#define isTaggedInt(w)	(((w) & (TAG_MASK|STG_MASK)) == (TAG_INTEGER|STG_INLINE))
+#define isPtrInt(w)	(tagex(w) == TAGEX_PTRINT)
+#define consPtrInt(i)	(consInt(i)|VARIANT_BIT)
+/* O_BIG_ADDRESS: pointers may not fit a small integer.  64-bit Android
+   tags heap pointers in the top byte.  PL_put_pointer() then creates a
+   plain (big) integer and PL_get_pointer() accepts integers that are not
+   small.  Elsewhere such a pointer raises a representation error.
+*/
+#ifndef O_BIG_ADDRESS
+#if SIZEOF_VOIDP == 8 && defined(__ANDROID__)
+#define O_BIG_ADDRESS 1
+#else
+#define O_BIG_ADDRESS 0
+#endif
+#endif
 /* isInlineInt(w) is isTaggedInt(w) for a w that is known to be an
    integer (tag(w) == TAG_INTEGER), i.e., it tells a tagged integer from
    an indirect one.  It is cheaper than isTaggedInt().

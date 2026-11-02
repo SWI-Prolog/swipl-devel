@@ -3036,7 +3036,10 @@ A void.  Generate either B_VOID or H_VOID.
 	goto argvar;
       goto var;
     case TAG_INTEGER:
-      if ( isInlineInt(*arg) )
+      if ( unlikely(isPtrInt(*arg)) )
+      { Output_1(ci, (where & A_BODY) ? B_PTRINT : H_PTRINT,
+		 (code)valInt(*arg));
+      } else if ( isInlineInt(*arg) )
       { sword i = valInt(*arg);
 
 #if CODES_PER_WORD == 1
@@ -5388,6 +5391,7 @@ skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid)
       case H_ATOM:
       case H_SMALLINT:
       case H_SMALLINTW:
+      case H_PTRINT:
       case H_NIL:
       case H_FLOAT:
       case H_STRING:
@@ -5400,6 +5404,7 @@ skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid)
       case B_ATOM:
       case B_SMALLINT:
       case B_SMALLINTW:
+      case B_PTRINT:
       case B_NIL:
       case B_FLOAT:
       case B_STRING:
@@ -5489,6 +5494,9 @@ argKey(Code PC, size_t skip, word *key)
 	*key = consInt(i);
 	return true;
       }
+      case H_PTRINT:
+	*key = consPtrInt((uint64_t)*PC);
+	return true;
 #if CODES_PER_WORD > 1
       case H_SMALLINTW:
       { word m;
@@ -5584,6 +5592,9 @@ arg1Key(Code PC, word *key)
 	*key = consInt(i);
 	return true;
       }
+      case H_PTRINT:
+	*key = consPtrInt((uint64_t)*PC);
+	return true;
 #if CODES_PER_WORD > 1
       case H_SMALLINTW:
       { word w;
@@ -6079,6 +6090,9 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 	  TRY(PL_unify_atomic(argp, consInt(i)));
 	  break;
 	}
+      case H_PTRINT:
+	  TRY(PL_unify_atomic(argp, consPtrInt((uint64_t)*PC++)));
+	  break;
       case H_SMALLINTW:
         { word w;
 	  PC = code_get_word(PC, &w);
@@ -6476,6 +6490,10 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    *ARGP++ = consInt(i);
 			    continue;
 			  }
+	case H_PTRINT:
+	case B_PTRINT:
+			    *ARGP++ = consPtrInt((uint64_t)*PC++);
+			    continue;
 	case H_SMALLINTW:
 	case B_SMALLINTW:
         case A_INTEGERW:

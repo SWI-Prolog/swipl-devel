@@ -385,6 +385,7 @@ suggest predicates from a keyword.
 \predicatesummary{is_absolute_file_name}{1}{True if arg defines an absolute path}
 \predicatesummary{is_assoc}{1}{Verify association list}
 \predicatesummary{is_async}{0}{WASM: Test Prolog can call await/2}
+\predicatesummary{is_address}{1}{Type check for a C pointer}
 \predicatesummary{is_dict}{1}{Type check for a dict}
 \predicatesummary{is_dict}{2}{Type check for a dict in a class}
 \predicatesummary{is_engine}{1}{Type check for an engine handle}

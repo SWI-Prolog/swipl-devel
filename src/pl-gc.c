@@ -2215,6 +2215,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	case H_ATOM:
 	case H_SMALLINT:
 	case H_SMALLINTW:
+	case H_PTRINT:
 	case H_NIL:
 	case H_FLOAT:
 	  mark_argp(state);
@@ -3660,6 +3661,7 @@ setStartOfVMI(vm_state *state)
 	case H_ATOM:
 	case H_SMALLINT:
 	case H_SMALLINTW:
+	case H_PTRINT:
 	case H_NIL:
 	case H_FLOAT:
 	case H_VOID:

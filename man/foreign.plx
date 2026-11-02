@@ -1505,12 +1505,27 @@ before the introduction of \ctype{bool}.
 
 \cfunction{bool}{PL_get_pointer}{term_t +t, void **ptr}
 Together with PL_put_pointer() and PL_unify_pointer(), these functions
-allow representing a C pointer as a Prolog integer.  The integer value
-is derived from the pointer, but not equivalent.  The translation aims
-at producing smaller integers that fit more often in the \jargon{tagged}
-integer range. Representing C pointers as integers is \emph{unsafe}.
-The \jargon{blob} API described in \secref{blob} provides a safe way
-for handling foreign resources that cooperates with Prolog garbage
+allow representing a C pointer as a Prolog integer.  PL_put_pointer()
+and PL_unify_pointer() create a \jargon{pointer integer}: an integer
+that behaves as any other integer, but is a different term than the
+plain integer with the same value: the two do not unify and
+compare/3 orders the pointer integer directly after the plain
+integer.  Pointer integers survive assert/1, recorded databases,
+findall/3, copy_term/2, tries and tables.  They become plain integers
+if they are written and read, serialized with fast_term_serialized/2
+or PL_record_external(), saved in a \fileext{qlf} file or used in
+arithmetic.  PL_get_pointer() only succeeds on a pointer integer, so a
+plain integer typed by the user or computed using arithmetic is not
+taken for a pointer.  A pointer must fit in a small integer
+(\prologflag{max_tagged_integer}); otherwise PL_put_pointer() and
+PL_unify_pointer() raise a representation error.  The exception is
+64-bit Android, which keeps a tag in the top byte of heap pointers:
+there such pointers are represented as plain integers and
+PL_get_pointer() accepts integers that are too large to be small.
+Representing C pointers as integers is \emph{unsafe}: the pointer may
+be used after the object it points at is deallocated.  The
+\jargon{blob} API described in \secref{blob} provides a safe way for
+handling foreign resources that cooperates with Prolog garbage
 collection.
 
 \cfunction{bool}{PL_get_float}{term_t +t, double *f}
@@ -2203,8 +2218,8 @@ support is required for \ctype{uint64_t} values with the highest bit set
 to 1.  Without unbounded integer support, too large values raise a
 \const{representation_error} exception.
 \cfunction{bool}{PL_put_pointer}{term_t -t, void *ptr}
-Put a Prolog integer in the term reference.  Provided \arg{ptr} is in the
-`malloc()-area', PL_get_pointer() will get the pointer back.
+Put a pointer integer in the term reference.  PL_get_pointer() gets
+the pointer back.  See PL_get_pointer() for details.
 \cfunction{bool}{PL_put_float}{term_t -t, double f}
 Put a floating-point value in the term reference.
 
@@ -2476,8 +2491,8 @@ integer support is required if \arg{n} does not fit in a \emph{signed}
     \cfunction{bool}{PL_unify_float}{term_t ?t, double f}
 Unify \arg{t} with a Prolog float from \arg{f}.
     \cfunction{bool}{PL_unify_pointer}{term_t ?t, void *ptr}
-Unify \arg{t} with a Prolog integer describing the pointer. See also
-PL_put_pointer() and PL_get_pointer().
+Unify \arg{t} with a pointer integer describing the pointer. See
+PL_get_pointer() for details.
 
     \cfunction{bool}{PL_unify_functor}{term_t ?t, functor_t f}
 If \arg{t} is a compound term with the given functor, just succeed.
