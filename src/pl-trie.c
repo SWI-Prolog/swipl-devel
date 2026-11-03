@@ -4582,7 +4582,7 @@ and keep it in `elses`.  If the trie is modified between the passes the
 clause is grown using realloc().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define clauseBytes(n) (offsetof(struct clause, codes) + (n) + \
+#define clauseBytes(n) (trieClauseCrefOffset(n) + \
 			SIZEOF_CREF_CLAUSE) /* see trie_clause_cref() */
 #define baseCodes(state)    ((state)->clause->codes)
 #define entriesCodes(state) ((state)->ctop/sizeof(code))
@@ -5183,7 +5183,7 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
 
   if ( state->ctop != state->cmax )	/* trie changed after sizing */
     state->clause = PL_realloc(state->clause,
-			       sizeofClause(code_size) + SIZEOF_CREF_CLAUSE);
+			       clauseBytes(code_size*sizeof(code)));
   cl = state->clause;
   state->clause = NULL;			/* now owned by the caller */
   cl->predicate = def;

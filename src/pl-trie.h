@@ -246,9 +246,15 @@ is_trie_clause(const struct clause *cl)
 	   cl->predicate == GD->procedures.trie_gen_compiled2->definition );
 }
 
+/* Offset of the clause_ref behind a clause with `code_bytes` bytes of
+ * code.  Rounded to a word, as the clause_ref holds a word.
+ */
+#define trieClauseCrefOffset(code_bytes) \
+	ROUND(offsetof(struct clause, codes) + (code_bytes), sizeof(word))
+
 static inline ClauseRef
 trie_clause_cref(struct clause *cl)
-{ return addPointer(cl, sizeofClause(cl->code_size));
+{ return addPointer(cl, trieClauseCrefOffset(cl->code_size*sizeof(code)));
 }
 
 #define TRIE_ARGS	3

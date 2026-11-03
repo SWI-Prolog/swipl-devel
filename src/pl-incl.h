@@ -1611,8 +1611,10 @@ typedef struct clause_ref
   } value;
 } clause_ref;
 
-#define SIZEOF_CREF_CLAUSE	(offsetof(clause_ref, value.clause) + \
-				 sizeof(Clause))
+/* Rounded to a word, as a clause_ref may be followed by a local frame
+ * (see push_continuation()) */
+#define SIZEOF_CREF_CLAUSE	ROUND(offsetof(clause_ref, value.clause) + \
+				      sizeof(Clause), sizeof(word))
 #define SIZEOF_CREF_LIST	sizeof(clause_ref)
 
 typedef struct cgc_stats
