@@ -58,7 +58,7 @@
 #define LD LOCAL_LD
 
 #define unify_with_occurs_check(t1, t2, mode) LDFUNC(unify_with_occurs_check, t1, t2, mode)
-static int	unify_with_occurs_check(DECL_LD Word t1, Word t2,
+static boolex_t	unify_with_occurs_check(DECL_LD Word t1, Word t2,
 					occurs_check_t mode);
 
 
@@ -661,13 +661,13 @@ PL_var_occurs_in(term_t var, term_t value)
 }
 
 
-#define failed_unify_with_occurs_check(t1, t2, mode) LDFUNC(failed_unify_with_occurs_check, t1, t2, mode)
-static int
-failed_unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
-{ int rc;
+#define failed_unify_with_occurs_check(t1, t2, mode) \
+	LDFUNC(failed_unify_with_occurs_check, t1, t2, mode)
 
-  if ( mode == OCCURS_CHECK_TRUE )
-    fail;
+static bool
+failed_unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
+{ if ( mode == OCCURS_CHECK_TRUE )
+    return false;
 
   deRef(t1);
   deRef(t2);
@@ -679,17 +679,17 @@ failed_unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
   }
 
   blockGC(0);
-  rc = PL_error(NULL, 0, NULL, ERR_OCCURS_CHECK, t1, t2);
+  PL_error(NULL, 0, NULL, ERR_OCCURS_CHECK, t1, t2);
   unblockGC(0);
 
-  return rc;
+  return false;
 }
 
 
-static int
+static boolex_t
 unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
 { mark m;
-  int rc;
+  boolex_t rc;
 
   deRef(t1);
   deRef(t2);
@@ -751,7 +751,7 @@ static
 PRED_IMPL("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
 { PRED_LD
   occurs_check_t old = LD->prolog_flag.occurs_check;
-  int rc;
+  bool rc;
 
   LD->prolog_flag.occurs_check = OCCURS_CHECK_TRUE;
   rc = PL_unify(A1, A2);
