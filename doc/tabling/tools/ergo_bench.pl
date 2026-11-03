@@ -9,6 +9,9 @@ clauses(N) :-
     predicate_property(system:trie_gen_compiled(_,_), number_of_clauses(N)), !.
 clauses(0).
 
+rss(_Key, 0) :-                         % no /proc (macOS): use /usr/bin/time -l
+    \+ exists_file('/proc/self/status'),
+    !.
 rss(Key, KB) :-
     read_file_to_string('/proc/self/status', S, []),
     split_string(S, "\n", "", Ls),
