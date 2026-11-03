@@ -2145,7 +2145,7 @@ static inline atom_t
 createLocalBlob(DECL_LD const char *s, size_t length, PL_blob_t *type,
 		unsigned int refs)
 { Atom a = reserveLocalAtom();
-  uintptr_t h = (uintptr_t)s;
+  uint64_t h = (uint64_t)(uintptr_t)s;
 
   a->length = length;
   a->type   = type;
