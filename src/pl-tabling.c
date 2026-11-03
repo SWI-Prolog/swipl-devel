@@ -524,20 +524,20 @@ new_tbl_handle(DECL_LD void *obj, int kind)
   slot->check = check;
   LD->tabling.handles.live++;
 
-  return consInt((check<<TBL_HANDLE_INDEX_BITS)|idx);
+  return consInt(((word)check<<TBL_HANDLE_INDEX_BITS)|idx);
 }
 
 #define free_tbl_handle(handle) LDFUNC(free_tbl_handle, handle)
 static void
 free_tbl_handle(DECL_LD word handle)
-{ size_t idx = valUInt(handle) & TBL_HANDLE_INDEX_MASK;
+{ size_t idx = (size_t)(valUInt(handle) & TBL_HANDLE_INDEX_MASK);
   tbl_handle_slot *slot;
 
   if ( !LD->tabling.handles.slots )	/* thread terminated */
     return;
   assert(idx < LD->tabling.handles.top);
   slot = &LD->tabling.handles.slots[idx];
-  assert(slot->check == valUInt(handle) >> TBL_HANDLE_INDEX_BITS);
+  assert(slot->check == (size_t)(valUInt(handle) >> TBL_HANDLE_INDEX_BITS));
   slot->check = TBL_HANDLE_FREE;
 
   if ( --LD->tabling.handles.live == 0 )
@@ -572,9 +572,9 @@ free_tbl_handles(PL_local_data_t *ld)
 static inline void *
 tbl_handle_object(DECL_LD word w, int kind, bool *stale)
 { if ( likely(isTaggedInt(w)) )
-  { size_t v = valUInt(w);
-    size_t idx = v & TBL_HANDLE_INDEX_MASK;
-    size_t check = v >> TBL_HANDLE_INDEX_BITS;
+  { word v = valUInt(w);
+    size_t idx = (size_t)(v & TBL_HANDLE_INDEX_MASK);
+    size_t check = (size_t)(v >> TBL_HANDLE_INDEX_BITS);
 
     if ( likely((check&1) == (size_t)kind) )
     { if ( likely(idx < LD->tabling.handles.top &&
