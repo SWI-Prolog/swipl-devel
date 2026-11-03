@@ -2893,6 +2893,10 @@ term_colours((:- use_class_template(_)),
              expanded - [ expanded - [ pce_new
                                      ]
                         ]).
+term_colours((:- pce_class_directive(_)),
+             expanded - [ expanded - [ body
+                                     ]
+                        ]).
 term_colours((:- emacs_begin_mode(_,_,_,_,_)),
              expanded - [ expanded - [ identifier,
                                        classify,

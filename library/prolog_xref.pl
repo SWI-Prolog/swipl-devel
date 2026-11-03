@@ -884,6 +884,10 @@ list_to_conj([H|T], (H,C)) :-
 %   @arg EOF is unified with a boolean to indicate whether or not
 %   processing was stopped because `end_of_file` was processed.
 
+process([], Comments, Term, VarNames, TermPos, Src, false) :-
+    !,
+    process_nil_expanded(Term, Src),
+    xref_comments(Comments, TermPos, Term, VarNames, Src).
 process(Expanded, Comments, Term0, VarNames, TermPos, Src, EOF) :-
     is_list(Expanded),                          % term_expansion into list.
     !,
@@ -899,6 +903,16 @@ process(end_of_file, _, _, _, _, _, true) :-
 process(Term, Comments, Term0, VarNames, TermPos, Src, false) :-
     process(Term, Term0, Src),
     xref_comments(Comments, TermPos, Term0, VarNames, Src).
+
+%!  process_nil_expanded(+Term, +Src) is det.
+%
+%   Process terms that are term-expanded to `[]`, but have side effects.
+
+process_nil_expanded((:- pce_class_directive(Goal)), Src) :-
+    !,
+    current_source_line(Line),
+    assert_called(Src, '<directive>'(Line), Goal, Line).
+process_nil_expanded(_, _).
 
 %!  process(+Term, +Term0, +Src) is det.
 
