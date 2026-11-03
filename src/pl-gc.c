@@ -4611,11 +4611,6 @@ garbageCollect(gc_reason_t reason)
 	  checkStacks(&state);
 	});
 
-#ifdef O_PROFILE
-  if ( prof_node && LD->profile.active )
-    profExit(prof_node);
-#endif
-
   restore_vmi_state(&state);
   assert(!LD->query ||
 	 !LD->query->registers.fr ||
@@ -4637,6 +4632,11 @@ garbageCollect(gc_reason_t reason)
   leaveGC();
 
   stats = gc_stat_end(&LD->gc.stats);
+
+#ifdef O_PROFILE
+  if ( prof_node && LD->profile.active ) /* after gc_stat_end(): the */
+    profExit(prof_node);		/* profiler adds the gained memory */
+#endif
 
   if ( verbose )
   { gc_trace_event ev =

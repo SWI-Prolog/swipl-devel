@@ -6860,6 +6860,8 @@ next_choice:
     LEAVE_FAILED_FRAME(FR);
 
   environment_frame = FR = BFR->frame;
+  if ( unlikely(LD->alerted) )
+    Profile(profBacktrack());		/* before Undo(): see profFail() */
   Undo(BFR->mark);
   QF = QueryFromQid(QID);
   aTop = QF->aSave;

@@ -115,6 +115,10 @@ library(swi/pce_profile).
 %     - cumulative(Bool)
 %       If `true` (default `false`), show cumulative output in
 %       a textual report.
+%     - measure(Measure)
+%       When generating a textual report, show `time` (default) or
+%       `memory`, the global stack allocated and discarded by
+%       backtracking.  See show_profile/1.
 %
 %   @tbd The textual input reflects only part of the information.
 %   @see show_coverage/2 from library(test_cover).
@@ -175,6 +179,13 @@ time_name(Time, _) :-
 %     * cumulative(Bool)
 %     If =true= (default =false=), show cumulative output in
 %     a textual report.
+%     * measure(Measure)
+%     One of `time` (default) or `memory`.  The latter shows the
+%     global stack allocated by the predicate itself and by its
+%     callees, and the global stack discarded by backtracking into
+%     the predicate.  For example, for `p :- \+ \+ q`, q allocates
+%     and p discards.  The predicates are sorted on the allocated
+%     memory.
 
 show_profile(N) :-
     integer(N),
@@ -194,22 +205,23 @@ show_profile_(Options) :-
 %   Textual report on the last collected profile.
 
 show_text_profile(Options) :-
+    option(measure(Measure), Options, time),
+    must_be(oneof([time,memory]), Measure),
     prof_statistics(Stat),
     NetTicks is Stat.ticks-Stat.accounting,
     percentage(NetTicks, Stat.ticks, NetPC),
     NetTime is NetPC*Stat.time/100,
     Ports = Stat.ports,
     findall(Node, procedure_data(_, Node), Nodes),
-    (   option(cumulative(false), Options, false)
-    ->  SortKey = ticks_self
-    ;   SortKey = ticks
-    ),
+    option(cumulative(Cumulative), Options, false),
+    sort_key(Measure, Cumulative, SortKey),
     sort_prof_nodes(SortKey, Nodes, Sorted),
     option(top(N), Options, 25),
     top(N, Sorted, Top),
     column_stops(Top, Ports, Stops),
     Stops = stops(CallStop, RedoStop, ExitStop),
-    format_divider,
+    report_width(Measure, Width),
+    format_divider(Width),
     (   Stat.exact == true
     ->  Mode = 'exact '
     ;   Mode = ''
@@ -217,13 +229,37 @@ show_text_profile(Options) :-
     format('Number of nodes: ~w~t[~w~w time, ports(~w)]~60|~t\c
             Total time: ~3f seconds~101|~n',
            [Stat.nodes, Mode, Stat.clock, Ports, NetTime]),
+    (   Measure == memory
+    ->  human_size(Stat.allocated, Allocated),
+        human_size(Stat.discarded, Discarded),
+        human_size(Stat.gc_reclaimed, Reclaimed),
+        format('Global stack: allocated ~w, discarded ~w, \c
+                reclaimed by GC ~w in ~D collections~n',
+               [Allocated, Discarded, Reclaimed, Stat.gc_count])
+    ;   true
+    ),
     format('Predicate~tCalls +~*| Redos~t~*|~t \c
-            Exits +~*| Fails~tTime:Self +~87| Time:Children~n',
+            Exits +~*| Fails',
            [CallStop, RedoStop, ExitStop]),
-    format_divider,
+    measure_header(Measure),
+    format_divider(Width),
+    Totals = totals(NetTicks, NetTime, Stat.allocated),
     forall(member(Node, Top),
-           show_plain(Node, (NetTicks,NetTime,Ports), Stops)),
-    format_divider.
+           show_plain(Node, Measure, Totals, Ports, Stops)),
+    format_divider(Width).
+
+sort_key(time,   false, ticks_self).
+sort_key(time,   true,  ticks).
+sort_key(memory, false, alloc_self).
+sort_key(memory, true,  alloc).
+
+report_width(time,   102).
+report_width(memory, 114).
+
+measure_header(time) :-
+    format('~tTime:Self +~87| Time:Children~n').
+measure_header(memory) :-
+    format('~tAlloc:Self +~87|~tChildren~104|~tDiscarded~114|~n').
 
 top(N, List, Top) :-
     length(List, Len),
@@ -266,31 +302,70 @@ counts(Node, Ports, Call, Redo, Exit, Fail) :-
         Fail is Call+Redo-Exit
     ).
 
-sort_prof_nodes(ticks, Nodes, Sorted) :-
+sort_prof_nodes(Key, Nodes, Sorted) :-
+    computed(Key),
     !,
-    map_list_to_pairs(key_ticks, Nodes, Keyed),
+    map_list_to_pairs(key_value(Key), Nodes, Keyed),
     sort(1, >=, Keyed, KeySorted),
     pairs_values(KeySorted, Sorted).
 sort_prof_nodes(Key, Nodes, Sorted) :-
     sort(Key, >=, Nodes, Sorted).
 
-key_ticks(Node, Ticks) :-
-	value(ticks,Node,Ticks).
+computed(ticks).
+computed(alloc).
 
-show_plain(Node, (NetTicks,NetTime,Ports),
+key_value(Key, Node, Value) :-
+    value(Key, Node, Value).
+
+show_plain(Node, Measure, Totals, Ports,
            stops(CallStop, RedoStop, ExitStop)) :-
     value(label, Node, Label),
     counts(Node, Ports, Call, Redo, Exit, Fail),
     count_width(Call, CallsWidth),
     Width is CallStop - CallsWidth - 3, % " " before and " +" after Calls
     elide(Label, Width, Pred),
-    time_data(Node,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime),
-    format('~w ~t~D +~*| ~D ~t~*|~t~D +~*| ~D ~t~2fs.(~78|~t~1f%) +~87|~t~2fs.(~95|~t~1f%)~102|~n',
-           [ Pred, Call, CallStop, Redo, RedoStop, Exit, ExitStop, Fail,
-             SelfTime, SelfPC, ChildrenTime, ChildrenPC
-           ]).
+    format('~w ~t~D +~*| ~D ~t~*|~t~D +~*| ~D ',
+           [ Pred, Call, CallStop, Redo, RedoStop, Exit, ExitStop, Fail ]),
+    show_measure(Measure, Node, Totals).
 
-format_divider :- format('~`=t~102|~n').
+show_measure(time, Node, totals(NetTicks, NetTime, _)) :-
+    time_data(Node,NetTicks,NetTime,SelfPC,SelfTime,ChildrenPC,ChildrenTime),
+    format('~t~2fs.(~78|~t~1f%) +~87|~t~2fs.(~95|~t~1f%)~102|~n',
+           [ SelfTime, SelfPC, ChildrenTime, ChildrenPC ]).
+show_measure(memory, Node, totals(_, _, Allocated)) :-
+    Self = Node.alloc_self,
+    Children = Node.alloc_siblings,
+    Discarded = Node.discarded_self,
+    percentage(Self, Allocated, SelfPC),
+    percentage(Children, Allocated, ChildrenPC),
+    human_size(Self, SelfS),
+    human_size(Children, ChildrenS),
+    human_size(Discarded, DiscardedS),
+    format('~t~w (~78|~t~1f%) +~87|~t~w (~97|~t~1f%)~104|~t~w~114|~n',
+           [ SelfS, SelfPC, ChildrenS, ChildrenPC, DiscardedS ]).
+
+%!  human_size(+Bytes, -String) is det.
+%
+%   String represents Bytes using the largest unit that leaves at
+%   least 1 before the decimal point.
+
+human_size(Bytes, String) :-
+    Bytes < 1024,
+    !,
+    format(string(String), '~dB', [Bytes]).
+human_size(Bytes, String) :-
+    human_unit(Unit, Size),
+    Bytes < Size*1024,
+    !,
+    Value is Bytes/Size,
+    format(string(String), '~1f~w', [Value, Unit]).
+
+human_unit('KB', 1024).
+human_unit('MB', 1048576).
+human_unit('GB', 1073741824).
+human_unit('TB', 1099511627776).
+
+format_divider(Width) :- format('~`=t~*|~n', [Width]).
 
 %!  elide(+Label, +Width, -Elided) is det.
 %
@@ -373,6 +448,13 @@ percentage(Part, Total, Percent) :-
 %         One of `cpu` or `wall`, the time that was profiled.
 %       - exact: Bool
 %         Whether the data was collected using exact(true)
+%       - allocated: Bytes
+%       - discarded: Bytes
+%       - gc_reclaimed: Bytes
+%         Global stack allocated, discarded by backtracking and
+%         reclaimed by garbage collection while profiling.
+%       - gc_count: Count
+%         Number of garbage collections while profiling.
 %     - nodes
 %       List of nodes.  Each node provides:
 %       - predicate:PredicateIndicator
@@ -382,6 +464,14 @@ percentage(Part, Total, Percent) :-
 %       - ticks_siblings:Count
 %         Nanoseconds sampled in the predicate itself and in its
 %         callees.
+%       - alloc_self:Bytes
+%       - alloc_siblings:Bytes
+%         Global stack allocated by the predicate itself and by its
+%         callees.
+%       - discarded_self:Bytes
+%       - discarded_siblings:Bytes
+%         Global stack discarded by backtracking into a choicepoint
+%         of the predicate itself and of its callees.
 %       - call:Count
 %       - redo:Count
 %       - exit:Count
@@ -392,7 +482,12 @@ percentage(Part, Total, Percent) :-
 %    callee. Future versions are likely to use a dict instead.
 %
 %        node(PredicateIndicator, CycleID, Ticks, TicksSiblings,
-%             Calls, Redos, Exits)
+%             Calls, Redos, Exits, Memory)
+%
+%    _Memory_ is a term mem(Alloc, AllocSiblings, Discarded,
+%    DiscardedSiblings), the global stack in bytes allocated and
+%    discarded by these calls, by the called predicate itself and by
+%    its callees, as the `alloc_*` and `discarded_*` keys of the node.
 
 profile_data(Data) :-
     setup_call_cleanup(
@@ -416,10 +511,15 @@ prof_statistics(summary{samples:Samples, ticks:Ticks,
                         sample_period: Period,
                         ports: Ports,
                         clock: Clock,
-                        exact: Exact
+                        exact: Exact,
+                        allocated: Allocated,
+                        discarded: Discarded,
+                        gc_reclaimed: Reclaimed,
+                        gc_count: GCCount
                        }) :-
     '$prof_statistics'(Samples, Ticks, Account, Time, Nodes, Period, Ports,
-                       Mode),
+                       Mode, mem(Allocated, Discarded, Reclaimed,
+                                 GCCount)),
     prof_mode(Mode, Clock, Exact).
 
 prof_mode(cputime,        cpu,  false).
@@ -446,6 +546,8 @@ profile_procedure_data(Pred, Node) :-
 procedure_data(Pred, Node) :-
     Node = node{predicate:Pred,
                 ticks_self:TicksSelf, ticks_siblings:TicksSiblings,
+                alloc_self:AllocSelf, alloc_siblings:AllocSiblings,
+                discarded_self:DiscSelf, discarded_siblings:DiscSiblings,
                 call:Call, redo:Redo, exit:Exit,
                 callers:Parents, callees:Siblings},
     (   specified(Pred)
@@ -456,7 +558,9 @@ procedure_data(Pred, Node) :-
     '$prof_procedure_data'(Pred,
                            TicksSelf, TicksSiblings,
                            Call, Redo, Exit,
-                           Parents, Siblings).
+                           Parents, Siblings,
+                           mem(AllocSelf, AllocSiblings,
+                               DiscSelf, DiscSiblings)).
 
 specified(Module:Head) :-
     atom(Module),
@@ -513,6 +617,12 @@ value(label, Data, Label) :-
 value(ticks, Data, Ticks) :-
     !,
     Ticks is Data.ticks_self + Data.ticks_siblings.
+value(alloc, Data, Bytes) :-
+    !,
+    Bytes is Data.alloc_self + Data.alloc_siblings.
+value(discarded, Data, Bytes) :-
+    !,
+    Bytes is Data.discarded_self + Data.discarded_siblings.
 value(time(Key, percentage, TotalTicks), Data, Percent) :-
     !,
     value(Key, Data, Ticks),

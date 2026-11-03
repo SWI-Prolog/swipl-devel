@@ -183,6 +183,25 @@ static PL_prof_type_t *types[MAX_PROF_TYPES] = { &prof_default_type };
 
 #define PROFNODE_MAGIC 0x7ae38f24
 
+/* Global stack accounting of a node (see prof_mem_charge()) */
+
+typedef struct prof_mem
+{ uint64_t	allocated;		/* bytes allocated */
+  uint64_t	discarded;		/* bytes discarded by backtracking */
+} prof_mem;
+
+static inline void
+add_prof_mem(prof_mem *to, const prof_mem *from)
+{ to->allocated += from->allocated;
+  to->discarded += from->discarded;
+}
+
+static inline void
+sub_prof_mem(prof_mem *to, const prof_mem *from)
+{ to->allocated -= from->allocated;
+  to->discarded -= from->discarded;
+}
+
 typedef struct call_node
 { int		    magic;		/* PROFNODE_MAGIC */
   struct call_node *parent;
@@ -195,6 +214,8 @@ typedef struct call_node
   uint64_t	    ticks;		/* time-statistics (nsec) */
   uint64_t	    sibling_ticks;	/* ticks in a siblings */
   uint64_t	    raw;		/* PROF_*_EXACT: prof_clock() units */
+  prof_mem	    mem;		/* global stack used by the node */
+  prof_mem	    sibling_mem;	/* global stack used by siblings */
   struct call_node *win_next;		/* PROF_CPU_EXACT: window chain */
   bool		    in_window;		/* in LD->profile.clock.win_nodes */
   struct call_node *next;		/* next in siblings chain */
@@ -494,6 +515,50 @@ prof_charge(DECL_LD call_node *node, bool accounting)
   }
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Global stack accounting.   Like  the exact  time  modes,  we  read  a
+clock each time the current node of the call tree changes and charge the
+difference to the node we leave.  The clock is the global stack in use
+plus what GC has reclaimed, such that GC does not make it go back.  It
+does go back if backtracking discards global stack.  On backtracking we
+read the clock before the stacks are reset (profBacktrack()), charging
+what was allocated to the current node, and after (profFail()), charging
+what was discarded to the node that created the choicepoint.  E.g., for
+p :- \+ \+ q, q allocated X and p discarded X.  Other events that make the
+clock go back, such as exceptions, charge the discarded memory to the
+current node.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define prof_mem_clock(_) LDFUNC(prof_mem_clock, _)
+static inline uint64_t
+prof_mem_clock(DECL_LD)
+{ return (uint64_t)usedStack(global) +
+	 (uint64_t)LD->gc.stats.totals.global_gained;
+}
+
+#define prof_mem_charge(alloc_node, discard_node) \
+	LDFUNC(prof_mem_charge, alloc_node, discard_node)
+static void
+prof_mem_charge(DECL_LD call_node *alloc_node, call_node *discard_node)
+{ uint64_t now = prof_mem_clock();
+  uint64_t last = LD->profile.mem.last;
+
+  LD->profile.mem.last = now;
+  if ( now > last )
+  { uint64_t delta = now - last;
+
+    LD->profile.mem.allocated += delta;
+    if ( alloc_node && alloc_node->magic == PROFNODE_MAGIC )
+      alloc_node->mem.allocated += delta;
+  } else if ( now < last )
+  { uint64_t delta = last - now;
+
+    LD->profile.mem.discarded += delta;
+    if ( discard_node && discard_node->magic == PROFNODE_MAGIC )
+      discard_node->mem.discarded += delta;
+  }
+}
+
 #define prof_accounting_begin(_) LDFUNC(prof_accounting_begin, _)
 static inline void
 prof_accounting_begin(DECL_LD)
@@ -501,6 +566,7 @@ prof_accounting_begin(DECL_LD)
   { LD->profile.samples++;
     prof_charge(LD->profile.current, false);
   }
+  prof_mem_charge(LD->profile.current, LD->profile.current);
   LD->profile.accounting = true;
 }
 
@@ -579,6 +645,9 @@ activateProfiler(DECL_LD prof_status active)
 
   if ( active )
   { LD->profile.mode              = active;
+    LD->profile.mem.last          = prof_mem_clock();
+    LD->profile.mem.gc_start      = LD->gc.stats.totals.global_gained;
+    LD->profile.mem.gc_count_start= LD->gc.stats.totals.collections;
     LD->profile.time_at_start     = PROF_IS_CPU(active)
 					? ThreadCPUTime(CPU_USER)
 					: WallTime();
@@ -836,6 +905,11 @@ stopProfiler(void)
       timer_signal = 0;
 #endif
     }
+    prof_mem_charge(LD->profile.current, LD->profile.current);
+    LD->profile.mem.gc_reclaimed += (uint64_t)
+      (LD->gc.stats.totals.global_gained - LD->profile.mem.gc_start);
+    LD->profile.mem.gc_count += (uint64_t)
+      (LD->gc.stats.totals.collections - LD->profile.mem.gc_count_start);
     activateProfiler(PROF_INACTIVE);
   }
 
@@ -1085,7 +1159,9 @@ prof_procedure_data(+PredicateIndicator,
     Where Parents  = list_of(Relative)
       And Siblings = list_of(Relative)
       and Relative = node(Pred, CycleID, Ticks, SiblingTicks,
-			  Calls, Redos, Exits)
+			  Calls, Redos, Exits, Memory)
+      and Memory   = mem(Allocated, AllocatedSiblings,
+			 Discarded, DiscardedSiblings)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 typedef struct prof_ref
@@ -1095,6 +1171,8 @@ typedef struct prof_ref
   int   cycle;
   uint64_t ticks;
   uint64_t sibling_ticks;
+  prof_mem mem;
+  prof_mem sibling_mem;
   uint64_t calls;			/* calls to/from this predicate */
   uint64_t redos;			/* redos to/from this predicate */
   uint64_t exits;			/* exits to/from this predicate */
@@ -1105,6 +1183,8 @@ typedef struct
 { Definition def;
   uint64_t ticks;
   uint64_t sibling_ticks;
+  prof_mem mem;
+  prof_mem sibling_mem;
   uint64_t calls;
   uint64_t redos;
   uint64_t exits;
@@ -1160,6 +1240,8 @@ add_parent_ref(node_sum *sum,
       r->exits += self->exits;
       r->ticks += self->ticks;
       r->sibling_ticks += self->sibling_ticks;
+      add_prof_mem(&r->mem, &self->mem);
+      add_prof_mem(&r->sibling_mem, &self->sibling_mem);
 
       return;
     }
@@ -1171,6 +1253,8 @@ add_parent_ref(node_sum *sum,
   r->exits = self->exits;
   r->ticks = self->ticks;
   r->sibling_ticks = self->sibling_ticks;
+  r->mem = self->mem;
+  r->sibling_mem = self->sibling_mem;
   r->handle = handle;
   r->type = type;
   r->cycle = cycle;
@@ -1212,6 +1296,8 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
       r->exits += sibling->exits;
       r->ticks += sibling->ticks;
       r->sibling_ticks += sibling->sibling_ticks;
+      add_prof_mem(&r->mem, &sibling->mem);
+      add_prof_mem(&r->sibling_mem, &sibling->sibling_mem);
 
       return;
     }
@@ -1223,6 +1309,8 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
   r->exits = sibling->exits;
   r->ticks = sibling->ticks;
   r->sibling_ticks = sibling->sibling_ticks;
+  r->mem = sibling->mem;
+  r->sibling_mem = sibling->sibling_mem;
   r->handle = sibling->handle;
   r->type = sibling->type;
   r->cycle = cycle;
@@ -1248,10 +1336,14 @@ sumProfile(DECL_LD call_node *n, void *handle, PL_prof_type_t *type,
 
     count++;
     sum->ticks += n->ticks;
+    add_prof_mem(&sum->mem, &n->mem);
     if ( !seen )
-      sum->sibling_ticks += n->sibling_ticks;
-    else			/* nested: n's ticks are in the outer siblings */
-      sum->sibling_ticks -= n->ticks;
+    { sum->sibling_ticks += n->sibling_ticks;
+      add_prof_mem(&sum->sibling_mem, &n->sibling_mem);
+    } else		/* nested: n's ticks are in the outer siblings */
+    { sum->sibling_ticks -= n->ticks;
+      sub_prof_mem(&sum->sibling_mem, &n->mem);
+    }
 
     if ( n->parent )
       add_parent_ref(sum, n, n->parent->handle, n->parent->type, seen);
@@ -1300,14 +1392,19 @@ unify_relatives(DECL_LD term_t list, prof_ref *r)
       rc=(*r->type->unify)(tmp, r->handle);
 
     if ( !rc ||
-	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node7,
+	 !PL_unify_term(head, PL_FUNCTOR, FUNCTOR_node8,
 			PL_TERM, tmp,
 			PL_INT,  r->cycle,
 			PL_INT64, r->ticks,
 			PL_INT64, r->sibling_ticks,
 			PL_INT64, r->calls,
 			PL_INT64, r->redos,
-			PL_INT64, r->exits) )
+			PL_INT64, r->exits,
+			PL_FUNCTOR, FUNCTOR_mem4,
+			  PL_INT64, (int64_t)r->mem.allocated,
+			  PL_INT64, (int64_t)r->sibling_mem.allocated,
+			  PL_INT64, (int64_t)r->mem.discarded,
+			  PL_INT64, (int64_t)r->sibling_mem.discarded) )
       return false;
   }
 
@@ -1353,12 +1450,16 @@ prof_release_def(void *handle)
 $prof_procedure_data(+PredicateIndicator,
 		     -Ticks, -TicksSiblings,
 		     -Calls, -Redos, -Exits,
-		     -Callers, -Callees)
+		     -Callers, -Callees,
+		     -Memory)
+
+Memory is mem(Allocated, AllocatedSiblings, Discarded, DiscardedSiblings),
+in bytes of global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
 static
-PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
+PRED_IMPL("$prof_procedure_data", 9, prof_procedure_data, PL_FA_TRANSPARENT)
 { PRED_LD
   void *handle;
   node_sum sum;
@@ -1387,7 +1488,12 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 	 PL_unify_uint64(A5, sum.redos) &&
 	 PL_unify_uint64(A6, sum.exits) &&
 	 unify_relatives(A7, sum.callers) &&
-	 unify_relatives(A8, sum.callees)
+	 unify_relatives(A8, sum.callees) &&
+	 PL_unify_term(A9, PL_FUNCTOR, FUNCTOR_mem4,
+			     PL_INT64, (int64_t)sum.mem.allocated,
+			     PL_INT64, (int64_t)sum.sibling_mem.allocated,
+			     PL_INT64, (int64_t)sum.mem.discarded,
+			     PL_INT64, (int64_t)sum.sibling_mem.discarded)
        );
 
   free_relatives(sum.callers);
@@ -1398,7 +1504,7 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 
 
 /** '$prof_statistics'(-Samples, -Ticks, -AccountingTicks,
-		       -Time, -Nodes, -Period, -Ports, -Mode)
+		       -Time, -Nodes, -Period, -Ports, -Mode, -Memory)
 
 @arg Samples is the number of times the statistical profiler was called
      or, for the exact modes, the number of call tree node switches.
@@ -1409,10 +1515,14 @@ PRED_IMPL("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
 @arg Period  is the number of microseconds between samples
 @arg Ports   is one of `true`, `false` or `classic`
 @arg Mode    is the profiler/2 mode that collected the data or `false`
+@arg Memory  is mem(Allocated, Discarded, GCReclaimed, GCCount), the
+	     global stack (bytes) allocated, discarded by backtracking
+	     and reclaimed by GC while profiling and the number of
+	     garbage collections.
 */
 
 static
-PRED_IMPL("$prof_statistics", 8, prof_statistics, 0)
+PRED_IMPL("$prof_statistics", 9, prof_statistics, 0)
 { PRED_LD
 
   return
@@ -1425,7 +1535,12 @@ PRED_IMPL("$prof_statistics", 8, prof_statistics, 0)
       PL_unify_atom(A7, LD->profile.ports_control == PROFC_FALSE ? ATOM_false :
 			LD->profile.ports_control == PROFC_TRUE  ? ATOM_true :
 								   ATOM_classic) &&
-      PL_unify_atom(A8, prof_status_atom(LD->profile.mode))
+      PL_unify_atom(A8, prof_status_atom(LD->profile.mode)) &&
+      PL_unify_term(A9, PL_FUNCTOR, FUNCTOR_mem4,
+			  PL_INT64, (int64_t)LD->profile.mem.allocated,
+			  PL_INT64, (int64_t)LD->profile.mem.discarded,
+			  PL_INT64, (int64_t)LD->profile.mem.gc_reclaimed,
+			  PL_INT64, (int64_t)LD->profile.mem.gc_count)
     );
 }
 
@@ -1509,6 +1624,7 @@ resetProfiler(DECL_LD)
   LD->profile.ticks            = 0;
   LD->profile.accounting_ticks = 0;
   LD->profile.time             = 0.0;
+  memset(&LD->profile.mem, 0, sizeof(LD->profile.mem));
   LD->profile.mode             = PROF_INACTIVE;
   LD->profile.accounting       = false;
 
@@ -1822,9 +1938,17 @@ profFailToCP(struct call_node *current, struct call_node *cp_node)
   }
 }
 
+/* Called on backtracking before the stacks are reset (see profFail()) */
+
+void
+profBacktrack(DECL_LD)
+{ prof_mem_charge(LD->profile.current, NULL);
+}
+
 void
 profFail(DECL_LD struct call_node *cp_node)
-{ prof_accounting_begin();
+{ prof_mem_charge(LD->profile.current, cp_node);
+  prof_accounting_begin();
 
   if ( LD->profile.ports_control != PROFC_FALSE )
     profFailToCP(LD->profile.current, cp_node);
@@ -1885,17 +2009,45 @@ PL_prof_exit(void *node)
 		 *******************************/
 
 
-static uint64_t
-collectSiblingsNode(call_node *n)
-{ call_node *s;
-  uint64_t count = 0;
+/* Compute sibling_ticks and sibling_mem of the tree below root: the
+   sums of the ticks and memory of all nodes below a node.  This is a
+   depth-first walk without recursion: each node adds its totals to its
+   parent when we leave it.
+*/
 
-  for(s=n->siblings; s; s=s->next)
-  { count += collectSiblingsNode(s);
-    n->sibling_ticks = count;
+static void
+collectSiblingsNode(call_node *root)
+{ call_node *n = root;
+
+  root->sibling_ticks = 0;
+  memset(&root->sibling_mem, 0, sizeof(root->sibling_mem));
+
+  for(;;)
+  { if ( n->siblings )			/* enter the first child */
+    { n = n->siblings;
+      n->sibling_ticks = 0;
+      memset(&n->sibling_mem, 0, sizeof(n->sibling_mem));
+      continue;
+    }
+
+    for(;;)				/* leave n */
+    { call_node *p;
+
+      if ( n == root )
+	return;
+      p = n->parent;
+      p->sibling_ticks += n->ticks + n->sibling_ticks;
+      add_prof_mem(&p->sibling_mem, &n->mem);
+      add_prof_mem(&p->sibling_mem, &n->sibling_mem);
+      if ( n->next )			/* enter the next child of p */
+      { n = n->next;
+	n->sibling_ticks = 0;
+	memset(&n->sibling_mem, 0, sizeof(n->sibling_mem));
+	break;
+      }
+      n = p;
+    }
   }
-
-  return count+n->ticks;
 }
 
 
@@ -1984,7 +2136,7 @@ BeginPredDefs(profile)
   PRED_DEF("reset_profiler", 0, reset_profiler, 0)
   PRED_DEF("$prof_node", 8, prof_node, 0)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
-  PRED_DEF("$prof_procedure_data", 8, prof_procedure_data, PL_FA_TRANSPARENT)
-  PRED_DEF("$prof_statistics", 8, prof_statistics, 0)
+  PRED_DEF("$prof_procedure_data", 9, prof_procedure_data, PL_FA_TRANSPARENT)
+  PRED_DEF("$prof_statistics", 9, prof_statistics, 0)
 #endif
 EndPredDefs

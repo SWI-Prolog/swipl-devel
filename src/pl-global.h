@@ -675,6 +675,15 @@ struct PL_local_data
       uint64_t	win_accounting;		/* accounting in this window */
       struct call_node *win_nodes;	/* nodes charged in this window */
     } clock;
+    struct				/* global stack accounting */
+    { uint64_t	last;			/* prof_mem_clock() at last switch */
+      uint64_t	allocated;		/* total allocated (bytes) */
+      uint64_t	discarded;		/* total discarded by backtracking */
+      uint64_t	gc_reclaimed;		/* total reclaimed by GC */
+      int64_t	gc_start;		/* GC gained at activation */
+      uint64_t	gc_count;		/* # GCs while profiling */
+      int64_t	gc_count_start;		/* # GCs at activation */
+    } mem;
   } profile;
 #endif /* O_PROFILE */
 

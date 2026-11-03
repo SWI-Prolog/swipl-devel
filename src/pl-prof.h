@@ -60,6 +60,7 @@ typedef enum
 #define	profResumeParent(node)		LDFUNC(profResumeParent, node)
 #define	profExit(node)			LDFUNC(profExit, node)
 #define	profFail(node)			LDFUNC(profRedo, node)
+#define	profBacktrack(_)		LDFUNC(profBacktrack, _)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -72,6 +73,7 @@ struct call_node* profCall(Definition def);
 COLD void		profResumeParent(struct call_node *node);
 void		profExit(struct call_node *node);
 void		profFail(struct call_node *node);
+void		profBacktrack(void);
 void		profSetHandle(struct call_node *node, void *handle);
 
 #undef LDFUNC_DECLARATIONS

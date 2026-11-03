@@ -50,7 +50,9 @@ CPU time.
 */
 
 test_profile :-
-    run_tests([profile_report, profile_default, profile_exact]).
+    run_tests([ profile_report, profile_default, profile_exact,
+                profile_memory
+              ]).
 
 :- begin_tests(profile_report).
 
@@ -234,6 +236,81 @@ exact_profile(Goal, Data, Mode) :-
         Goal,
         profiler(_, false)),
     profile_data(Data).
+
+%   Global stack accounting.  A list of 10,000 elements takes 10,000
+%   cells of 3 words on the global stack.
+
+:- begin_tests(profile_memory).
+
+% For p :- \+ \+ q, q allocates the list and p discards it.
+
+test(discard, [ true(QAlloc >= 240 000),
+                true(PDiscarded >= 240 000),
+                true(QDiscarded == 0)
+              ]) :-
+    exact_profile(mem_p, Data, cputime),
+    node(Data, test_profile:mem_q/0, Q),
+    node(Data, test_profile:mem_p/0, P),
+    QAlloc is Q.alloc_self + Q.alloc_siblings,
+    QDiscarded = Q.discarded_self,
+    PDiscarded = P.discarded_self.
+% The list r creates survives: nothing is discarded.
+test(retained, [ true(Alloc >= 240 000),
+                 true(Discarded == 0)
+               ]) :-
+    exact_profile(mem_r(_), Data, cputime),
+    node(Data, test_profile:mem_r/1, R),
+    Alloc is R.alloc_self + R.alloc_siblings,
+    Discarded is R.discarded_self + R.discarded_siblings.
+% Memory reclaimed by GC is not discarded memory.
+test(gc, [ true(Reclaimed >= 240 000),
+           true(Count >= 1),
+           true(Discarded == 0)
+         ]) :-
+    exact_profile(mem_gc, Data, cputime),
+    Reclaimed = Data.summary.gc_reclaimed,
+    Count = Data.summary.gc_count,
+    node(Data, test_profile:mem_gc/0, G),
+    Discarded is G.discarded_self + G.discarded_siblings.
+% The callers and callees carry the memory of the calls.
+test(relatives, [ true(CalleeAlloc >= 240 000),
+                  CallerMem == CalleeMem
+                ]) :-
+    exact_profile(mem_p, Data, cputime),
+    node(Data, test_profile:mem_p/0, P),
+    node(Data, test_profile:mem_q/0, Q),
+    memberchk(node(test_profile:mem_q/0, _, _, _, _, _, _, CalleeMem),
+              P.callees),
+    memberchk(node(test_profile:mem_p/0, _, _, _, _, _, _, CallerMem),
+              Q.callers),
+    CalleeMem = mem(Self, Siblings, _, _),
+    CalleeAlloc is Self+Siblings.
+test(report, true(sub_string(Report, _, _, _, "Discarded"))) :-
+    exact_profile(mem_p, _, cputime),
+    with_output_to(string(Report),
+                   prolog_profile:show_text_profile([ top(5),
+                                                      measure(memory)
+                                                    ])).
+
+:- end_tests(profile_memory).
+
+mem_p :- \+ \+ mem_q.
+
+mem_q :-
+    numlist(1, 10 000, L),
+    length(L, _).
+
+mem_r(L) :-
+    numlist(1, 10 000, L).
+
+mem_gc :-
+    numlist(1, 10 000, _),
+    garbage_collect.
+
+node(Data, PI, Node) :-
+    member(Node, Data.nodes),
+    Node.predicate == PI,
+    !.
 
 :- else.                                % no profiler in this build
 

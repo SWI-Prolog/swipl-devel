@@ -563,6 +563,7 @@ A max_text		"max_text"
 A max_variable_length	"max_variable_length"
 A max_width		"max_width"
 A maxr			"maxr"
+A mem			"mem"
 A memory		"memory"
 A merged		"merged"
 A message		"message"
@@ -1272,6 +1273,7 @@ F dict_position		5
 F max			2
 F maxr			2
 F max_size		1
+F mem			4
 F message_lines		1
 F min			2
 F minr			2
@@ -1287,7 +1289,7 @@ F nan			0
 F newline		1
 F nexttoward		2
 F nlink			1
-F node			7
+F node			8
 F nonvar		1
 F not_implemented	2
 F not_provable		1
