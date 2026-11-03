@@ -993,6 +993,17 @@ prolog_message(file_search(tried(Spec, Cond), Path)) -->
                  *              GC              *
                  *******************************/
 
+prolog_message(gc(done(GGained, TGained, Time, GUsed, TUsed, GFree, TFree))) -->
+    thread_context,
+    [ 'GC: gained (g+t) ~D+~D in ~3f sec; used ~D+~D; free ~D+~D'-
+      [GGained, TGained, Time, GUsed, TUsed, GFree, TFree]
+    ].
+prolog_message(gc(dropped(Count))) -->
+    thread_context,
+    [ 'GC: ~D more GC and stack shift reports were dropped'-[Count] ].
+prolog_message(shift(done(Local, Global, Trail, Time))) -->
+    thread_context,
+    [ 'SHIFT: l+g+t = ~D+~D+~D (~3f sec)'-[Local, Global, Trail, Time] ].
 prolog_message(agc(start)) -->
     thread_context,
     [ 'AGC: ', flush ].

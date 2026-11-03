@@ -365,6 +365,7 @@ static struct signame
   { SIG_CLAUSE_GC,     "prolog:clause_gc",     0 },
   { SIG_PLABORT,       "prolog:abort",         0 },
   { SIG_PLHALT,        "prolog:halt",          0 },
+  { SIG_TRACE_GC,      "prolog:trace_gc",      0 },
 
   { -1,		NULL,     0}
 };
@@ -891,6 +892,20 @@ gc_tune_handler(int sig)
   call_tune_gc_hook();
 }
 
+/* SIG_TRACE_GC is synchronous.  If printing a message raises an
+ * exception, print_gc_trace() returns false with the exception
+ * pending and handleSignals() propagates it.
+ */
+
+static void
+gc_trace_handler(int sig)
+{ GET_LD
+  (void)sig;
+
+  if ( !print_gc_trace() )
+    assert(exception_term);
+}
+
 /* SIG_CLAUSE_GC reaches a thread that is not the gc thread to run the
  * global clause GC if there is no gc thread, or to run the local clause
  * GC for its thread-local predicates (see localClauseGC()).
@@ -992,6 +1007,7 @@ initSignals(DECL_LD)
 
   PL_signal(SIG_GC|PL_SIGSYNC,		  gc_handler);
   PL_signal(SIG_TUNE_GC|PL_SIGSYNC,	  gc_tune_handler);
+  PL_signal(SIG_TRACE_GC|PL_SIGSYNC,	  gc_trace_handler);
   PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC,     cgc_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC,       abort_handler);
   PL_signal(SIG_PLHALT|PL_SIGSYNC,        halt_handler);

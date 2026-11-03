@@ -3914,6 +3914,86 @@ call_tune_gc_hook(void)
 }
 
 
+		 /*******************************
+		 *         TRACE_GC FLAG        *
+		 *******************************/
+
+/* With the flag trace_gc, stack GC and stack shifts report what they
+ * did.  They cannot do so immediately: printing a message calls
+ * Prolog, which is not allowed while the stacks are being collected or
+ * shifted, and writing to user_error may call Prolog if this is a
+ * Prolog defined stream.  Therefore they queue an event and raise
+ * SIG_TRACE_GC, which calls print_gc_trace() at a safe point.
+ */
+
+#define queue_gc_trace(ev) LDFUNC(queue_gc_trace, ev)
+static void
+queue_gc_trace(DECL_LD const gc_trace_event *ev)
+{ gc_trace_queue *q = &LD->gc.trace;
+
+  if ( q->count < GC_TRACE_QUEUE_SIZE )
+    q->events[q->count++] = *ev;
+  else
+    q->dropped++;
+
+  PL_raise(SIG_TRACE_GC);
+}
+
+bool
+print_gc_trace(void)
+{ GET_LD
+  gc_trace_queue *q = &LD->gc.trace;
+  bool rc = true;
+
+  while ( rc && q->count > 0 )
+  { gc_trace_event ev = q->events[0];
+
+    q->count--;
+    memmove(&q->events[0], &q->events[1], q->count*sizeof(q->events[0]));
+
+    switch(ev.type)
+    { case GC_TRACE_GC:
+	rc = printMessage(ATOM_informational,
+		     PL_FUNCTOR_CHARS, "gc", 1,
+		       PL_FUNCTOR_CHARS, "done", 7,
+			 PL_INT64, (int64_t)ev.v[0],	/* global gained */
+			 PL_INT64, (int64_t)ev.v[1],	/* trail gained */
+			 PL_DOUBLE, ev.time,
+			 PL_INT64, (int64_t)ev.v[2],	/* global used */
+			 PL_INT64, (int64_t)ev.v[3],	/* trail used */
+			 PL_INT64, (int64_t)ev.v[4],	/* global free */
+			 PL_INT64, (int64_t)ev.v[5]);	/* trail free */
+	break;
+      case GC_TRACE_SHIFT:
+	rc = printMessage(ATOM_informational,
+		     PL_FUNCTOR_CHARS, "shift", 1,
+		       PL_FUNCTOR_CHARS, "done", 4,
+			 PL_INT64, (int64_t)ev.v[0],	/* local size */
+			 PL_INT64, (int64_t)ev.v[1],	/* global size */
+			 PL_INT64, (int64_t)ev.v[2],	/* trail size */
+			 PL_DOUBLE, ev.time);
+	break;
+    }
+  }
+
+  if ( !rc )				/* exception: discard the rest; */
+					/* the caller propagates it */
+  { q->count = 0;
+    q->dropped = 0;
+  } else if ( q->dropped )
+  { int64_t dropped = q->dropped;
+
+    q->dropped = 0;
+    rc = printMessage(ATOM_informational,
+		      PL_FUNCTOR_CHARS, "gc", 1,
+			PL_FUNCTOR_CHARS, "dropped", 1,
+			  PL_INT64, dropped);
+  }
+
+  return rc;
+}
+
+
 #if O_DEBUG || defined(O_MAINTENANCE)
 #define INTBITS (sizeof(int)*8)
 #define REGISTER_STARTS 0x2
@@ -4438,9 +4518,6 @@ garbageCollect(gc_reason_t reason)
   assert(LD->fast_condition == NULL);
   save_backtrace("GC");
 
-  if ( verbose )
-    Sdprintf("%% GC: ");
-
   get_vmi_state(LD->query, &state);
   safeLTop = lTop;
   if ( (rc=gcEnsureSpace(&state)) < 0 )
@@ -4562,12 +4639,18 @@ garbageCollect(gc_reason_t reason)
   stats = gc_stat_end(&LD->gc.stats);
 
   if ( verbose )
-    Sdprintf("gained (g+t) %zd+%zd in %.3f sec; used %zd+%zd; free %zd+%zd\n",
-	     stats->global_before - stats->global_after,
-	     stats->trail_before  - stats->trail_after,
-	     stats->gc_time,
-	     stats->global_after, stats->trail_after,
-	     roomStack(global), roomStack(trail));
+  { gc_trace_event ev =
+      { .type = GC_TRACE_GC,
+	.v    = { stats->global_before - stats->global_after,
+		  stats->trail_before  - stats->trail_after,
+		  stats->global_after, stats->trail_after,
+		  roomStack(global), roomStack(trail)
+		},
+	.time = stats->gc_time
+      };
+
+    queue_gc_trace(&ev);
+  }
 
   return shiftTightStacks();
 }
@@ -5440,7 +5523,7 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
     Word gb = gBase;
     LocalFrame lb = lBase;
     double time, time0 = ThreadCPUTime(CPU_USER);
-    int verbose = truePrologFlag(PLFLAG_TRACE_GC);
+    bool verbose = false;
 
     DEBUG(MSG_SHIFT, verbose = true);
 
@@ -5555,6 +5638,15 @@ grow_stacks(DECL_LD size_t l, size_t g, size_t t)
     if ( verbose ) WITH_DEBUG_FOR(MSG_SHIFT)
     { Sdprintf("l+g+t = %zd+%zd+%zd (%.3f sec)\n",
 	       lsize, gsize, tsize, time);
+    }
+    if ( truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message )
+    { gc_trace_event ev =
+	{ .type = GC_TRACE_SHIFT,
+	  .v    = { lsize, gsize, tsize },
+	  .time = time
+	};
+
+      queue_gc_trace(&ev);
     }
     DEBUG(MSG_STACK_OVERFLOW,
 	  { if ( emergency )

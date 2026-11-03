@@ -996,6 +996,7 @@ struct PL_local_data
 #endif
     int active;				/* GC is running in this thread */
     gc_stats stats;			/* GC performance history */
+    gc_trace_queue trace;		/* Pending trace_gc messages */
 
 					/* These must be at the end to be */
 					/* able to define O_DEBUG in only */

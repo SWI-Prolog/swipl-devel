@@ -56,6 +56,7 @@
 
 bool		considerGarbageCollect(Stack s);
 void		call_tune_gc_hook(void);
+bool		print_gc_trace(void);
 COLD boolex_t	garbageCollect(gc_reason_t reason);
 foreign_t	pl_garbage_collect(term_t d);
 gc_stat *	last_gc_stats(gc_stats *stats);

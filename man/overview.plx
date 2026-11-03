@@ -2656,7 +2656,13 @@ and reuse is disabled. See \secref{topvars}.
 
     \prologflagitem{trace_gc}{bool}{rw}
 If \const{true} (default \const{false}), garbage collections and
-stack-shifts will be reported on the terminal. May be changed. Values
+stack-shifts are reported as informational messages using
+print_message/2, i.e., on \const{user_error} of the thread that
+performed them.  The message terms are
+\term{gc}{done(GlobalGained, TrailGained, Time, GlobalUsed, TrailUsed,
+GlobalFree, TrailFree)} and \term{shift}{done(Local, Global, Trail,
+Time)}.  The reports are printed at the next safe point after the GC
+or shift.  May be changed. Values
 are reported in bytes as $G$+$T$, where $G$ is the global stack value
 and $T$ the trail stack value. `Gained' describes the number of bytes
 reclaimed. `used' the number of bytes on the stack after GC and `free'
@@ -2664,7 +2670,7 @@ the number of bytes allocated, but not in use. Below is an example
 output.
 
 \begin{code}
-% GC: gained 236,416+163,424 in 0.00 sec;
+% [Thread main] GC: gained (g+t) 236,416+163,424 in 0.000 sec;
       used 13,448+5,808; free 72,568+47,440
 \end{code}
 

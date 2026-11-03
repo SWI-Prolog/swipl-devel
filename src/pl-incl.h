@@ -1660,6 +1660,29 @@ typedef struct gc_stats
   } totals;
 } gc_stats;
 
+/* With the flag trace_gc, stack GC and stack shifts queue an event that
+ * SIG_TRACE_GC prints at a safe point (see print_gc_trace()).
+ */
+
+#define GC_TRACE_QUEUE_SIZE 8
+
+typedef enum
+{ GC_TRACE_GC,				/* Stack garbage collection */
+  GC_TRACE_SHIFT			/* Stack shift */
+} gc_trace_type;
+
+typedef struct gc_trace_event
+{ gc_trace_type	type;
+  size_t	v[6];			/* see print_gc_trace() */
+  double	time;			/* CPU time used */
+} gc_trace_event;
+
+typedef struct gc_trace_queue
+{ gc_trace_event events[GC_TRACE_QUEUE_SIZE];
+  int		count;			/* # queued events */
+  int64_t	dropped;		/* # events that did not fit */
+} gc_trace_queue;
+
 
 #define VM_DYNARGC    255	/* compute argcount dynamically */
 
@@ -2424,10 +2447,11 @@ typedef enum virtual_signum
   VSIG_PLABORT,
   VSIG_PLHALT,
   VSIG_TUNE_GC,
+  VSIG_TRACE_GC,
   VSIG_MAX
 } virtual_signum;
 
-#define NUM_VSIGS 7 /* Preprocessor can see this constant */
+#define NUM_VSIGS 8 /* Preprocessor can see this constant */
 static_assertion(NUM_VSIGS == VSIG_MAX); /* Make sure it matches the enum */
 static_assertion(NUM_SIGNALS >= VSIG_MAX && NUM_SIGNALS < 128); /* Sanity check, 128 is arbitrary */
 static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS <= MAXSIGNAL);
@@ -2444,6 +2468,7 @@ static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS
 #define SIG_PLABORT	  (SIG_PROLOG_OFFSET+VSIG_PLABORT)
 #define SIG_PLHALT	  (SIG_PROLOG_OFFSET+VSIG_PLHALT)
 #define SIG_TUNE_GC	  (SIG_PROLOG_OFFSET+VSIG_TUNE_GC)
+#define SIG_TRACE_GC	  (SIG_PROLOG_OFFSET+VSIG_TRACE_GC)
 
 /* The "search for a free signal" functionality of PL_sigaction starts after
  * the predefined VSIG numbers */
