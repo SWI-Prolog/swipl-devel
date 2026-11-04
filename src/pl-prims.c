@@ -3056,8 +3056,10 @@ PRED_IMPL("$seek_list", 4, seek_list, 0)
 { PRED_LD
   int64_t size;
   Word tail;
+  term_t tref;
 
-  if ( !PL_get_int64_ex(A1, &size) )
+  if ( !PL_get_int64_ex(A1, &size) ||
+       !(tref = PL_new_term_ref()) )	/* before taking pointers */
     return false;
   tail = valTermRef(A2);
   while(size > 0)
@@ -3065,9 +3067,12 @@ PRED_IMPL("$seek_list", 4, seek_list, 0)
     if ( isList(*tail) )
     { tail = TailList(tail);
       size--;
-      if ( size%1024 == 0 &&
-	   PL_handle_signals() < 0 )
-	return false;
+      if ( size%1024 == 0 && is_signalled() )
+      { *valTermRef(tref) = makeRefG(tail); /* handler may GC or shift */
+	if ( PL_handle_signals() < 0 )
+	  return false;
+	tail = valTermRef(tref);
+      }
     } else
       break;
   }
