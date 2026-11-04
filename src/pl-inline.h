@@ -575,6 +575,21 @@ value need not be trailed.
 Note that the local stack is always _above_ the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* gen_assign() writes w into p without trailing.  This is used to
+   fill cells of a term under construction.  If GC was called between
+   allocating the cell and filling it, the cell may have been promoted
+   to the old generation and we must tell the GC about the old-to-young
+   pointer we create.  See doc/gc-generational.md.
+*/
+
+#define gen_assign(p, w) LDFUNC(gen_assign, p, w)
+static inline void
+gen_assign(DECL_LD Word p, word w)
+{ if ( unlikely(p < LD->gen_bar) )
+    gen_remember(p);
+  *p = w;
+}
+
 #define Trail(p, v) LDFUNC(Trail, p, v)
 static inline void
 Trail(DECL_LD Word p, word v)
@@ -582,6 +597,8 @@ Trail(DECL_LD Word p, word v)
 
   if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
     (tTop++)->address = p;
+  else if ( unlikely(p < LD->gen_bar) )	/* old generation */
+    gen_remember(p);
   *p = v;
 }
 

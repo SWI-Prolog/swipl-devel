@@ -999,8 +999,8 @@ put_frame_goal(term_t goal, LocalFrame frame)
 	} else
 	{ Trail(&argp[i], makeRefG(a));
 	}
-      } else
-      { argp[i] = *a;
+      } else			/* ensureTrailSpace() may have GCed */
+      { gen_assign(&argp[i], *a);
       }
     }
   }

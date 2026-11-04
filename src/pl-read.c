@@ -4202,10 +4202,10 @@ readValHandle(DECL_LD term_t term, Word argp, ReadData _PL_rd)
       DEBUG(0, assert(argp < (Word)lBase));
       *valTermRef(var->variable) = makeRefG(argp);
     } else				/* reference to existing var */
-    { *argp = *valTermRef(var->variable);
+    { gen_assign(argp, *valTermRef(var->variable));
     }
   } else
-    *argp = w;				/* plain value */
+    gen_assign(argp, w);		/* plain value */
 
   setVar(*valTermRef(term));
 }
@@ -4218,7 +4218,7 @@ readValHandleConst(DECL_LD term_t term, Word argp, ReadData _PL_rd)
 { word w = *valTermRef(term);
 
   assert(isConst(w));
-  *argp = w;
+  *argp = w;				/* no pointer: no gen_assign() */
   setVar(*valTermRef(term));
 }
 
@@ -5674,7 +5674,7 @@ read_list_resume_elem(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
     return false;
   argp = gTop;
   gTop += 3;
-  *unRef(*valTermRef(tail)) = consCompound(argp);
+  gen_assign(unRef(*valTermRef(tail)), consCompound(argp));
   *argp++ = FUNCTOR_dot2;
   setVar(argp[0]);
   setVar(argp[1]);

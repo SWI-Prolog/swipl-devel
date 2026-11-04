@@ -2579,6 +2579,7 @@ initPrologFlags(void)
   setPrologFlag("unload_foreign_libraries", FT_BOOL, false, 0);
   setPrologFlag("gc",	  FT_BOOL,	       true,  PLFLAG_GC);
   setPrologFlag("trace_gc",  FT_BOOL,	       false, PLFLAG_TRACE_GC);
+  setPrologFlag("gc_generational", FT_BOOL,  true, PLFLAG_GC_GENERATIONAL);
 #ifdef O_ATOMGC
   setPrologFlag("agc_margin", FT_INTEGER, (intptr_t)GD->atoms.margin);
   setPrologFlag("agc_close_streams", FT_BOOL, false, PLFLAG_AGC_CLOSE_STREAMS);

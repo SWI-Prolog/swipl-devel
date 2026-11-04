@@ -1654,6 +1654,7 @@ typedef struct gc_stats
   gc_reason_t	request;		/* Requesting stack */
   struct
   { int64_t	collections;
+    int64_t	minor_collections;	/* of which generational */
     int64_t	global_gained;		/* global stack bytes collected */
     int64_t	trail_gained;		/* trail stack bytes collected */
     double	time;			/* time spent in collections */
@@ -1668,6 +1669,7 @@ typedef struct gc_stats
 
 typedef enum
 { GC_TRACE_GC,				/* Stack garbage collection */
+  GC_TRACE_MINOR_GC,			/* Minor (generational) GC */
   GC_TRACE_SHIFT			/* Stack shift */
 } gc_trace_type;
 
@@ -2315,6 +2317,7 @@ typedef struct module_enum
 
 #define NO_MARK_BAR	(Word)(~(uintptr_t)0)
 
+
 #define Mark(b)		do { (b).trailtop.as_ptr  = tTop; \
 			     (b).saved_bar.as_ptr = LD->mark_bar; \
 			     DEBUG(CHK_SECURE, \
@@ -2351,9 +2354,19 @@ at least one free cell on the trail-stack.
 #define LTrail(p) \
   (void)((tTop++)->address = p)
 					/* trail global stack pointer */
+#if USE_LD_MACROS
+#define	gen_remember(p)		LDFUNC(gen_remember, p)
+#endif
+
+#define LDFUNC_DECLARATIONS
+void		gen_remember(Word p);	/* pl-gc.c */
+#undef LDFUNC_DECLARATIONS
+
 #define GTrail(p) \
   do { if ( p < LD->mark_bar ) \
 	 (tTop++)->address = p; \
+       else if ( unlikely(p < LD->gen_bar) ) \
+	 gen_remember(p); \
      } while(0)
 
 
@@ -2993,7 +3006,8 @@ typedef enum plflag
   PLFLAG_SHIFT_CHECK,			/* Check suspicious shifts */
   PLFLAG_AGC_CLOSE_STREAMS,		/* AGC may close open streams */
   PLFLAG_EPILOG,			/* swipl-win */
-  PLFLAG_VALIDATE_API			/* Validate PL_*() arguments */
+  PLFLAG_VALIDATE_API,			/* Validate PL_*() arguments */
+  PLFLAG_GC_GENERATIONAL		/* Use minor GCs */
 } plflag;
 
 typedef struct

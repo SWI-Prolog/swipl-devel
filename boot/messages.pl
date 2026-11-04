@@ -998,6 +998,11 @@ prolog_message(gc(done(GGained, TGained, Time, GUsed, TUsed, GFree, TFree))) -->
     [ 'GC: gained (g+t) ~D+~D in ~3f sec; used ~D+~D; free ~D+~D'-
       [GGained, TGained, Time, GUsed, TUsed, GFree, TFree]
     ].
+prolog_message(gc(minor(GGained, TGained, Time, GUsed, TUsed, GFree, TFree))) -->
+    thread_context,
+    [ 'GC (minor): gained (g+t) ~D+~D in ~3f sec; used ~D+~D; free ~D+~D'-
+      [GGained, TGained, Time, GUsed, TUsed, GFree, TFree]
+    ].
 prolog_message(gc(dropped(Count))) -->
     thread_context,
     [ 'GC: ~D more GC and stack shift reports were dropped'-[Count] ].

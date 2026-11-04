@@ -1599,6 +1599,8 @@ TrailAssignment(DECL_LD Word p)
     *old = *p;				/* save the old value on the global */
     (tTop++)->address = p;
     (tTop++)->address = tagTrailPtr(old);
+  } else if ( unlikely(p < LD->gen_bar) ) /* old generation */
+  { gen_remember(p);
   }
 }
 
@@ -1659,6 +1661,8 @@ __do_undo(DECL_LD const mark *m)
 	});
 
   gTop = ngtop;
+  if ( LD->gen_bar > ngtop )
+    LD->gen_bar = ngtop;
 }
 
 

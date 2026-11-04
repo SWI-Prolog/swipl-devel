@@ -2931,6 +2931,8 @@ setarg(DECL_LD size_t argn, term_t term, term_t value, unsigned int flags)
 					/* this is unify(), but the */
 					/* assignment must *not* be trailed */
   v = valTermRef(value);
+  if ( !(flags & SETARG_BACKTRACKABLE) && a < LD->gen_bar )
+    gen_remember(a);
   unify_vp(a, v);
 
   return true;
@@ -6253,6 +6255,8 @@ swi_statistics(DECL_LD atom_t key, Number v)
     v->value.f = LD->gc.stats.totals.time;
   } else if (key == ATOM_collections)
     v->value.i = LD->gc.stats.totals.collections;
+  else if (key == ATOM_minor_collections)
+    v->value.i = LD->gc.stats.totals.minor_collections;
   else if (key == ATOM_collected)
     v->value.i = LD->gc.stats.totals.trail_gained +
 		 LD->gc.stats.totals.global_gained;

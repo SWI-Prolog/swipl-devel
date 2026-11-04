@@ -1622,6 +1622,7 @@ emptyStacks(void)
   emptyStack((Stack)&LD->stacks.argument);
 
   LD->mark_bar          = gTop;
+  LD->gen_bar           = gTop;
   if ( lTop && gTop )
   { int i;
 

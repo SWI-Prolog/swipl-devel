@@ -1330,6 +1330,10 @@ right_arg:
 	 dict_ordered(&t->arguments[1], fd->arity/2, &dupl) == PL_DICT_FALSE )
     { DEBUG(MSG_DICT, Sdprintf("Re-ordering dict\n"));
       dict_order((Word)t, &dupl);
+      if ( unlikely((Word)t < LD->gen_bar) ) /* moved values may be young */
+      { for(size_t i=0; i<fd->arity; i++)	/* see gen_assign() */
+	  gen_remember(&t->arguments[i]);
+      }
     }
 
     ea = &t->arguments[fd->arity-1];

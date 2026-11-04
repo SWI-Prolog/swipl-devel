@@ -1882,6 +1882,18 @@ If true (default), the garbage collector is active.  If false, neither
 garbage collection, nor stack shifts will take place, even not on
 explicit request.  May be changed.
 
+    \prologflagitem{gc_generational}{bool}{rw}
+If \const{true} (default), stack garbage collection is
+\jargon{generational}: data that survived a garbage collection is
+considered \jargon{old} and most collections (\jargon{minor}
+collections) only mark and compact the data created since the previous
+collection.  This makes garbage collection much cheaper for programs
+that keep large amounts of data on the stacks, notably when stacks are
+\jargon{frozen} by non-backtrackable global variables (see
+nb_setval/2), nb_setarg/3 or exceptions.  Regularly, and if the old
+data has grown considerably, a full (\jargon{major}) collection is
+performed.  garbage_collect/0 always performs a major collection.
+
     \prologflagitem{gc_thread}{bool}{r}
 If \const{true} (default if threading is enabled), atom and
 clause garbage collection are executed in a separate thread with the
@@ -2661,8 +2673,10 @@ print_message/2, i.e., on \const{user_error} of the thread that
 performed them.  The message terms are
 \term{gc}{done(GlobalGained, TrailGained, Time, GlobalUsed, TrailUsed,
 GlobalFree, TrailFree)} and \term{shift}{done(Local, Global, Trail,
-Time)}.  The reports are printed at the next safe point after the GC
-or shift.  May be changed. Values
+Time)}.  If the flag \prologflag{gc_generational} is \const{true},
+minor collections are reported as \term{gc}{minor(GlobalGained, ...)}
+using the same arguments.  The reports are printed at the next safe
+point after the GC or shift.  May be changed. Values
 are reported in bytes as $G$+$T$, where $G$ is the global stack value
 and $T$ the trail stack value. `Gained' describes the number of bytes
 reclaimed. `used' the number of bytes on the stack after GC and `free'

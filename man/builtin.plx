@@ -12592,6 +12592,10 @@ heapused        & Bytes of heap in use by Prolog (0 if not maintained) \\
 inferences      & Total number of passes via the call and redo ports
                   since Prolog was started.  Includes inferences in
 		  \jargon{child threads}. See also \const{self_inferences}. \\
+minor_collections & Number of minor (generational) stack garbage
+		  collections. These are included in the count of
+		  \const{garbage_collection}.  See
+		  \prologflag{gc_generational}. \\
 modules         & Total number of defined modules \\
 local           & Allocated size of the local stack in bytes \\
 local_shifts	& Number of local stack expansions \\

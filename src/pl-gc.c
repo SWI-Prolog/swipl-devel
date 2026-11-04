@@ -173,6 +173,7 @@ typedef struct vm_state
   int		in_body;		/* Current frame is executing a body */
   int		new_args;		/* #new arguments */
   int		uwrite_count;		/* #UWRITE marked ARGP cells */
+  bool		global_argp;		/* Writing a term on the global stack */
 } vm_state;
 
 
@@ -585,9 +586,9 @@ gc_stat_start(DECL_LD gc_stats *stats, gc_reason_t reason)
   stats->thread_cpu   = cpu;
 }
 
-#define gc_stat_end(stats) LDFUNC(gc_stat_end, stats)
+#define gc_stat_end(stats, minor) LDFUNC(gc_stat_end, stats, minor)
 static gc_stat *
-gc_stat_end(DECL_LD gc_stats *stats)
+gc_stat_end(DECL_LD gc_stats *stats, bool minor)
 { gc_stat *this = &stats->last[stats->last_index];
   double cpu = ThreadCPUTime(CPU_USER);
 
@@ -604,6 +605,8 @@ gc_stat_end(DECL_LD gc_stats *stats)
   stats->totals.trail_gained  += this->trail_before  - this->trail_after;
   stats->totals.time	      += this->gc_time;
   stats->totals.collections++;
+  if ( minor )
+    stats->totals.minor_collections++;
 
   if ( gc_percentage(this) > 0.2 )
     PL_raise(SIG_TUNE_GC);
@@ -723,9 +726,21 @@ queryOfFrame(LocalFrame fr)
 }
 
 
-static inline int
-isGlobalRef(word w)
-{ return isGlobalPtr(w);
+/* isGlobalRef(w) is true if w points into the part of the global stack
+   that is being collected.  During a minor GC, this excludes the old
+   generation below LD->gc.young_base.
+*/
+
+#define isGlobalRef(w) LDFUNC(isGlobalRef, w)
+static inline bool
+isGlobalRef(DECL_LD word w)
+{ return isGlobalPtr(w) && valPtr(w) >= LD->gc.young_base;
+}
+
+#define isOldCell(p) LDFUNC(isOldCell, p)
+static inline bool
+isOldCell(DECL_LD Word p)
+{ return p < LD->gc.young_base && onGlobalArea(p);
 }
 
 
@@ -868,11 +883,14 @@ mark_variable(DECL_LD Word start)
 { Word current;				/* current cell examined */
   word val;				/* old value of current cell */
   Word next;				/* cell to be examined */
+  Word yb = LD->gc.young_base;		/* Do not enter below */
 
   DEBUG(MSG_GC_MARK_VAR,
 	char b[64];
 	Sdprintf("marking %p (=%s)\n", start, print_val(*start, b)));
 
+  if ( start < yb )			/* old generation */
+    return;
   if ( is_marked(start) )
     sysError("Attempt to mark twice");
 
@@ -894,6 +912,8 @@ forward:				/* Go into the tree */
   { case TAG_REFERENCE:
     { next = unRef(val);		/* address pointing to */
       DEBUG(CHK_SECURE, assert(onStack(global, next)));
+      if ( next < yb )
+	BACKWARD;
       needsRelocation(current);
       if ( is_first(next) )		/* ref to choice point. we will */
 	BACKWARD;			/* get there some day anyway */
@@ -909,6 +929,8 @@ forward:				/* Go into the tree */
     { DEBUG(CHK_SECURE, assert(isGlobalPtr(val)));
       next = valPtr(val);
       DEBUG(CHK_SECURE, assert(onStack(global, next)));
+      if ( next < yb )
+	BACKWARD;
       needsRelocation(current);
       if ( is_marked(next) )
 	BACKWARD;			/* term has already been marked */
@@ -927,6 +949,8 @@ forward:				/* Go into the tree */
       DEBUG(CHK_SECURE, assert(isGlobalPtr(val)));
       next = valPtr(val);
       DEBUG(CHK_SECURE, assert(onStack(global, next)));
+      if ( next < yb )
+	BACKWARD;
       needsRelocation(current);
       if ( is_marked(next) )
 	BACKWARD;			/* term has already been marked */
@@ -958,6 +982,8 @@ forward:				/* Go into the tree */
 
       DEBUG(CHK_SECURE, assert(isGlobalPtr(val)));
       DEBUG(CHK_SECURE, assert(onStack(global, next)));
+      if ( next < yb )
+	BACKWARD;
       needsRelocation(current);
       if ( is_marked(next) )		/* can be referenced from multiple */
 	BACKWARD;			/* places */
@@ -1117,12 +1143,14 @@ gvars_to_term_refs(gc_wordptr **saved_bar_at)
     while( advanceTableEnum(e, NULL, &v) )
     { word w = (word)v;
 
-      if ( isGlobalRef(w) )
-      { term_t t = PL_new_term_ref_noshift();
+      if ( isGlobalPtr(w) )
+      { found++;
+	if ( isGlobalRef(w) )		/* minor GC: only the young ones */
+	{ term_t t = PL_new_term_ref_noshift();
 
-	assert(t);
-	*valTermRef(t) = w;
-	found++;
+	  assert(t);
+	  *valTermRef(t) = w;
+	}
       }
     }
 
@@ -1200,7 +1228,8 @@ term_refs_to_gvars(fid_t fid, gc_wordptr *saved_bar_at)
 
 static fid_t
 argument_stack_to_term_refs(vm_state *state)
-{ if ( state->save_argp )
+{ state->global_argp = false;
+  if ( state->save_argp )
   { GET_LD
     fid_t fid = PL_open_foreign_frame();
     Word *ap;
@@ -1214,6 +1243,8 @@ argument_stack_to_term_refs(vm_state *state)
 
       if ( onGlobal(adr) )
       { term_t t = PL_new_term_ref_noshift();
+
+	state->global_argp = true;
 
 	if ( (uintptr_t)adr & UWRITE )
 	{ adr = (Word)((uintptr_t)adr & ~UWRITE);
@@ -1585,12 +1616,12 @@ early_reset_vars(DECL_LD mark *m, Word top, TrailEntry te)
 	te--;
 	te->as_word = 0;
 	trailcells_deleted += 2;
-      } else if ( is_marked(tard) )
+      } else if ( is_marked(tard) || isOldCell(tard) )
       {
       keep:
 	assert(onGlobal(gp));
 	assert(!is_first(gp));
-	if ( !is_marked(gp) )
+	if ( !is_marked(gp) && !isOldCell(gp) )
 	{ DEBUG(MSG_GC_ASSIGNMENTS_MARK,
 		char b1[64]; char b2[64]; char b3[64];
 		Sdprintf("Marking assignment at %s (%s --> %s)\n",
@@ -1639,11 +1670,11 @@ early_reset_vars(DECL_LD mark *m, Word top, TrailEntry te)
 	trailcells_deleted++;
       } else if ( tard > gKeep && tard < gMax )
       { if ( LD->attvar.attvars &&	/* see (**) */
-	     is_marked(tard) && isRef(*tard) &&
-	     te-1 >= tm )
+	     (is_marked(tard) || isOldCell(tard)) && isRef(*tard) &&
+	     te-1 >= tm && ttag(te[-1].as_word) != TAG_TRAILVAL )
 	{ Word tard2 = valPtr(te[-1].as_word);
 
-	  if ( is_marked(tard2) && isAttVar(*tard2) )
+	  if ( (is_marked(tard2) || isOldCell(tard2)) && isAttVar(*tard2) )
 	  { te--;
 	    DEBUG(MSG_GC_RESET,
 		  Sdprintf("Keep trail for attvar _%lld\n",
@@ -1653,7 +1684,7 @@ early_reset_vars(DECL_LD mark *m, Word top, TrailEntry te)
 	}
 	te->as_word = 0;
 	trailcells_deleted++;
-      } else if ( !is_marked(tard) )
+      } else if ( !is_marked(tard) && !isOldCell(tard) )
       { DEBUG(MSG_GC_RESET,
 	      char b1[64]; char b2[64];
 	      Sdprintf("Early reset at %s (%s)\n",
@@ -2823,7 +2854,8 @@ untag_trail(DECL_LD)
 	{ Word avp = te[-1].address;
 
 	  DEBUG(CHK_SECURE, assert(on_attvar_chain(avp)));
-	  if ( !isAttVar(*avp) )
+	  if ( !isAttVar(*avp) &&	/* see clean_attvar_chain() */
+	       avp >= LD->gc.young_base )
 	    *(avp) |= MARK_MASK;
 	}
       }
@@ -2865,7 +2897,10 @@ clean_attvar_chain(DECL_LD)
   size_t cleaned = 0;
 #endif
 
-  for(p = LD->attvar.attvars; p; p = next)
+  /* The chain is ordered newest first.  A minor GC only cleans the
+     young part; untag_trail() only marks young attvars.
+  */
+  for(p = LD->attvar.attvars; p && p >= LD->gc.young_base; p = next)
   { Word avp  = p+1;
 
     next = isRef(*p) ? unRef(*p) : NULL;
@@ -2963,6 +2998,10 @@ sweep_global_mark(DECL_LD gc_wordptr *m)
   DEBUG(CHK_SECURE, assert(onStack(local, m)));
   IS_WORD_ALIGNED(gm);
 
+  if ( gm < LD->gc.young_base )		/* old generation does not move */
+  { m->as_word = consPtr(gm, STG_GLOBAL);
+    return;
+  }
   if ( is_marked_or_first(gm-1) )
     goto done;				/* quit common easy case */
 
@@ -3122,12 +3161,14 @@ sweep_trail(void)
     {
 #ifdef O_DESTRUCTIVE_ASSIGNMENT
       if ( ttag(te->as_word) == TAG_TRAILVAL )
-      { needsRelocation(&te->as_word);
-	check_relocation(&te->as_word);
-	into_relocation_chain(&te->as_word, STG_TRAIL);
+      { if ( valPtr(te->as_word) >= LD->gc.young_base )
+	{ needsRelocation(&te->as_word);
+	  check_relocation(&te->as_word);
+	  into_relocation_chain(&te->as_word, STG_TRAIL);
+	}
       } else
 #endif
-      if ( isGlobalPtr(te->as_word) )
+      if ( isGlobalRef(te->as_word) )
       { needsRelocation(&te->as_word);
 	check_relocation(&te->as_word);
 	into_relocation_chain(&te->as_word, STG_TRAIL);
@@ -3326,7 +3367,7 @@ is_downward_ref(DECL_LD Word p)
 
       DEBUG(CHK_SECURE, assert(d >= gBase));
 
-      return d < p;
+      return d < p && d >= LD->gc.young_base;
     }
   }
 
@@ -3371,7 +3412,8 @@ check_marked(const char *s)
   size_t m = 0;
   Word current;
 
-  for( current = gBase; current < gTop; current += (offset_cell(current)+1) )
+  for( current = LD->gc.young_base; current < gTop;
+       current += (offset_cell(current)+1) )
   { if ( is_marked(current) )
     { m += (offset_cell(current)+1);
     }
@@ -3445,7 +3487,7 @@ static void
 compact_global(void)
 { GET_LD
   Word dest, current;
-  Word base = gBase, top;
+  Word base = LD->gc.young_base, top;
 #if O_DEBUG
   Word *v = mark_top;
 #endif
@@ -3503,8 +3545,8 @@ compact_global(void)
 	});
 
   if ( dest != base )
-    sysError("Mismatch in down phase: dest = %p, gBase = %p\n",
-	     dest, gBase);
+    sysError("Mismatch in down phase: dest = %p, base = %p\n",
+	     dest, base);
   if ( relocation_cells != relocated_cells )
   { DEBUG(CHK_SECURE, printNotRelocated());
     sysError("After down phase: relocation_cells = %ld; relocated_cells = %ld",
@@ -3517,7 +3559,7 @@ compact_global(void)
 
   dest = base;
   top = gTop;
-  for(current = gBase; current < top; )
+  for(current = base; current < top; )
   { if ( is_marked(current) )
     { intptr_t l, n;
 
@@ -3556,9 +3598,9 @@ compact_global(void)
     }
   }
 
-  if ( dest != gBase + total_marked )
-    sysError("Mismatch in up phase: dest = %p, gBase+total_marked = %p\n",
-	     dest, gBase + total_marked );
+  if ( dest != base + total_marked )
+    sysError("Mismatch in up phase: dest = %p, base+total_marked = %p\n",
+	     dest, base + total_marked );
 
   DEBUG(CHK_SECURE,
 	{ Word p = dest;		/* clear top of stack */
@@ -3576,6 +3618,13 @@ collect_phase(vm_state *state, gc_wordptr *saved_bar_at)
 
   DEBUG(CHK_SECURE, check_marked("Start collect"));
 
+  Word yb = LD->gc.young_base;		/* sentinel to stop scanning down */
+  word sentinel = 0;
+  if ( yb > gBase )
+  { sentinel = yb[-1];
+    yb[-1] |= MARK_MASK;
+  }
+
   DEBUG(MSG_GC_PROGRESS, Sdprintf("Sweeping foreign references\n"));
   sweep_foreign();
   DEBUG(MSG_GC_PROGRESS, Sdprintf("Sweeping trail stack\n"));
@@ -3588,6 +3637,8 @@ collect_phase(vm_state *state, gc_wordptr *saved_bar_at)
   }
   DEBUG(MSG_GC_PROGRESS, Sdprintf("Compacting global stack\n"));
   compact_global();
+  if ( yb > gBase )
+    yb[-1] = sentinel;
 
   unsweep_foreign();
   unsweep_stacks(state);
@@ -3887,6 +3938,12 @@ considerGarbageCollect(Stack s)
 	  return false;
 	}
 
+#ifdef O_DEBUG
+	if ( DEBUGGING(MSG_GC_STRESS) && used > s->gced_size + 4096 )
+	{ DEBUG(MSG_GC_SCHEDULE,
+		Sdprintf("GC: stress request on %s\n", s->name));
+	} else
+#endif
 	if ( used > s->factor*s->gced_size + low )
 	{ DEBUG(MSG_GC_SCHEDULE,
 		Sdprintf("GC: request on %s "
@@ -3976,9 +4033,11 @@ print_gc_trace(void)
 
     switch(ev.type)
     { case GC_TRACE_GC:
+      case GC_TRACE_MINOR_GC:
 	rc = printMessage(ATOM_informational,
 		     PL_FUNCTOR_CHARS, "gc", 1,
-		       PL_FUNCTOR_CHARS, "done", 7,
+		       PL_FUNCTOR_CHARS,
+			 ev.type == GC_TRACE_GC ? "done" : "minor", 7,
 			 PL_INT64, (int64_t)ev.v[0],	/* global gained */
 			 PL_INT64, (int64_t)ev.v[1],	/* trail gained */
 			 PL_DOUBLE, ev.time,
@@ -4451,6 +4510,314 @@ leaveGC(DECL_LD)
 #endif
 }
 
+		 /*******************************
+		 *    GENERATIONAL COLLECTION	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Generational (segmented) GC, enabled by the flag gc_generational.  See
+doc/gc-generational.md.  After each GC LD->gen_bar is set to gTop.  The
+old generation is below this bar.  Old cells that may point into the
+young generation are found on the trail (bindings below LD->mark_bar)
+and in the remembered set.  The latter holds all other stores into old
+cells: untrailed bindings (Trail(),  varBindConst(),  GTrail(),
+TrailAssignment()), nb_setarg/3 and friends and gen_assign().  Note
+that the barrier must not change what is trailed, as that would change
+what is undone on backtracking.
+
+A minor GC only marks and compacts the young generation. The old cells
+that point into the young generation are copied into term references
+before marking and their relocated values are written back after the
+GC.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define GEN_REMEMBERED_MAX (1<<20)
+
+
+void
+gen_remember(DECL_LD Word p)
+{ size_t c = LD->gc.remembered.count;
+
+  if ( c > 0 && LD->gc.remembered.addrs[c-1] == p )
+    return;
+  if ( c == LD->gc.remembered.size )
+  { size_t nsize = c ? c*2 : 256;
+    Word *n;
+
+    if ( nsize > GEN_REMEMBERED_MAX ||
+	 !(n = realloc(LD->gc.remembered.addrs, nsize*sizeof(Word))) )
+    { LD->gc.remembered.overflow = true;
+      return;
+    }
+    LD->gc.remembered.addrs = n;
+    LD->gc.remembered.size = nsize;
+  }
+  LD->gc.remembered.addrs[c] = p;
+  LD->gc.remembered.count = c+1;
+}
+
+#define gen_forget(_) LDFUNC(gen_forget, _)
+static void
+gen_forget(DECL_LD)
+{ LD->gc.remembered.count = 0;
+  LD->gc.remembered.overflow = false;
+}
+
+/* Decide on a minor GC. Called before gcEnsureSpace() */
+
+#define gen_minor_gc(reason) LDFUNC(gen_minor_gc, reason)
+static bool
+gen_minor_gc(DECL_LD gc_reason_t reason)
+{ size_t old;
+
+  if ( LD->gc.force_major )
+  { LD->gc.force_major = false;
+    return false;
+  }
+  if ( !truePrologFlag(PLFLAG_GC_GENERATIONAL) || reason == GC_USER || LD->gc.remembered.overflow ||
+       LD->trim_stack_requested )
+    return false;
+  if ( LD->gen_bar <= gBase || LD->gen_bar > gTop )
+    return false;
+  old = LD->gen_bar - gBase;
+  if ( old > 2*LD->gc.major_live + 1024*1024/sizeof(word) )
+    return false;
+  if ( LD->gc.minor_count >= 50 )
+    return false;
+
+  return true;
+}
+
+#define gen_points_young(p) LDFUNC(gen_points_young, p)
+static inline bool
+gen_points_young(DECL_LD Word p)
+{ word w = *p;
+
+  return ( isGlobalPtr(w) &&
+	   valPtr(w) >= LD->gc.young_base &&
+	   valPtr(w) < gTop );
+}
+
+/* Scan the trail and remembered set for old cells pointing into the
+   young generation.  If `collect` is true, add the addresses to
+   LD->gc.gen_roots.  Returns the count.
+*/
+
+#define gen_scan_roots(collect) LDFUNC(gen_scan_roots, collect)
+static size_t
+gen_scan_roots(DECL_LD bool collect)
+{ size_t count = 0;
+  Word yb = LD->gc.young_base;
+
+  if ( yb == gBase )
+    return 0;
+
+  for(TrailEntry te = tBase; te < tTop; te++)
+  { Word p = te->address;
+
+    if ( !isTrailVal(p) && p >= gBase && p < yb &&
+	 gen_points_young(p) )
+    { if ( collect )
+	LD->gc.gen_roots.addrs[count] = p;
+      count++;
+    }
+  }
+  for(size_t i=0; i<LD->gc.remembered.count; i++)
+  { Word p = LD->gc.remembered.addrs[i];
+
+    if ( p >= gBase && p < yb && gen_points_young(p) )
+    { if ( collect )
+	LD->gc.gen_roots.addrs[count] = p;
+      count++;
+    }
+  }
+
+  return count;
+}
+
+#ifdef O_DEBUG
+static int // cmp_t, but that does not satisfy qsort()
+cmp_word_ptr(const void *p1, const void *p2)
+{ Word w1 = *(Word*)p1;
+  Word w2 = *(Word*)p2;
+
+  return SCALAR_TO_CMP(w1, w2);
+}
+
+/* Verify that all old cells that point into the young generation are
+   in LD->gc.gen_roots.  Must be called after collecting the roots and
+   before marking.
+*/
+
+#define gen_verify(_) LDFUNC(gen_verify, _)
+static void
+gen_verify(DECL_LD)
+{ size_t n = LD->gc.gen_roots.count;
+  Word *sorted = malloc((n+1)*sizeof(Word));
+  Word yb = LD->gc.young_base;
+  size_t missing = 0;
+
+  memcpy(sorted, LD->gc.gen_roots.addrs, n*sizeof(Word));
+  qsort(sorted, n, sizeof(Word), cmp_word_ptr);
+
+  for(Word p = gBase; p < yb; p += offset_cell(p)+1)
+  { if ( isIndirectHdr(*p) )
+      continue;
+    if ( gen_points_young(p) &&
+	 !bsearch(&p, sorted, n, sizeof(Word), cmp_word_ptr) )
+    { if ( missing++ < 10 )
+      { Sdprintf("GEN: missing root in GC %lld: global+%zd "
+		 "(= 0x%llx -> global+%zd)\n",
+		 (long long)LD->gc.stats.totals.collections+1,
+		 (size_t)(p-gBase), (unsigned long long)*p,
+		 (size_t)(valPtr(*p)-gBase));
+	for(Word q = p-8; q <= p+2; q++)
+	{ if ( q < gBase )
+	    continue;
+	  if ( isFunctor(*q) )
+	    Sdprintf("  global+%zd: %s/%zd\n", (size_t)(q-gBase),
+		     stringAtom(nameFunctor(*q)), arityFunctor(*q));
+	  else
+	    Sdprintf("  global+%zd: 0x%llx\n", (size_t)(q-gBase),
+		     (unsigned long long)*q);
+	}
+	Word t = valPtr(*p);
+	if ( isFunctor(*t) )
+	  Sdprintf("  target: %s/%zd\n",
+		   stringAtom(nameFunctor(*t)), arityFunctor(*t));
+      }
+    }
+  }
+  free(sorted);
+
+  if ( missing )
+    sysError("GEN: %zd missing old-to-young pointers", missing);
+}
+
+/* gen_verify_enabled() is true when the debug topic MSG_GC_GEN_VERIFY
+   is active: prolog_debug('MSG_GC_GEN_VERIFY').  Debug builds only.
+*/
+
+#define gen_verify_enabled() DEBUGGING(MSG_GC_GEN_VERIFY)
+
+/* Verify there are no GC mark bits left on the global stack */
+
+#define gen_check_no_marks(where) LDFUNC(gen_check_no_marks, where)
+static void
+gen_check_no_marks(DECL_LD const char *where)
+{ size_t bad = 0;
+
+  for(Word p = gBase; p < gTop; p += offset_cell(p)+1)
+  { if ( (*p & (MARK_MASK|FIRST_MASK)) )
+    { if ( bad++ < 10 )
+	Sdprintf("GEN: %s of GC %lld: mark bits at global+%zd (0x%llx)\n",
+		 where, (long long)LD->gc.stats.totals.collections+1,
+		 (size_t)(p-gBase), (unsigned long long)*p);
+    }
+  }
+  if ( bad )
+    sysError("GEN: %zd cells with mark bits", bad);
+}
+
+
+#else
+#define gen_verify_enabled()	false
+#define gen_verify()		(void)0
+#define gen_check_no_marks(where) (void)0
+#endif /*O_DEBUG*/
+
+/* Copy the values of the old cells that point into the young
+   generation into term references, so the normal machinery marks and
+   relocates them.
+*/
+
+#define gen_roots_to_term_refs(_) LDFUNC(gen_roots_to_term_refs, _)
+static fid_t
+gen_roots_to_term_refs(DECL_LD)
+{ size_t n;
+
+  if ( gen_verify_enabled() )
+    gen_check_no_marks("start");
+  if ( LD->gc.young_base == gBase )
+    return 0;
+
+  n = gen_scan_roots(false);
+  if ( n > LD->gc.gen_roots.size )
+  { size_t nsize = n+n/2+16;
+    Word *a = realloc(LD->gc.gen_roots.addrs, nsize*sizeof(Word));
+
+    if ( !a )
+      outOfCore();
+    LD->gc.gen_roots.addrs = a;
+    LD->gc.gen_roots.size = nsize;
+  }
+  LD->gc.gen_roots.count = gen_scan_roots(true);
+  assert(LD->gc.gen_roots.count == n);
+
+  if ( gen_verify_enabled() )
+    gen_verify();
+
+  fid_t fid = PL_open_foreign_frame();
+  for(size_t i=0; i<n; i++)
+  { term_t t = PL_new_term_ref_noshift();
+
+    assert(t);
+    *valTermRef(t) = *LD->gc.gen_roots.addrs[i];
+  }
+
+  return fid;
+}
+
+/* If survivors are not promoted, backtracking may restore a young saved
+   value of a trailed assignment into an old cell.  Such cells must be
+   in the remembered set.  Called after untag_trail().
+*/
+
+#define gen_remember_trailed_assignments(_) \
+	LDFUNC(gen_remember_trailed_assignments, _)
+static void
+gen_remember_trailed_assignments(DECL_LD)
+{ for(TrailEntry te = tBase+1; te < tTop; te++)
+  { if ( isTrailVal(te->address) )
+    { Word gp = trailValP(te->address);
+      Word p  = te[-1].address;
+
+      if ( p >= gBase && p < LD->gc.young_base && gen_points_young(gp) )
+	gen_remember(p);
+    }
+  }
+}
+
+/* Write the relocated values back into the old cells.  If the young
+   generation is not promoted (keep is true), the GC may have deleted
+   the trail entries for some of these cells.  Hence, we must add them
+   to the remembered set.
+*/
+
+#define gen_term_refs_to_roots(fid, keep) \
+	LDFUNC(gen_term_refs_to_roots, fid, keep)
+static void
+gen_term_refs_to_roots(DECL_LD fid_t fid, bool keep)
+{ if ( fid )
+  { FliFrame fr = (FliFrame) valTermRef(fid);
+    Word fp = (Word)(fr+1);
+    size_t n = LD->gc.gen_roots.count;
+
+    assert(fr->size == n);
+    for(size_t i=0; i<n; i++)
+    { Word p = LD->gc.gen_roots.addrs[i];
+
+      *p = *fp++;
+      if ( keep && gen_points_young(p) )
+	gen_remember(p);
+    }
+
+    PL_close_foreign_frame(fid);
+  }
+  LD->gc.gen_roots.count = 0;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Returns: < 0: (local) overflow; true: ok; false: shifted;
 
@@ -4468,6 +4835,8 @@ gcEnsureSpace(DECL_LD vm_state *state)
     lneeded += sizeof(struct fliFrame) + LD->gvar.grefs*sizeof(word);
   if ( LD->frozen_bar )
     lneeded += sizeof(Word);
+  if ( LD->gc.young_base > gBase )
+    lneeded += sizeof(struct fliFrame) + gen_scan_roots(false)*sizeof(word);
   if ( state->save_argp )
     lneeded += sizeof(struct fliFrame) + (aTop+1-aBase)*sizeof(word);
   if ( LD->attvar.call_residue_vars_count && LD->attvar.attvars )
@@ -4526,7 +4895,9 @@ garbageCollect(gc_reason_t reason)
   int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
   int no_mark_bar;
   boolex_t rc;
-  fid_t gvars, astack, attvars;
+  fid_t gvars, astack, attvars, genroots;
+  bool minor;
+  size_t old_size;			/* size of the old generation */
   gc_wordptr *saved_bar_at;		/* LD->frozen_bar placed on top of local stack */
 #ifdef O_PROFILE
   struct call_node *prof_node = NULL;
@@ -4543,11 +4914,18 @@ garbageCollect(gc_reason_t reason)
 
   get_vmi_state(LD->query, &state);
   safeLTop = lTop;
+  minor = gen_minor_gc(reason);
+  LD->gc.young_base = minor ? LD->gen_bar : gBase;
   if ( (rc=gcEnsureSpace(&state)) < 0 )
-  { return rc;
+  { LD->gc.young_base = NULL;
+    return rc;
   } else if ( rc == false )		/* shifted; reload */
   { get_vmi_state(LD->query, &state);
   }
+  LD->gc.young_base = minor ? LD->gen_bar : gBase;
+  old_size = LD->gc.young_base - gBase;
+  if ( !minor )				/* a major GC moves everything */
+    LD->gen_bar = gBase;		/* gen_bar is invalid during GC */
 
   enterGC();
 #ifndef UNBLOCKED_GC
@@ -4603,6 +4981,7 @@ garbageCollect(gc_reason_t reason)
   attvars = link_attvars();
   astack = argument_stack_to_term_refs(&state);
   gvars = gvars_to_term_refs(&saved_bar_at);
+  genroots = gen_roots_to_term_refs();
   save_grefs();
   DEBUG(CHK_SECURE, check_foreign());
   tag_trail();
@@ -4615,10 +4994,35 @@ garbageCollect(gc_reason_t reason)
   untag_trail();
   clean_attvar_chain();
 
+  gen_term_refs_to_roots(genroots, state.global_argp);
+  if ( minor && state.global_argp )
+    gen_remember_trailed_assignments();
+  if ( gen_verify_enabled() )
+    gen_check_no_marks(minor ? "end(minor)" : "end(major)");
   term_refs_to_gvars(gvars, saved_bar_at);
   term_refs_to_argument_stack(&state, astack);
   restore_attvars(attvars);
 
+					/* LD->mark_bar is not relocated */
+  if ( LD->mark_bar > gTop )		/* see gen_bar.  Keep it safe */
+    LD->mark_bar = gTop;
+  if ( minor )
+  { LD->gc.minor_count++;
+  } else
+  { LD->gc.minor_count = 0;
+    LD->gc.major_live = gTop-gBase;
+  }
+  if ( !truePrologFlag(PLFLAG_GC_GENERATIONAL) )
+  { LD->gen_bar = gBase;		/* no old generation: no barrier */
+    gen_forget();
+  } else if ( !state.global_argp )	/* promote all survivors */
+  { LD->gen_bar = gTop;
+    gen_forget();
+  } else if ( !minor )
+  { LD->gen_bar = gBase;
+    gen_forget();
+  }
+  LD->gc.young_base = NULL;
   assert(LD->mark_bar <= gTop);
 
   DEBUG(CHK_SECURE,
@@ -4654,7 +5058,7 @@ garbageCollect(gc_reason_t reason)
 #endif
   leaveGC();
 
-  stats = gc_stat_end(&LD->gc.stats);
+  stats = gc_stat_end(&LD->gc.stats, minor);
 
 #ifdef O_PROFILE
   if ( prof_node && LD->profile.active ) /* after gc_stat_end(): the */
@@ -4663,7 +5067,7 @@ garbageCollect(gc_reason_t reason)
 
   if ( verbose )
   { gc_trace_event ev =
-      { .type = GC_TRACE_GC,
+      { .type = minor ? GC_TRACE_MINOR_GC : GC_TRACE_GC,
 	.v    = { stats->global_before - stats->global_after,
 		  stats->trail_before  - stats->trail_after,
 		  stats->global_after, stats->trail_after,
@@ -4673,6 +5077,14 @@ garbageCollect(gc_reason_t reason)
       };
 
     queue_gc_trace(&ev);
+  }
+
+  if ( minor &&				/* minor GC did not free enough */
+       old_size > LD->gc.major_live + LD->gc.major_live/4 &&
+       ( tight((Stack)&LD->stacks.global) ||
+	 tight((Stack)&LD->stacks.trail) ) )
+  { LD->gc.force_major = true;		/* avoid growing the stacks */
+    return garbageCollect(reason);
   }
 
   return shiftTightStacks();
@@ -5308,6 +5720,11 @@ update_stacks(vm_state *state, void *lb, void *gb, void *tb)
   }
   if ( gs && LD->mark_bar != NO_MARK_BAR )
   { update_pointer(&LD->mark_bar, gs);
+  }
+  if ( gs )
+  { update_pointer(&LD->gen_bar, gs);
+    for(size_t i=0; i<LD->gc.remembered.count; i++)
+      update_pointer(&LD->gc.remembered.addrs[i], gs);
   }
 }
 

@@ -81,6 +81,8 @@ varBindConst(DECL_LD Word p, word c)
 { *p = (c);
   if ( unlikely((void*)p >= (void*)lBase || p < LD->mark_bar) )
     return trail_ptr(p);
+  if ( unlikely(p < LD->gen_bar) )	/* old generation */
+    gen_remember(p);
 
   return true;
 }

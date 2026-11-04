@@ -519,6 +519,7 @@ struct PL_local_data
   FliFrame      foreign_environment;	/* Current foreign context */
   QueryFrame    query;			/* Currently open query */
   Word		mark_bar;		/* Mark globals > this one */
+  Word		gen_bar;		/* Old generation is below this */
 #ifdef O_GVAR
   Word		frozen_bar;		/* Frozen part of the global stack */
 #endif
@@ -1006,6 +1007,21 @@ struct PL_local_data
 #endif
     int active;				/* GC is running in this thread */
     gc_stats stats;			/* GC performance history */
+    Word   young_base;			/* During GC: bottom of collected area */
+    struct
+    { Word  *addrs;			/* Old cells written without trail */
+      size_t count;			/* #used */
+      size_t size;			/* #allocated */
+      bool   overflow;			/* Too many: next GC is major */
+    } remembered;
+    struct
+    { Word  *addrs;			/* Old cells that act as roots */
+      size_t count;			/* #used */
+      size_t size;			/* #allocated */
+    } gen_roots;
+    size_t major_live;			/* Cells alive after last major GC */
+    unsigned int minor_count;		/* #minor GCs since last major */
+    bool   force_major;			/* Next GC must be a major one */
     gc_trace_queue trace;		/* Pending trace_gc messages */
 
 					/* These must be at the end to be */
