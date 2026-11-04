@@ -1925,7 +1925,8 @@ PL_get_list_slice(term_t list, size_t start, size_t length,
     return false;
   elem  = tail+1;
   saved = tail+2;
-  setHandle(tail, linkValI(valTermRef(list)));
+  if ( !PL_put_term(tail, list) )	/* may globalize a variable */
+    return false;
 
   for(;;)
   { p = valTermRef(tail);
