@@ -263,9 +263,14 @@ Returns one of:
 
 #define SWAPW(p,q) do { Word _tmp = p; p=q; q=_tmp; } while(0)
 #define unify_simple_ptrs(t1, t2) LDFUNC(unify_simple_ptrs, t1, t2)
+#define unify_simple(t1, t2) LDFUNC(unify_simple, t1, t2)
 
-boolex_t
-unify_simple_ptrs(DECL_LD Word t1, Word t2)
+/* unify_simple() is unify_simple_ptrs() for do_unify(), inlined such
+ * that unifying two simple terms needs no stack frame.
+ */
+
+static inline boolex_t
+unify_simple(DECL_LD Word t1, Word t2)
 { word w1, w2;
 
   if ( t1 == t2 )
@@ -353,6 +358,20 @@ unify_simple_ptrs(DECL_LD Word t1, Word t2)
   return false;
 }
 
+boolex_t
+unify_simple_ptrs(DECL_LD Word t1, Word t2)
+{ return unify_simple(t1, t2);
+}
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#define NOINLINE __attribute__((noinline))
+#else
+#define NOINLINE
+#endif
+
+#define do_unify_compound(t1, t2) LDFUNC(do_unify_compound, t1, t2)
+static NOINLINE boolex_t do_unify_compound(DECL_LD Word t1, Word t2);
 
 #define do_unify(t1, t2) LDFUNC(do_unify, t1, t2)
 boolex_t
@@ -360,12 +379,21 @@ do_unify(DECL_LD Word t1, Word t2)
 { deRef(t1);
   deRef(t2);
 
-  boolex_t rc = unify_simple_ptrs(t1, t2);
-  if ( rc >= 0 )
+  boolex_t rc = unify_simple(t1, t2);
+  if ( likely(rc != DO_COMPOUND) )
     return rc;
-  if ( rc != DO_COMPOUND )
-    return rc;
-  rc = true;
+
+  return do_unify_compound(t1, t2);
+}
+
+/* The compound case of do_unify(): t1 and t2 are dereferenced compound
+ * terms.  This uses a term agenda, which needs a large stack frame, so
+ * keep it out of do_unify().
+ */
+
+static NOINLINE boolex_t
+do_unify_compound(DECL_LD Word t1, Word t2)
+{ boolex_t rc = true;
 
   Functor f1 = valueTerm(*t1);
   Functor f2 = valueTerm(*t2);
@@ -381,7 +409,7 @@ do_unify(DECL_LD Word t1, Word t2)
   while( nextTermAgendaLR(&agenda, &t1, &t2) )
   { deRef(t1);
     deRef(t2);
-    rc = unify_simple_ptrs(t1, t2);
+    rc = unify_simple(t1, t2);
     if ( rc == true )
       continue;
     if ( rc == false )
