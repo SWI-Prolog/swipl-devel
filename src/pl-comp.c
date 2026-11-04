@@ -1445,6 +1445,7 @@ Variable table operations.
 #define	compileListFF(arg, ci)				LDFUNC(compileListFF, arg, ci)
 #define	compileSimpleAddition(Word, compileInfo)	LDFUNC(compileSimpleAddition, Word, compileInfo)
 #define	compileArith(Word, compileInfo)			LDFUNC(compileArith, Word, compileInfo)
+#define	arithCompilable(Word)				LDFUNC(arithCompilable, Word)
 #define	compileArithArgument(Word, compileInfo)		LDFUNC(compileArithArgument, Word, compileInfo)
 #define	compileBodyUnify(arg, ci)			LDFUNC(compileBodyUnify, arg, ci)
 #define	compileBodyEQ(arg, ci)				LDFUNC(compileBodyEQ, arg, ci)
@@ -1469,6 +1470,7 @@ static bool	compileListFF(word arg, compileInfo *ci);
 static bool	compileSimpleAddition(Word, compileInfo *);
 #if O_COMPILE_ARITH
 static boolex_t	compileArith(Word, compileInfo *);
+static bool	arithCompilable(Word);
 static bool	compileArithArgument(Word, compileInfo *);
 #endif
 #if O_COMPILE_IS
@@ -3501,7 +3503,7 @@ A non-void variable. Create a I_CALL1 instruction for it.
 	   compileSimpleAddition(arg, ci) )
 	succeed;
 #if O_COMPILE_ARITH
-      if ( truePrologFlag(PLFLAG_OPTIMISE) )
+      if ( truePrologFlag(PLFLAG_OPTIMISE) && arithCompilable(arg) )
 	 return compileArith(arg, ci);
 #endif
     }
@@ -3868,6 +3870,61 @@ are tagged using the functor ARITH_F. See registerArithFunctors().
 
 Returns one of true or *_OVERFLOW
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+arithCompilable() is true if  the  arithmetic   goal  `arg`  can  be
+compiled.  This is not the case if it contains  a "char" list [X] whose
+element or tail is unbound at compile time,  as in `[C] =:= 0'a`.  Such
+a  list  is  evaluated  at  runtime.   As  we  must  decide  this  before
+emitting any code, we scan the expression rather than trying to compile
+it.  The scan is iterative as arithmetic expressions may be deep.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+arithCompilable(DECL_LD Word arg)
+{ segstack stack;
+  Word sbuf[64];
+  bool rc = true;
+
+  initSegStack(&stack, sizeof(Word), sizeof(sbuf), sbuf);
+
+  for(;;)
+  { deRef(arg);
+
+    if ( isTerm(*arg) )
+    { functor_t fdef = functorTerm(*arg);
+      Word a = argTermP(*arg, 0);
+
+      if ( fdef == FUNCTOR_dot2 )
+      { Word h, t;
+
+	deRef2(a, h);
+	deRef2(a+1, t);
+	if ( canBind(*h) || canBind(*t) )
+	{ rc = false;
+	  break;
+	}
+      } else
+      { size_t ar = arityFunctor(fdef);
+
+	for(size_t i=0; i<ar; i++)
+	{ Word ap = a+i;
+
+	  if ( !pushSegStack(&stack, ap, Word) )
+	    outOfCore();
+	}
+      }
+    }
+
+    if ( !popSegStack(&stack, &arg, Word) )
+      break;
+  }
+
+  clearSegStack(&stack);
+
+  return rc;
+}
+
 
 static boolex_t
 compileArith(DECL_LD Word arg, compileInfo *ci)

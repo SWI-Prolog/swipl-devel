@@ -1057,6 +1057,11 @@ test(to_tagged, MantissaBits == 2251799813685249 ) :-
 
 :- end_tests(canonical_bignum).
 
+% The tests after setting optimise to true test compiled arithmetic.
+% plunit_load=always makes plunit load tests if optimise is true.
+
+:- push_prolog_flag(plunit_load, always).
+
 :- begin_tests(arith_misc).
 
 test(string) :-
@@ -1064,10 +1069,30 @@ test(string) :-
 test(float_rval) :-
 	6.5 is max(6.5,3).
 :- set_prolog_flag(optimise, true).
-test(float_rval) :-
+test(float_rval_optimised) :-
 	6.5 is max(6.5,3).
 
+% "char" lists whose element is unbound at compile time are evaluated
+% at runtime rather than raising an error when compiled.
+
+test(char_var) :-
+	char_var_ne(0'a, [0'b]),
+	\+ char_var_ne(0'a, [0'a]).
+test(char_var_atom, X == 0'a) :-
+	char_var_is(a, X).
+test(char_const) :-
+	char_const(0'a).
+
+char_var_ne(H, Sep) :-
+	[H] =\= Sep.
+char_var_is(C, X) :-
+	X is [C].
+char_const(X) :-
+	X =:= [0'a].
+
 :- end_tests(arith_misc).
+
+:- pop_prolog_flag(plunit_load).
 
 % No tests below here because the set_prolog_flag(optimise, true) above
 % causes them not to be loaded.
