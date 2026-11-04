@@ -1265,7 +1265,9 @@ PL_signal(int sigandflags, handler_t func)
 }
 
 
-/* return: -1: exception in handler, otherwise number of handled signals
+/* return: -1: exception in handler, otherwise number of handled signals.
+   Signals are not handled while an exception is pending.  They remain
+   pending until the exception is processed.
 */
 
 int
@@ -1308,8 +1310,8 @@ handleSignals(DECL_LD)
     return 0;
   if ( !HAS_LD )
     return 0;
-  if ( exception_term )
-    return -1;
+  if ( exception_term )			/* Do not handle signals while */
+    return 0;				/* an exception is pending */
 #ifndef __unix__				/* on Unix we ask to signal twice */
   if ( (done=handleSigInt()) )
     return done;
