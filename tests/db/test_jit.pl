@@ -247,6 +247,30 @@ term_expansion(bintree(Depth), Clauses) :-
 
 bintree(10).                            % bintree(Parent, Child)
 
+%   word_frame(Word, Frame, Score) is like Alpino's z_f2/3: the word is
+%   a poor index (10 clauses per key), but much better than the frame,
+%   which becomes a deep list index as most frames are verb(_).
+
+term_expansion(word_frames(N), Clauses) :-
+    findall(word_frame(W, F, S),
+            ( between(1, N, I),
+              W is I mod (N//10),
+              frame(I, F),
+              S is I mod (N//5)
+            ), Clauses).
+
+frame(I, F) :-
+    K is I mod 5,
+    (   K == 0
+    ->  F = adj
+    ;   K == 1
+    ->  F = noun
+    ;   X is K mod 3,
+        F = verb(X)
+    ).
+
+word_frames(2000).
+
 test(x) :-				% must use S_LIST
     x(_,_,_,_,[]).
 test(a) :-				% must use S_LIST (test H_VOID_N)
@@ -272,6 +296,16 @@ test(bintree, Realised == [1]) :-     % arg 1 is a candidate if arg 2 is
     findall(A, ( member(I, Indexes),
                  I.realised == true,
                  I.arguments = [A]
+               ), Realised).
+test(word_frame, Realised == [1]) :-  % the frame index came first, so
+    word_frame(5, adj, S), !,           % the word index was never used
+    assertion(S == 5),
+    predicate_property(word_frame(_,_,_), indexed(Indexes)),
+    findall(A, ( member(I, Indexes),
+                 I.realised == true,
+                 I.position == [],
+                 I.arguments = [A],
+                 A \== 2
                ), Realised).
 test(ix1386) :-                         % Issue #1386: primary must win over
     call_cleanup(ix1386(real, (_,_)),   % a shallow-useless deep list index

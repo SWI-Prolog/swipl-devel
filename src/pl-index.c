@@ -3446,22 +3446,39 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
  */
 
 static ClauseIndex
-get_existing_index(ClauseIndex **from, const hash_hints *hints)
-{ ClauseIndex *cip = *from;
-
-  if ( cip )
+get_existing_index(ClauseIndex *cip, const hash_hints *hints)
+{ if ( cip )
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
       if ( !ISDEADCI(ci) )
       { if ( memcmp(ci->args, hints->args, sizeof(ci->args)) == 0 )
-	{ *from = cip+1;
 	  return ci;
-	}
       }
     }
   }
 
   return NULL;
+}
+
+/* Sort the indexes of set_candidate_indexes() by decreasing speedup.
+ * candidate_indexes() returns the good ones first, then the deep
+ * ones for poor arguments and then combinations, while existing_hash()
+ * uses the first index that applies, so the array must be sorted (see
+ * isSortedIndexes()).  The sort is stable, so equal ones keep the order
+ * of candidate_indexes().  There are at most a few, so insertion sort
+ * is fine.
+ */
+
+static void
+sort_indexes(ClauseIndex *cip, int count)
+{ for(int i=1; i<count; i++)
+  { ClauseIndex ci = cip[i];
+    int j = i;
+
+    for(; j > 0 && cip[j-1]->speedup < ci->speedup; j--)
+      cip[j] = cip[j-1];
+    cip[j] = ci;
+  }
 }
 
 static bool
@@ -3479,13 +3496,15 @@ set_candidate_indexes(Definition def, ClauseList clist, int max, bool lock)
       LOCKDEF(def);
     ClauseIndex *org = clist->clause_indexes;
     for(int i=0; i<max; i++)
-    { ClauseIndex ei = get_existing_index(&org, &hints[i]);
+    { ClauseIndex ei = get_existing_index(org, &hints[i]);
       if ( ei )
 	cip[i] = ei;
       else
 	cip[i] = newClauseIndexTable(&hints[i], false, &ctx);
     }
+    sort_indexes(cip, max);
     cip[max] = NULL;
+    DEBUG(0, assert(isSortedIndexes(cip)));
     setIndexes(def, clist, cip);
     clist->fixed_indexes = true;
     if ( lock )
