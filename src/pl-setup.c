@@ -1752,10 +1752,10 @@ trim_stack(Stack s)
 
     DEBUG(MSG_SPARE_STACK, Sdprintf("Reset spare for %s (%zd->%zd)\n",
 				    s->name, s->spare, s->def_spare));
-    if ( room > 0 && room < reduce )
+    if ( room < reduce )
     { DEBUG(MSG_SPARE_STACK,
-	    Sdprintf("Only %d spare for %s-stack\n", room, s->name));
-      reduce = room;
+	    Sdprintf("Only %zd spare for %s-stack\n", room, s->name));
+      reduce = room > 0 ? room : 0;
     }
 
     s->max = addPointer(s->max, -reduce);
