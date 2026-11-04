@@ -271,6 +271,13 @@ frame(I, F) :-
 
 word_frames(2000).
 
+%   A small table with a catch-all last clause, looked up on argument 2.
+%   One clause with a variable among 7 keys used to make argument 2
+%   unindexable (`max_var_fraction`).
+
+catch_all(1,a). catch_all(2,b). catch_all(3,c). catch_all(4,d).
+catch_all(5,e). catch_all(6,f). catch_all(7,g). catch_all(8,_).
+
 test(x) :-				% must use S_LIST
     x(_,_,_,_,[]).
 test(a) :-				% must use S_LIST (test H_VOID_N)
@@ -306,6 +313,14 @@ test(word_frame, Realised == [1]) :-  % the frame index came first, so
                  I.position == [],
                  I.arguments = [A],
                  A \== 2
+               ), Realised).
+test(catch_all, Realised == [2]) :-
+    catch_all(X, g), !,
+    assertion(X == 7),
+    predicate_property(catch_all(_,_), indexed(Indexes)),
+    findall(A, ( member(I, Indexes),
+                 I.realised == true,
+                 I.arguments = [A]
                ), Realised).
 test(ix1386) :-                         % Issue #1386: primary must win over
     call_cleanup(ix1386(real, (_,_)),   % a shallow-useless deep list index

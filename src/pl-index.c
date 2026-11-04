@@ -2673,7 +2673,13 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
       a->space += a->size * SIZEOF_CREF_LIST;
     }
 
-    if ( (float)a->var_count/(float)a->size > MAX_VAR_FRAC )
+    /* Each clause with a variable is added to every bucket.  Avoid
+     * this if they are too many, unless the space this takes is at
+     * most that of the clauses, e.g., a catch-all clause at the end of
+     * a small table.  The speedup computed above includes their cost.
+     */
+    if ( (float)a->var_count/(float)a->size > MAX_VAR_FRAC &&
+	 (size_t)a->var_count*a->size > clause_count )
     { a->speedup = 0.0;
       return false;			/* not indexable */
     }
