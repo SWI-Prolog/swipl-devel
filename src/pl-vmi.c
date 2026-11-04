@@ -1783,6 +1783,7 @@ VMI(I_SSU_COMMIT, 0, 0, ())
 
   if ( !debugstatus.debugging )
   { lTop = (LocalFrame)BFR;
+    DiscardMark(BFR->mark);
     BFR = BFR->parent;
   } else
   { BFR->type = CHP_DEBUG;
@@ -4726,7 +4727,9 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 	BFR->type = CHP_DEBUG;
       else
 #endif
+      { DiscardMark(BFR->mark);
 	BFR = BFR->parent;
+      }
       FR->clause = NULL;
       VMH_GOTO(exit_checking_wakeup);
     case false:
@@ -4741,7 +4744,9 @@ VMH(I_FEXITNDET, 1, (foreign_t), (rc))
 	BFR->type = CHP_DEBUG;
       else
 #endif
+      { DiscardMark(BFR->mark);
 	BFR = BFR->parent;
+      }
       FRAME_FAILED;
     default:
     { /* TBD: call debugger */
@@ -4865,7 +4870,9 @@ END_VMI
 
 VMI(I_EXITCLEANUP, 0, 0, ())
 { while( BFR && BFR->type == CHP_DEBUG )
+  { DiscardMark(BFR->mark);
     BFR = BFR->parent;
+  }
 
   if ( BFR->frame == FR && BFR->type == CHP_CATCH )
   { DEBUG(3, Sdprintf(" --> BFR = #%zd\n", loffset(BFR->parent)));
@@ -7122,7 +7129,9 @@ VMH(debug_exit_continue, 1, (int), (action))
   }				/* is a no-op */
 
   if ( BFR && BFR->type == CHP_DEBUG && BFR->frame == FR )
+  { DiscardMark(BFR->mark);
     BFR = BFR->parent;
+  }
 
   VMH_GOTO(exit_continue);
 }
