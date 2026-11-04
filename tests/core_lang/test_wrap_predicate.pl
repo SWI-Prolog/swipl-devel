@@ -49,7 +49,8 @@ test_wrap_predicate :-
     run_tests([ wrap_meta,
                 wrap_trace_meta,
                 wrap_ssu,
-                wrap_det
+                wrap_det,
+                wrap_store
               ]).
 
 my_plus(A, B, C) :- C is A + B.
@@ -159,3 +160,61 @@ test(det_violation,
         unwrap_predicate(dp(_), mark)).
 
 :- end_tests(wrap_det).
+
+
+:- begin_tests(wrap_store).
+
+% The wrapper clause lives in '$wrap$P'.  User code that redefines or
+% retracts this predicate must not invalidate the wrapper.  Redefining
+% used to crash after clause garbage collection.
+
+:- dynamic ws/1.
+ws(1).
+
+ws_calls(N, Xs) :-
+    findall(X, (between(1, N, _), ws(X)), Xs).
+
+% Redefine '$wrap$ws'/1 from a "file", using a copy of its current
+% clause.  This is what happens if a program copies all dynamic
+% predicates of a module into a file.
+
+term_expansion(ws_copy_store, Clauses) :-
+    findall(('$wrap$ws'(X) :- B), clause('$wrap$ws'(X), B), Clauses).
+
+ws_redefine :-
+    setup_call_cleanup(
+        open_string("ws_copy_store.", In),
+        load_files(test_wrap_store_redefine,
+                   [ stream(In),
+                     module(test_wrap_predicate),
+                     silent(true)
+                   ]),
+        close(In)).
+
+test(redefine, Xs == [1,1,1]) :-
+    setup_call_cleanup(
+        wrap_predicate(ws(X), store, W, (W, integer(X))),
+        ( ws_redefine,
+          garbage_collect_clauses,
+          ws_calls(3, Xs)
+        ),
+        unwrap_predicate(ws(_), store)).
+test(retract, Xs == [1,1,1]) :-
+    setup_call_cleanup(
+        wrap_predicate(ws(X), store, W, (W, integer(X))),
+        ( retractall('$wrap$ws'(_)),
+          garbage_collect_clauses,
+          ws_calls(3, Xs)
+        ),
+        unwrap_predicate(ws(_), store)).
+test(rewrap, Xs == [1,1,1]) :-
+    setup_call_cleanup(
+        ( wrap_predicate(ws(X), store, W, (W, integer(X))),
+          wrap_predicate(ws(Y), store, W2, (W2, Y > 0))
+        ),
+        ( garbage_collect_clauses,
+          ws_calls(3, Xs)
+        ),
+        unwrap_predicate(ws(_), store)).
+
+:- end_tests(wrap_store).

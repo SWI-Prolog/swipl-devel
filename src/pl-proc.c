@@ -71,7 +71,6 @@ finding source files, etc.
 static void	resetProcedure(Procedure proc, bool isnew);
 static atom_t	autoLoader(Definition def);
 static Procedure visibleProcedure(functor_t f, Module m);
-static void	freeClauseRef(ClauseRef cref);
 static bool	setDynamicDefinition_unlocked(Definition def, bool isdyn);
 static void	registerDirtyDefinition(Definition def);
 #define registerErasedClauses(def, n) LDFUNC(registerErasedClauses, def, n)
@@ -1237,7 +1236,7 @@ newClauseRef(Clause clause, word key)
 }
 
 
-static void
+void
 freeClauseRef(ClauseRef cref)
 { Clause cl = cref->value.clause;
 

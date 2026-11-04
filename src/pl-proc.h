@@ -98,6 +98,7 @@ bool		retractClauseDefinition(Definition def, Clause clause,
 void		unallocClause(Clause c);
 void		freeClause(Clause c);
 void		lingerClauseRef(ClauseRef c);
+void		freeClauseRef(ClauseRef cref);
 void		acquire_clause(Clause cl);
 void		release_clause(Clause cl);
 ClauseRef	newClauseRef(Clause cl, word key);

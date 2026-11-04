@@ -61,6 +61,12 @@ predicate _supervisor_:
     - A supervisor running S_WRAP.
   - I_CALLN picks up call(Closure, Arg ...) and sets up a
     call using the closure's copy.
+
+The supervisor holds a private clause reference to the wrapper clause in
+'$wrap$P'.  As this clause belongs to '$wrap$P' rather than P, changes
+to '$wrap$P' such as redefining or retracting it do not reset P's
+supervisor.  The private reference keeps the clause alive.  It is
+released with the supervisor in unregisterWrappedSupervisor().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -194,9 +200,16 @@ unregisterWrappedSupervisor(Code codes)
   { atom_t aref  = (atom_t)codes[2];
     atom_t wname = (atom_t)codes[3];
 
+    freeClauseRef(code2ptr(ClauseRef, codes[1]));
     PL_unregister_atom(aref);
     PL_unregister_atom(wname);
   }
+}
+
+
+static void
+free_wrapper_cref(void *ptr)
+{ freeClauseRef(ptr);
 }
 
 
@@ -357,11 +370,13 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
       return false;
 
     if ( (cref = assert_wrapper(A5)) )
-    { Clause cl = code2ptr(ClauseRef, codes[1])->value.clause;
+    { ClauseRef old = code2ptr(ClauseRef, codes[1]);
+      Clause cl = old->value.clause;
 
-      codes[1] = ptr2code(cref);
+      codes[1] = ptr2code(newClauseRef(cref->value.clause, 0));
       codes[0] = wrapper_vmi(def, wname);
       retractClauseDefinition(cl->predicate, cl, false);
+      linger(&def->lingering, free_wrapper_cref, old);
 
       return true;
     }
@@ -380,7 +395,7 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 	PL_register_atom(wname);
 
 	codes[0] = wrapper_vmi(def, wname);
-	codes[1] = ptr2code(cref);
+	codes[1] = ptr2code(newClauseRef(cref->value.clause, 0));
 	codes[2] = (code)aref;
 	codes[3] = (code)wname;
 
