@@ -1321,52 +1321,177 @@ add_sibling_ref(node_sum *sum, call_node *sibling, int cycle)
 
 
 
-#define sumProfile(n, handle, type, sum, seen) \
-	LDFUNC(sumProfile, n, handle, type, sum, seen)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+$prof_procedure_data/9 sums the nodes of one handle.  Walking the whole
+call tree for each predicate makes collecting all data quadratic, so we
+index the tree once: for each handle the nodes in depth-first order and,
+for each node, the number of its ancestors with the same handle (`seen`,
+the cycle).  The index only depends on the shape of the tree, which only
+changes when a node is added or all nodes are freed.  It is thus valid
+as long as LD->profile.nodes is unchanged.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-sumProfile(DECL_LD call_node *n, void *handle, PL_prof_type_t *type,
-	   node_sum *sum, int seen)
-{ call_node *s;
-  int count = 0;
+typedef struct prof_occurrence
+{ call_node *node;
+  int	     seen;			/* # ancestors with the same handle */
+} prof_occurrence;
 
-  if ( n->handle == handle )
-  { if ( PL_handle_signals() < 0 )
-      return -1;
+typedef struct prof_handle_nodes
+{ struct prof_handle_nodes *next;	/* all of the index */
+  size_t	   count;		/* # occurrences */
+  size_t	   allocated;		/* allocated occurrences */
+  int		   depth;		/* building: # open nodes */
+  prof_occurrence *occurrences;
+} prof_handle_nodes;
 
-    count++;
-    sum->ticks += n->ticks;
-    add_prof_mem(&sum->mem, &n->mem);
-    if ( !seen )
-    { sum->sibling_ticks += n->sibling_ticks;
-      add_prof_mem(&sum->sibling_mem, &n->sibling_mem);
-    } else		/* nested: n's ticks are in the outer siblings */
-    { sum->sibling_ticks -= n->ticks;
-      sub_prof_mem(&sum->sibling_mem, &n->mem);
+typedef struct prof_index
+{ size_t	     nodes;		/* LD->profile.nodes when built */
+  TablePP	     table;		/* handle -> prof_handle_nodes */
+  prof_handle_nodes *all;		/* all prof_handle_nodes */
+} prof_index;
+
+#define PROF_INDEX_SIGNAL_CHECK 0xffff	/* check signals every 64K nodes */
+
+static void
+free_prof_index(prof_index *idx)
+{ if ( idx )
+  { prof_handle_nodes *h, *next;
+
+    for(h=idx->all; h; h=next)
+    { next = h->next;
+      free(h->occurrences);
+      freeHeap(h, sizeof(*h));
     }
-
-    if ( n->parent )
-      add_parent_ref(sum, n, n->parent->handle, n->parent->type, seen);
-    else
-      add_parent_ref(sum, n, DEF_SPONTANEOUS, NULL, seen);
-
-    if ( n->recur )
-      add_recursive_ref(sum, n->recur, seen);
-
-    for(s=n->siblings; s; s = s->next)
-      add_sibling_ref(sum, s, seen);
-
-    seen++;
+    if ( idx->table )
+      destroyHTablePP(idx->table);
+    freeHeap(idx, sizeof(*idx));
   }
+}
+
+#define handle_nodes(idx, handle) LDFUNC(handle_nodes, idx, handle)
+static prof_handle_nodes *
+handle_nodes(DECL_LD prof_index *idx, void *handle)
+{ prof_handle_nodes *h = lookupHTablePP(idx->table, handle);
+
+  if ( !h )
+  { h = allocHeapOrHalt(sizeof(*h));
+    memset(h, 0, sizeof(*h));
+    h->next = idx->all;
+    idx->all = h;
+    addNewHTablePP(idx->table, handle, h);
+  }
+
+  return h;
+}
+
+static bool
+add_occurrence(prof_handle_nodes *h, call_node *n)
+{ if ( h->count == h->allocated )
+  { size_t size = h->allocated ? h->allocated*2 : 4;
+    prof_occurrence *o = realloc(h->occurrences, size*sizeof(*o));
+
+    if ( !o )
+      return false;
+    h->occurrences = o;
+    h->allocated = size;
+  }
+
+  h->occurrences[h->count].node = n;
+  h->occurrences[h->count].seen = h->depth;
+  h->count++;
+
+  return true;
+}
+
+/* Get the index, building it if the tree changed.  Returns NULL with
+   an exception on a signal or when out of memory.
+*/
+
+#define get_prof_index(_) LDFUNC(get_prof_index, _)
+static prof_index *
+get_prof_index(DECL_LD)
+{ prof_index *idx = LD->profile.index;
+  size_t visited = 0;
+
+  if ( idx && idx->nodes == LD->profile.nodes )
+    return idx;
+
+  free_prof_index(idx);
+  LD->profile.index = NULL;
+  idx = allocHeapOrHalt(sizeof(*idx));
+  memset(idx, 0, sizeof(*idx));
+  idx->table = newHTablePP(64);
+
+  for(call_node *root=LD->profile.roots; root; root=root->next)
+  { call_node *n = root;
+
+    for(;;)
+    { prof_handle_nodes *h;			/* enter n */
+
+      if ( (++visited & PROF_INDEX_SIGNAL_CHECK) == 0 &&
+	   PL_handle_signals() < 0 )
+	goto error;
+      h = handle_nodes(idx, n->handle);
+      if ( !add_occurrence(h, n) )
+      { PL_no_memory();
+	goto error;
+      }
+      h->depth++;
+      if ( n->siblings )
+      { n = n->siblings;
+	continue;
+      }
+
+      for(;;)					/* leave n */
+      { h = lookupHTablePP(idx->table, n->handle);
+	h->depth--;
+	if ( n == root )
+	  goto next_root;
+	if ( n->next )
+	{ n = n->next;
+	  break;
+	}
+	n = n->parent;
+      }
+    }
+  next_root:
+    ;
+  }
+
+  idx->nodes = LD->profile.nodes;
+  LD->profile.index = idx;
+  return idx;
+
+error:
+  free_prof_index(idx);
+  return NULL;
+}
+
+
+static void
+sum_node(call_node *n, node_sum *sum, int seen)
+{ call_node *s;
+
+  sum->ticks += n->ticks;
+  add_prof_mem(&sum->mem, &n->mem);
+  if ( !seen )
+  { sum->sibling_ticks += n->sibling_ticks;
+    add_prof_mem(&sum->sibling_mem, &n->sibling_mem);
+  } else			/* nested: n's ticks are in the outer siblings */
+  { sum->sibling_ticks -= n->ticks;
+    sub_prof_mem(&sum->sibling_mem, &n->mem);
+  }
+
+  if ( n->parent )
+    add_parent_ref(sum, n, n->parent->handle, n->parent->type, seen);
+  else
+    add_parent_ref(sum, n, DEF_SPONTANEOUS, NULL, seen);
+
+  if ( n->recur )
+    add_recursive_ref(sum, n->recur, seen);
 
   for(s=n->siblings; s; s = s->next)
-  { int c = sumProfile(s, handle, type, sum, seen);
-    if ( c < 0 )
-      return c;
-    count += c;
-  }
-
-  return count;
+    add_sibling_ref(sum, s, seen);
 }
 
 
@@ -1463,24 +1588,29 @@ PRED_IMPL("$prof_procedure_data", 9, prof_procedure_data, PL_FA_TRANSPARENT)
 { PRED_LD
   void *handle;
   node_sum sum;
-  call_node *n;
+  prof_index *idx;
+  prof_handle_nodes *h;
   bool rc;
-  int count = 0;
 
   if ( !get_handle(A1, &handle) )
     return false;
 
   collectSiblingsTime();
-  memset(&sum, 0, sizeof(sum));
-  for(n=LD->profile.roots; n; n=n->next)
-  { int c = sumProfile(n, handle, &prof_default_type, &sum, 0);
-    if ( c < 0 )
-      return false;
-    count += c;
-  }
-
-  if ( count == 0 )
+  if ( !(idx = get_prof_index()) )
+    return false;
+  if ( !(h = lookupHTablePP(idx->table, handle)) )
     return false;			/* nothing known about this one */
+
+  memset(&sum, 0, sizeof(sum));
+  for(size_t i=0; i<h->count; i++)
+  { if ( (i & PROF_INDEX_SIGNAL_CHECK) == PROF_INDEX_SIGNAL_CHECK &&
+	 PL_handle_signals() < 0 )
+    { free_relatives(sum.callers);
+      free_relatives(sum.callees);
+      return false;
+    }
+    sum_node(h->occurrences[i].node, &sum, h->occurrences[i].seen);
+  }
 
   rc = ( PL_unify_uint64(A2, sum.ticks) &&
 	 PL_unify_uint64(A3, sum.sibling_ticks) &&
@@ -1520,6 +1650,33 @@ PRED_IMPL("$prof_procedure_data", 9, prof_procedure_data, PL_FA_TRANSPARENT)
 	     and reclaimed by GC while profiling and the number of
 	     garbage collections.
 */
+
+/** '$prof_procedures'(-Ids:list) is det.
+ *
+ * Ids is a list holding the identifier of each procedure or other
+ * profiled object that has a node in the call tree, in no particular
+ * order.
+ */
+
+static
+PRED_IMPL("$prof_procedures", 1, prof_procedures, 0)
+{ PRED_LD
+  prof_index *idx;
+  term_t tail = PL_copy_term_ref(A1);
+  term_t head = PL_new_term_ref();
+
+  if ( !(idx = get_prof_index()) )
+    return false;
+
+  for(prof_handle_nodes *h=idx->all; h; h=h->next)
+  { if ( !PL_unify_list(tail, head, tail) ||
+	 !unify_node_id(head, h->occurrences[0].node) )
+      return false;
+  }
+
+  return PL_unify_nil(tail);
+}
+
 
 static
 PRED_IMPL("$prof_statistics", 9, prof_statistics, 0)
@@ -2094,6 +2251,8 @@ freeProfileData(void)
   n = LD->profile.roots;
   LD->profile.roots = NULL;
   LD->profile.current = NULL;
+  free_prof_index(LD->profile.index);
+  LD->profile.index = NULL;
 
   for(; n; n=next)
   { next = n->next;
@@ -2137,6 +2296,7 @@ BeginPredDefs(profile)
   PRED_DEF("$prof_node", 8, prof_node, 0)
   PRED_DEF("$prof_sibling_of", 2, prof_sibling_of, PL_FA_NONDETERMINISTIC)
   PRED_DEF("$prof_procedure_data", 9, prof_procedure_data, PL_FA_TRANSPARENT)
+  PRED_DEF("$prof_procedures", 1, prof_procedures, 0)
   PRED_DEF("$prof_statistics", 9, prof_statistics, 0)
 #endif
 EndPredDefs

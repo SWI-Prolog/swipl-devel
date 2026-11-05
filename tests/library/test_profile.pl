@@ -51,7 +51,7 @@ CPU time.
 
 test_profile :-
     run_tests([ profile_report, profile_default, profile_exact,
-                profile_memory
+                profile_memory, profile_data
               ]).
 
 :- begin_tests(profile_report).
@@ -306,6 +306,60 @@ mem_r(L) :-
 mem_gc :-
     numlist(1, 10 000, _),
     garbage_collect.
+
+:- begin_tests(profile_data).
+
+% With ports(true), even/1 and odd/1 do not collapse into a recursive
+% node: each call is a node one level deeper.  The cycle of a relative
+% is the number of enclosing calls to the same predicate.
+
+test(cycles, Callers == [ odd/1-3-1, odd/1-2-1, odd/1-1-1,
+                          cycle_top/0-0-1 ]) :-
+    reset_profiler,
+    '$profile'(cycle_top, cputime, true, 200),
+    profile_data(Data),
+    node(Data, test_profile:even/1, Node),
+    findall(Name-Cycle-Calls,
+            ( member(node(PI, Cycle, _, _, Calls, _, _, _), Node.callers),
+              unqualify(PI, Name)
+            ),
+            Callers).
+
+% Collecting the data builds an index of the call tree.  Calls made
+% while the profiler keeps running add nodes, so the next collection
+% must see them.
+
+test(grows, [ Before == false, After == true ]) :-
+    reset_profiler,
+    profiler(_, cputime),
+    grow_a,
+    profile_data(Data1),
+    grow_b,
+    profiler(_, false),
+    profile_data(Data2),
+    has_node(Data1, test_profile:grow_b/0, Before),
+    has_node(Data2, test_profile:grow_b/0, After).
+
+:- end_tests(profile_data).
+
+cycle_top :- even(6).
+
+even(0) :- !.
+even(N) :- N > 0, N1 is N-1, odd(N1).
+
+odd(N) :- N > 0, N1 is N-1, even(N1).
+
+unqualify(test_profile:PI, PI) :- !.
+unqualify(PI, PI).
+
+grow_a.
+grow_b.
+
+has_node(Data, PI, Bool) :-
+    (   node(Data, PI, _)
+    ->  Bool = true
+    ;   Bool = false
+    ).
 
 node(Data, PI, Node) :-
     member(Node, Data.nodes),

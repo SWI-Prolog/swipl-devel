@@ -567,24 +567,8 @@ specified(Module:Head) :-
     callable(Head).
 
 profiled_predicates(Preds) :-
-    setof(Pred, prof_impl(Pred), Preds).
-
-prof_impl(Pred) :-
-    prof_node_id(Node),
-    node_id_pred(Node, Pred).
-
-prof_node_id(N) :-
-    prof_node_id_below(N, -).
-
-prof_node_id_below(N, Root) :-
-    '$prof_sibling_of'(N0, Root),
-    (   N = N0
-    ;   prof_node_id_below(N, N0)
-    ).
-
-node_id_pred(Node, Pred) :-
-    '$prof_node'(Node, Pred, _Calls, _Redos, _Exits, _Recur,
-                 _Ticks, _SiblingTicks).
+    '$prof_procedures'(Preds0),
+    sort(Preds0, Preds).
 
 %!  node_label(+Predicate, -Label) is det.
 %

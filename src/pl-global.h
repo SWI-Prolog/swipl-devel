@@ -658,6 +658,7 @@ struct PL_local_data
     uint64_t	ticks;			/* profile ticks total (nsec) */
     uint64_t	accounting_ticks;	/* Ticks in profCall() and friends */
     size_t	nodes;			/* #Recorded nodes */
+    struct prof_index *index;		/* handle -> nodes, for summing */
     int64_t	time_at_last_tick;	/* nsec since time_at_start */
     double	time_at_start;		/* Time at last start */
     double	time;			/* recorded CPU time */
