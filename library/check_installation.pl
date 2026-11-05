@@ -42,7 +42,7 @@
             test_installation/0,
             test_installation/1                 % +Options
           ]).
-:- autoload(library(apply), [maplist/2, maplist/3]).
+:- autoload(library(apply), [maplist/2, maplist/3, exclude/3]).
 :- autoload(library(archive), [archive_open/3, archive_close/1]).
 :- autoload(library(lists), [append/3, member/2]).
 :- autoload(library(occurs), [sub_term/2]).
@@ -106,6 +106,7 @@ component(library(filesex), #{}).
 component(library(http/http_stream), #{}).
 component(library(json), #{}).
 component(library(http/jquery), #{features:jquery_file}).
+component(library(graphviz), #{features:graphviz_engines}).
 component(library(isub), #{}).
 component(library(janus), #{features:python_version}).
 component(library(jpl), #{}).
@@ -484,6 +485,24 @@ python_version :-
     print_message(informational, installation(janus(Version))).
 
 
+%!  graphviz_engines
+%
+%   Report the layout engines library(graphviz) provides.  This opens
+%   all the layout plugins it found when it was built.
+
+graphviz_engines :-
+    graphviz:graphviz_engines(Engines),
+    (   memberchk(dot, Engines)
+    ->  print_message(informational, installation(graphviz(Engines)))
+    ;   print_message(warning, installation(graphviz(Engines)))
+    ).
+
+%   The nop engines only accept a graph that is laid out already.
+
+nop_engine(Engine) :-
+    sub_atom(Engine, 0, _, _, nop).
+
+
 %!  check_on_path
 %
 %   Validate that Prolog is installed in   $PATH.  Only performed if the
@@ -711,6 +730,14 @@ message(testing(no_installed_tests)) -->
     [ '  Please recompile the system with INSTALL_TESTS enabled.' ].
 message(janus(Version)) -->
     [ '  Python version ~w'-[Version] ].
+message(graphviz(Engines)) -->
+    { exclude(nop_engine, Engines, Shown),
+      atomic_list_concat(Shown, ', ', Text)
+    },
+    (   { memberchk(dot, Engines) }
+    ->  [ '  Layout engines: ~w'-[Text] ]
+    ;   [ '  Layout engines: ~w (dot is missing)'-[Text] ]
+    ).
 message(ambiguous_autoload(PI, Paths)) -->
     [ 'The predicate ~p can be autoloaded from multiple libraries:'-[PI]],
     sequence(list_file, Paths).
