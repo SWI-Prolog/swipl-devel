@@ -3056,10 +3056,22 @@ take_table_value(word value, void *ctx)
  * is the order of the atom index and else (mostly) the address of the
  * answer trie.  We use an LSD radix sort on the significant bits of the
  * value, which is much faster than qsort() for millions of values.
- * Leaves the values unsorted if there is no memory.
+ * Each pass clears and scans 2^RADIX_BITS counters though, so for fewer
+ * than RADIX_MIN_VALUES values we use qsort().  abolish_all_tables/0 on
+ * a few tables is common, e.g., in a loop.  Leaves the values unsorted
+ * if there is no memory.
  */
 
 #define RADIX_BITS 16
+#define RADIX_MIN_VALUES 16384
+
+static int
+compare_table_values(const void *p1, const void *p2)
+{ word v1 = *(const word*)p1;
+  word v2 = *(const word*)p2;
+
+  return v1 < v2 ? -1 : v1 > v2 ? 1 : 0;
+}
 
 static void
 sort_table_values(bulk_reset *br)
@@ -3068,6 +3080,10 @@ sort_table_values(bulk_reset *br)
 
   if ( br->count < 2 )
     return;
+  if ( br->count < RADIX_MIN_VALUES )
+  { qsort(br->values, br->count, sizeof(word), compare_table_values);
+    return;
+  }
   for(size_t i=0; i<br->count; i++)
   { word v = br->values[i];
 
