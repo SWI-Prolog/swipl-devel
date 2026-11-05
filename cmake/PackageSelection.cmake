@@ -109,6 +109,7 @@ set(SWIPL_PACKAGE_LIST_TIPC
     tipc)
 
 set(SWIPL_PACKAGE_LIST_GUI
+    graphviz
     xpce)
 
 set(SWIPL_PACKAGE_LIST_WASM
