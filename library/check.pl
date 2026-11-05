@@ -1102,7 +1102,10 @@ undefined_procedure(Pred-Refs) -->
     },
     predicate(Pred),
     [ ', which is referenced by', nl ],
-    referenced_by(SortedRefs).
+    referenced_by(SortedRefs),
+    !.
+undefined_procedure(Term) -->
+    [ 'Failed on ~q'-[Term] ].
 
 redefined(user, system) -->
     [ '~t~30| System predicate redefined globally' ].
