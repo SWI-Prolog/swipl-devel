@@ -8154,9 +8154,7 @@ unify_vmi(DECL_LD term_t t, Code bp)
 	case CA1_CLAUSEREF:
 	{ ClauseRef cref = code2ptr(ClauseRef, *bp++);
 
-	  rc = PL_unify_term(av+an, PL_FUNCTOR, FUNCTOR_clause1,
-			     PL_POINTER, cref->value.clause);
-
+	  rc = PL_unify_clref(av+an, cref->value.clause);
 	  break;
 	}
 	case CA1_FOREIGN:
