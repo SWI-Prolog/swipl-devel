@@ -274,3 +274,64 @@ Things that are *not* the problem, or that we keep:
 A+B+C+F are low risk and together would bring nrev from ~280 to ~220
 instr/LI and tak from ~300 to ~200: halfway to Ciao.  Getting to the
 Ciao/YAP level needs the call path (D, E, G) and probably H.
+
+## 7. Results
+
+Measured with `tmp/vm-perf/cmp/`: `allprog.sh` counts `instructions:u`
+per benchmark program (median of 3, minus a run with 0 iterations), which
+is reproducible to about 0.5%; `cmp.sh` gives exact instructions per LI
+for nrev and tak (callgrind) and cycles for the whole suite (alternating
+runs).  Each step is compared to the previous commit, built the same way.
+
+| step | commit | suite instr | nrev instr/LI | tak instr/LI | notable |
+|------|--------|------------:|--------------:|-------------:|---------|
+| B: no H_POP for last head arg | b72be18c0 | ≈−1.2%† | 281 → 259 | – | nreverse −7.6%, log10 −2.4% |
+| C: fast cut                    | 8f93c5ae3 | −1.9% | – | (296 → 272)\* | derive, log10, times10, divide10 −7…8%, ops8 −6% |
+| F: `B_UNIFY_VV` uses `do_unify()` | 05be6368e | −0.2% | – | 272 → 261\* | tak −3.8%, boyer, unify −1% |
+| F: `A_CMP_VV`, `A_CMP_VI`      | 740fb853f | −3.3% | – | 261 → 222\* | sendmore −32%, tak −16%, qsort −8% |
+| **all, against master**        |           | **−6.5%** | **281 → 259** | **296 → 222** | cycles −9% (±3%) |
+
+\* tak/LI is the micro benchmark in §4, which has a cut; the suite's
+`tak` has none.  † B was only measured on a few programs; this
+is the total divided by the other steps.
+
+Cycle counts follow the instruction counts but are noisy: the same
+binary varies by up to 3% between sessions and individual programs by
+10% or more due to code placement (e.g. `zebra` and `fib`, whose code
+is not affected, show −36% and −16%).
+
+The tests caught three places that assumed a head ends in read mode
+with `ARGP` back in the frame: GC's `setStartOfVMI()` and
+`walk_and_mark()`, the decompiler and `indexableCompound()`; all are
+fixed in the B commit.
+
+### A: one space check per clause head — not done
+
+The estimate in §6 was wrong.  A check per head or per goal's argument
+construction only saves the *second and later* checks.  Counting the
+checks with the same frame and inference count as the previous check:
+
+| program | mergeable checks/LI |
+|---------|--------------------:|
+| derive  | 1.33 |
+| unify   | 0.94 |
+| reducer | 0.90 |
+| qsort   | 0.84 |
+| chat_parser, poly_10 | 0.66 |
+| boyer   | 0.42 |
+| nreverse | 0.10 |
+
+At ~7 instructions per check that is ~3% for derive, ~2% for qsort and
+unify and ~1% on average.  It needs a reserve instruction per head and
+per goal plus unchecked variants of `H_FUNCTOR`, `H_LIST`, `B_FUNCTOR`,
+... (all known to the decompiler and GC), and the reserve must cover
+the `BIND_GLOBAL_SPACE`/`BIND_TRAIL_SPACE` margins of every binding.
+Not worth it now.
+
+### What is left
+
+After these changes nrev costs 259 instructions/LI against ~125 for
+Ciao and YAP.  The remainder is the call path (§3.3, ~85) and head
+unification (§3.1, `UMODE` in memory, generic write-mode `h_var`), and
+for unindexable predicates the generic clause selection (§4, ~60 for
+tak).  These are the candidates D, E, G and H of §6.
