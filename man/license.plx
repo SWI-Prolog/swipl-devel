@@ -93,7 +93,10 @@ Evaluate the license conditions of all loaded components.  If the system
 contains one or more components that are licensed under GPL-like
 restrictions the system indicates this program may only be distributed
 under the \const{GPL} license as well as which components prohibit the
-use of other license conditions.  Likewise for for LGPL components.
+use of other license conditions.  Likewise for LGPL components.
+Components under a \const{copyleft} license such as the EPL are listed
+separately: the copyleft of these licenses only applies to the component
+itself.
 
     \predicate{license}{2}{+LicenseId, +Component}
 Register the fact that \arg{Component} is distributed under a license
@@ -101,7 +104,13 @@ identified by \arg{LicenseId}. Known license identifiers can be listed
 using known_licenses/0. A new license can be registered as a known
 language using a declaration like below. The second argument defines the
 \jargon{category} if the license, which is one of \const{gpl},
-\const{lgpl}, \const{permissive} or \const{proprietary}.
+\const{lgpl}, \const{copyleft}, \const{permissive} or
+\const{proprietary}.  The category \const{copyleft} is for licenses
+whose copyleft is limited to the component itself, such as the Eclipse
+Public License (EPL).  The third argument is a list of properties.
+Defined are \term{comment}{Text}, \term{url}{URL} and
+\term{gpl_compatible}{false}.  The latter makes license/0 warn if the
+license is combined with a component in the \const{gpl} category.
 
 \begin{code}
 :- multifile license:license/3.

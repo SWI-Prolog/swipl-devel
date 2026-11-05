@@ -315,6 +315,10 @@ Notably
     \item \href{https://www.gtk.org/docs/architecture/pango}{Pango}
     also has the LGPL license.  It used by that graphics subsystem
     and	a core component thereof.
+    \item \href{https://graphviz.org}{Graphviz} is available under the
+    \href{https://www.eclipse.org/legal/epl-v10.html}{Eclipse Public
+    License 1.0}.  Its layout libraries are used by library(graphviz)
+    and the graph layout of the graphics subsystem.
 \end{itemize}
 
 The predicate license/0 may be used to display additional information
