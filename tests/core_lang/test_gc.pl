@@ -249,6 +249,16 @@ test(b_neq_vv, true) :-
 
 a(Y) :- length(Y,_).
 
+test(alt_last_arg, true) :-		% mark arg of alternative clause
+	alt_last_arg.			% whose last head arg is a compound
+
+alt_last_arg :- alt_mk(T), alt_p(1, T).
+
+alt_mk(T) :- numlist(1, 1000, L), atom_codes(A, "abc"), T = f(x, A-L).
+
+alt_p(_, _) :- garbage_collect, fail.
+alt_p(_, f(_, Z)) :- Z = abc-L, length(L, 1000).
+
 :- end_tests(gc_mark).
 
 

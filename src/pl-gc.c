@@ -2228,6 +2228,13 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	case B_LIST:
 	  state->adepth++;
 	  break;
+	case H_RFUNCTOR:		/* last head argument: no H_POP */
+	case H_RLIST:
+	  if ( state->adepth == 0 )
+	  { mark_argp(state);
+	    state->adepth = NO_ADEPTH;
+	  }
+	  break;
 	case H_VOID:
 	  if ( state->adepth == 0 )
 	    state->ARGP++;
@@ -2246,7 +2253,8 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	case I_ENTER:
 	case I_SSU_COMMIT:
 	case I_SSU_CHOICE:
-	  assert(state->adepth==0);
+	  assert(state->adepth == 0 || state->adepth == NO_ADEPTH);
+	  state->adepth = 0;
 	  break;
 #endif /*MARK_ALT_CLAUSES*/
     }
@@ -3687,6 +3695,13 @@ setStartOfVMI(vm_state *state)
 	case B_LIST:
 	  state->adepth++;
 	  break;
+	case H_RFUNCTOR:		/* last head argument: no H_POP */
+	case H_RLIST:
+	  if ( state->adepth == 0 )
+	  { state->argp0 = state->argp++;
+	    state->adepth = NO_ADEPTH;	/* no H_POP follows */
+	  }
+	  break;
 	case H_POP:
 	case B_POP:
 	  if ( --state->adepth == 0 )
@@ -3699,7 +3714,9 @@ setStartOfVMI(vm_state *state)
 	case I_SSU_COMMIT:
 	case I_SSU_CHOICE:
 	  state->in_body = true;
-	  assert(state->adepth==0);
+	  assert(state->adepth == 0 || state->adepth == NO_ADEPTH);
+	  state->adepth = 0;
+	  state->argp0 = NULL;
       }
     }
   }

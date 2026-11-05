@@ -2826,8 +2826,15 @@ indexableCompound(Code pc)
 	    case H_VOID:
 	    case H_VOID_N:
 	      continue;		/* Try next argument */
-	    case H_POP:
-	      return false;		/* End of argument list */
+	    case H_POP:			/* End of argument list */
+	    case I_EXITCATCH:		/* idem for an H_R* last argument */
+	    case I_EXITRESET:
+	    case I_EXITFACT:
+	    case I_EXIT:
+	    case I_ENTER:
+	    case I_SSU_COMMIT:
+	    case I_SSU_CHOICE:
+	      return false;
 	    default:
 	      return true;		/* Indexable */
 	  }

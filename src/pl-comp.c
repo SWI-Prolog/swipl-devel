@@ -2100,7 +2100,8 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 First compile  the  head  of  the  term.   The  arguments  are  compiled
-left-to-right.
+left-to-right.  A compound in the last argument is compiled as a "right"
+term (H_RFUNCTOR or H_RLIST): as nothing follows, it needs no H_POP.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
   if ( flags & (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
@@ -2111,7 +2112,9 @@ left-to-right.
     Word arg;
 
     for ( arg = argTermP(*head, 0), n = 0; n < ci->arity; n++, arg++ )
-    { if ( (rc=compileArgument(arg, A_HEAD, ci)) < 0 )
+    { int where = (n == ci->arity-1 ? A_HEAD|A_RIGHT : A_HEAD);
+
+      if ( (rc=compileArgument(arg, where, ci)) < 0 )
 	goto exit_fail;
     }
   }
@@ -6015,6 +6018,7 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
   int argn = 0;
   int pushed = 0;
   int write_bvar = false;
+  bool rlast = false;			/* in a last-arg H_R* compound */
   Definition def = clause->predicate;
 
   if ( di->bindings )
@@ -6205,6 +6209,10 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
 
 	  fdef = (functor_t) XR(*PC++);
       common_rfunctor:
+	  if ( !pushed )		/* last head argument */
+	  { pushed++;
+	    rlast = true;
+	  }
 	  TRY(PL_unify_compound(argp, fdef));
 	  get_arg_ref(argp, argp);
 	  continue;
@@ -6239,7 +6247,11 @@ decompile_head(DECL_LD Clause clause, term_t head, decompileInfo *di)
       case I_ENTER:			/* fix H_VOID, H_VOID, I_ENTER */
       case I_SSU_COMMIT:
       case I_SSU_CHOICE:
-	{ assert(argn <= di->arity);
+	{ if ( rlast )			/* ended inside last argument */
+	  { pushed--;
+	    argn++;
+	  }
+	  assert(argn <= di->arity);
 	  assert(!pushed);
 
 	  if ( argp )

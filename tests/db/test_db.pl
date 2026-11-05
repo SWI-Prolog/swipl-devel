@@ -93,6 +93,15 @@ test(cut_cond, Body = (! -> fail)) :-
 	assert(f :- (! -> fail)),
 	clause(f, Body),
 	retractall(f).
+test(last_arg_compound, Clauses =@= Expected) :-
+	Expected = [ (lac(a, f(g(X), [X|_])) :- true),
+		     (lac(b, f(_, _)) :- true),
+		     (lac(c, [Y|T]) :- lac(Y, T)),
+		     (lac(d, s(Z)) :- Z = d)
+		   ],
+	forall(member(C, Expected), assertz(C)),
+	findall((lac(A,B):-Body), clause(lac(A,B), Body), Clauses),
+	retractall(lac(_,_)).
 
 :- end_tests(assert).
 
