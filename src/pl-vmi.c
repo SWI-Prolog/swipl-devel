@@ -2687,6 +2687,12 @@ VMI(I_CUT, VIF_BREAK, 0, ())
     VMH_GOTO(debug_cut_call_continue, action);
   } else
 #endif
+  if ( BFR->frame == FR && (LocalFrame)BFR->parent <= FR )
+  { DiscardMark(BFR->mark);		/* only our own choice: no frames */
+    BFR = BFR->parent;			/* to discard (discardChoicesAfter()) */
+    lTop = (LocalFrame) argFrameP(FR, CL->value.clause->variables);
+    ARGP = argFrameP(lTop, 0);
+  } else
   { SAVE_REGISTERS(QID);
     discardChoicesAfter(FR, FINISH_CUT);
     LOAD_REGISTERS(QID);
