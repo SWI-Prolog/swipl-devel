@@ -75,6 +75,7 @@ COLD bool		det_goal_error(LocalFrame fr, Code PC,
 			       atom_t found);
 Code		skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid);
 bool		argKey(Code PC, size_t skip, word *key);
+functor_t	cmpFunctor(int cmp);
 bool		arg1Key(Code PC, word *key);
 const Code	prevPC(const Clause clause, const Code pc);
 bool		decompile(Clause clause, term_t term, term_t bindings);

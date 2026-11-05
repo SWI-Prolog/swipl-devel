@@ -4278,6 +4278,95 @@ VMI(A_NE, VIF_BREAK, 0, ())		/* A \=:= B */
 }
 END_VMI
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+A_CMP_VV <cmp> <var1> <var2> and A_CMP_VI <cmp> <var> <int> compile
+Var1 <cmp> Var2 and Var <cmp> SmallInt, where <cmp> is one of LT, GT,
+LE, GE, NE or EQ.  Small integers are compared inline.  Anything else is
+handled by a_cmp_slow, which evaluates the arguments as compareNumbers()
+does for the predicates.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define CMP_SMALLINT(cmp, i1, i2) \
+  switch(cmp) \
+  { case LT: if ( i1 <  i2 ) NEXT_INSTRUCTION; break; \
+    case GT: if ( i1 >  i2 ) NEXT_INSTRUCTION; break; \
+    case LE: if ( i1 <= i2 ) NEXT_INSTRUCTION; break; \
+    case GE: if ( i1 >= i2 ) NEXT_INSTRUCTION; break; \
+    case NE: if ( i1 != i2 ) NEXT_INSTRUCTION; break; \
+    case EQ: if ( i1 == i2 ) NEXT_INSTRUCTION; break; \
+  } \
+  FASTCOND_FAILED
+
+VMI(A_CMP_VV, VIF_BREAK, 3, (CA1_INTEGER,CA1_VAR,CA1_VAR))
+{ Word p1 = varFrameP(FR, PC[1]);
+  Word p2 = varFrameP(FR, PC[2]);
+
+  deRef(p1);
+  deRef(p2);
+  if ( likely(isTaggedInt(*p1) && isTaggedInt(*p2)) )
+  { int cmp = (int)PC[0];
+    sword i1 = valInt(*p1);
+    sword i2 = valInt(*p2);
+
+    PC += 3;
+    CMP_SMALLINT(cmp, i1, i2);
+  }
+
+  VMH_GOTO(a_cmp_slow, true);
+}
+END_VMI
+
+VMI(A_CMP_VI, VIF_BREAK, 3, (CA1_INTEGER,CA1_VAR,CA1_INTEGER))
+{ Word p1 = varFrameP(FR, PC[1]);
+
+  deRef(p1);
+  if ( likely(isTaggedInt(*p1)) )
+  { int cmp = (int)PC[0];
+    sword i1 = valInt(*p1);
+    sword i2 = (sword)(scode)PC[2];
+
+    PC += 3;
+    CMP_SMALLINT(cmp, i1, i2);
+  }
+
+  VMH_GOTO(a_cmp_slow, false);
+}
+END_VMI
+
+/* PC points at the <cmp> argument of A_CMP_VV or A_CMP_VI */
+
+VMH(a_cmp_slow, 1, (bool), (isvv))
+{ int cmp = (int)PC[0];
+  fid_t fid;
+  bool rc;
+
+  SAVE_REGISTERS(QID);
+  if ( (fid = PL_open_foreign_frame()) )
+  { term_t t1 = consTermRef(varFrameP(FR, PC[1]));
+    term_t t2;
+
+    if ( isvv )
+    { t2 = consTermRef(varFrameP(FR, PC[2]));
+      rc = true;
+    } else
+    { rc = ( (t2 = PL_new_term_ref()) &&
+	     PL_put_int64(t2, (int64_t)(scode)PC[2]) );
+    }
+    rc = rc && compareNumbers(t1, t2, cmp);
+    PL_close_foreign_frame(fid);
+  } else
+    rc = false;
+  LOAD_REGISTERS(QID);
+  PC += 3;
+
+  if ( rc )
+    NEXT_INSTRUCTION;
+  if ( exception_term )
+    THROW_EXCEPTION;
+  FASTCOND_FAILED;
+}
+END_VMH
+
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 A_IS: Translation of is/2. The stack has two pushed values: the variable

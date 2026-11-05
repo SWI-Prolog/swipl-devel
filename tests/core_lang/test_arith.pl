@@ -1090,6 +1090,60 @@ char_var_is(C, X) :-
 char_const(X) :-
 	X =:= [0'a].
 
+% Comparing two variables or a variable and a small integer is compiled
+% to A_CMP_VV and A_CMP_VI.  Small integers are compared inline, other
+% values are evaluated.
+
+test(cmp_vv, L == [ t,f,t, f,t,f, f,t,t,
+		    f,t,f, f,t,t, f,t,f ]) :-
+	findall(R,
+		( member(X-Y, [1-2, 2-1, 2-2, 2.5-1, 1-1.0,
+			       100000000000000000000-1]),
+		  member(C, [lt, ge, le]),
+		  (cmp_vv(C, X, Y) -> R = t ; R = f)
+		), L0),
+	L0 = L.
+test(cmp_vv_eval) :-
+	cmp_vv(lt, 1, 1+2),
+	cmp_vv(eq, 1+1, 2),
+	\+ cmp_vv(ne, 2.0, 2),
+	cmp_vv(gt, 3, 2).
+test(cmp_vv_unbound, error(instantiation_error)) :-
+	cmp_vv(lt, _, 1).
+test(cmp_vv_type, error(type_error(evaluable, a/0))) :-
+	cmp_vv(lt, 1, a).
+test(cmp_vi, L == [f,f,t,t,t]) :-
+	findall(R,
+		( member(X, [-1, 0, 1, 0.5, 100000000000000000000]),
+		  (cmp_vi_pos(X) -> R = t ; R = f)
+		), L).
+test(cmp_vi_neg) :-
+	cmp_vi_neg(-6),
+	\+ cmp_vi_neg(-5),
+	cmp_vi_neg(-5.5).
+test(cmp_vi_unbound, error(instantiation_error)) :-
+	cmp_vi_pos(_).
+test(cmp_cond, L == [lt,eq,gt,lt]) :-
+	findall(R, (member(X-Y, [1-2, 2-2, 3-2, 1.0-2]), cmp_cond(X, Y, R)), L).
+
+cmp_vv(lt, X, Y) :- X < Y.
+cmp_vv(gt, X, Y) :- X > Y.
+cmp_vv(le, X, Y) :- X =< Y.
+cmp_vv(ge, X, Y) :- X >= Y.
+cmp_vv(eq, X, Y) :- X =:= Y.
+cmp_vv(ne, X, Y) :- X =\= Y.
+
+cmp_vi_pos(X) :- X > 0.
+cmp_vi_neg(X) :- X < -5.
+
+cmp_cond(X, Y, R) :-
+	(   X < Y
+	->  R = lt
+	;   X =:= Y
+	->  R = eq
+	;   R = gt
+	).
+
 :- end_tests(arith_misc).
 
 :- pop_prolog_flag(plunit_load).

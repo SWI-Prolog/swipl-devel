@@ -2918,6 +2918,8 @@ try_fast_condition(CompileInfo ci, size_t tc_or)
       case A_GE:
       case A_EQ:
       case A_NE:
+      case A_CMP_VV:
+      case A_CMP_VI:
 	break;
       default:
 	return false;
@@ -3929,17 +3931,57 @@ arithCompilable(DECL_LD Word arg)
 }
 
 
+#define arithVarOffset(arg, ci, offp) \
+	LDFUNC(arithVarOffset, arg, ci, offp)
+static int arithVarOffset(DECL_LD Word arg, compileInfo *ci, int *offp);
+
+/* Compile Var1 <cmp> Var2 and Var <cmp> SmallInt as A_CMP_VV and
+ * A_CMP_VI.  Returns true if compiled, false if not and -1 on an error.
+ */
+
+#define compileArithCmpVar(arg, cmp, ci) \
+	LDFUNC(compileArithCmpVar, arg, cmp, ci)
+
+static int
+compileArithCmpVar(DECL_LD Word arg, int cmp, compileInfo *ci)
+{ Word a1 = argTermP(*arg, 0);
+  Word a2 = a1+1;
+  int i1, i2, rc;
+
+  deRef(a1);
+  deRef(a2);
+  if ( (rc=arithVarOffset(a1, ci, &i1)) != true )
+    return rc;
+  if ( (rc=arithVarOffset(a2, ci, &i2)) == true )
+  { Output_3(ci, A_CMP_VV, cmp, VAROFFSET(i1), VAROFFSET(i2));
+    return true;
+  }
+  if ( rc < 0 )
+    return rc;
+  if ( isTaggedInt(*a2) )
+  { sword i = valInt(*a2);
+
+    if ( (scode)i == i )
+    { Output_3(ci, A_CMP_VI, cmp, VAROFFSET(i1), (code)i);
+      return true;
+    }
+  }
+
+  return false;
+}
+
 static boolex_t
 compileArith(DECL_LD Word arg, compileInfo *ci)
 { code a_func;
+  int cmp;
   functor_t fdef = functorTerm(*arg);
 
-  if      ( fdef == FUNCTOR_ar_equals2 )	a_func = A_EQ;	/* =:= */
-  else if ( fdef == FUNCTOR_ar_not_equal2 )	a_func = A_NE;	/* =\= */
-  else if ( fdef == FUNCTOR_smaller2 )		a_func = A_LT;	/* < */
-  else if ( fdef == FUNCTOR_larger2 )		a_func = A_GT;	/* > */
-  else if ( fdef == FUNCTOR_smaller_equal2 )	a_func = A_LE;	/* =< */
-  else if ( fdef == FUNCTOR_larger_equal2 )	a_func = A_GE;	/* >= */
+  if      ( fdef == FUNCTOR_ar_equals2 )	a_func = A_EQ, cmp = EQ; /* =:= */
+  else if ( fdef == FUNCTOR_ar_not_equal2 )	a_func = A_NE, cmp = NE; /* =\= */
+  else if ( fdef == FUNCTOR_smaller2 )		a_func = A_LT, cmp = LT; /* < */
+  else if ( fdef == FUNCTOR_larger2 )		a_func = A_GT, cmp = GT; /* > */
+  else if ( fdef == FUNCTOR_smaller_equal2 )	a_func = A_LE, cmp = LE; /* =< */
+  else if ( fdef == FUNCTOR_larger_equal2 )	a_func = A_GE, cmp = GE; /* >= */
   else if ( fdef == FUNCTOR_is2 )				/* is */
   { size_t tc_a1 = PC(ci);
     code isvar;
@@ -3967,6 +4009,10 @@ compileArith(DECL_LD Word arg, compileInfo *ci)
     fail;
   }
 
+  int rc;
+  if ( (rc=compileArithCmpVar(arg, cmp, ci)) )
+    return rc > 0;
+
   Output_0(ci, A_ENTER);
   if ( !compileArithArgument(argTermP(*arg, 0), ci) ||
        !compileArithArgument(argTermP(*arg, 1), ci) )
@@ -3978,8 +4024,21 @@ compileArith(DECL_LD Word arg, compileInfo *ci)
 }
 
 
-#define arithVarOffset(arg, ci, offp) \
-	LDFUNC(arithVarOffset, arg, ci, offp)
+/* The comparison functor for the `cmp` operand of A_CMP_VV and A_CMP_VI
+ */
+
+functor_t
+cmpFunctor(int cmp)
+{ switch(cmp)
+  { case LT: return FUNCTOR_smaller2;
+    case GT: return FUNCTOR_larger2;
+    case LE: return FUNCTOR_smaller_equal2;
+    case GE: return FUNCTOR_larger_equal2;
+    case NE: return FUNCTOR_ar_not_equal2;
+    case EQ: return FUNCTOR_ar_equals2;
+    default: assert(0); return 0;
+  }
+}
 
 static int /* true, false, -1 (error) */
 arithVarOffset(DECL_LD Word arg, compileInfo *ci, int *offp)
@@ -6813,6 +6872,18 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 	case A_GE:	    f = FUNCTOR_larger_equal2;	goto f_common;
 	case A_EQ:	    f = FUNCTOR_ar_equals2;	goto f_common;
 	case A_NE:	    f = FUNCTOR_ar_not_equal2;	goto f_common;
+	case A_CMP_VV:
+	case A_CMP_VI:
+			  { int cmp = (int)*PC++;
+
+			    *ARGP++ = makeVarRef((int)*PC++);
+			    if ( op == A_CMP_VV )
+			      *ARGP++ = makeVarRef((int)*PC++);
+			    else
+			      *ARGP++ = consInt((sword)(scode)*PC++);
+			    f = cmpFunctor(cmp);
+			    goto f_common;
+			  }
 	case A_FIRSTVAR_IS:
 			  { size_t index;
 			    index = *PC++;

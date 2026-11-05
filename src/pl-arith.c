@@ -641,8 +641,7 @@ ar_compare(Number n1, Number n2, int what)
 }
 
 
-#define compareNumbers(n1, n2, what) LDFUNC(compareNumbers, n1, n2, what)
-static foreign_t
+bool
 compareNumbers(DECL_LD term_t n1, term_t n2, int what)
 { AR_CTX
   number left, right;

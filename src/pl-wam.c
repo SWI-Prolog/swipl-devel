@@ -1371,6 +1371,27 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       return true;
     }
+    case A_CMP_VV:
+    case A_CMP_VI:
+    { Word gt       = allocGlobal(3+2);		/* call(A <cmp> B) */
+      LocalFrame fr = (LocalFrame)valTermRef(frref);
+      Word A        = varFrameP(fr, (int)PC[2]);
+
+      if ( !gt )
+	return false;
+
+      gt[0] = cmpFunctor((int)PC[1]);
+      unify_gl(&gt[1], A, has_firstvar);
+      if ( op == A_CMP_VV )
+	unify_gl(&gt[2], varFrameP(fr, (int)PC[3]), has_firstvar);
+      else
+	gt[2] = consInt((sword)(scode)PC[3]);
+      gt[3] = FUNCTOR_call1;
+      gt[4] = consCompound(&gt[0]);
+      *valTermRef(t) = consCompound(&gt[3]);
+
+      return true;
+    }
     case I_CUT:
       return PL_put_atom(t, ATOM_cut);
     case I_ENTER:

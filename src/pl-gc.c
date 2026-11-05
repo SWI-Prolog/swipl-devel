@@ -2118,6 +2118,12 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
 	clear_frame_var(state, PC[0], PC);
 	mark_frame_var(state, PC[1]);
 	break;
+      case A_CMP_VV:			/* <cmp> Var1 Var2 */
+	mark_frame_var(state, PC[2]);
+	/*FALLTHROUGH*/
+      case A_CMP_VI:			/* <cmp> Var Int */
+	mark_frame_var(state, PC[1]);
+	break;
       case B_UNIFY_VV:
       case B_EQ_VV:
       case B_NEQ_VV:

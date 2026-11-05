@@ -53,6 +53,7 @@
 #define	ar_func_n(findex, argc)		LDFUNC(ar_func_n, findex, argc)
 #define	valueExpression(p, n)		LDFUNC(valueExpression, p, n)
 #define evalExpression(expr, result)	LDFUNC(evalExpression, expr, result)
+#define compareNumbers(n1, n2, what)	LDFUNC(compareNumbers, n1, n2, what)
 #define	arithChar(p)			LDFUNC(arithChar, p)
 #define	getCharExpression(p, r)		LDFUNC(getCharExpression, p, r)
 #define	growArithStack(_)		LDFUNC(growArithStack, _)
@@ -75,6 +76,7 @@ bool		ar_func_n(int findex, int argc);
 bool		ar_add_si(Number n, long add);
 bool		valueExpression(term_t p, Number n);
 bool		evalExpression(term_t p, Number n);
+bool		compareNumbers(term_t n1, term_t n2, int what);
 bool		toIntegerNumber(Number n, int flags);
 int		arithChar(Word p);
 int		getCharExpression(Word p, Number r);
