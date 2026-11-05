@@ -137,7 +137,9 @@ vvtag()
   esac
 }
 
-if [ -z "$vto" ]; then
+if [ -z "$vfrom" ]; then		# ..to: all history up to to
+  opt=$(vvtag $vto)
+elif [ -z "$vto" ]; then
   opt=$(vvtag $vfrom)..
 else
   opt="$(vvtag $vfrom)..$(vvtag $vto)"
@@ -225,8 +227,8 @@ if [ "$modules" = true ]; then
     else
       mto=$(mtag HEAD $d)
     fi
-    if [ ! -z "$mfrom" -a ! -z "$mto" ]; then
-      subopts=$mfrom..$mto
+    if [ ! -z "$mto" ]; then
+      subopts=$mfrom..$mto		# new submodule: ..$mto, all history
 
       if $0 --dir="$d" --quiet "$subopts"; then
 	echo
