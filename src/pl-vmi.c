@@ -1316,6 +1316,16 @@ VMI(B_UNIFY_VV, VIF_BREAK, 2, (CA1_VAR,CA1_VAR))
     VMH_GOTO(debug_equals2);
   }
 
+  if ( LD->prolog_flag.occurs_check == OCCURS_CHECK_FALSE )
+  { rc = do_unify(v1, v2);		/* as H_VAR: on a stack overflow */
+    if ( rc == true )			/* retry, protected for GC */
+    { CHECK_WAKEUP;
+      NEXT_INSTRUCTION;
+    }
+    if ( rc == false )
+      BODY_FAILED;
+  }
+
   SAVE_REGISTERS(QID);
   rc = unify_ptrs(v1, v2, ALLOW_GC|ALLOW_SHIFT);
   LOAD_REGISTERS(QID);
