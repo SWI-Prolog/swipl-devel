@@ -119,6 +119,7 @@ HARFBUZZ_VERSION=14.6.0
 CAIRO_VERSION=1.18.6
 PANGO_VERSION=1.58.2
 FFMPEG_VERSION=8.1.3
+GRAPHVIZ_VERSION=16.1.0
 SRT_VERSION=1.5.7
 
 # SRT for ffmpeg: `WITH_SRT=yes . macos-deps.sh'
@@ -478,6 +479,14 @@ download_ffmpeg()
   unpack ffmpeg-$FFMPEG_VERSION.tar.xz ffmpeg-$FFMPEG_VERSION
 }
 
+# The release tarballs are in GitLab's generic package registry.
+
+download_graphviz()
+{ fetch https://gitlab.com/api/v4/projects/4207231/packages/generic/graphviz-releases/$GRAPHVIZ_VERSION/graphviz-$GRAPHVIZ_VERSION.tar.xz \
+	graphviz-$GRAPHVIZ_VERSION.tar.xz &&
+  unpack graphviz-$GRAPHVIZ_VERSION.tar.xz graphviz-$GRAPHVIZ_VERSION
+}
+
 download_prerequisites()
 { for d in "${DEPS_LIBS[@]}" "${DEPS_LIBS_UNIVERSAL[@]}"; do
       echo "*** downloading $d"
@@ -675,6 +684,58 @@ build_pango()
       -Dbuild-testsuite=false -Dbuild-examples=false
 }
 
+# Graphviz: only the libraries (cdt, cgraph, pathplan, xdot, gvc) and the
+# dot and neato layout plugins.  The release tarball ships autotools (the
+# CMake build exists only in git), so it is built per architecture.  No
+# renderers, no text layout (pango/cairo would be found in the staging
+# tree, so they are switched off explicitly), no ltdl: the plugins are
+# loaded by the caller (gvAddLibrary).  expat (HTML-like labels) comes
+# from the SDK: there is no expat.pc, so configure falls back to expat.h
+# and -lexpat, which resolve to the SDK's copy and /usr/lib/libexpat.1.dylib.
+#
+# Without GTS, neato loses overlap=prism (falls back to Voronoi) and
+# routing multi-edges as separate splines; sfdp loses the triangle/rng
+# smoothing modes and prism overlap removal.
+#
+# We build all of lib/ (simplest; the convenience libraries are linked into
+# libgvc and the plugins) but install only what is listed below: no gvpr,
+# no command-line tools.  The grammar/scanner are pre-generated in the
+# tarball, so the CLT's ancient bison is never run.
+
+GRAPHVIZ_INSTALL_DIRS=(lib/cdt lib/cgraph lib/pathplan lib/xdot lib/common
+		       lib/pack lib/gvc plugin/dot_layout plugin/neato_layout)
+
+build_graphviz()
+{ ( set -e
+    cd "$DEPS_SRC/graphviz-$GRAPHVIZ_VERSION"
+    rm -rf "build-$DEPS_ARCH"
+    mkdir -p "build-$DEPS_ARCH"
+    cd "build-$DEPS_ARCH"
+    ../configure --prefix="$DEPS" --disable-static --enable-shared \
+	--disable-ltdl --disable-ltdl-install --disable-man-pdfs \
+	--disable-swig --disable-sharp --disable-d --disable-go \
+	--disable-guile --disable-java --disable-javascript --disable-lua \
+	--disable-perl --disable-php --disable-python --disable-python3 \
+	--disable-r --disable-ruby --disable-tcl \
+	--with-expat --without-x --without-quartz --without-gdiplus \
+	--without-pangocairo --without-freetype2 --without-libgd \
+	--without-webp --without-poppler --without-rsvg --without-ghostscript \
+	--without-lasi --without-gdk --without-gdk-pixbuf --without-gtk \
+	--without-gtkgl --without-gtkglext --without-glade --without-qt \
+	--without-glut --without-gts --without-ann --without-devil \
+	--without-aalib --without-smyrna \
+	--with-sfdp --with-ortho --with-digcola --with-ipsepcola
+    grep -q '^#define HAVE_EXPAT 1' config.h ||
+	{ echo "graphviz: expat not found"; exit 1; }
+    make -j$NPROC -C lib
+    make -j$NPROC -C plugin/dot_layout
+    make -j$NPROC -C plugin/neato_layout
+    for d in "${GRAPHVIZ_INSTALL_DIRS[@]}"; do
+	make -C "$d" install DESTDIR="$DEPS_STAGE"
+    done
+  )
+}
+
 ################################################################
 # Building, universal in one pass (CMake projects)
 ################################################################
@@ -838,7 +899,7 @@ build_emacs_header()
 ################################################################
 
 DEPS_LIBS=(zlib libpng libffi libpcre2 gmp ssl libarchive libdb odbc libuuid
-	   libyaml pixman glib fribidi harfbuzz cairo pango)
+	   libyaml pixman glib fribidi harfbuzz cairo pango graphviz)
 [ "$WITH_SRT" = yes ] && DEPS_LIBS+=(srt)
 DEPS_LIBS+=(ffmpeg)			# after ssl, zlib and srt
 DEPS_LIBS_UNIVERSAL=(utf8proc sdl3 sdl3_image sdl3_sound)
@@ -1071,7 +1132,8 @@ clean_prerequisites()
 	   SDL3_sound-$SDL3_SOUND_VERSION \
 	   pixman-$PIXMAN_VERSION glib-$GLIB_VERSION \
 	   fribidi-$FRIBIDI_VERSION harfbuzz-$HARFBUZZ_VERSION \
-	   cairo-$CAIRO_VERSION pango-$PANGO_VERSION
+	   cairo-$CAIRO_VERSION pango-$PANGO_VERSION \
+	   graphviz-$GRAPHVIZ_VERSION
     clean_builds
   )
 }
