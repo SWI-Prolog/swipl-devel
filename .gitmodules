@@ -118,3 +118,6 @@
 [submodule "packages/json"]
 	path = packages/json
 	url = ../packages-json.git
+[submodule "packages/graphviz"]
+	path = packages/graphviz
+	url = ../packages-graphviz
