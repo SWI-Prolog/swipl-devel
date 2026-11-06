@@ -248,6 +248,13 @@ colour(xref_not_called,                 tomato).
 colour(xref_header_foreground,          black).
 colour(xref_header_background,          khaki3).
 
+% Predicate info sheet and exception editor
+
+colour(predicate_info_header_foreground, black).
+colour(predicate_info_header_background, khaki3).
+colour(exception_header_foreground,     black).
+colour(exception_header_background,     khaki3).
+
 % Thread monitor
 
 colour(thread_graph_local,              dodger_blue).
