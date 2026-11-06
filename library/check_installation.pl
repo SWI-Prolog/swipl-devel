@@ -491,7 +491,7 @@ python_version :-
 %   all the layout plugins it found when it was built.
 
 graphviz_engines :-
-    graphviz:graphviz_engines(Engines),
+    findall(Engine, graphviz:graphviz_engine(Engine), Engines),
     (   memberchk(dot, Engines)
     ->  print_message(informational, installation(graphviz(Engines)))
     ;   print_message(warning, installation(graphviz(Engines)))
