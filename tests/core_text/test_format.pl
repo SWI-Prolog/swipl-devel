@@ -71,6 +71,29 @@ test(gmp, S == "0") :-
     format(string(S), '~d', [(2^63>>38)mod 2^24]).
 test(asterisk, error(format_argument_type(*, -1))) :-
     format('~t~*|', [-1]).
+test(arg_overflow, error(format('argument overflow'))) :-
+    format(string(_), '~4294967306d', [1]).	% used to wrap to 10
+test(precision_too_large, error(format('precision too large'))) :-
+    format(string(_), '~1000001e', [1r3]).
+test(precision_too_large, error(format('precision too large'))) :-
+    format(string(_), '~1000001d', [1]).
+test(repeat_too_large, error(format('repeat count too large'))) :-
+    format(string(_), '~*c', [1000001, 0'a]).
+test(repeat_too_large, error(format('repeat count too large'))) :-
+    format(string(_), '~1000001n', []).
+test(column_too_large, error(format('column too large'))) :-
+    format(string(_), '~a~1000001|', [a]).
+test(column_too_large, error(format('column too large'))) :-
+    format(string(_), '~a~1000000+~1000000+', [a]).
+test(digit_group, X == '1_00000000000000000000') :-
+    format(atom(X), '~20I', [10^20]).
+test(digit_group, X == '1_000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000') :-
+    format(atom(X), '~126I', [10^126]).
+test(digit_group, error(format('invalid digit group size'))) :-
+    format(atom(_), '~259I', [1]).		% used to group by 3
+test(column_max, L == 1000000) :-
+    format(string(S), '~a~t~1000000|', [a]),
+    string_length(S, L).
 test(intD_1, X == '1,000') :-
     format(atom(X), '~D', [1000]).
 test(intD_2, X == '10.00') :-
