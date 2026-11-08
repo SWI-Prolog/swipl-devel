@@ -69,6 +69,8 @@ PRED_IMPL("$length", 2, dlength, 0)
     { Word p;
       term_t list = PL_new_term_ref();
 
+      if ( (size_t)len > SIZE_MAX/(3*sizeof(word)) ) /* len*3 overflows */
+	return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
       if ( !ensureGlobalSpace(len*3, ALLOW_GC) )
 	return false;
 

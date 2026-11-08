@@ -135,11 +135,11 @@ test(floor_2, A == 9223372036854775808) :-
     A is floor(9223372036854775808.000000).
 test(ceil_2, A == 9223372036854775808) :-
     A is ceil(9223372036854775808.000000).
+test(round_2, A == 9223372036854775808) :-
+    A is round(9223372036854775808.000000).
+test(integer_2, A == 9223372036854775808) :-
+    A is integer(9223372036854775808.000000).
 :- endif.
-test(round_2, A == 9223372036854775807) :-
-    A is round(9223372036854775807.000000).
-test(integer_2, A == 9223372036854775807) :-
-    A is integer(9223372036854775807.000000).
 test(int_1) :-
     A is 1<<31, integer(A).
 test(cmp_1) :-
@@ -271,6 +271,14 @@ test(huge_exponent,
        Error = resource_error(_)
      ]) :-
 	catch(_ is 2^4294967296, error(Error, _), true).
+% -9223372036854775808 as exponent used to crash
+test(minint_exponent,
+     [ setup(( current_prolog_flag(stack_limit, Old),
+	       set_prolog_flag(stack_limit, 100 000 000) )),
+       cleanup(set_prolog_flag(stack_limit, Old)),
+       Error = resource_error(_)
+     ]) :-
+	catch(_ is 3^ -9223372036854775808, error(Error, _), true).
 
 :- endif.
 
@@ -289,7 +297,17 @@ test(shift_right_large, X == 0) :-
 	X is 5>>(1<<100).
 test(shift_left_large, X == -18446744073709551616) :-
 	X is (-1<<40)<<24.
+test(shift_right_large, X == -1) :-
+	X is -5>>(1<<100).
+test(shift_right_large, X == -1) :-
+	X is -(1<<100)>>(1<<100).
+test(shift_left_negative, X == -1) :-
+	X is -5<<(-(1<<100)).
 :- endif.
+test(shift_minint, X == 0) :-
+	X is 5 << -9223372036854775808.
+test(shift_minint, X == -1) :-
+	X is -5 << -9223372036854775808.
 
 :- end_tests(shift).
 
@@ -781,8 +799,8 @@ test(half_down, N == 0) :-
 	X is nexttoward(0.5,-10), N is round(X).
 test(nhalf_up, N == 0) :-
 	X is nexttoward(-0.5,10), N is round(X).
-test(maxint, A == 9223372036854775807 ) :-
-	A is round(9223372036854775807.000000).
+test(maxint, A == 9223372036854774784 ) :-	% largest float < 2^63
+	A is round(9223372036854774784.000000).
 test(minint, A == -9223372036854775808 ) :-
 	A is round(-9223372036854775808.000000).
 

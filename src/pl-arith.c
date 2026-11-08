@@ -1357,7 +1357,7 @@ toIntegerNumber(Number n, int flags)
     case V_FLOAT:
       if ( !check_float(n) )
 	return false;
-      if ( (flags & TOINT_CONVERT_FLOAT) )
+      if ( (flags & TOINT_CONVERT_FLOAT) && isfinite(n->value.f) )
       { if ( double_in_int64_range(n->value.f) )
 	{ int64_t l = (int64_t)n->value.f;
 
@@ -1667,11 +1667,11 @@ check_int_bits(uint64_t bits)
 
 
 static int
-shift_to_far(Number shift, Number r, int dir)
+shift_to_far(Number n, Number shift, Number r, int dir)
 { if ( ar_sign_i(shift) * dir < 0 )	/* << */
   { return int_too_big();
-  } else
-  { r->value.i = 0;
+  } else				/* >>: rounds towards -inf */
+  { r->value.i = (ar_sign_i(n) < 0 ? -1 : 0);
     r->type = V_INTEGER;
 
     return true;
@@ -1699,7 +1699,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   { case V_INTEGER:
       if ( n2->value.i < LONG_MIN  ||
 	   n2->value.i > LONG_MAX )
-	return shift_to_far(n2, r, dir);
+	return shift_to_far(n1, n2, r, dir);
       else
 	shift = (long)n2->value.i;
       break;
@@ -1707,7 +1707,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     case V_MPZ:
       if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 ||
 	   mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	return shift_to_far(n2, r, dir);
+	return shift_to_far(n1, n2, r, dir);
       else
 	shift = mpz_get_si(n2->value.mpz);
       break;
@@ -1718,7 +1718,9 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   }
 
   if ( shift < 0 )
-  { shift = -shift;
+  { if ( shift == LONG_MIN )		/* -shift is undefined */
+      return shift_to_far(n1, n2, r, dir);
+    shift = -shift;
     dir = -dir;
   }
 
@@ -2350,9 +2352,9 @@ get_int_exponent(Number n, uint64_t *expp)
   }
 
   if ( i < 0 )
-  { i = -i;
-    if ( i < 0 )
+  { if ( i == INT64_MIN )		/* -i is undefined */
       return int_too_big();
+    i = -i;
   }
 
   if ( !FITS_ULONG(i) )			/* GMP exponents are unsigned long */
@@ -2482,8 +2484,12 @@ ar_pow(Number n1, Number n2, Number r)
     { case V_INTEGER:
       { int64_t v = n1->value.i;
 
-	if ( v < 0 ) v = -v;
-	op1_bits = MSB64(v)+1;		/* # bits, as mpz_sizeinbase() */
+	if ( v == PLMININT )		/* -v is undefined */
+	{ op1_bits = sizeof(v)*8;
+	} else
+	{ if ( v < 0 ) v = -v;
+	  op1_bits = MSB64(v)+1;	/* # bits, as mpz_sizeinbase() */
+	}
 	break;
       }
 #ifdef O_BIGNUM
@@ -4070,7 +4076,8 @@ ar_integer(Number n1, Number r)
 	return true;
       }
 
-      if ( n1->value.f <= (float)PLMAXINT && n1->value.f >= (float)PLMININT )
+      /* (double)PLMAXINT rounds up to 2^63, which does not fit */
+      if ( n1->value.f < -(double)PLMININT && n1->value.f >= (double)PLMININT )
       {
 #if SIZEOF_LONG == 8
 	r->value.i = lround(n1->value.f);

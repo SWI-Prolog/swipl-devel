@@ -292,7 +292,7 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
     size_t alloc0 = base-ctx->alloc_buf;
 
     if ( alloc0 + base[0] == ctx->allocated ) /* at the top */
-    { if ( alloc0+fastunits-1 <= GMP_STACK_ALLOC )
+    { if ( alloc0+fastunits <= GMP_STACK_ALLOC )
       { base[0] = fastunits;		      /* and still fits */
 	ctx->allocated = alloc0+fastunits;
 	return ptr;
@@ -304,7 +304,7 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 
     void *new = mp_alloc(newsize);
     if ( new )
-    { size_t cp = base[0]*sizeof(size_t);
+    { size_t cp = (base[0]-1)*sizeof(size_t); /* excl. header */
       if ( newsize < cp )
 	cp = newsize;
       memcpy(new, ptr, cp);

@@ -201,6 +201,8 @@ test(cycle,[sto(rational_trees),Length==3]) :-
     length(List,Length).
 test(expression,[error(type_error(integer,(1+2)))]) :-
     length(_,1+2).
+test(huge, [error(resource_error(stack))]) :- % 3*Len wrapped to 2: crashed
+    length(_, 6148914691236517206).
 
 /* disagreement with ISO */
 test(no_list, [error(type_error(list,a))]) :-
