@@ -60,5 +60,14 @@ test(error, error(syntax_error(operator_expected))) :-
 	context_module(Me),
 	term_string(_Term, "{|prolog||a b.|}",
 		    [module(Me)]).
+test(empty_text, Text == []) :-
+	term_string(_Term, "{|a|||}", [quasi_quotations(QQ)]),
+	garbage_collect,
+	QQ = [quasi_quotation(a, Text, _, _)].
+test(bars_are_not_closing, error(syntax_error(end_of_file_in_quasi_quotation))) :-
+	term_string(_Term, "{|a||}", [quasi_quotations(_)]).
+test(bars_are_not_closing_dflt, error(syntax_error(end_of_file_in_quasi_quotation))) :-
+	context_module(Me),
+	term_string(_Term, "{|prolog||}", [module(Me)]).
 
 :- end_tests(quasi_quotations).

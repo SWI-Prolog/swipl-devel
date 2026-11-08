@@ -604,6 +604,19 @@ test(roundtrip_compound) :-
 test(roundtrip_list) :-
     roundtrip(['⟨⟩', '⟨⟩'(x), {}, '{}'(y)]).
 
+% --- unpaired brackets and stray quotes as dict keys -------------------
+% These are punctuation tokens; the key must be the atom, not the raw
+% code point (which used to create an invalid term).
+
+test(dict_key_unpaired_bracket, P == ['⟩'-a]) :-
+    term_string(D, "_{⟩:a}"),
+    garbage_collect,
+    dict_pairs(D, _, P).
+test(dict_key_stray_quote, P == ['”'-a]) :-
+    term_string(D, "_{”:a}"),
+    garbage_collect,
+    dict_pairs(D, _, P).
+
 % --- {} is unchanged ---------------------------------------------------
 
 test(brace_empty_still_atom, T == '{}') :-

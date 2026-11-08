@@ -3256,7 +3256,7 @@ get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
 		    ReadData _PL_rd)
 { unsigned char *in, *start = *here;
 
-  for(in=start; in <= ein; in++)
+  for(in=start+1; in <= ein; in++)	/* the | of |} must be in the text */
   { if ( in[0] == '}' &&
 	 in[-1] == '|' )
     { *here = in+1;			/* after } */
@@ -6131,9 +6131,11 @@ read_dict_key(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
     return false;
 
   if ( is_key_token(key, _PL_rd) )
-  { key_term = alloc_term(_PL_rd);
-    PL_put_atom(key_term, key->value.atom);
-    Unlock(key->value.atom);
+  { atom_t name = name_token(key, NULL, _PL_rd);
+
+    key_term = alloc_term(_PL_rd);
+    PL_put_atom(key_term, name);
+    Unlock(name);
   } else if ( key->type == TK_NUMBER )
   { Number n = &key->value.number;
 
@@ -6151,7 +6153,7 @@ read_dict_key(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
     return false;
 
   if ( !is_key_token(sep, _PL_rd) ||
-       sep->value.atom != ATOM_colon )
+       name_token(sep, NULL, _PL_rd) != ATOM_colon )
     syntaxError("colon_expected", _PL_rd);
 
   if ( pv )
