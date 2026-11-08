@@ -64,6 +64,10 @@ test(attv_unify_self, true) :-
     put_attr(X, test_attvar, 1),
     '$attv_unify'(X, X),
     attvar(X).
+test(copy_invalid_attrs, A == htt(m,1,[])) :- % used to loop
+    put_attrs(X, htt(m,1,[])),
+    copy_term(X, Y),
+    get_attrs(Y, A).
 
 wake(2) :-
 	i_am_undefined.

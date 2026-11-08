@@ -70,11 +70,9 @@ This library is built upon the following built in predicates:
 @compat The format is not compatible to SICStus/Ciao (which are not
         compatible either).  Future versions of this library might
         implement a different encoding.
-@bug    The current implementation of fast_read/1 __is not safe__.
-        It is guaranteed to safely read terms written using
-        fast_write/1, but may crash on arbitrary input.  The
-        implementation does perform some basic sanity checks,
-        including validation of the magic start byte.
+@see    fast_read/2 and fast_term_serialized/2 validate their
+        input, so reading corrupted or crafted data raises an
+        error or fails rather than compromising the system.
 */
 
 %!  fast_read(-Term)

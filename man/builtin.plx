@@ -6468,15 +6468,19 @@ advantages and disadvantages. Below are the main considerations:
     attributes.  Special precautions are needed to transfer
     such terms using write_canonical/2.  See term_factorized/3
     and copy_term/3.
-    \item In the current version, reading the binary format has
-    only incomplete consistency checks.  This implies a user must
-    be able to \textbf{trust the source} as crafted messages may
-    compromise the reading Prolog system.
+    \item The data is validated before it is decoded, so reading
+    corrupted or crafted data does not compromise the reading Prolog
+    system.  Note however that the data can create arbitrary terms,
+    including cyclic terms, terms with attributed variables and
+    large terms.  The cost of the validation is between 10\% and
+    50\% of decoding time, depending on the size of the term.
 \end{itemize}
 
 \begin{description}
     \predicate{fast_term_serialized}{2}{?Term, ?String}
-(De-)serialize \arg{Term} to/from \arg{String}.
+(De-)serialize \arg{Term} to/from \arg{String}.  When deserializing,
+this predicate fails silently if \arg{String} is not a valid
+serialization.
 
     \predicate{fast_write}{2}{+Output, +Term}
 Write \arg{Term} using the fast serialization format to the
@@ -6486,8 +6490,8 @@ stream.
     \predicate{fast_read}{2}{+Input, -Term}
 Read \arg{Term} using the fast serialization format from the
 \arg{Input} stream.  \arg{Input} \emph{must} be a binary
-stream.\bug{The predicate fast_read/2 may crash on arbitrary
-input.}
+stream.  Raises a syntax error if the input is not a valid
+serialization.
 \end{description}
 
 

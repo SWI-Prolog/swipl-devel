@@ -48,6 +48,7 @@
 #include "pl-funct.h"
 #include "pl-gc.h"
 #include "pl-proc.h"
+#include "os/pl-utf8.h"
 
 #define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
 
@@ -55,7 +56,8 @@ static RecordList lookupRecordList(word);
 static RecordList isCurrentRecordList(word, int must_be_non_empty);
 static void freeRecordRef(RecordRef r);
 static void unallocRecordList(RecordList rl);
-static bool is_external(const char *rec, size_t len);
+#define recorded_external(rec, len, t) LDFUNC(recorded_external, rec, len, t)
+static bool recorded_external(DECL_LD const char *rec, size_t len, term_t t);
 
 #undef LD
 #define LD LOCAL_LD
@@ -997,9 +999,9 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 			    CVT_STRING|BUF_STACK|REP_ISO_LATIN_1|CVT_EXCEPTION) )
   { term_t tmp;
 
-    return ( (tmp = PL_new_term_ref()) &&
-	     is_external(rec, len) &&
-	     PL_recorded_external(rec, tmp) &&
+    return ( len > 0 &&
+	     (tmp = PL_new_term_ref()) &&
+	     recorded_external(rec, len, tmp) &&
 	     PL_unify(term, tmp) );
   } else
   { return false;
@@ -1063,8 +1065,10 @@ readSizeInt(IOSTREAM *in, char *to, size_t *sz)
     }
 
     *t++ = (char)d;
-    if ( t-to > 10 )
+    if ( t-to > 10 || r > (SIZE_MAX>>7) )
+    { PL_syntax_error("fastrw_size", in);
       return NULL;
+    }
     r = (r<<7)|(d&0x7f);
   } while((d & 0x80));
 
@@ -1073,23 +1077,70 @@ readSizeInt(IOSTREAM *in, char *to, size_t *sz)
   return t;
 }
 
+/* read_record_body() reads `size` bytes following the header [rec,np)
+   into `rec` if the record fits in FASTRW_FAST bytes, and otherwise into
+   a malloc()ed buffer.  This buffer grows as data arrives, such that a
+   bogus size cannot make us allocate memory the input does not provide.
+   Returns the buffer and sets *lenp to the record length, or returns
+   NULL after raising an exception.
+*/
+
+#define FASTRW_CHUNK (64*1024)
+
 static char *
-realloc_record(char *rec, char **np, size_t size)
-{ size_t hdr   = *np-rec;
-  size_t tsize = hdr + size;
-  char *nrec;
+read_record_body(IOSTREAM *in, char *rec, char *np, size_t size,
+		 const char *ctx, size_t *lenp)
+{ size_t hdr = np-rec;
+  size_t total, done, allocated;
+  char *buf;
 
-  if ( tsize <= FASTRW_FAST )
-  { return rec;
-  } else if ( (nrec = malloc(tsize)) )
-  { memcpy(nrec, rec, hdr);
-    *np = nrec+hdr;
+  if ( size > SIZE_MAX - hdr )
+  { PL_syntax_error(ctx, in);
+    return NULL;
+  }
+  total = hdr+size;
 
-    return nrec;
-  } else
+  if ( total <= FASTRW_FAST )
+  { if ( Sfread(np, 1, size, in) != size )
+    { PL_syntax_error(ctx, in);
+      return NULL;
+    }
+    *lenp = total;
+    return rec;
+  }
+
+  allocated = hdr + (size < FASTRW_CHUNK ? size : FASTRW_CHUNK);
+  if ( !(buf = malloc(allocated)) )
   { PL_no_memory();
     return NULL;
   }
+  memcpy(buf, rec, hdr);
+  for(done = hdr; done < total; )
+  { size_t chunk;
+
+    if ( done == allocated )
+    { size_t na = allocated > total/2 ? total : allocated*2;
+      char *nb;
+
+      if ( !(nb = realloc(buf, na)) )
+      { free(buf);
+	PL_no_memory();
+	return NULL;
+      }
+      buf = nb;
+      allocated = na;
+    }
+    chunk = allocated-done;
+    if ( Sfread(buf+done, 1, chunk, in) != chunk )
+    { free(buf);
+      PL_syntax_error(ctx, in);
+      return NULL;
+    }
+    done += chunk;
+  }
+
+  *lenp = total;
+  return buf;
 }
 
 
@@ -1105,6 +1156,7 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
     { int m = Sgetc(in);
       char fast[FASTRW_FAST];
       char *rec = fast;
+      size_t len = 0;
 
       switch(m)
       { case -1:
@@ -1117,9 +1169,11 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
 	  { rec[0] = (char)m;
 	    rec[1] = (char)size;
 	    if ( Sfread(&rec[2], 1, size, in) != size )
-	      rc = PL_syntax_error("fastrw_integer", in);
-	    else
+	    { rc = PL_syntax_error("fastrw_integer", in);
+	    } else
+	    { len = size+2;
 	      rc = true;
+	    }
 	  } else
 	  { rc = PL_syntax_error("fastrw_integer", in);
 	  }
@@ -1143,12 +1197,11 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
 	      rec[0] = (char)m;
 	      rec[1] = (char)op;
 
-	      if ( (np=readSizeInt(in, &rec[2], &bytes)) &&
-		   (rec = realloc_record(rec, &np, bytes)) &&
-		   Sfread(np, 1, bytes, in) == bytes )
-		rc = true;
-	      else
-		rc = PL_syntax_error("fastrw_atom", in);
+	      rc = ( (np=readSizeInt(in, &rec[2], &bytes)) &&
+		     (rec=read_record_body(in, rec, np, bytes,
+					   "fastrw_atom", &len)) );
+	      if ( !rec )
+		rec = fast;
 	      break;
 	    }
 	    default:
@@ -1163,14 +1216,13 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
 
 	  rec[0] = (char)m;
 
-	  if ( (np=readSizeInt(in, &rec[1], &codes)) &&
-	       (np=readSizeInt(in, np, &gsize)) &&
-	       ((m&REC_GROUND) || (np=readSizeInt(in, np, &nvars))) &&
-	       (rec = realloc_record(rec, &np, codes)) &&
-	       Sfread(np, 1, codes, in) == codes )
-	    rc = true;
-	  else
-	    rc = PL_syntax_error("fastrw_term", in);
+	  rc = ( (np=readSizeInt(in, &rec[1], &codes)) &&
+		 (np=readSizeInt(in, np, &gsize)) &&
+		 ((m&REC_GROUND) || (np=readSizeInt(in, np, &nvars))) &&
+		 (rec=read_record_body(in, rec, np, codes,
+				       "fastrw_term", &len)) );
+	  if ( !rec )
+	    rec = fast;
 	  break;
 	}
 	default:
@@ -1180,9 +1232,13 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
       if ( rc )
       { term_t tmp;
 
-	rc = ( (tmp = PL_new_term_ref()) &&
-	       PL_recorded_external(rec, tmp) &&
-	       PL_unify(A2, tmp) );
+	if ( !(tmp = PL_new_term_ref()) )
+	  rc = false;
+	else if ( !recorded_external(rec, len, tmp) )
+	  rc = ( !PL_exception(0) &&
+		 PL_syntax_error("illegal_fastrw_record", in) );
+	else
+	  rc = PL_unify(A2, tmp);
       }
 
       if ( rec != fast )
@@ -1213,7 +1269,7 @@ typedef struct
   Word		gbase;			/* base of term on global stack */
   Word		gstore;			/* current storage location */
   uint		nvars;			/* Variables seen */
-  uint		dicts;			/* # dicts found */
+  TmpBuffer	dicts;			/* offsets of dicts (external records) */
   TmpBuffer	avars;			/* Values stored for attvars */
   Word		vars_buf[MAX_FAST_VARS];
 } copy_info, *CopyInfo;
@@ -1286,16 +1342,28 @@ fetchSizeInt(CopyInfo b)
 }
 
 
-static int64_t
-fetchInt64(CopyInfo b)
+/* Decode an integer written by addInt64(): `bytes` (1..8) bytes, most
+   significant first, sign extended.
+*/
+
+static inline int64_t
+int64_from_bytes(const char *data, uint bytes)
 { uint64_t val = 0;
-  uint bytes = *b->data++;
   uint64_t sign = 1ULL << (bytes * 8 - 1);
 
   while(bytes-- > 0)
-    val = (val << 8) | (*b->data++ & 0xff);
+    val = (val << 8) | (*data++ & 0xff);
 
   return (int64_t)((val ^ sign) - sign);
+}
+
+static int64_t
+fetchInt64(CopyInfo b)
+{ uint bytes = *b->data++ & 0xff;
+  int64_t val = int64_from_bytes(b->data, bytes);
+
+  b->data += bytes;
+  return val;
 }
 
 
@@ -1505,6 +1573,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 #endif
     { word fdef;
       size_t arity;
+      atom_t name;
       case PL_TYPE_COMPOUND:
 
 	fdef = fetchWord(b);
@@ -1524,10 +1593,9 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	}
 	continue;
       case PL_TYPE_EXT_COMPOUND:
-      { atom_t name;
-	int opcode_atom;
+      { int opcode_atom;
 
-	arity = (int)fetchSizeInt(b);
+	arity = fetchSizeInt(b);
 	opcode_atom = fetchOpCode(b);
 	switch(opcode_atom)
 	{ case PL_TYPE_EXT_ATOM:
@@ -1540,7 +1608,6 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	    name = ATOM_nil;
 	    break;
 	  case PL_TYPE_DICT:
-	    b->dicts++;
 	    name = ATOM_dict;
 	    break;
 	  default:
@@ -1548,17 +1615,17 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	    assert(0);
 	}
 
-	fdef = lookupFunctorDef(name, arity);
-	goto compound;
+	goto ext_compound;
       }
       case PL_TYPE_EXT_COMPOUND_V2:
-      { atom_t name;
-
-	arity = (int)fetchSizeInt(b);
+	arity = fetchSizeInt(b);
 	fetchAtom(b, &name);
+
+      ext_compound:
 	fdef = lookupFunctorDef(name, arity);
+	if ( name == ATOM_dict && b->dicts )
+	  addBuffer(b->dicts, (size_t)(b->gstore - b->gbase), size_t);
 	goto compound;
-      }
     }
       case PL_TYPE_CONS:
       { *p = consCompound(b->gstore);
@@ -1598,6 +1665,7 @@ copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
   b.base = b.data = dataRecord(r);
   b.gbase = b.gstore = gTop;
   b.version_map = NULL;
+  b.dicts = NULL;
 
   if ( (rc=init_copy_vars(&b, r->nvars)) == true )
   { gTop += r->gsize;
@@ -1614,49 +1682,331 @@ copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
 }
 
 
+		 /*******************************
+		 *   VALIDATE EXTERNAL RECORDS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+copy_record() trusts its  input.  check_external() verifies that len bytes
+at rec are a  well formed  external record  of  the current version, such
+that records from an untrusted source  can be decoded safely.  It checks
+that
+
+  - all data is inside the buffer and the buffer is used completely
+  - only opcodes generated for external records are used
+  - variable numbers are below the number of variables in the header
+  - the global stack size in the header is what copy_record() uses
+  - a cycle refers to a compound that has already been created
+  - numbers are canonical and wide characters are valid code points
+
+The check is a  single linear scan  without recursion.  It is only used
+by fast_read/2 and fast_term_serialized/2.  PL_recorded_external() still
+trusts its input.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ const unsigned char *data;		/* current position */
+  const unsigned char *end;		/* end of the record */
+} ext_reader;
+
+static inline size_t
+ext_left(const ext_reader *r)
+{ return (size_t)(r->end - r->data);
+}
+
 static bool
-is_external(const char *rec, size_t len)
-{ if ( len >= 2 )
-  { copy_info info;
-    uchar m;
-
-    info.data = info.base = rec;
-    fetchBuf(&info, &m, uchar);
-
-    switch(m)
-    { case REC_HDR|REC_INT|REC_GROUND:
-      { uint bytes = *info.data++;
-	return len == bytes+2;
-      }
-      case REC_HDR|REC_ATOM|REC_GROUND:
-      { uchar code;
-
-	fetchBuf(&info, &code, uchar);
-	switch(code)
-	{ case PL_TYPE_NIL:
-	  case PL_TYPE_DICT:
-	    return len == 2;
-	  case PL_TYPE_EXT_WATOM:
-	  case PL_TYPE_EXT_ATOM:
-	  { size_t bytes = fetchSizeInt(&info);
-	    return len == (info.data-info.base)+bytes;
-	  }
-	}
-      }
-      case REC_HDR|REC_GROUND:
-      case REC_HDR:
-      { size_t codes = fetchSizeInt(&info);
-	skipSizeInt(&info);		/* global stack size */
-	if ( !(m & REC_GROUND) )
-	  skipSizeInt(&info);		/* # variables */
-	return len == (info.data-info.base)+codes;
-      }
-      default:
-	assert(0);
-    }
+ext_byte(ext_reader *r, int *b)
+{ if ( r->data < r->end )
+  { *b = *r->data++;
+    return true;
   }
 
   return false;
+}
+
+static bool
+ext_size(ext_reader *r, size_t *sz)
+{ size_t v = 0;
+  int d;
+
+  do
+  { if ( r->data >= r->end || v > (SIZE_MAX>>7) )
+      return false;
+    d = *r->data++;
+    v = (v<<7)|(d&0x7f);
+  } while( (d&0x80) );
+
+  *sz = v;
+  return true;
+}
+
+static bool
+ext_int64(ext_reader *r, int64_t *v)
+{ int bytes;
+
+  if ( !ext_byte(r, &bytes) || bytes < 1 || bytes > 8 ||
+       ext_left(r) < (size_t)bytes )
+    return false;
+  *v = int64_from_bytes((const char*)r->data, bytes);
+  r->data += bytes;
+
+  return true;
+}
+
+static bool
+valid_wchars(const unsigned char *s, size_t count)
+{ if ( sizeof(pl_wchar_t) > 2 )
+  { for(; count-- > 0; s += sizeof(pl_wchar_t))
+    { pl_wchar_t c;
+
+      memcpy(&c, s, sizeof(c));		/* may be unaligned */
+      if ( (uint32_t)c > UNICODE_MAX )
+	return false;
+    }
+  }
+
+  return true;
+}
+
+/* Text of an atom: length followed by ISO Latin-1 or pl_wchar_t data */
+
+static bool
+ext_atom_text(ext_reader *r, bool wide)
+{ size_t len;
+
+  if ( !ext_size(r, &len) || ext_left(r) < len )
+    return false;
+  if ( wide &&
+       ( len % sizeof(pl_wchar_t) != 0 ||
+	 !valid_wchars(r->data, len/sizeof(pl_wchar_t)) ) )
+    return false;
+  r->data += len;
+
+  return true;
+}
+
+/* Text of a string: as an atom, but starting with 'B' (ISO Latin-1) or
+   a pl_wchar_t whose first byte is 'W' (wide).  See getCharsString().
+*/
+
+static bool
+ext_string_text(ext_reader *r, size_t *lenp)
+{ size_t len;
+
+  if ( !ext_size(r, &len) || len == 0 || ext_left(r) < len )
+    return false;
+  switch(r->data[0])
+  { case 'B':
+      break;
+    case 'W':
+      if ( len < sizeof(pl_wchar_t) || len % sizeof(pl_wchar_t) != 0 ||
+	   !valid_wchars(r->data+sizeof(pl_wchar_t),
+			 len/sizeof(pl_wchar_t)-1) )
+	return false;
+      break;
+    default:
+      return false;
+  }
+  r->data += len;
+  *lenp = len;
+
+  return true;
+}
+
+static int
+cmp_offset(const void *p1, const void *p2)
+{ size_t o1 = *(const size_t*)p1;
+  size_t o2 = *(const size_t*)p2;
+
+  return o1 < o2 ? -1 : o1 > o2 ? 1 : 0;
+}
+
+static bool
+check_external_term(ext_reader *r, size_t gsize, size_t nvars)
+{ size_t pending = 1;			/* # terms still to read */
+  size_t gused = 0;			/* global stack used so far */
+  tmp_buffer compounds;			/* offsets of compounds (ascending) */
+  bool rc = false;
+
+  initBuffer(&compounds);
+
+  while( pending > 0 )
+  { int op;
+    size_t n;
+
+    pending--;
+    if ( !ext_byte(r, &op) )
+      goto out;
+
+    switch(op)
+    { case PL_TYPE_VARIABLE:
+	if ( !ext_size(r, &n) || n >= nvars )
+	  goto out;
+	break;
+      case PL_REC_ALLOCVAR:		/* next term fills the variable */
+	gused++;
+	pending++;
+	break;
+#if O_ATTVAR
+      case PL_TYPE_ATTVAR:		/* next term is the value */
+	if ( !ext_size(r, &n) || n >= nvars )
+	  goto out;
+	gused += 3;
+	pending++;
+	break;
+#endif
+      case PL_TYPE_NIL:
+      case PL_TYPE_DICT:
+	break;
+      case PL_TYPE_EXT_ATOM:
+      case PL_TYPE_EXT_WATOM:
+	if ( !ext_atom_text(r, op == PL_TYPE_EXT_WATOM) )
+	  goto out;
+	break;
+      case PL_TYPE_TAGGED_INTEGER:
+      { int64_t v;
+
+	if ( !ext_int64(r, &v) || v < PLMINTAGGEDINT || v > PLMAXTAGGEDINT )
+	  goto out;
+	break;
+      }
+#if !O_BIGNUM
+      case PL_TYPE_INTEGER:		/* with bignums, indirect integers */
+      { int64_t v;			/* are MPZ.  See get_rational() */
+
+	if ( !ext_int64(r, &v) ||
+	     (v >= PLMINTAGGEDINT && v <= PLMAXTAGGEDINT) )
+	  goto out;
+	gused += WORDS_PER_PLINT+2;
+	break;
+      }
+#else
+      case PL_REC_MPZ:
+      case PL_REC_MPQ:
+      { const char *e;
+
+	if ( op == PL_REC_MPZ )
+	  e = checkMPZOnCharp((const char*)r->data, (const char*)r->end, &n);
+	else
+	  e = checkMPQOnCharp((const char*)r->data, (const char*)r->end, &n);
+	if ( !e )
+	  goto out;
+	r->data = (const unsigned char*)e;
+	gused += n;
+	break;
+      }
+#endif
+      case PL_TYPE_EXT_FLOAT:
+	if ( ext_left(r) < sizeof(double) )
+	  goto out;
+	r->data += sizeof(double);
+	gused += WORDS_PER_DOUBLE+2;
+	break;
+      case PL_TYPE_STRING:
+	if ( !ext_string_text(r, &n) )
+	  goto out;
+	gused += (n+sizeof(word))/sizeof(word) + 2;
+	break;
+#ifdef O_CYCLIC
+      case PL_REC_CYCLE:
+	if ( !ext_size(r, &n) ||
+	     !bsearch(&n, baseBuffer(&compounds, size_t),
+		      entriesBuffer(&compounds, size_t), sizeof(size_t),
+		      cmp_offset) )
+	  goto out;
+	break;
+#endif
+      case PL_TYPE_EXT_COMPOUND:
+      { int aop;
+
+	if ( !ext_size(r, &n) || !ext_byte(r, &aop) )
+	  goto out;
+	switch(aop)
+	{ case PL_TYPE_NIL:
+	  case PL_TYPE_DICT:
+	    break;
+	  case PL_TYPE_EXT_ATOM:
+	  case PL_TYPE_EXT_WATOM:
+	    if ( !ext_atom_text(r, aop == PL_TYPE_EXT_WATOM) )
+	      goto out;
+	    break;
+	  default:
+	    goto out;
+	}
+	goto compound;
+      }
+      case PL_TYPE_CONS:
+	n = 2;
+      compound:
+	if ( n > ext_left(r) )		/* each argument needs a byte */
+	  goto out;
+	addBuffer(&compounds, gused, size_t);
+	gused += n+1;
+	pending += n;
+	break;
+      default:				/* includes internal-only opcodes */
+	goto out;
+    }
+  }
+
+  rc = (r->data == r->end && gused == gsize);
+
+out:
+  discardBuffer(&compounds);
+  return rc;
+}
+
+static bool
+check_external(const char *rec, size_t len)
+{ ext_reader r = { (const unsigned char*)rec,
+		   (const unsigned char*)rec+len };
+  int m;
+
+  if ( !ext_byte(&r, &m) )
+    return false;
+
+  switch(m)
+  { case REC_HDR|REC_INT|REC_GROUND:
+    { int64_t v;
+
+      return ext_int64(&r, &v) && r.data == r.end;
+    }
+    case REC_HDR|REC_ATOM|REC_GROUND:
+    { int op;
+
+      if ( !ext_byte(&r, &op) )
+	return false;
+      switch(op)
+      { case PL_TYPE_NIL:
+	case PL_TYPE_DICT:
+	  break;
+	case PL_TYPE_EXT_ATOM:
+	case PL_TYPE_EXT_WATOM:
+	  if ( !ext_atom_text(&r, op == PL_TYPE_EXT_WATOM) )
+	    return false;
+	  break;
+	default:
+	  return false;
+      }
+      return r.data == r.end;
+    }
+    case REC_HDR|REC_GROUND:
+    case REC_HDR:
+    { size_t codes, gsize, nvars = 0;
+
+      if ( !ext_size(&r, &codes) || !ext_size(&r, &gsize) )
+	return false;
+      if ( !(m&REC_GROUND) &&
+	   ( !ext_size(&r, &nvars) || nvars == 0 ) )
+	return false;
+      if ( codes != ext_left(&r) || nvars > codes/2 )
+	return false;			/* a variable needs two bytes */
+
+      return check_external_term(&r, gsize, nvars);
+    }
+    default:
+      return false;
+  }
 }
 
 
@@ -1864,13 +2214,22 @@ freeRecordRef(RecordRef r)
 		 *	 EXTERNAL RECORDS	*
 		 *******************************/
 
-bool
-PL_recorded_external(const char *rec, term_t t)
-{ GET_LD
-  copy_info b;
+/* recorded_external() decodes an external record.  If `len` is not 0,
+   the record is first validated using check_external(), returning
+   false without an exception if it is not valid.  Otherwise the record
+   is trusted.
+*/
+
+static bool
+recorded_external(DECL_LD const char *rec, size_t len, term_t t)
+{ copy_info b;
   size_t gsize;
   uchar m;
-  bool rc;
+  boolex_t rc;
+  tmp_buffer dicts;
+
+  if ( len && !check_external(rec, len) )
+    return false;
 
   b.base = b.data = rec;
   b.version_map = NULL;
@@ -1930,7 +2289,8 @@ PL_recorded_external(const char *rec, term_t t)
   gsize = fetchSizeInt(&b);
   if ( !(b.gbase = b.gstore = allocGlobal(gsize)) )
     return false;			/* global stack overflow */
-  b.dicts = 0;
+  initBuffer(&dicts);
+  b.dicts = &dicts;
   if ( !(m & REC_GROUND) )
   { size_t nvars = fetchSizeInt(&b);
 
@@ -1939,20 +2299,35 @@ PL_recorded_external(const char *rec, term_t t)
       free_copy_vars(&b);
     }
   } else
-  { rc = copy_record(valTermRef(t), &b);
+  { b.vars = NULL;
+    rc = copy_record(valTermRef(t), &b);
   }
 
   if ( rc != true )
+  { discardBuffer(&dicts);
     return raiseStackOverflow(rc);
+  }
 
   assert(b.gstore == gTop);
 
-  if ( b.dicts )
-    resortDictsInTerm(t);
+  for(size_t *op = baseBuffer(&dicts, size_t), *e = topBuffer(&dicts, size_t);
+      op < e;
+      op++)
+    resortDict(b.gbase + *op);	/* no GC since decoding started */
+  discardBuffer(&dicts);
   DEBUG(CHK_SECURE, checkData(valTermRef(t)));
 
   return true;
 }
+
+
+bool
+PL_recorded_external(const char *rec, term_t t)
+{ GET_LD
+
+  return recorded_external(rec, 0, t);
+}
+
 
 
 bool

@@ -1309,6 +1309,29 @@ resortDictsInClause(Clause clause)
 }
 
 
+/* resortDict() re-sorts the dict whose functor cell is at `p` if it is
+   a valid dict that is not ordered, i.e., after the atom handles of the
+   keys have changed.  Anything else is left untouched.
+*/
+
+void
+resortDict(DECL_LD Word p)
+{ Functor t = (Functor)p;
+  FunctorDef fd = valueFunctor(t->definition);
+  word dupl;
+
+  if ( fd->name == ATOM_dict && fd->arity > 1 && fd->arity%2 == 1 &&
+       dict_ordered(&t->arguments[1], fd->arity/2, &dupl) == PL_DICT_FALSE )
+  { DEBUG(MSG_DICT, Sdprintf("Re-ordering dict\n"));
+    dict_order((Word)t, &dupl);
+    if ( unlikely((Word)t < LD->gen_bar) ) /* moved values may be young */
+    { for(size_t i=0; i<fd->arity; i++)	/* see gen_assign() */
+	gen_remember(&t->arguments[i]);
+    }
+  }
+}
+
+
 /* resortDictsInTerm() re-sorts dicts inside term.
    Used by loadQlfTerm().  Term may not be cyclic.
 */
@@ -1324,17 +1347,8 @@ right_arg:
   { Functor t = valueTerm(*p);
     FunctorDef fd = valueFunctor(t->definition);
     Word ea;
-    word dupl;
 
-    if ( fd->name == ATOM_dict && fd->arity > 1 && fd->arity%2 == 1 &&
-	 dict_ordered(&t->arguments[1], fd->arity/2, &dupl) == PL_DICT_FALSE )
-    { DEBUG(MSG_DICT, Sdprintf("Re-ordering dict\n"));
-      dict_order((Word)t, &dupl);
-      if ( unlikely((Word)t < LD->gen_bar) ) /* moved values may be young */
-      { for(size_t i=0; i<fd->arity; i++)	/* see gen_assign() */
-	  gen_remember(&t->arguments[i]);
-      }
-    }
+    resortDict((Word)t);
 
     ea = &t->arguments[fd->arity-1];
     for(p=t->arguments; p<ea; p++)

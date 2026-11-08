@@ -47,6 +47,7 @@
 #define	dict_order(dict, dupl)			LDFUNC(dict_order, dict, dupl)
 #define	dict_order_term_refs(av, indexes, cnt)	LDFUNC(dict_order_term_refs, av, indexes, cnt)
 #define	dict_lookup_ptr(dict, name, arg)	LDFUNC(dict_lookup_ptr, dict, name, arg)
+#define	resortDict(p)				LDFUNC(resortDict, p)
 #endif /*USE_LD_MACROS*/
 
 // PL_put_dict() return values
@@ -77,6 +78,7 @@ int	  dict_order_term_refs(term_t *av, int *indexes, int cnt);
 Word	  dict_lookup_ptr(word dict, word name, size_t *arg);
 bool	  resortDictsInClause(Clause clause);
 void	  resortDictsInTerm(term_t t);
+void	  resortDict(Word p);
 
 #undef LDFUNC_DECLARATIONS
 

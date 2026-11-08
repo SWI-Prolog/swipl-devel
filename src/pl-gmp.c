@@ -969,6 +969,117 @@ skipMPQOnCharp(const char *data)
   return (char *)data;
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+checkMPZOnCharp() and checkMPQOnCharp() validate  a number in [data,end)
+as stored by addMPZToBuffer() or addMPQToBuffer() before it is loaded by
+loadMPZFromCharp() or loadMPQFromCharp(),  which trust their input.  The
+number must be canonical:  an integer is not a  tagged integer, while a
+rational has a non-zero numerator and  a denominator larger than 1 that
+has no common  factor with the numerator.   On success, the end of the
+number is returned and *gsize is set to the number of cells the loader
+uses on the global stack.  Otherwise NULL is returned.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* Get the size of a number and verify its bits are in [bits,end) and
+   normalized.  Returns false for zero.
+*/
+
+static bool
+check_mpz_charp(const char *sdata, const char *bits, const char *end,
+		int *szp, bool *negp)
+{ int size;
+
+  load_mpz_size(sdata, &size);
+  if ( size == INT_MIN )
+    return false;
+  *negp = (size < 0);
+  if ( size < 0 )
+    size = -size;
+  if ( size == 0 || end-bits < size || bits[0] == 0 )
+    return false;
+  *szp = size;
+
+  return true;
+}
+
+/* Number of global stack cells used by the bits of a number */
+
+static size_t
+mpz_charp_wsize(const char *bits, int size)
+{ size_t limbsize;
+
+#if O_BF
+  bf_t bf;
+  bf_import_dimension(&bf, (const unsigned char*)bits, size);
+  limbsize = bf.len;
+#else
+  (void)bits;
+  limbsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
+#endif
+
+  return (limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+}
+
+const char *
+checkMPZOnCharp(const char *data, const char *end, size_t *gsize)
+{ int size;
+  bool neg;
+  const char *bits = data+4;
+
+  if ( end-data < 4 ||
+       !check_mpz_charp(data, bits, end, &size, &neg) )
+    return NULL;
+  if ( size <= 8 )			/* must not be a tagged integer */
+  { const unsigned char *u = (const unsigned char*)bits;
+    uint64_t mag = 0;
+
+    for(int i=0; i<size; i++)
+      mag = (mag<<8)|u[i];
+    if ( neg ? mag <= (uint64_t)-(PLMINTAGGEDINT+1)+1
+	     : mag <= (uint64_t)PLMAXTAGGEDINT )
+      return NULL;
+  }
+
+  *gsize = mpz_charp_wsize(bits, size)+2+MPZ_STACK_EXTRA;
+  return bits+size;
+}
+
+const char *
+checkMPQOnCharp(const char *data, const char *end, size_t *gsize)
+{ int num_size, den_size;
+  bool num_neg, den_neg;
+  const char *num_bits = data+8;	/* sizes come first, then the bits */
+  const char *den_bits;
+  bool ok;
+
+  if ( end-data < 8 ||
+       !check_mpz_charp(data, num_bits, end, &num_size, &num_neg) )
+    return NULL;
+  den_bits = num_bits+num_size;
+  if ( !check_mpz_charp(data+4, den_bits, end, &den_size, &den_neg) ||
+       den_neg || (den_size == 1 && den_bits[0] == 1) )
+    return NULL;
+
+  mpz_t num, den, gcd;
+  mpz_init(num);
+  mpz_init(den);
+  mpz_init(gcd);
+  mpz_import(num, num_size, 1, 1, 1, 0, num_bits);
+  mpz_import(den, den_size, 1, 1, 1, 0, den_bits);
+  mpz_gcd(gcd, num, den);
+  ok = (mpz_cmp_ui(gcd, 1) == 0);
+  mpz_clear(num);
+  mpz_clear(den);
+  mpz_clear(gcd);
+  if ( !ok )
+    return NULL;
+
+  *gsize = ( mpz_charp_wsize(num_bits, num_size) +
+	     mpz_charp_wsize(den_bits, den_size) +
+	     2 + 2*MPZ_STACK_EXTRA );
+  return den_bits+den_size;
+}
+
 #undef SHIFTSIGN32
 
 

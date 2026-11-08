@@ -4514,6 +4514,9 @@ compatibility with older records.
     Copy a recorded term back to the Prolog stack.  The same record
     may be used to copy multiple instances at any time to the Prolog
     stack.  See also PL_record_external() and PL_erase_external().
+    The data is \emph{not} validated: \arg{record} must have been
+    created using PL_record_external() and must not be modified.
+    Use fast_term_serialized/2 for data from an untrusted source.
 \cfunction{bool}{PL_erase_external}{char *record}
     Remove the recorded term from the Prolog database, reclaiming all
     associated memory resources.

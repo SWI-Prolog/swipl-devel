@@ -272,10 +272,10 @@ unshare_attvar(DECL_LD Word p)
       if ( fd == FUNCTOR_att3 )
       {	t->definition = fd | MARK_MASK;
 	p = &t->arguments[2];
+	continue;
       }
-    } else
-    { break;
     }
+    break;			/* end or invalid attribute list */
   }
 }
 
