@@ -3605,7 +3605,7 @@ typedef struct register_file
 #endif
 #if O_THROW
 #define _SOLUTION_RETURN(val)		LD->vm.return_code = (val); \
-					longjmp(LD->exception.throw_environment->exception_jmp_env, 2)
+					PL_LONGJMP(LD->exception.throw_environment->exception_jmp_env, 2)
 #else
 #define _SOLUTION_RETURN(val)		LD->vm.return_code = (val); return NULL
 #endif
@@ -3745,7 +3745,7 @@ PL_next_solution(DECL_LD qid_t qid)
 #if O_THROW
   exception_frame throw_env;
   bool except = false;
-  int jc = setjmp(throw_env.exception_jmp_env);
+  int jc = PL_SETJMP(throw_env.exception_jmp_env);
 
   if ( jc == 1 )
   { except = true;
