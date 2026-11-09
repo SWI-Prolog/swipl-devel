@@ -2702,6 +2702,108 @@ skip_decimal_separator(cucharp *sp, int zero, bool *grouped)
 }
 
 
+#ifdef O_BIGNUM
+/* Big integers are converted using mpz_set_str() rather than adding
+ * the digits one by one, as the latter is quadratic in the number of
+ * digits.  The digits are copied to a buffer as plain ASCII digits,
+ * removing digit group separators.
+ */
+
+static const char digit_chars[] = "0123456789abcdefghijklmnopqrstuvwxyz";
+
+static strnumstat
+mpz_from_digits(Buffer b, int base, bool negative, Number n)
+{ addBuffer(b, EOS, char);
+  n->type = V_MPZ;
+  mpz_init(n->value.mpz);
+  if ( mpz_set_str(n->value.mpz, baseBuffer(b, char), base) != 0 )
+  { clearNumber(n);
+    return NUM_IOVERFLOW;
+  }
+  if ( negative )
+    mpz_neg(n->value.mpz, n->value.mpz);
+
+  return NUM_OK;
+}
+
+static strnumstat
+scan_decimal_mpz(cucharp *sp, int zero, bool negative, Number n,
+		 bool *grouped)
+{ cucharp s = *sp, sn;
+  size_t count = 0;
+  int c;
+  tmp_buffer b;
+  char *o;
+  strnumstat rc;
+
+  do
+  { for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
+    { s = sn;
+      count++;
+    }
+  } while ( skip_decimal_separator(&s, zero, grouped) );
+
+  initBuffer(&b);
+  if ( !growBuffer((Buffer)&b, count+1) )
+  { discardBuffer(&b);
+    return NUM_IOVERFLOW;
+  }
+  o = baseBuffer(&b, char);
+  s = *sp;
+  do
+  { for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
+    { s = sn;
+      *o++ = digit_chars[c-zero];
+    }
+  } while ( skip_decimal_separator(&s, zero, NULL) );
+  b.top = o;
+
+  if ( (rc=mpz_from_digits((Buffer)&b, 10, negative, n)) == NUM_OK )
+    *sp = s;
+  discardBuffer(&b);
+
+  return rc;
+}
+
+static strnumstat
+scan_number_mpz(cucharp *sp, bool negative, int base, Number n)
+{ cucharp q = *sp;
+  size_t count = 0;
+  int d;
+  tmp_buffer b;
+  char *o;
+  strnumstat rc;
+
+  do
+  { while( digitValue(base, *q) >= 0 )
+    { q++;
+      count++;
+    }
+  } while ( skip_digit_separator(&q, base, NULL) );
+
+  initBuffer(&b);
+  if ( !growBuffer((Buffer)&b, count+1) )
+  { discardBuffer(&b);
+    return NUM_IOVERFLOW;
+  }
+  o = baseBuffer(&b, char);
+  q = *sp;
+  do
+  { while( (d=digitValue(base, *q)) >= 0 )
+    { q++;
+      *o++ = digit_chars[d];
+    }
+  } while ( skip_digit_separator(&q, base, NULL) );
+  b.top = o;
+
+  if ( (rc=mpz_from_digits((Buffer)&b, base, negative, n)) == NUM_OK )
+    *sp = q;
+  discardBuffer(&b);
+
+  return rc;
+}
+#endif /*O_BIGNUM*/
+
 static strnumstat
 scan_decimal(cucharp *sp, int zero, bool negative, Number n, bool *grouped)
 { int64_t maxi = PLMAXINT/10;
@@ -2724,24 +2826,7 @@ scan_decimal(cucharp *sp, int zero, bool negative, Number n, bool *grouped)
 	   || ( !negative && ( (t > maxi) || (t == maxi && c - zero > maxlastdigit) )) )
       {
 #ifdef O_BIGNUM
-	n->value.i = t;
-	n->type = V_INTEGER;
-	promoteToMPZNumber(n);
-
-	do
-	{ for(sn = utf8_get_uchar(s, &c); isDecimal(zero, c); sn = utf8_get_uchar(s, &c))
-	  { s = sn;
-	    mpz_mul_ui(n->value.mpz, n->value.mpz, 10);
-	    if (negative)
-	      mpz_sub_ui(n->value.mpz, n->value.mpz, c - zero);
-	    else
-	      mpz_add_ui(n->value.mpz, n->value.mpz, c - zero);
-	  }
-	} while ( skip_decimal_separator(&s, zero, grouped) );
-
-	*sp = s;
-
-	return NUM_OK;
+	return scan_decimal_mpz(sp, zero, negative, n, grouped);
 #else
 	double maxf =  DBL_MAX / 10.0 - 10.0;
 	double minf = -DBL_MAX / 10.0 + 10.0;
@@ -2803,24 +2888,7 @@ scan_number(cucharp *s, bool negative, int b, Number n)
 	   || ( !negative && ( (t > maxi) || (t == maxi && d > maxlastdigit) )) )
       {
 #ifdef O_BIGNUM
-	n->value.i = t;
-	n->type = V_INTEGER;
-	promoteToMPZNumber(n);
-
-	do
-	{ while((d = digitValue(b, *q)) >= 0)
-	  { q++;
-	    mpz_mul_ui(n->value.mpz, n->value.mpz, b);
-	    if (negative)
-	      mpz_sub_ui(n->value.mpz, n->value.mpz, d);
-	    else
-	      mpz_add_ui(n->value.mpz, n->value.mpz, d);
-	  }
-	} while ( skip_digit_separator(&q, b, NULL) );
-
-	*s = q;
-
-	return NUM_OK;
+	return scan_number_mpz(s, negative, b, n);
 #else
 
 	double maxf =  DBL_MAX / (double) b - (double) b;

@@ -244,6 +244,26 @@ test(float_overflow, F =:= inf) :-
         term_string(F, '1.797693134862316e+308', []),
         set_prolog_flag(float_overflow, Old)).
 
+:- if(current_prolog_flag(bounded, false)).
+% Big integers used to be read in quadratic time
+test(bigint, Y == X) :-
+    X is -(7^200000),
+    format(string(S), '~d', [X]),
+    term_string(Y, S).
+test(bigint, Y == X) :-
+    X is 7^20000,
+    format(string(S), '~I', [X]),
+    term_string(Y, S).
+test(bigint, Y == X) :-
+    X is 7^20000,
+    format(string(S), '36\'~36r', [X]),
+    term_string(Y, S).
+test(bigint, Y == X) :-
+    X is 7^20000,
+    format(string(S), '0x~16r', [X]),
+    term_string(Y, S).
+:- endif.
+
 :- end_tests(read_numbers).
 
 :- begin_tests(read_deep).
