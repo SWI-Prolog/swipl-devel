@@ -401,6 +401,7 @@ check_c_source_compiles(
      HAVE_VAR_TIMEZONE)
 
 check_symbol_exists(SIGPROF signal.h HAVE_SIGPROF)
+check_symbol_exists(sigsetjmp setjmp.h HAVE_SIGSETJMP)
 
 check_struct_has_member("struct tm" tm_gmtoff time.h HAVE_STRUCT_TIME_TM_GMTOFF)
 check_struct_has_member("struct stat" st_mtim sys/stat.h HAVE_STRUCT_STAT_ST_MTIM)

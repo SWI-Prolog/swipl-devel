@@ -626,6 +626,8 @@ dispatch_signal(int sig, int sync)
   { if ( exception_term )
     {
 #if O_THROW
+      if ( !sync )
+	unblockSignal(sig);
       PL_rethrow();
 #endif
       sigCrashHandler(sig);
