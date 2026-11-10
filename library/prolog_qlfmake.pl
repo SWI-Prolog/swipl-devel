@@ -443,6 +443,7 @@ exclude(library(pldoc/hooks)).
 exclude(library(pldoc/doc_changes)).
 exclude(library(pldoc/git_extract_changes)).
 exclude(library(pldoc/changelog_events)).
+exclude(library(semweb/rdf_sandbox)).	% Depends on what is loaded
 
 excluded_directory(Dir) :-
     exclude_dir(Spec),

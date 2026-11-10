@@ -231,7 +231,8 @@ set(noqlf_file
     home/library/ext/http/http/dcg_basics.pl
     home/library/ext/json/http/json.pl
     home/library/ext/json/http/json_convert.pl
-    home/library/ext/json/http/js_grammar.pl)
+    home/library/ext/json/http/js_grammar.pl
+    home/library/ext/semweb/semweb/rdf_sandbox.pl)
 
 set(include_src_pattern
     "library/tabling[.]pl$"
@@ -246,6 +247,7 @@ set(include_src_pattern
     "xref/sicstus[.]pl$"
     "http/dcg_basics[.]pl$"
     "trace/pprint[.]pl$"
+    "semweb/rdf_sandbox[.]pl$"	# Depends on what is loaded
     "lib/swi_compatibility[.]pl")
 
 set(WASM_prolog_src
