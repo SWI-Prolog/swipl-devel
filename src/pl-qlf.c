@@ -910,15 +910,19 @@ Returns false while leaving a resource exception if the term cannot be
 allocated.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define do_load_qlf_term(state, vars, term) LDFUNC(do_load_qlf_term, state, vars, term)
+#define do_load_qlf_term(state, vars, nvars, term) \
+	LDFUNC(do_load_qlf_term, state, vars, nvars, term)
 static int
-do_load_qlf_term(DECL_LD wic_state *state, term_t vars[], term_t term)
+do_load_qlf_term(DECL_LD wic_state *state, term_t vars[], int nvars,
+		 term_t term)
 { IOSTREAM *fd = state->wicFd;
   int c = Qgetc(fd);
 
   if ( c == 'v' )
   { int id = qlfGetInt32(fd);
 
+    if ( id < 0 || id >= nvars )
+      return qlfLoadError(state);
     if ( vars[id] )
     { return PL_unify(term, vars[id]);
     } else
@@ -940,7 +944,7 @@ do_load_qlf_term(DECL_LD wic_state *state, term_t vars[], term_t term)
 
       for(n=0; n < arity; n++)
       { _PL_get_arg(n+1, term, c2);
-	if ( !do_load_qlf_term(state, vars, c2) )
+	if ( !do_load_qlf_term(state, vars, nvars, c2) )
 	  return false;
       }
 
@@ -964,19 +968,25 @@ static int
 loadQlfTerm(DECL_LD wic_state *state, term_t term)
 { IOSTREAM *fd = state->wicFd;
   int nvars;
+  term_t fast[32];
   term_t *vars;
   int rc;
 
   DEBUG(MSG_QLF_TERM, Sdprintf("Loading from %ld ...", (long)Stell(fd)));
 
-  if ( (nvars = qlfGetInt32(fd)) )
-  { vars = alloca(nvars * sizeof(*vars));
-    memset(vars, 0, nvars * sizeof(*vars));
-  } else
-    vars = NULL;
+  nvars = qlfGetInt32(fd);
+  if ( nvars < 0 )
+    return qlfLoadError(state);
+  if ( nvars <= (int)(sizeof(fast)/sizeof(*fast)) )
+  { vars = fast;
+  } else if ( !(vars = tmp_malloc(nvars * sizeof(*vars))) )
+    return PL_no_memory();
+  memset(vars, 0, nvars * sizeof(*vars));
 
   PL_put_variable(term);
-  rc = do_load_qlf_term(state, vars, term);
+  rc = do_load_qlf_term(state, vars, nvars, term);
+  if ( vars != fast )
+    tmp_free(vars);
   if ( rc )
     resortDictsInTerm(term);
   DEBUG(MSG_QLF_TERM,
