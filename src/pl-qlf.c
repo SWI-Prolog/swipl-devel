@@ -228,6 +228,7 @@ first. The last byte has its 0x80 mask set.
 #define CLAUSE_SSU_COMMIT  0x02
 #define CLAUSE_SSU_CHOICE  0x04
 #define CLAUSE_HEAD_TERMS  0x08
+#define CLAUSE_SHARED_SLOTS 0x10		/* followed by shared_base */
 
 static char saveMagic[] = "SWI-Prolog state (www.swi-prolog.org)\n";
 static char qlfMagic[]  = "SWI-Prolog .qlf file\n";
@@ -1424,8 +1425,15 @@ loadClauseFlags(wic_state *state, Clause cl, int skip)
     if ( (flags&CLAUSE_SSU_COMMIT) )  lflags |= SSU_COMMIT_CLAUSE;
     if ( (flags&CLAUSE_SSU_CHOICE) )  lflags |= SSU_CHOICE_CLAUSE;
     if ( (flags&CLAUSE_HEAD_TERMS) )  lflags |= CL_HEAD_TERMS;
+    if ( (flags&CLAUSE_SHARED_SLOTS) ) lflags |= CL_SHARED_SLOTS;
 
     cl->flags = lflags;
+  }
+  if ( (flags&CLAUSE_SHARED_SLOTS) )
+  { clsize_t base = qlfGetUInt32(state->wicFd);
+
+    if ( !skip )
+      cl->shared_base = base;
   }
 }
 
@@ -1479,6 +1487,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	clause = (Clause)allocFromBuffer(&buf, sizeofClause(0));
 	clause->references   = 0;
 	clause->tr_erased_no = 0;
+	clause->shared_base  = 0;
 	clause->line_no	     = qlfGetUInt32(fd);
 
 	{ SourceFile of = word2ptr(SourceFile, loadXR(state));
@@ -2890,6 +2899,7 @@ clauseFlags(const Clause clause)
   if ( ison(clause, SSU_COMMIT_CLAUSE) ) flags |= CLAUSE_SSU_COMMIT;
   if ( ison(clause, SSU_CHOICE_CLAUSE) ) flags |= CLAUSE_SSU_CHOICE;
   if ( ison(clause, CL_HEAD_TERMS) )     flags |= CLAUSE_HEAD_TERMS;
+  if ( ison(clause, CL_SHARED_SLOTS) )   flags |= CLAUSE_SHARED_SLOTS;
 
   return flags;
 }
@@ -2924,6 +2934,8 @@ saveWicClause(wic_state *state, Clause clause)
   qlfPutUInt32((uint32_t) clause->prolog_vars, fd); /* dubious cast */
   qlfPutUInt32((uint32_t) clause->variables, fd);   /* dubious cast */
   qlfPutUInt32(clauseFlags(clause), fd);
+  if ( ison(clause, CL_SHARED_SLOTS) )
+    qlfPutUInt32(clause->shared_base, fd);
 
   bp = clause->codes;
   ep = bp + clause->code_size;
