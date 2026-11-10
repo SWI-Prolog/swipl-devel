@@ -42,7 +42,8 @@
 test_hash :-
 	run_tests([ variant_sha1,
 		    variant_hash,
-		    term_hash2
+		    term_hash2,
+		    term_hash4
 		  ]).
 
 :- begin_tests(variant_sha1).
@@ -224,3 +225,42 @@ test(compound_3, X == 3_797_822_550) :-
     term_hash(hello(x(a), x(a)), X).
 
 :- end_tests(term_hash2).
+
+:- begin_tests(term_hash4).
+
+deep(N, T) :-
+	deep(N, a, T).
+deep(0, T, T) :- !.
+deep(N, T0, T) :-
+	N1 is N-1,
+	deep(N1, f(T0,x), T).
+
+% term_hash/4 used to recurse in C, crashing on deeply nested terms.
+test(deep, H1 == H2) :-
+	deep(1 000 000, T),
+	term_hash(T, -1, 1 000 003, H1),
+	term_hash(T, 2 000 000, 1 000 003, H2).
+test(long_list, true(integer(H))) :-
+	numlist(1, 1 000 000, L),
+	term_hash(L, -1, 1 000 003, H).
+test(depth, true(H1 \== H2)) :-
+	term_hash(f(g(a)), 1, 1 000 003, H1),
+	term_hash(f(g(a)), 2, 1 000 003, H2).
+test(depth_limit, H1 == H2) :-
+	term_hash(f(g(a)), 1, 1 000 003, H1),
+	term_hash(f(g(b)), 1, 1 000 003, H2).
+test(nonground, true(var(H))) :-
+	term_hash(f(g(_)), -1, 1 000 003, H).
+test(nonground_deep, true(T1 == T2)) :-
+	deep(100 000, T0),
+	T1 = g(T0, _),
+	term_hash(T1, -1, 1 000 003, H),
+	assertion(var(H)),
+	deep(100 000, T3),
+	T2 = g(T3, _),
+	T1 = g(_, V), T2 = g(_, V).	% compares fine: no stale marks
+test(cyclic, [sto(rational_trees), true(integer(H))]) :-
+	X = f(X, a, g(X)),
+	term_hash(X, -1, 1 000 003, H).
+
+:- end_tests(term_hash4).

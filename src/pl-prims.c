@@ -1565,20 +1565,39 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
 		 *	    TERM-HASH		*
 		 *******************************/
 
+/* termHashValue() computes the hash for term_hash/4.  It walks the term
+   depth-first, left-to-right using an explicit stack such that deeply
+   nested terms do not exhaust the C stack.  The order of hashing must
+   remain the same as the hash values may be stored.  Compounds are
+   marked while their arguments are hashed to detect cycles.
+*/
+
+typedef struct th_frame
+{ Word		args;			/* next argument to hash */
+  size_t	left;			/* # arguments left */
+  int64_t	depth;			/* depth for the arguments */
+} th_frame;
+
 #define termHashValue(term, depth, hval) \
 	LDFUNC(termHashValue, term, depth, hval)
 
 static bool
 termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
-{ for(;;)
+{ tmp_buffer stack;
+  bool rc = true;
+
+  initBuffer(&stack);
+
+  for(;;)
   { switch(tag(term))
     { case TAG_VAR:
       case TAG_ATTVAR:
-	fail;
+	rc = false;
+	goto out;
       case TAG_ATOM:
       { *hval = MurmurHashAligned2(&atomValue(term)->hash_value,
 				   sizeof(unsigned int), *hval);
-	succeed;
+	break;
       }
       case TAG_STRING:
       { size_t len;
@@ -1586,16 +1605,14 @@ termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
 
 	s = getCharsString(term, &len);
 	*hval = MurmurHashAligned2(s, len, *hval);
-
-	succeed;
+	break;
       }
       case TAG_INTEGER:
 	if ( isInlineInt(term) )
 	{ int64_t v = valInt(term);
 
 	  *hval = MurmurHashAligned2(&v, sizeof(v), *hval);
-
-	  succeed;
+	  break;
 	}
       /*FALLTHROUGH*/
       case TAG_FLOAT:
@@ -1603,19 +1620,17 @@ termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
 	  size_t n = wsizeofInd(*p);
 
 	  *hval = MurmurHashAligned2(p+1, n*sizeof(word), *hval);
-
-	  succeed;
+	  break;
 	}
       case TAG_COMPOUND:
       { Functor t = valueTerm(term);
 	FunctorDef fd;
 	size_t arity;
-	Word p;
 	size_t atom_hashvalue;
 
 	if ( visited(t) )
 	{ *hval = MurmurHashAligned2(hval, sizeof(*hval), *hval);
-	  succeed;
+	  break;
 	}
 
 	fd = valueFunctor(t->definition);
@@ -1627,16 +1642,13 @@ termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
 				   *hval);
 
 	if ( --depth != 0 )			/* -1 keeps on going */
-	{ for(p = t->arguments; arity-- > 0; p++)
-	  { if ( !termHashValue(*p, depth, hval) )
-	    { popVisited();
-	      fail;
-	    }
-	  }
-	}
+	{ th_frame f = { .args = t->arguments, .left = arity, .depth = depth };
 
-	popVisited();
-	succeed;
+	  addBuffer(&stack, f, th_frame);
+	} else
+	{ popVisited();
+	}
+	break;
       }
       case TAG_REFERENCE:
       { term = *unRef(term);
@@ -1645,7 +1657,35 @@ termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
       default:
 	assert(0);
     }
+
+					/* find the next argument */
+    for(;;)
+    { th_frame *f;
+
+      if ( isEmptyBuffer(&stack) )
+	goto out;
+      f = topBuffer(&stack, th_frame) - 1;
+      if ( f->left > 0 )
+      { f->left--;
+	term  = *f->args++;
+	depth = f->depth;
+	break;
+      }
+      (void)popBuffer(&stack, th_frame);
+      popVisited();
+    }
   }
+
+out:
+  if ( !rc )				/* unmark compounds on the path */
+  { size_t n = entriesBuffer(&stack, th_frame);
+
+    while( n-- > 0 )
+      popVisited();
+  }
+  discardBuffer(&stack);
+
+  return rc;
 }
 
 
