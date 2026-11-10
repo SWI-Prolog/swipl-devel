@@ -342,6 +342,7 @@ typedef struct _varDef
   atom_t	name;			/* name (if available) */
   clsize_t	offset;			/* offset in environment frame */
   int		times;			/* occurrences */
+  int		an_node;		/* Branch node (see an_node) */
   unsigned int	flags;			/* VD_* */
 } vardef;
 
@@ -351,6 +352,43 @@ typedef struct _varDef
 #define VD_UNBALANCED	    0x08
 #define VD_ARGUMENT	    0x10	/* Unified against an argument */
 #define VD_ARGUMENT_DONE    0x20	/* Generated unification code */
+#define VD_NOSHARE	    0x40	/* Cannot share its slot */
+
+/* Branch-local slot sharing.
+
+   The body is seen as a tree of branch nodes.  Node 0 is the clause.
+   Each alternative of a disjunction ((A;B), (C->T;E), (C*->T;E)) is a
+   node whose parent is the node holding the disjunction.  A variable
+   whose occurrences are all in the same branch node (other than the
+   clause) is "branch-local".  Branch-local variables of different
+   alternatives of the same disjunction can share a slot because
+   alternatives never run concurrently: the next alternative starts
+   only after the previous one has no more solutions.  Different
+   disjunctions in the same node use disjoint slots: backtracking into
+   an earlier disjunction may resume code that reads its variables.
+
+   Branch-local variables are given the slots from clause->shared_base.
+   The decompiler uses this to create a new variable for such slots when
+   it enters an alternative (see decompileBodyIter()).
+*/
+
+typedef struct an_node
+{ int		parent;			/* Node holding the disjunction */
+  int		disj;			/* Disjunction I am an alternative of */
+  clsize_t	own;			/* # branch-local variables */
+  clsize_t	acc;			/* Size of nested disjunctions */
+  clsize_t	size;			/* own + acc */
+  clsize_t	own_next;		/* Next slot for own variables */
+  clsize_t	disj_next;		/* Next slot for nested disjunctions */
+} an_node;
+
+typedef struct an_disj
+{ int		parent;			/* Node holding the disjunction */
+  int		first;			/* First alternative node */
+  clsize_t	size;			/* Max size of the alternatives */
+  clsize_t	start;			/* First slot */
+  bool		placed;			/* start is assigned */
+} an_disj;
 
 typedef struct
 { unsigned int	isize;
@@ -420,6 +458,9 @@ typedef struct
   term_t	warning_list;		/* see compiler_warning() */
   c_warning    *warnings;
   tmp_buffer	branch_varbuf;		/* Store for branch_vars */
+  tmp_buffer	an_nodes;		/* an_node array (slot sharing) */
+  tmp_buffer	an_disjs;		/* an_disj array (slot sharing) */
+  int		an_cur;			/* Current an_node */
   tmp_buffer	codes;			/* scratch code table */
 } compileInfo, *CompileInfo;
 
@@ -865,6 +906,68 @@ in_branch(const branch_var *from, const branch_var *to, const Word v)
 }
 
 
+static inline an_node *
+an_node_ptr(CompileInfo ci, int n)
+{ return &baseBuffer(&ci->an_nodes, an_node)[n];
+}
+
+static inline an_disj *
+an_disj_ptr(CompileInfo ci, int d)
+{ return &baseBuffer(&ci->an_disjs, an_disj)[d];
+}
+
+static bool
+an_new_node(CompileInfo ci, int parent, int disj)
+{ an_node *n = allocFromBuffer(&ci->an_nodes, sizeof(an_node));
+
+  if ( !n )
+    return false;
+  memset(n, 0, sizeof(*n));
+  n->parent = parent;
+  n->disj   = disj;
+  ci->an_cur = (int)entriesBuffer(&ci->an_nodes, an_node)-1;
+
+  return true;
+}
+
+/* Enter the first alternative of a disjunction in the current node */
+static bool
+an_enter_disjunction(CompileInfo ci)
+{ an_disj *d = allocFromBuffer(&ci->an_disjs, sizeof(an_disj));
+  int di;
+
+  if ( !d )
+    return false;
+  memset(d, 0, sizeof(*d));
+  d->parent = ci->an_cur;
+  di = (int)entriesBuffer(&ci->an_disjs, an_disj)-1;
+  if ( !an_new_node(ci, ci->an_cur, di) )
+    return false;
+  an_disj_ptr(ci, di)->first = ci->an_cur;
+
+  return true;
+}
+
+/* Leave the current alternative and enter the next one */
+static bool
+an_next_alternative(CompileInfo ci)
+{ an_node *n = an_node_ptr(ci, ci->an_cur);
+
+  return an_new_node(ci, n->parent, n->disj);
+}
+
+/* Leave the current (last) alternative */
+static void
+an_leave_disjunction(CompileInfo ci)
+{ ci->an_cur = an_node_ptr(ci, ci->an_cur)->parent;
+}
+
+static inline void
+an_var_occurs(CompileInfo ci, VarDef vd)
+{ if ( vd->an_node != ci->an_cur )
+    set(vd, VD_NOSHARE);
+}
+
 #define analyseVariables2(head, nvars, argn, ci, depth, control) \
 	LDFUNC(analyseVariables2, head, nvars, argn, ci, depth, control)
 
@@ -938,6 +1041,7 @@ next_head:
     vd->name    = (atom_t)0;
     vd->flags   = 0;
     vd->times   = 1;
+    vd->an_node = ci->an_cur;
     setVarInfo(*head, index);
     if ( ci->branch_vars )
       pushBranchVar(ci, vd);
@@ -950,6 +1054,7 @@ next_head:
   if ( isVarInfo(*head) )
   { VarDef vd = varInfo(*head);
 
+    an_var_occurs(ci, vd);
     if ( control )			/* variable goal: call/1 */
       ci->head_unify = false;
 
@@ -1027,11 +1132,17 @@ next_head:
        used in code after the branches re-unite.
     */
 
-    if ( f->definition == FUNCTOR_semicolon2 && control && !ci->islocal )
+    if ( (f->definition == FUNCTOR_semicolon2 ||
+	  f->definition == FUNCTOR_bar2) && control && !ci->islocal )
     { Buffer obv;
       ssize_t start_vars;
 
       ci->head_unify = false;
+      if ( !an_enter_disjunction(ci) )
+      { LD->comp.filledVars = ci->arity+nvars;
+	nvars = MEMORY_OVERFLOW;
+	goto error_unwind;
+      }
 
       if ( (obv=ci->branch_vars) == NULL )
       { initBuffer(&ci->branch_varbuf);
@@ -1192,6 +1303,11 @@ resume:
 
       top->kind	         = AV_SEMI_AFTER_RIGHT;
       top->at_branch_vars = at_branch_vars;
+      if ( !an_next_alternative(ci) )
+      { LD->comp.filledVars = ci->arity+nvars;
+	nvars = MEMORY_OVERFLOW;
+	goto error_unwind;
+      }
 
       head    = &f->arguments[1];
       argn    = top->argn_next;
@@ -1251,6 +1367,7 @@ resume:
       { discardBuffer(ci->branch_vars);
 	ci->branch_vars = NULL;
       }
+      an_leave_disjunction(ci);
 
       depth = top->depth_before_entry;
       popTopOfSegStack(&stack);
@@ -1335,26 +1452,124 @@ has not been implemented yet)
 #define CYCLIC_BODY    -11
 /*	AVARS_MAX      -12 */
 
+static inline bool
+is_branch_local(VarDef vd)
+{ return vd->an_node > 0 && isoff(vd, VD_NOSHARE);
+}
+
+/* assign_shared_slots() assigns the slots from `base` to the branch-local
+   variables.  It returns the number of slots used.  Node and
+   disjunction records are created in depth-first order.  This implies
+   a node has a lower index than the nodes and disjunctions inside it
+   and the alternatives of a disjunction are created in order.
+*/
+
+#define assign_shared_slots(ci, nvars, base) \
+	LDFUNC(assign_shared_slots, ci, nvars, base)
+
+static clsize_t
+assign_shared_slots(DECL_LD CompileInfo ci, size_t nvars, clsize_t base)
+{ an_node *nodes = baseBuffer(&ci->an_nodes, an_node);
+  an_disj *disjs = baseBuffer(&ci->an_disjs, an_disj);
+  int nn = (int)entriesBuffer(&ci->an_nodes, an_node);
+
+  for(size_t n=ci->arity; n<nvars; n++)	/* count branch-local vars */
+  { VarDef vd = LD->comp.vardefs[n];
+
+    if ( vd->address && is_branch_local(vd) )
+      nodes[vd->an_node].own++;
+  }
+					/* sizes, bottom-up */
+  for(int i=nn-1; i>=0; i--)
+  { an_node *n = &nodes[i];
+
+    n->size = n->own + n->acc;
+    if ( i > 0 )
+    { an_disj *d = &disjs[n->disj];
+
+      if ( n->size > d->size )
+	d->size = n->size;
+      if ( d->first == i )		/* all alternatives are done */
+	nodes[d->parent].acc += d->size;
+    }
+  }
+					/* start slots, top-down */
+  nodes[0].own_next  = base;		/* the clause has no own variables */
+  nodes[0].disj_next = base;
+  for(int i=1; i<nn; i++)
+  { an_node *n = &nodes[i];
+    an_disj *d = &disjs[n->disj];
+
+    if ( !d->placed )
+    { an_node *p = &nodes[d->parent];
+
+      d->start      = p->disj_next;
+      d->placed     = true;
+      p->disj_next += d->size;
+    }
+    n->own_next  = d->start;
+    n->disj_next = d->start + n->own;
+  }
+
+  for(size_t n=ci->arity; n<nvars; n++)
+  { VarDef vd = LD->comp.vardefs[n];
+
+    if ( vd->address && is_branch_local(vd) )
+      vd->offset = nodes[vd->an_node].own_next++;
+  }
+
+  return nodes[0].size;
+}
+
+#define analyse_variables2(ci, nvars, arity) \
+	LDFUNC(analyse_variables2, ci, nvars, arity)
+static ssize_t analyse_variables2(DECL_LD CompileInfo ci, ssize_t nvars,
+				  size_t arity);
+
 #define analyse_variables(head, body, ci) LDFUNC(analyse_variables, head, body, ci)
 static ssize_t
 analyse_variables(DECL_LD Word head, Word body, CompileInfo ci)
-{ ssize_t nv, nvars = 0;
-  size_t body_voids = 0;
+{ ssize_t nvars = 0;
   size_t arity = ci->arity;
+  ssize_t rc;
 
   resetVarDefs(arity);
 
   ci->branch_vars = NULL;
   ci->singletons  = 0;
+  initBuffer(&ci->an_nodes);
+  initBuffer(&ci->an_disjs);
+  if ( !an_new_node(ci, -1, -1) )	/* node 0: the clause */
+    return MEMORY_OVERFLOW;
 
   if ( head )
   { if ( (nvars = analyseVariables2(head, 0, -1, ci, 0, false)) < 0 )
-      return nvars == AVARS_CYCLIC ? CYCLIC_HEAD : nvars;
+    { rc = nvars == AVARS_CYCLIC ? CYCLIC_HEAD : nvars;
+      goto out;
+    }
   }
   if ( body )
   { if ( (nvars = analyseVariables2(body, nvars, arity, ci, 0, true)) < 0 )
-      return nvars == AVARS_CYCLIC ? CYCLIC_BODY : nvars;
+    { rc = nvars == AVARS_CYCLIC ? CYCLIC_BODY : nvars;
+      goto out;
+    }
   }
+  rc = analyse_variables2(ci, nvars, arity);
+
+out:
+  discardBuffer(&ci->an_nodes);
+  discardBuffer(&ci->an_disjs);
+  return rc;
+}
+
+static ssize_t
+analyse_variables2(DECL_LD CompileInfo ci, ssize_t nvars, size_t arity)
+{ ssize_t nv;
+  size_t body_voids = 0;
+  bool share = ( !ci->islocal &&
+		 entriesBuffer(&ci->an_nodes, an_node) > 1 );
+  clsize_t nshared = 0;			/* # branch-local variables */
+  clsize_t next_slot = (clsize_t)arity;	/* next non-shared body slot */
 
   if ( ci->warning_list	)
     get_variable_names(ci);
@@ -1379,13 +1594,30 @@ analyse_variables(DECL_LD Word head, Word body, CompileInfo ci)
       vd->address = (Word) NULL;
       if (n >= arity)
 	body_voids++;
+    } else if ( share && n >= arity )
+    { if ( is_branch_local(vd) )
+	nshared++;			/* see assign_shared_slots() */
+      else
+	vd->offset = next_slot++;
     } else
       vd->offset = (clsize_t)(n + ci->argvars - body_voids);
   }
 
   LD->comp.filledVars = arity + nvars;
 
-  if ( (nv = nvars + arity + ci->argvars - body_voids) > MAX_VARIABLES )
+  if ( share )
+  { clsize_t base = next_slot;
+
+    nv = base;
+    if ( nshared > 0 )
+    { nv += assign_shared_slots(ci, arity+nvars, base);
+      ci->clause->flags |= CL_SHARED_SLOTS;
+      ci->clause->shared_base = base;
+    }
+  } else
+  { nv = nvars + arity + ci->argvars - body_voids;
+  }
+  if ( nv > MAX_VARIABLES )
     return AVARS_MAX;
 
   // Safe as nv < MAX_VARIABLES
@@ -5879,6 +6111,10 @@ typedef struct
   term_t bvar_args;		/* Arity size vector for moved unifications */
   term_t variables;		/* variable table (PL_new_term_refs() array) */
   term_t bindings;		/* [Offset = Var, ...] */
+  size_t shared_base;		/* First shared slot (CL_SHARED_SLOTS) */
+  size_t shared_count;		/* # shared slots (0: none) */
+  uint64_t *touched;		/* Last access of shared slots */
+  uint64_t clock;		/* Access counter */
 } decompileInfo;
 
 #if USE_LD_MACROS
@@ -6006,6 +6242,10 @@ decompileHead(Clause clause, term_t head)
   di.arity       = clause->predicate->functor->arity;
   di.bindings    = 0;
   di.bvar_access = NULL;
+  di.shared_base = 0;
+  di.shared_count = 0;
+  di.touched     = NULL;
+  di.clock       = 0;
   if ( clause->prolog_vars )
   { if ( !(di.variables = PL_new_term_refs(clause->prolog_vars)) )
       return false;
@@ -6089,13 +6329,16 @@ body-compilation. Even undoing the  head-unification   is  not an option
 because this is a true unification that may share with older variables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define unifyVar(var, vars, i) LDFUNC(unifyVar, var, vars, i)
+#define unifyVar(var, di, i) LDFUNC(unifyVar, var, di, i)
 static int
-unifyVar(DECL_LD Word var, term_t vars, size_t i)
+unifyVar(DECL_LD Word var, decompileInfo *di, size_t i)
 { Word v;
+  term_t vars = di->variables;
 
   i -= VAROFFSET(0);
   DEBUG(3, Sdprintf("unifyVar(%p, %ld(=%ld))\n", var, i, vars+i));
+  if ( i >= di->shared_base && i - di->shared_base < di->shared_count )
+    di->touched[i-di->shared_base] = ++di->clock;
 
   if ( tTop+1 >= tMax )
     return TRAIL_OVERFLOW;
@@ -6474,12 +6717,42 @@ moved_unifications(DECL_LD term_t body, decompileInfo *di, int hasbody)
 }
 
 
+#define decompile_(clause, term, bindings, di) \
+	LDFUNC(decompile_, clause, term, bindings, di)
+static bool decompile_(DECL_LD Clause clause, term_t term, term_t bindings,
+		       decompileInfo *di);
+
 bool
 decompile(Clause clause, term_t term, term_t bindings)
 { GET_LD
   decompileInfo dinfo;
   decompileInfo *di = &dinfo;
-  term_t body;
+  bool rc;
+
+  di->shared_base  = 0;
+  di->shared_count = 0;
+  di->touched      = NULL;
+  di->clock        = 0;
+  if ( ison(clause, CL_SHARED_SLOTS) &&
+       clause->prolog_vars > clause->shared_base )
+  { di->shared_base  = clause->shared_base;
+    di->shared_count = clause->prolog_vars - clause->shared_base;
+    if ( !(di->touched = tmp_malloc(di->shared_count*sizeof(*di->touched))) )
+      return PL_no_memory();
+    memset(di->touched, 0, di->shared_count*sizeof(*di->touched));
+  }
+
+  rc = decompile_(clause, term, bindings, di);
+  if ( di->touched )
+    tmp_free(di->touched);
+
+  return rc;
+}
+
+static bool
+decompile_(DECL_LD Clause clause, term_t term, term_t bindings,
+	   decompileInfo *di)
+{ term_t body;
 
   di->nvars	  = VAROFFSET(1) + clause->prolog_vars;
   di->arity       = clause->predicate->functor->arity;
@@ -6655,7 +6928,25 @@ typedef struct dc_frame
   Code		adr1;		/* (A -> B ; C): start of C */
   code		cut;		/* cut instruction that ends the condition */
   functor_t	f;		/* functor of the (soft) if-then */
+  uint64_t	clock;		/* di->clock when entering a disjunction */
 } dc_frame;
+
+/* renew_shared_vars() is called when entering the next alternative of a
+   disjunction.  Slots from clause->shared_base that were accessed in
+   the previous alternative hold branch-local variables of that
+   alternative.  If they are used in this alternative they belong to a
+   new variable.  See assign_shared_slots().  Resetting the term reference
+   creates the new variable without allocating global stack.
+*/
+
+#define renew_shared_vars(di, since) LDFUNC(renew_shared_vars, di, since)
+static void
+renew_shared_vars(DECL_LD decompileInfo *di, uint64_t since)
+{ for(size_t i=0; i<di->shared_count; i++)
+  { if ( di->touched[i] > since )
+      setVar(*valTermRef(di->variables+di->shared_base+i));
+  }
+}
 
 #define DC_DESCEND(k, e, u) \
 	{ frame.kind   = (k); \
@@ -6794,7 +7085,7 @@ level_start:
 	case A_VAR2:
 	case B_VAR2:	    index = VAROFFSET(2);	var_common:
 			    if ( nested )
-			    { int rc = unifyVar(ARGP++, di->variables,
+			    { int rc = unifyVar(ARGP++, di,
 						index);
 			      if ( rc != true )
 				return rc;
@@ -6899,8 +7190,8 @@ level_start:
 	  return rc;
 	*ARGP++ = w;
 	p = argTermP(w, 0);
-	if ( (rc=unifyVar(p+0, di->variables, v1)) != true ||
-	     (rc=unifyVar(p+1, di->variables, v2)) != true )
+	if ( (rc=unifyVar(p+0, di, v1)) != true ||
+	     (rc=unifyVar(p+1, di, v2)) != true )
 	  return rc;
 	continue;
       }
@@ -7085,7 +7376,7 @@ level_start:
 			      BUILD_TERM(FUNCTOR_colon2);
 			    }
 			    if ( nested )
-			    { int rc = unifyVar(ARGP++, di->variables,
+			    { int rc = unifyVar(ARGP++, di,
 						cm);
 			      if ( rc != true )
 				return rc;
@@ -7144,6 +7435,7 @@ level_start:
       case C_OR:				/* A ; B */
 			  { int to_jump = (int) *PC++;
 
+			    frame.clock = di->clock;
 			    DC_DESCEND(DC_OR_A, (code)-1, PC+to_jump);
 			  }
       case C_NOT:				/* \+ A */
@@ -7168,6 +7460,7 @@ level_start:
 			    PC++;		/* skip the 'MARK' variable */
 			    jmp  = (int) *PC++;
 			    frame.adr1 = PC+jmp;
+			    frame.clock = di->clock;
 			    DC_DESCEND(DC_ITE_COND, frame.cut, NULL);
 			  }
       case C_IFTHEN:					/* A -> B */
@@ -7211,6 +7504,7 @@ level_start:
 
       PC--;			/* get C_JMP argument */
       to_jump = (int) *PC++;
+      renew_shared_vars(di, frame.clock);
       DC_DESCEND(DC_OR_B, (code)-1, PC+to_jump);
     }
     case DC_OR_B:
@@ -7239,6 +7533,7 @@ level_start:
       BUILD_TERM(frame.f);
       PC--;
       to_jump = (int) *PC++;
+      renew_shared_vars(di, frame.clock);
       DC_DESCEND(DC_ITE_ELSE, (code)-1, PC+to_jump);
     }
     case DC_ITE_ELSE:
@@ -7290,6 +7585,10 @@ decompile_body_range(DECL_LD term_t goal, LocalFrame fr, Clause clause,
   di->arity       = clause->predicate->functor->arity;
   di->bindings    = 0;
   di->bvar_access = NULL;
+  di->shared_base = 0;
+  di->shared_count = 0;		/* we use the actual frame variables */
+  di->touched     = NULL;
+  di->clock       = 0;
   di->pc          = start;
 
   if ( clause->prolog_vars )
@@ -7460,7 +7759,7 @@ build_term(DECL_LD functor_t f, decompileInfo *di, int dir)
     if ( (var = isVarRef(*ARGP)) >= 0 )
     { int rc;
 
-      if ( (rc=unifyVar(a, di->variables, var)) != true )
+      if ( (rc=unifyVar(a, di, var)) != true )
 	return rc;
     } else
     { *a = *ARGP;

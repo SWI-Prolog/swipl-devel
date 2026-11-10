@@ -1149,6 +1149,7 @@ with one operation, it turns out to be faster as well.
 #define SSU_COMMIT_CLAUSE	(0x0100) /* Head => Body */
 #define SSU_CHOICE_CLAUSE	(0x0200) /* Head ?=> Body */
 #define CL_HEAD_TERMS		(0x0400) /* Head contains terms used in body */
+#define CL_SHARED_SLOTS		(0x0800) /* Branch-local variables share slots */
 
 #define CLAUSE_TYPE_MASK (UNIT_CLAUSE|SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
 #define CLAUSE_SSU_FLAGS (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
@@ -1551,7 +1552,8 @@ struct clause
   srcindex_t		owner_no;	/* Index of owning source-file */
   unsigned int		references;	/* # ClauseRef pointing at me */
   unsigned int		tr_erased_no;	/* # transactions that erased me */
-  code			code_size;	/* size of ->codes */
+  clsize_t		code_size;	/* size of ->codes */
+  clsize_t		shared_base;	/* First shared slot (CL_SHARED_SLOTS) */
   code			codes[];	/* VM codes of clause */
 };
 
