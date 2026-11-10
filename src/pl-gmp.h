@@ -238,7 +238,13 @@ get_rational(DECL_LD word w, Number n)
 		 *******************************/
 
 #define FE_NOTSET (-1)
-#define GMP_STACK_ALLOC 1024	/* in size_t units */
+/* Size of the C-stack buffer for GMP temporaries.  This buffer is part
+   of the frame of PL_next_solution() and several arithmetic functions.
+   Larger numbers are allocated using malloc().  256 units (2Kb) has no
+   measurable impact on bignum performance compared to 1024 units while
+   allowing threads with a smaller C stack.
+*/
+#define GMP_STACK_ALLOC 256	/* in size_t units */
 
 #if O_MY_GMP_ALLOC
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
