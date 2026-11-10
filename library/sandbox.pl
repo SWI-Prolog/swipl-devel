@@ -652,7 +652,6 @@ safe_primitive(system:string_length(_,_)).
 safe_primitive(system:string_lower(_,_)).
 safe_primitive(system:string_upper(_,_)).
 safe_primitive(system:term_string(_,_)).
-safe_primitive('$syspreds':term_string(_,_,_)).
                                         % Lists
 safe_primitive(length(_,_)).
                                         % exceptions
@@ -682,7 +681,6 @@ safe_primitive(system:format_time(_,_,_,_)).
 safe_primitive(system:date_time_stamp(_,_)).
 safe_primitive(system:stamp_date_time(_,_,_)).
 safe_primitive(system:strip_module(_,_,_)).
-safe_primitive('$messages':message_to_string(_,_)).
 safe_primitive(system:import_module(_,_)).
 safe_primitive(system:file_base_name(_,_)).
 safe_primitive(system:file_directory_name(_,_)).
@@ -761,7 +759,6 @@ safe_primitive(system:assert(X)) :-
     safe_assert(X).
                                         % Output
 safe_primitive(system:writeln(_)).
-safe_primitive('$messages':print_message(_,_)).
 
                                         % Stack limits (down)
 safe_primitive('$syspreds':set_prolog_stack(Stack, limit(ByteExpr))) :-
@@ -800,8 +797,7 @@ safe_primitive(system:use_module(Spec)) :-
         phrase(segments_to_path(Segments), List),
         atomic_list_concat(List, Path)
     ),
-    \+ is_absolute_file_name(Path),
-    \+ sub_atom(Path, _, _, _, '/../'),
+    safe_relative_path(Path),
     absolute_file_name(Spec, AbsFile,
                        [ access(read),
                          file_type(prolog),
@@ -896,6 +892,14 @@ safe_meta(system:put_attr(V,M,A), Called) :-
 safe_meta(system:with_output_to(Output, G), [G]) :-
     safe_output(Output),
     !.
+safe_meta(system:write_term(_Term, Options), Calls) :-
+    write_options_calls(Options, Calls).
+safe_meta('$syspreds':term_string(_Term, _String, Options), Calls) :-
+    write_options_calls(Options, Calls).
+safe_meta('$messages':print_message(_Kind, Msg), Calls) :-
+    message_calls(Msg, Calls).
+safe_meta('$messages':message_to_string(Msg, _String), Calls) :-
+    message_calls(Msg, Calls).
 safe_meta(system:format(Format, Args), Calls) :-
     format_calls(Format, Args, Calls).
 safe_meta(system:format(Output, Format, Args), Calls) :-
@@ -1114,7 +1118,8 @@ safe_output(current_error).
 %
 %   Find ~@ calls from Format and Args.
 
-:- public format_calls/3.                       % used in pengines_io
+:- public format_calls/3,                       % used in pengines_io
+          write_options_calls/2.
 
 format_calls(Format, Args, Calls) :-
     is_list(Args),
@@ -1131,9 +1136,83 @@ format_callables([], [], []).
 format_callables([callable|TT], [G|TA], [G|TG]) :-
     !,
     format_callables(TT, TA, TG).
+format_callables([list|TT], [Options|TA], TG) :-     % ~W
+    !,
+    write_options_calls(Options, TG0),
+    format_callables(TT, TA, TG1),
+    append(TG0, TG1, TG).
 format_callables([_|TT], [_|TA], TG) :-
     !,
     format_callables(TT, TA, TG).
+
+
+%!  write_options_calls(+Options, -Calls) is det.
+%
+%   Calls is a list of goals called by write_term/2 using Options.
+%   The option portray_goal(Goal) calls Goal with two additional
+%   arguments.
+
+write_options_calls(Options, _) :-
+    var(Options),
+    !,
+    instantiation_error(Options).
+write_options_calls([], []) :-
+    !.
+write_options_calls([H|T], Calls) :-
+    !,
+    write_option_calls(H, Calls, Calls1),
+    write_options_calls(T, Calls1).
+write_options_calls(Options, _) :-
+    type_error(list, Options).
+
+write_option_calls(Opt, _, _) :-
+    var(Opt),
+    !,
+    instantiation_error(Opt).
+write_option_calls(portray_goal(G), [Call|T], T) :-
+    !,
+    extend(2, G, Call).
+write_option_calls(portray_goal=G, [Call|T], T) :-
+    !,
+    extend(2, G, Call).
+write_option_calls(_, T, T).
+
+%!  message_calls(+Message, -Calls) is det.
+%
+%   Message translation for format(Fmt,Args) and debug(Fmt,Args)
+%   calls format/2.
+
+message_calls(Msg, Calls) :-
+    nonvar(Msg),
+    message_format(Msg, Fmt, Args),
+    !,
+    format_calls(Fmt, Args, Calls0),
+    maplist(message_qualify, Calls0, Calls).
+message_calls(_, []).
+
+% Message lines are formatted in the module '$messages'.
+message_qualify(G, G) :-
+    nonvar(G),
+    G = _:_,
+    !.
+message_qualify(G, '$messages':G).
+
+message_format(format(Fmt, Args), Fmt, Args).
+message_format(debug(Fmt, Args), Fmt, Args).
+message_format(error(Formal, _), Fmt, Args) :-
+    nonvar(Formal),
+    Formal = format(Fmt, Args).
+
+%!  safe_relative_path(+Path) is semidet.
+%
+%   True if Path is a relative path that cannot point outside the
+%   directory against which it is resolved.
+
+safe_relative_path(Path) :-
+    \+ is_absolute_file_name(Path),
+    \+ sub_atom(Path, 0, _, _, ~),
+    split_string(Path, "/\\", "", Segments),
+    \+ memberchk("..", Segments).
 
 
                  /*******************************
@@ -1252,11 +1331,7 @@ safe_path(X) :-
     ;   string(X)
     ),
     !,
-    \+ sub_atom(X, 0, _, 0, '..'),
-    \+ sub_atom(X, 0, _, _, '/'),
-    \+ sub_atom(X, 0, _, _, '../'),
-    \+ sub_atom(X, _, _, 0, '/..'),
-    \+ sub_atom(X, _, _, _, '/../').
+    safe_relative_path(X).
 safe_path(A/B) :-
     !,
     safe_path(A),

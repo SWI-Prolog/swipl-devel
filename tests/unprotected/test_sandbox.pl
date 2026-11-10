@@ -86,5 +86,32 @@ test(flag, error(permission_error(call, sandboxed, _))) :-
 	safe_goal(set_prolog_flag(threads, false)).
 test(flag) :-
 	safe_goal(set_prolog_flag(double_quotes, chars)).
+test(portray_goal, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(write_term(a, [portray_goal(shell)])).
+test(portray_goal, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(term_string(a, _, [portray_goal(shell)])).
+test(portray_goal, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(format("~W", [a, [portray_goal(shell)]])).
+test(portray_goal, error(instantiation_error)) :-
+	safe_goal(write_term(a, _)).
+test(write_term) :-
+	safe_goal(write_term(a, [quoted(true)])),
+	safe_goal(term_string(a, _, [quoted(true)])),
+	safe_goal(format("~W", [a, [quoted(true)]])).
+test(message, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(print_message(error, format("~@", [shell(true)]))).
+test(message, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(print_message(error, error(format("~@", [shell(true)]), _))).
+test(message, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(message_to_string(debug("~@", [shell(true)]), _)).
+test(message) :-
+	safe_goal(print_message(informational, format("~w", [a]))),
+	safe_goal(print_message(informational, format("~@", [writeln(a)]))).
+test(use_module, error(_)) :-
+	safe_goal(use_module(library('../library/lists'))).
+test(use_module, error(_)) :-
+	safe_goal(use_module(library('dialect/../lists'))).
+test(use_module) :-
+	safe_goal(use_module(library(lists))).
 
 :- end_tests(sandbox).
