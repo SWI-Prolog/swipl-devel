@@ -1521,7 +1521,11 @@ numbervars(Term, From, To) :-
 
 %!  term_string(?Term, ?String, +Options)
 %
-%   Parse/write a term from/to a string using Options.
+%   Parse/write a term from/to a string using Options.  The predicate
+%   is module transparent, such that e.g., the portray_goal option is
+%   resolved in the context of the caller.
+
+:- module_transparent term_string/3.
 
 term_string(Term, String, Options) :-
     nonvar(String),
