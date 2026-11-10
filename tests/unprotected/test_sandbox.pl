@@ -104,6 +104,28 @@ test(message, error(permission_error(call, sandboxed, _))) :-
 	safe_goal(print_message(error, error(format("~@", [shell(true)]), _))).
 test(message, error(permission_error(call, sandboxed, _))) :-
 	safe_goal(message_to_string(debug("~@", [shell(true)]), _)).
+test(message, error(instantiation_error)) :-
+	safe_goal(print_message(error, _)).
+test(message, error(instantiation_error)) :-
+	safe_goal(print_message(error, error(_, _))).
+test(throw, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(throw(error(format("~@", [true]), _))).
+test(throw, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(throw(format("~w", [a]))).
+test(throw, error(instantiation_error)) :-
+	safe_goal(throw(_)).
+test(throw, error(instantiation_error)) :-
+	safe_goal(throw(error(_, _))).
+test(throw) :-
+	safe_goal(throw(error(type_error(integer, a), _))),
+	safe_goal(throw(my_ball)).
+test(catch_print) :-
+	safe_goal(catch(true, E, print_message(error, E))),
+	safe_goal(catch(true, E, throw(E))).
+test(catch_print, error(instantiation_error)) :-
+	safe_goal(catch(true, _, throw(_))).
+test(catch_print, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(catch(throw(format("~@", [true])), E, print_message(error, E))).
 test(message) :-
 	safe_goal(print_message(informational, format("~w", [a]))),
 	safe_goal(print_message(informational, format("~@", [writeln(a)]))).

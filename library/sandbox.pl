@@ -655,7 +655,7 @@ safe_primitive(system:term_string(_,_)).
                                         % Lists
 safe_primitive(length(_,_)).
                                         % exceptions
-safe_primitive(throw(_)).
+safe_primitive(throw(Ball)) :- safe_ball(Ball).
 safe_primitive(system:abort).
                                         % misc
 safe_primitive(current_prolog_flag(_,_)).
@@ -924,11 +924,29 @@ safe_meta('$tabling':abolish_table_subgoals(V), []) :-
 safe_meta('$tabling':current_table(V, _), []) :-
     \+ qualified(V).
 safe_meta('$tabling':tnot(G), [G]).
+safe_meta(catch(G, Catcher, Recover), [G, Recover1]) :-
+    caught(Catcher, Recover, Recover1).
+safe_meta(system:setup_call_catcher_cleanup(S, G, Catcher, Cleanup),
+          [S, G, Cleanup1]) :-
+    caught(Catcher, Cleanup, Cleanup1).
 safe_meta('$tabling':not_exists(G), [G]).
 
 qualified(V) :-
     nonvar(V),
     V = _:_.
+
+%!  caught(+Catcher, +Handler, -Handler1) is det.
+%
+%   Handler1 is a copy of Handler where  the variables of Catcher are
+%   bound to '$sandbox_caught'.  A caught exception is either raised
+%   by a system predicate or by throw/1 inside the analysed goal,
+%   which is verified by safe_ball/1.  This allows for e.g.
+%   catch(G, E, (print_message(error, E), throw(E))).
+
+caught(Catcher, Handler, Handler1) :-
+    copy_term(Catcher-Handler, Catcher1-Handler1),
+    term_variables(Catcher1, Vars),
+    maplist(=('$sandbox_caught'), Vars).
 
 %!  attr_hook_predicates(+Hooks0, +Module, -Hooks) is det.
 %
@@ -1069,7 +1087,6 @@ safe_meta((0,0)).
 safe_meta((0;0)).
 safe_meta((0->0)).
 safe_meta(system:(0*->0)).
-safe_meta(catch(0,*,0)).
 safe_meta(findall(*,0,*)).
 safe_meta('$bags':findall(*,0,*,*)).
 safe_meta(setof(*,^,*)).
@@ -1078,7 +1095,6 @@ safe_meta('$bags':findnsols(*,*,0,*)).
 safe_meta('$bags':findnsols(*,*,0,*,*)).
 safe_meta(system:call_cleanup(0,0)).
 safe_meta(system:setup_call_cleanup(0,0,0)).
-safe_meta(system:setup_call_catcher_cleanup(0,0,*,0)).
 safe_meta('$attvar':call_residue_vars(0,*)).
 safe_meta('$syspreds':call_with_inference_limit(0,*,*)).
 safe_meta('$syspreds':call_with_depth_limit(0,*,*)).
@@ -1182,13 +1198,36 @@ write_option_calls(_, T, T).
 %   Message translation for format(Fmt,Args) and debug(Fmt,Args)
 %   calls format/2.
 
+message_calls(Msg, _) :-
+    unbound_message(Msg),
+    !,
+    instantiation_error(Msg).
 message_calls(Msg, Calls) :-
-    nonvar(Msg),
     message_format(Msg, Fmt, Args),
     !,
     format_calls(Fmt, Args, Calls0),
     maplist(message_qualify, Calls0, Calls).
 message_calls(_, []).
+
+unbound_message(Msg) :-
+    var(Msg),
+    !.
+unbound_message(error(Formal, _)) :-
+    var(Formal).
+
+%!  safe_ball(@Ball) is semidet.
+%
+%   True if throw(Ball) is safe.  Exceptions are typically printed
+%   using print_message/2 outside the sandbox.  We therefore deny
+%   exception terms that are translated into a user-provided format
+%   string.
+
+safe_ball(Ball) :-
+    unbound_message(Ball),
+    !,
+    instantiation_error(Ball).
+safe_ball(Ball) :-
+    \+ message_format(Ball, _, _).
 
 % Message lines are formatted in the module '$messages'.
 message_qualify(G, G) :-
