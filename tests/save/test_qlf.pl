@@ -134,8 +134,37 @@ test(rat,
              Expected, Found,
              [ optimise(true) ]),
     debug(qlf(result), '~q~n~q', [Expected, Found]).
+test(many_vars,
+     [ Len == 70000,
+       setup(many_vars_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf]))
+     ]) :-
+    qcompile(Pl),
+    unload_file(Pl),
+    load_files(Qlf, []),
+    test_qlf_many_vars:many_vars(L),
+    length(L, Len).
 
 :- end_tests(qlf).
+
+%!  many_vars_file(-PlFile, -QlfFile) is det.
+%
+%   A source with a clause that has more than 65535 variables.
+
+many_vars_file(Pl, Qlf) :-
+    current_prolog_flag(tmp_dir, Tmp),
+    directory_file_path(Tmp, 'test_qlf_many_vars.pl', Pl),
+    file_name_extension(Base, pl, Pl),
+    file_name_extension(Base, qlf, Qlf),
+    remove_files([Qlf]),
+    length(Vars, 70000),
+    setup_call_cleanup(
+        open(Pl, write, Out),
+        ( format(Out, ':- module(test_qlf_many_vars, [many_vars/1]).~n', []),
+          portray_clause(Out, (many_vars(L) :- vars(Vars), L = Vars)),
+          portray_clause(Out, vars(_))
+        ),
+        close(Out)).
 
 
                 /*******************************

@@ -1507,8 +1507,8 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	  }
 	}
 
-	clause->prolog_vars = (unsigned short) qlfGetUInt32(fd);
-	clause->variables   = (unsigned short) qlfGetUInt32(fd);
+	clause->prolog_vars = (clsize_t) qlfGetUInt32(fd);
+	clause->variables   = (clsize_t) qlfGetUInt32(fd);
 	loadClauseFlags(state, clause, skip);
 	clause->predicate = def;
 
@@ -2931,8 +2931,8 @@ saveWicClause(wic_state *state, Clause clause)
   saveXRSourceFile(state,
 		   state->obfuscate ? NULL
 				    : indexToSourceFile(clause->source_no));
-  qlfPutUInt32((uint32_t) clause->prolog_vars, fd); /* dubious cast */
-  qlfPutUInt32((uint32_t) clause->variables, fd);   /* dubious cast */
+  qlfPutUInt32((uint32_t) clause->prolog_vars, fd);
+  qlfPutUInt32((uint32_t) clause->variables, fd);
   qlfPutUInt32(clauseFlags(clause), fd);
   if ( ison(clause, CL_SHARED_SLOTS) )
     qlfPutUInt32(clause->shared_base, fd);
