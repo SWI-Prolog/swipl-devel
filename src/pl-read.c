@@ -920,18 +920,39 @@ atom_text_has_non_ascii(const unsigned char *bytes, size_t len)
 }
 
 
-/* atom_text_not_in_nfc(): conservative test for "definitely not in
- * NFC".  Fast path scans for any code point at or above U+0300 with
- * wcwidth == 0 (combining marks etc.); when a normalisation hook is
- * registered, run it on a stack copy and compare for an exact
- * NFC test.  Same accuracy ladder as the writer's
- * atom_has_combining/1.
+/* atom_text_not_in_nfc(): test for "not in NFC".  ASCII text is
+ * always in NFC.  When a normalisation hook is registered, we compare
+ * the text with its NFC form.  Note that a result that does not fit
+ * the buffer has a different length and is thus not in NFC.  Without
+ * a hook we use a conservative test: scan for any code point at or
+ * above U+0300 with wcwidth == 0 (combining marks etc.).  Same
+ * accuracy ladder as the writer's atom_has_combining/1.
  */
 static bool
 atom_text_not_in_nfc(const unsigned char *bytes, size_t len)
 { const unsigned char *p = bytes;
   const unsigned char *e = bytes + len;
   bool any_combining = false;
+
+  if ( !atom_text_has_non_ascii(bytes, len) )
+    return false;
+
+  if ( GD->atoms.normalize_hook )
+  { unsigned char tmp[256];
+    unsigned char *buf = len <= sizeof(tmp) ? tmp : PL_malloc(len);
+    size_t size = len;
+    bool changed;
+
+    if ( !buf )
+      return true;			/* assume not-NFC on OOM */
+    if ( GD->atoms.normalize_hook(bytes, len, buf, &size) != 0 )
+      changed = true;
+    else
+      changed = (size != len) || (memcmp(buf, bytes, len) != 0);
+    if ( buf != tmp )
+      PL_free(buf);
+    return changed;
+  }
 
   while ( p < e )
   { int c;
@@ -941,30 +962,51 @@ atom_text_not_in_nfc(const unsigned char *bytes, size_t len)
       break;
     }
   }
-  if ( !any_combining )
-    return false;
 
-  if ( GD->atoms.normalize_hook )
-  { unsigned char *buf = PL_malloc(len);
-    size_t l = len;
-    bool changed;
-
-    if ( !buf )
-      return true;			/* assume not-NFC on OOM */
-    memcpy(buf, bytes, len);
-    if ( GD->atoms.normalize_hook(buf, &l) != 0 )
-    { PL_free(buf);
-      return true;
-    }
-    changed = (l != len) || (memcmp(buf, bytes, len) != 0);
-    PL_free(buf);
-    return changed;
-  }
   /* No precise hook available; treat the combining-mark presence as
    * "not in NFC" — conservative, may over-quote NFC texts that
    * legitimately contain combining marks (e.g. Devanagari).
    */
-  return true;
+  return any_combining;
+}
+
+
+/* atom_text_to_nfc(): normalise the atom text in `txt` using the
+ * normalisation hook.  We first normalise in place, which succeeds
+ * unless the NFC form is longer than the input.  In that case the
+ * result is in memory allocated using PL_malloc(), returned in `*mem`.
+ * If normalisation fails, `txt` is left untouched.
+ */
+static void
+atom_text_to_nfc(PL_chars_t *txt, unsigned char **mem)
+{ unsigned char *in = (unsigned char *)txt->text.t;
+  size_t len  = txt->length;
+  size_t size = len;
+  size_t size2;
+
+  *mem = NULL;
+  if ( !GD->atoms.normalize_hook ||
+       !atom_text_has_non_ascii(in, len) ||
+       GD->atoms.normalize_hook(in, len, in, &size) != 0 )
+    return;
+
+  if ( size <= len )			/* normalised in place */
+  { txt->length = size;
+    return;
+  }
+
+  size2 = size;
+  if ( !(*mem = PL_malloc(size)) )
+    return;
+  if ( GD->atoms.normalize_hook(in, len, *mem, &size2) != 0 ||
+       size2 > size )
+  { PL_free(*mem);
+    *mem = NULL;
+    return;
+  }
+
+  txt->text.t = (char *)*mem;
+  txt->length = size2;
 }
 
 
@@ -3856,6 +3898,7 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
   { case LC:
     lower:
 		{ PL_chars_t txt;
+		  unsigned char *nfc_mem;	/* set after label functor */
 
 		  rdhere = SkipAtomIdCont(rdhere);
 		  if ( !check_no_bidi_override(start, rdhere, _PL_rd) )
@@ -3872,13 +3915,13 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  txt.storage   = PL_CHARS_HEAP;
 		  txt.encoding  = ENC_UTF8;
 		  txt.canonical = false;
+		  nfc_mem       = NULL;
 
 		  switch ( _PL_rd->unicode_atoms )
 		  { case S_UATOMS_ACCEPT:
 		      break;
 		    case S_UATOMS_NFC:
-		      if ( GD->atoms.normalize_hook )
-			GD->atoms.normalize_hook(start, &txt.length);
+		      atom_text_to_nfc(&txt, &nfc_mem);
 		      break;
 		    case S_UATOMS_ERROR:
 		      if ( atom_text_not_in_nfc(start, txt.length) )
@@ -3897,6 +3940,8 @@ get_token(DECL_LD bool must_be_op, ReadData _PL_rd)
 		  cur_token.value.atom = textToLocalAtom(&txt);
 		  NeedUnlock(cur_token.value.atom);
 		  PL_free_text(&txt);
+		  if ( nfc_mem )
+		    PL_free(nfc_mem);
 
 		  if ( *rdhere == '(' )
 		  { cur_token.type = TK_FUNCTOR;
