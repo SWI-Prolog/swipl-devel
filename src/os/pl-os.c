@@ -2668,13 +2668,15 @@ Setenv(char *name, char *value)
     return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setenv");
   }
 
-  buf = alloca(strlen(name) + strlen(value) + 2);
+  size_t len = strlen(name) + strlen(value) + 2;
 
-  if ( buf )
-  { Ssprintf(buf, "%s=%s", name, value);
+  if ( (buf = malloc(len)) )
+  { Ssnprintf(buf, len, "%s=%s", name, value);
 
-    if ( putenv(store_string(buf)) < 0 )
+    if ( putenv(buf) < 0 )		/* buf becomes part of the environment */
+    { free(buf);
       return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setenv");
+    }
   } else
     return PL_error(NULL, 0, NULL, ERR_NOMEM);
 #endif
