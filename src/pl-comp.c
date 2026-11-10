@@ -359,7 +359,11 @@ typedef struct
 
 #define sizeofVarTable(isize) (offsetof(var_table, entry[isize]))
 
-#define mkCopiedVarTable(o) copyVarTable(alloca(sizeofVarTable(o->isize)), o)
+/* Var tables are allocated on the C stack only if they are small.  This
+   keeps compiling clauses with many variables safe in threads with a
+   small C stack.
+*/
+#define VARTABLE_ALLOCA_MAX 256
 #define BITSPERINT (int)(sizeof(int)*8)
 
 typedef struct branch_var
@@ -2024,6 +2028,7 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
   struct clause clause = {0};
   Clause cl;
   Definition def = getProcDefinition(proc);
+  VarTable used_var_heap = NULL;	/* used_var if allocated */
   ssize_t rc;
 
   ci->progress = 0;
@@ -2091,7 +2096,15 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
   ci->cut.var = 0;
   ci->cut.instruction = 0;
   if ( !ci->islocal )
-  { ci->used_var = alloca(sizeofVarTable(ci->vartablesize));
+  { size_t vsize = sizeofVarTable(ci->vartablesize);
+
+    if ( vsize <= VARTABLE_ALLOCA_MAX )
+    { ci->used_var = alloca(vsize);
+    } else if ( !(ci->used_var = used_var_heap = tmp_malloc(vsize)) )
+    { resetVars();
+      discardBuffer(&ci->codes);
+      return PL_error(NULL, 0, NULL, ERR_NOMEM);
+    }
     clearVarTable(ci);
   } else
     ci->used_var = NULL;
@@ -2295,6 +2308,8 @@ Finish up the clause.
   }
 
   discardBuffer(&ci->codes);
+  if ( used_var_heap )
+    tmp_free(used_var_heap);
 
   *cp = cl;
   return true;
@@ -2302,6 +2317,8 @@ Finish up the clause.
 exit_fail:
   resetVars();
   discardBuffer(&ci->codes);
+  if ( used_var_heap )
+    tmp_free(used_var_heap);
   return rc;
 }
 
@@ -2466,20 +2483,46 @@ typedef struct cb_frame
   VarTable       vsave;
   VarTable       valt1;
   VarTable       valt2;
+  int            ntables;	/* # var tables allocated on vtstack */
   cutInfo        cutsave;
   target_module  tmsave;
   bool           hard;		/* -> vs *-> */
   bool           isnot;		/* \+ vs $ */
 } cb_frame;
 
+/* push_var_table() copies `from` to a new var table on `vtstack`.  Var
+   tables are needed for nested disjunctions, if-then-else and negation.
+   They are released in LIFO order when the control construct is
+   completed.  Using alloca() would make the C stack grow with the
+   nesting depth.
+*/
+
+static VarTable
+push_var_table(segstack *vtstack, VarTable from)
+{ void *p = pushSegStack_(vtstack, NULL);
+
+  return p ? copyVarTable(p, from) : NULL;
+}
+
+static void
+pop_var_tables(segstack *vtstack, int n)
+{ while( n-- > 0 )
+    popTopOfSegStack(vtstack);
+}
+
 static boolex_t
 compileBody(DECL_LD Word body, code call, compileInfo *ci)
 { segstack   stack;
+  segstack   vtstack;
   double     sbuf[512];		/* ~4 KB initial in-line chunk */
   cb_frame   frame;
   boolex_t   rc;
 
   initSegStack(&stack, sizeof(cb_frame), sizeof(sbuf), sbuf);
+  initSegStack(&vtstack,
+	       ROUND(sizeofVarTable(ci->vartablesize), sizeof(void*)),
+	       0, NULL);
+  frame.ntables = 0;
 
 next_body:
   deRef(body);
@@ -2507,14 +2550,20 @@ next_body:
 	VarTable vsave, valt1, valt2;
 
 	if ( !ci->islocal )
-	{ vsave = mkCopiedVarTable(ci->used_var);
-	  valt1 = mkCopiedVarTable(ci->used_var);
-	  valt2 = mkCopiedVarTable(ci->used_var);
+	{ if ( !(vsave = push_var_table(&vtstack, ci->used_var)) ||
+	       !(valt1 = push_var_table(&vtstack, ci->used_var)) ||
+	       !(valt2 = push_var_table(&vtstack, ci->used_var)) )
+	  { rc = MEMORY_OVERFLOW;
+	    goto resume;
+	  }
+	  frame.ntables = 3;
 
 	  setVars(argTermP(*body, 0), valt1);
 	  setVars(argTermP(*body, 1), valt2);
 	} else
-	  vsave = valt1 = valt2 = NULL;
+	{ vsave = valt1 = valt2 = NULL;
+	  frame.ntables = 0;
+	}
 
 	deRef(a0);
 	if ( hasFunctor(*a0, FUNCTOR_ifthen2) ||	/* A  -> B ; C */
@@ -2611,9 +2660,15 @@ next_body:
 	}
 
 	if ( !ci->islocal )
-	  vsave = mkCopiedVarTable(ci->used_var);
-	else
-	  vsave = NULL;
+	{ if ( !(vsave = push_var_table(&vtstack, ci->used_var)) )
+	  { rc = MEMORY_OVERFLOW;
+	    goto resume;
+	  }
+	  frame.ntables = 1;
+	} else
+	{ vsave = NULL;
+	  frame.ntables = 0;
+	}
 
 	Output_2(ci, isnot ? C_NOT : C_DET, var, (code)0);
 
@@ -2735,6 +2790,7 @@ resume:
       { orVars(frame.valt1, frame.valt2);
 	copyVarTable(ci->used_var, frame.valt1);
       }
+      pop_var_tables(&vtstack, frame.ntables);
       goto resume;
 
     case CB_ITE_COND:				/* (A -> B ; C) after A */
@@ -2788,6 +2844,7 @@ resume:
       { orVars(frame.valt1, frame.valt2);
 	copyVarTable(ci->used_var, frame.valt1);
       }
+      pop_var_tables(&vtstack, frame.ntables);
       goto resume;
 
     case CB_IT_COND:				/* (A -> B) after A */
@@ -2847,6 +2904,7 @@ resume:
       { Output_0(ci, C_DETFALSE);
 	OpCode(ci, tc_det-1) = (code)(PC(ci) - tc_det);
       }
+      pop_var_tables(&vtstack, frame.ntables);
       goto resume;
     }
 #endif /*O_COMPILE_OR*/
@@ -2869,6 +2927,7 @@ resume:
 
 exit:
   clearSegStack(&stack);
+  clearSegStack(&vtstack);
   return rc;
 }
 
@@ -6568,19 +6627,63 @@ area is not in use during decompilation.
 	  if ( (rc=build_term((f), di, 1)) != true ) \
 	    return rc; \
 	}
-#define TRY_DECOMPILE(di, end, until) \
-	{ int rc; \
-	  rc = decompileBodyNoShift(di, end, until); \
-	  if ( rc != true ) \
-	    return rc; \
+/* Control structures are decompiled using an explicit stack of
+   continuation frames rather than recursion, such that decompiling deeply
+   nested control structures does not exhaust the C stack.  A frame saves
+   the state of the enclosing level and tells what to do after the
+   decompilation of a nested body is completed.
+*/
+
+typedef enum
+{ DC_OR_A,			/* (A ; B): after A */
+  DC_OR_B,			/* (A ; B): after B */
+  DC_NOT,			/* \+ A: after A */
+  DC_DET,			/* $ A: after A */
+  DC_ITE_COND,			/* (A -> B ; C): after A */
+  DC_ITE_THEN,			/* (A -> B ; C): after B */
+  DC_ITE_ELSE,			/* (A -> B ; C): after C */
+  DC_IT_COND,			/* (A -> B): after A */
+  DC_IT_THEN			/* (A -> B): after B */
+} dc_kind;
+
+typedef struct dc_frame
+{ dc_kind	kind;
+  code		end;		/* end and until of the enclosing level */
+  Code		until;
+  int		nested;		/* nested and pushed of the enclosing level */
+  int		pushed;
+  Code		adr1;		/* (A -> B ; C): start of C */
+  code		cut;		/* cut instruction that ends the condition */
+  functor_t	f;		/* functor of the (soft) if-then */
+} dc_frame;
+
+#define DC_DESCEND(k, e, u) \
+	{ frame.kind   = (k); \
+	  frame.end    = end; \
+	  frame.until  = until; \
+	  frame.nested = nested; \
+	  frame.pushed = pushed; \
+	  if ( !pushSegStack(stack, frame, dc_frame) ) \
+	    return PL_error(NULL, 0, NULL, ERR_NOMEM); \
+	  end    = (e); \
+	  until  = (u); \
+	  nested = 0; \
+	  pushed = 0; \
+	  goto level_start; \
 	}
 
+#define decompileBodyIter(di, end, until, stack) \
+	LDFUNC(decompileBodyIter, di, end, until, stack)
+
 static int
-decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
+decompileBodyIter(DECL_LD decompileInfo *di, code end, Code until,
+		  segstack *stack)
 { int nested = 0;		/* nesting in FUNCTOR ... POP */
   int pushed = 0;		/* Subclauses pushed on the stack */
+  dc_frame frame;
   code op;
 
+level_start:
   while( PC != until )
   { op = decode(*PC++);
 
@@ -7025,9 +7128,6 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    pushed++;
 			    continue;
 #if O_COMPILE_OR
-#define DECOMPILETOJUMP { int to_jump = (int) *PC++; \
-			  TRY_DECOMPILE(di, (code)-1, PC+to_jump); \
-			}
       case C_CUT:
       case C_FASTCUT:
       case C_VAR:
@@ -7042,80 +7142,44 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
 			    PC += 2;
 			    continue;
       case C_OR:				/* A ; B */
-			    DECOMPILETOJUMP;	/* A */
-			    PC--;		/* get C_JMP argument */
-			    DECOMPILETOJUMP;	/* B */
-			    BUILD_TERM(FUNCTOR_semicolon2);
-			    pushed++;
-			    continue;
+			  { int to_jump = (int) *PC++;
+
+			    DC_DESCEND(DC_OR_A, (code)-1, PC+to_jump);
+			  }
       case C_NOT:				/* \+ A */
-			  { PC += 2;		/* skip the two arguments */
-			    TRY_DECOMPILE(di, C_CUT, NULL);   /* A */
-			    PC += 3;		/* skip C_CUT <n> and C_FAIL */
-			    BUILD_TERM(FUNCTOR_not_provable1);
-			    pushed++;
-			    continue;
-			  }
+			    PC += 2;		/* skip the two arguments */
+			    DC_DESCEND(DC_NOT, C_CUT, NULL);
       case C_DET:				/* $ A */
-			  { PC += 2;		/* skip the two arguments */
-			    TRY_DECOMPILE(di, C_DETTRUE, NULL);   /* A */
-			    do			/* Skip to after C_DETFALSE */
-			    { op = fetchop(PC);
-			      PC = stepPC(PC);
-			    } while(op != C_DETFALSE);
-			    BUILD_TERM(FUNCTOR_dollar1);
-			    pushed++;
-			    continue;
-			  }
-			  { Code adr1;
-			    int jmp;
-			    code icut;
-			    functor_t f;
+			    PC += 2;		/* skip the two arguments */
+			    DC_DESCEND(DC_DET, C_DETTRUE, NULL);
+			  { int jmp;
       case C_SOFTIF:				/* A *-> B ; C */
-			    icut = C_SOFTCUT;
-			    f = FUNCTOR_softcut2;
+			    frame.cut = C_SOFTCUT;
+			    frame.f = FUNCTOR_softcut2;
 			    goto ifcommon;
       case C_FASTCOND:
-			    icut = C_FASTCUT;
-			    f = FUNCTOR_ifthen2;
+			    frame.cut = C_FASTCUT;
+			    frame.f = FUNCTOR_ifthen2;
 			    goto ifcommon;
       case C_IFTHENELSE:			/* A  -> B ; C */
-			    icut = C_CUT;
-			    f = FUNCTOR_ifthen2;
+			    frame.cut = C_CUT;
+			    frame.f = FUNCTOR_ifthen2;
 			ifcommon:
 			    PC++;		/* skip the 'MARK' variable */
 			    jmp  = (int) *PC++;
-			    adr1 = PC+jmp;
-
-			    TRY_DECOMPILE(di, icut, NULL);   /* A */
-			    PC += 2;		/* skip the cut */
-			    TRY_DECOMPILE(di, (code)-1, adr1);	    /* B */
-			    BUILD_TERM(f);
-			    PC--;
-			    DECOMPILETOJUMP;	/* C */
-			    BUILD_TERM(FUNCTOR_semicolon2);
-			    pushed++;
-			    continue;
+			    frame.adr1 = PC+jmp;
+			    DC_DESCEND(DC_ITE_COND, frame.cut, NULL);
 			  }
-    { code cut;
-      functor_t f;
       case C_IFTHEN:					/* A -> B */
-			    cut = C_CUT;		/* C_CUT takes 1 arg */
-			    f = FUNCTOR_ifthen2;
+			    frame.cut = C_CUT;		/* C_CUT takes 1 arg */
+			    frame.f = FUNCTOR_ifthen2;
 			    goto c_ifthen;
       case C_SOFTIFTHEN:				/* A *->B */
-			    cut = C_SCUT;		/* C_SCUT takes 0 args */
-			    f = FUNCTOR_softcut2;
+			    frame.cut = C_SCUT;		/* C_SCUT takes 0 args */
+			    frame.f = FUNCTOR_softcut2;
 			  c_ifthen:
 			    PC++;
-			    TRY_DECOMPILE(di, cut, NULL);     /* A */
-			    PC += ( cut == C_CUT ? 2 : 1 );   /* skip C_(S)CUT */
-			    TRY_DECOMPILE(di, C_END, NULL);   /* B */
-			    PC++;
-			    BUILD_TERM(f);
-			    pushed++;
-			    continue;
-    }
+			    DC_DESCEND(DC_IT_COND, frame.cut, NULL);
 #endif /* O_COMPILE_OR */
       case I_EXITCATCH:
       case I_EXITRESET:
@@ -7132,7 +7196,81 @@ decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
   while( pushed-- > 1)
     BUILD_TERM(FUNCTOR_comma2);
 
-  return true;
+  if ( !popSegStack(stack, &frame, dc_frame) )
+    return true;
+  end    = frame.end;
+  until  = frame.until;
+  nested = frame.nested;
+  pushed = frame.pushed;
+
+  switch( frame.kind )
+  {
+#if O_COMPILE_OR
+    case DC_OR_A:
+    { int to_jump;
+
+      PC--;			/* get C_JMP argument */
+      to_jump = (int) *PC++;
+      DC_DESCEND(DC_OR_B, (code)-1, PC+to_jump);
+    }
+    case DC_OR_B:
+      BUILD_TERM(FUNCTOR_semicolon2);
+      pushed++;
+      goto level_start;
+    case DC_NOT:
+      PC += 3;			/* skip C_CUT <n> and C_FAIL */
+      BUILD_TERM(FUNCTOR_not_provable1);
+      pushed++;
+      goto level_start;
+    case DC_DET:
+      do			/* Skip to after C_DETFALSE */
+      { op = fetchop(PC);
+	PC = stepPC(PC);
+      } while(op != C_DETFALSE);
+      BUILD_TERM(FUNCTOR_dollar1);
+      pushed++;
+      goto level_start;
+    case DC_ITE_COND:
+      PC += 2;			/* skip the cut */
+      DC_DESCEND(DC_ITE_THEN, (code)-1, frame.adr1);
+    case DC_ITE_THEN:
+    { int to_jump;
+
+      BUILD_TERM(frame.f);
+      PC--;
+      to_jump = (int) *PC++;
+      DC_DESCEND(DC_ITE_ELSE, (code)-1, PC+to_jump);
+    }
+    case DC_ITE_ELSE:
+      BUILD_TERM(FUNCTOR_semicolon2);
+      pushed++;
+      goto level_start;
+    case DC_IT_COND:
+      PC += ( frame.cut == C_CUT ? 2 : 1 );   /* skip C_(S)CUT */
+      DC_DESCEND(DC_IT_THEN, C_END, NULL);
+    case DC_IT_THEN:
+      PC++;
+      BUILD_TERM(frame.f);
+      pushed++;
+      goto level_start;
+#endif
+    default:
+      assert(0);
+      return false;
+  }
+}
+
+static int
+decompileBodyNoShift(DECL_LD decompileInfo *di, code end, Code until)
+{ segstack stack;
+  double   sbuf[64];			/* initial in-line chunk */
+  int      rc;
+
+  initSegStack(&stack, sizeof(dc_frame), sizeof(sbuf), sbuf);
+  rc = decompileBodyIter(di, end, until, &stack);
+  clearSegStack(&stack);
+
+  return rc;
 }
 
 
