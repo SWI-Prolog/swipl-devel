@@ -70,8 +70,8 @@ small_stack(Goal) :-
 
 % Nested control structures used to allocate variable tables on the
 % C stack for each nesting level.
-test(disjunction) :-			% compilation is quadratic
-	goal(20 000, disj, G),
+test(disjunction) :-
+	goal(100 000, disj, G),
 	assertz((p :- G)),
 	retract((p :- _)).
 test(negation) :-

@@ -343,6 +343,7 @@ typedef struct _varDef
   clsize_t	offset;			/* offset in environment frame */
   int		times;			/* occurrences */
   int		an_node;		/* Branch node (see an_node) */
+  int		an_last;		/* Last node it was seen in */
   unsigned int	flags;			/* VD_* */
 } vardef;
 
@@ -370,6 +371,12 @@ typedef struct _varDef
    Branch-local variables are given the slots from clause->shared_base.
    The decompiler uses this to create a new variable for such slots when
    it enters an alternative (see decompileBodyIter()).
+
+   The same tree provides, for each alternative, the sorted set of slots
+   used inside it.  compileBody() uses these sets to balance the
+   variables of the alternatives (see balanceSlots()).  Computing them
+   bottom-up costs the number of slots times the nesting depth, where
+   scanning the alternatives costs the term size times the nesting depth.
 */
 
 typedef struct an_node
@@ -380,15 +387,35 @@ typedef struct an_node
   clsize_t	size;			/* own + acc */
   clsize_t	own_next;		/* Next slot for own variables */
   clsize_t	disj_next;		/* Next slot for nested disjunctions */
+  size_t	slots;			/* Offset in ci->an_slots */
+  size_t	nslots;			/* # slots used in the subtree */
 } an_node;
 
 typedef struct an_disj
-{ int		parent;			/* Node holding the disjunction */
+{ Word		term;			/* The (A;B) term */
+  int		parent;			/* Node holding the disjunction */
   int		first;			/* First alternative node */
+  int		second;			/* Second alternative node */
   clsize_t	size;			/* Max size of the alternatives */
   clsize_t	start;			/* First slot */
   bool		placed;			/* start is assigned */
 } an_disj;
+
+typedef struct an_occ
+{ int		node;			/* Node the variable appears in */
+  VarDef	vd;			/* The variable */
+} an_occ;
+
+typedef struct slot_set			/* Sorted set of slots */
+{ const clsize_t *slots;
+  size_t	size;
+} slot_set;
+
+typedef struct an_ref			/* Find a disjunction from its term */
+{ Word		term;
+  int		first;			/* First alternative node */
+  int		second;			/* Second alternative node */
+} an_ref;
 
 typedef struct
 { unsigned int	isize;
@@ -460,7 +487,12 @@ typedef struct
   tmp_buffer	branch_varbuf;		/* Store for branch_vars */
   tmp_buffer	an_nodes;		/* an_node array (slot sharing) */
   tmp_buffer	an_disjs;		/* an_disj array (slot sharing) */
+  tmp_buffer	an_occs;		/* an_occ array (slot sets) */
+  tmp_buffer	an_slots;		/* clsize_t array (slot sets) */
+  an_ref	*an_index;		/* Disjunctions sorted on term */
+  size_t	an_nindex;		/* # entries in an_index */
   int		an_cur;			/* Current an_node */
+  bool		an_valid;		/* Slot sets are available */
   tmp_buffer	codes;			/* scratch code table */
 } compileInfo, *CompileInfo;
 
@@ -932,13 +964,14 @@ an_new_node(CompileInfo ci, int parent, int disj)
 
 /* Enter the first alternative of a disjunction in the current node */
 static bool
-an_enter_disjunction(CompileInfo ci)
+an_enter_disjunction(CompileInfo ci, Word term)
 { an_disj *d = allocFromBuffer(&ci->an_disjs, sizeof(an_disj));
   int di;
 
   if ( !d )
     return false;
   memset(d, 0, sizeof(*d));
+  d->term   = term;
   d->parent = ci->an_cur;
   di = (int)entriesBuffer(&ci->an_disjs, an_disj)-1;
   if ( !an_new_node(ci, ci->an_cur, di) )
@@ -952,8 +985,13 @@ an_enter_disjunction(CompileInfo ci)
 static bool
 an_next_alternative(CompileInfo ci)
 { an_node *n = an_node_ptr(ci, ci->an_cur);
+  int disj = n->disj;
 
-  return an_new_node(ci, n->parent, n->disj);
+  if ( !an_new_node(ci, n->parent, disj) )
+    return false;
+  an_disj_ptr(ci, disj)->second = ci->an_cur;
+
+  return true;
 }
 
 /* Leave the current (last) alternative */
@@ -962,10 +1000,34 @@ an_leave_disjunction(CompileInfo ci)
 { ci->an_cur = an_node_ptr(ci, ci->an_cur)->parent;
 }
 
-static inline void
+/* Record that `vd` appears in the current node.  Occurrences in the
+   clause node are not needed.  Recording the same variable more than
+   once for a node is harmless.
+*/
+
+static inline bool
+an_record(CompileInfo ci, VarDef vd)
+{ if ( vd->an_last != ci->an_cur )
+  { vd->an_last = ci->an_cur;
+    if ( ci->an_cur > 0 )
+    { an_occ *o = allocFromBuffer(&ci->an_occs, sizeof(an_occ));
+
+      if ( !o )
+	return false;
+      o->node = ci->an_cur;
+      o->vd   = vd;
+    }
+  }
+
+  return true;
+}
+
+static inline bool
 an_var_occurs(CompileInfo ci, VarDef vd)
 { if ( vd->an_node != ci->an_cur )
     set(vd, VD_NOSHARE);
+
+  return an_record(ci, vd);
 }
 
 #define analyseVariables2(head, nvars, argn, ci, depth, control) \
@@ -1042,7 +1104,13 @@ next_head:
     vd->flags   = 0;
     vd->times   = 1;
     vd->an_node = ci->an_cur;
+    vd->an_last = -1;
     setVarInfo(*head, index);
+    if ( !an_record(ci, vd) )
+    { LD->comp.filledVars = ci->arity+nvars;
+      nvars = MEMORY_OVERFLOW;
+      goto error_unwind;
+    }
     if ( ci->branch_vars )
       pushBranchVar(ci, vd);
     if ( control )			/* variable goal: call/1 */
@@ -1054,7 +1122,11 @@ next_head:
   if ( isVarInfo(*head) )
   { VarDef vd = varInfo(*head);
 
-    an_var_occurs(ci, vd);
+    if ( !an_var_occurs(ci, vd) )
+    { LD->comp.filledVars = ci->arity+nvars;
+      nvars = MEMORY_OVERFLOW;
+      goto error_unwind;
+    }
     if ( control )			/* variable goal: call/1 */
       ci->head_unify = false;
 
@@ -1138,7 +1210,7 @@ next_head:
       ssize_t start_vars;
 
       ci->head_unify = false;
-      if ( !an_enter_disjunction(ci) )
+      if ( !an_enter_disjunction(ci, (Word)f) )
       { LD->comp.filledVars = ci->arity+nvars;
 	nvars = MEMORY_OVERFLOW;
 	goto error_unwind;
@@ -1526,6 +1598,176 @@ assign_shared_slots(DECL_LD CompileInfo ci, size_t nvars, clsize_t base)
 static ssize_t analyse_variables2(DECL_LD CompileInfo ci, ssize_t nvars,
 				  size_t arity);
 
+#define resetBuffer(b) do { discardBuffer(b); initBuffer(b); } while(0)
+
+static void
+discard_branch_info(CompileInfo ci)
+{ resetBuffer(&ci->an_nodes);
+  resetBuffer(&ci->an_disjs);
+  resetBuffer(&ci->an_occs);
+  resetBuffer(&ci->an_slots);
+  if ( ci->an_index )
+  { tmp_free(ci->an_index);
+    ci->an_index = NULL;
+  }
+  ci->an_valid = false;
+}
+
+static int
+compare_slots(const void *p1, const void *p2)
+{ clsize_t s1 = *(const clsize_t*)p1;
+  clsize_t s2 = *(const clsize_t*)p2;
+
+  return s1 < s2 ? -1 : s1 > s2 ? 1 : 0;
+}
+
+static int
+compare_an_refs(const void *p1, const void *p2)
+{ const an_ref *r1 = p1;
+  const an_ref *r2 = p2;
+
+  return r1->term < r2->term ? -1 : r1->term > r2->term ? 1 : 0;
+}
+
+/* an_slot_sets() computes the sorted set of slots used by each
+   alternative node from the recorded occurrences.  This must run after
+   the slots are assigned.  Nodes are created depth-first, so a nested
+   alternative has a higher index than the node holding it and we can
+   compute the sets bottom-up from the sets of the nested alternatives.
+*/
+
+static bool
+an_slot_sets(CompileInfo ci)
+{ an_node *nodes = baseBuffer(&ci->an_nodes, an_node);
+  an_disj *disjs = baseBuffer(&ci->an_disjs, an_disj);
+  size_t nn      = entriesBuffer(&ci->an_nodes, an_node);
+  size_t nd      = entriesBuffer(&ci->an_disjs, an_disj);
+  an_occ *occs   = baseBuffer(&ci->an_occs, an_occ);
+  size_t no      = entriesBuffer(&ci->an_occs, an_occ);
+  size_t *start  = NULL;		/* [nn+1] occurrences per node */
+  size_t *cstart = NULL;		/* [nn+1] children per node */
+  clsize_t *own  = NULL;		/* [no] slots, grouped by node */
+  int *children  = NULL;		/* [nn] children, grouped by node */
+  tmp_buffer gather;
+  bool rc = false;
+
+  if ( nn <= 1 )
+    return true;
+
+  initBuffer(&gather);
+  if ( !(start    = tmp_malloc((nn+1)*sizeof(*start))) ||
+       !(cstart   = tmp_malloc((nn+1)*sizeof(*cstart))) ||
+       !(own      = tmp_malloc((no+1)*sizeof(*own))) ||
+       !(children = tmp_malloc(nn*sizeof(*children))) ||
+       !(ci->an_index = tmp_malloc(nd*sizeof(*ci->an_index))) )
+    goto out;
+
+  memset(start,  0, (nn+1)*sizeof(*start));
+  memset(cstart, 0, (nn+1)*sizeof(*cstart));
+  for(size_t i=0; i<no; i++)		/* bucket the occurrences */
+  { if ( occs[i].vd->address )		/* not a void variable */
+      start[occs[i].node+1]++;
+  }
+  for(size_t i=1; i<nn; i++)
+    cstart[disjs[nodes[i].disj].parent+1]++;
+  for(size_t i=0; i<nn; i++)
+  { start[i+1]  += start[i];
+    cstart[i+1] += cstart[i];
+  }
+  for(size_t i=0; i<no; i++)		/* uses start[n] as fill pointer */
+  { if ( occs[i].vd->address )
+      own[start[occs[i].node]++] = occs[i].vd->offset;
+  }
+  for(size_t i=1; i<nn; i++)
+    children[cstart[disjs[nodes[i].disj].parent]++] = (int)i;
+  for(size_t i=nn; i>0; i--)		/* restore the start positions */
+  { start[i]  = start[i-1];
+    cstart[i] = cstart[i-1];
+  }
+  start[0] = cstart[0] = 0;
+
+  for(size_t i=nn-1; i>0; i--)
+  { an_node *n = &nodes[i];
+    clsize_t *slots, *out;
+    size_t count;
+
+    seekBuffer(&gather, 0, clsize_t);
+    addMultipleBuffer(&gather, &own[start[i]], start[i+1]-start[i],
+		      clsize_t);
+    for(size_t c=cstart[i]; c<cstart[i+1]; c++)
+    { an_node *cn = &nodes[children[c]];
+
+      addMultipleBuffer(&gather,
+			baseBuffer(&ci->an_slots, clsize_t)+cn->slots,
+			cn->nslots, clsize_t);
+    }
+
+    slots = baseBuffer(&gather, clsize_t);
+    count = entriesBuffer(&gather, clsize_t);
+    if ( count > 1 )
+    { qsort(slots, count, sizeof(*slots), compare_slots);
+      out = slots;
+      for(size_t j=1; j<count; j++)
+      { if ( slots[j] != *out )
+	  *++out = slots[j];
+      }
+      count = out-slots+1;
+    }
+    n->slots  = entriesBuffer(&ci->an_slots, clsize_t);
+    n->nslots = count;
+    addMultipleBuffer(&ci->an_slots, slots, count, clsize_t);
+  }
+
+  for(size_t i=0; i<nd; i++)
+  { an_ref *r = &ci->an_index[i];
+
+    r->term   = disjs[i].term;
+    r->first  = disjs[i].first;
+    r->second = disjs[i].second;
+  }
+  qsort(ci->an_index, nd, sizeof(*ci->an_index), compare_an_refs);
+  ci->an_nindex = nd;
+  ci->an_valid  = true;
+  rc = true;
+
+out:
+  discardBuffer(&gather);
+  if ( start )    tmp_free(start);
+  if ( cstart )   tmp_free(cstart);
+  if ( own )      tmp_free(own);
+  if ( children ) tmp_free(children);
+
+  return rc;
+}
+
+/* Find the slot sets of the alternatives of the disjunction `term`.
+   Fails if the analysis did not see the disjunction.
+*/
+
+static bool
+an_find_slot_sets(CompileInfo ci, Word term, slot_set *a, slot_set *b)
+{ if ( ci->an_valid )
+  { an_ref key = { .term = term };
+    an_ref *r = bsearch(&key, ci->an_index, ci->an_nindex,
+			sizeof(*ci->an_index), compare_an_refs);
+
+    if ( r && r->second > 0 )
+    { const clsize_t *base = baseBuffer(&ci->an_slots, clsize_t);
+      an_node *na = an_node_ptr(ci, r->first);
+      an_node *nb = an_node_ptr(ci, r->second);
+
+      a->slots = base+na->slots;
+      a->size  = na->nslots;
+      b->slots = base+nb->slots;
+      b->size  = nb->nslots;
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
 #define analyse_variables(head, body, ci) LDFUNC(analyse_variables, head, body, ci)
 static ssize_t
 analyse_variables(DECL_LD Word head, Word body, CompileInfo ci)
@@ -1539,8 +1781,15 @@ analyse_variables(DECL_LD Word head, Word body, CompileInfo ci)
   ci->singletons  = 0;
   initBuffer(&ci->an_nodes);
   initBuffer(&ci->an_disjs);
+  initBuffer(&ci->an_occs);
+  initBuffer(&ci->an_slots);
+  ci->an_index = NULL;
+  ci->an_nindex = 0;
+  ci->an_valid = false;
   if ( !an_new_node(ci, -1, -1) )	/* node 0: the clause */
+  { discard_branch_info(ci);
     return MEMORY_OVERFLOW;
+  }
 
   if ( head )
   { if ( (nvars = analyseVariables2(head, 0, -1, ci, 0, false)) < 0 )
@@ -1555,10 +1804,16 @@ analyse_variables(DECL_LD Word head, Word body, CompileInfo ci)
     }
   }
   rc = analyse_variables2(ci, nvars, arity);
+  if ( rc == true && !an_slot_sets(ci) )
+  { resetVars();
+    rc = MEMORY_OVERFLOW;
+  }
 
 out:
-  discardBuffer(&ci->an_nodes);
-  discardBuffer(&ci->an_disjs);
+  if ( rc != true )
+    discard_branch_info(ci);
+  else
+    resetBuffer(&ci->an_occs);
   return rc;
 }
 
@@ -1852,6 +2107,36 @@ balanceVars(VarTable valt1, VarTable valt2, compileInfo *ci)
     c_var(&vstate, 0, ci);
 
   return done;
+}
+
+/* balanceSlots() is balanceVars() for the slot sets of two alternatives
+   of a disjunction.  It emits C_VAR for the slots in `need` that are not
+   in `have` and not in `entry`, the variables initialised before the
+   disjunction.
+*/
+
+static void
+balanceSlots(VarTable entry, slot_set *have, slot_set *need,
+	     compileInfo *ci)
+{ const clsize_t *h = have->slots, *he = h+have->size;
+  const clsize_t *n = need->slots, *ne = n+need->size;
+  c_var_state vstate = {0};
+
+  for(; n < ne; n++)
+  { while( h < he && *h < *n )
+      h++;
+    if ( (h < he && *h == *n) || !isFirstVar(entry, *n) )
+      continue;
+    c_var(&vstate, VAROFFSET(*n), ci);
+  }
+  if ( vstate.count )
+    c_var(&vstate, 0, ci);
+}
+
+static void
+setSlots(VarTable vt, slot_set *set)
+{ for(size_t i=0; i<set->size; i++)
+    isFirstVarSet(vt, set->slots[i]);
 }
 
 static void
@@ -2334,6 +2619,7 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
     { ci->used_var = alloca(vsize);
     } else if ( !(ci->used_var = used_var_heap = tmp_malloc(vsize)) )
     { resetVars();
+      discard_branch_info(ci);
       discardBuffer(&ci->codes);
       return PL_error(NULL, 0, NULL, ERR_NOMEM);
     }
@@ -2540,6 +2826,7 @@ Finish up the clause.
   }
 
   discardBuffer(&ci->codes);
+  discard_branch_info(ci);
   if ( used_var_heap )
     tmp_free(used_var_heap);
 
@@ -2548,6 +2835,7 @@ Finish up the clause.
 
 exit_fail:
   resetVars();
+  discard_branch_info(ci);
   discardBuffer(&ci->codes);
   if ( used_var_heap )
     tmp_free(used_var_heap);
@@ -2715,6 +3003,9 @@ typedef struct cb_frame
   VarTable       vsave;
   VarTable       valt1;
   VarTable       valt2;
+  slot_set	 sa;		/* slots used in A of (A;B) */
+  slot_set	 sb;		/* slots used in B of (A;B) */
+  bool		 sets;		/* Use sa and sb rather than valt1/2 */
   int            ntables;	/* # var tables allocated on vtstack */
   cutInfo        cutsave;
   target_module  tmsave;
@@ -2740,6 +3031,36 @@ static void
 pop_var_tables(segstack *vtstack, int n)
 { while( n-- > 0 )
     popTopOfSegStack(vtstack);
+}
+
+static void
+balance_after_a(cb_frame *frame, compileInfo *ci)
+{ if ( frame->sets )
+    balanceSlots(frame->vsave, &frame->sa, &frame->sb, ci);
+  else
+    balanceVars(frame->valt1, frame->valt2, ci);
+}
+
+static void
+balance_after_b(cb_frame *frame, compileInfo *ci)
+{ if ( frame->sets )
+    balanceSlots(frame->vsave, &frame->sb, &frame->sa, ci);
+  else
+    balanceVars(frame->valt2, frame->valt1, ci);
+}
+
+/* After (A;B), the variables of both alternatives are initialised */
+
+static void
+join_vars(cb_frame *frame, compileInfo *ci)
+{ if ( frame->sets )
+  { copyVarTable(ci->used_var, frame->vsave);
+    setSlots(ci->used_var, &frame->sa);
+    setSlots(ci->used_var, &frame->sb);
+  } else
+  { orVars(frame->valt1, frame->valt2);
+    copyVarTable(ci->used_var, frame->valt1);
+  }
 }
 
 static boolex_t
@@ -2781,7 +3102,20 @@ next_body:
       { Word a0 = argTermP(*body, 0);
 	VarTable vsave, valt1, valt2;
 
-	if ( !ci->islocal )
+	frame.sets = false;
+	if ( ci->islocal )
+	{ vsave = valt1 = valt2 = NULL;
+	  frame.ntables = 0;
+	} else if ( an_find_slot_sets(ci, (Word)valueTerm(*body),
+				      &frame.sa, &frame.sb) )
+	{ if ( !(vsave = push_var_table(&vtstack, ci->used_var)) )
+	  { rc = MEMORY_OVERFLOW;
+	    goto resume;
+	  }
+	  valt1 = valt2 = NULL;
+	  frame.ntables = 1;
+	  frame.sets = true;
+	} else
 	{ if ( !(vsave = push_var_table(&vtstack, ci->used_var)) ||
 	       !(valt1 = push_var_table(&vtstack, ci->used_var)) ||
 	       !(valt2 = push_var_table(&vtstack, ci->used_var)) )
@@ -2792,9 +3126,6 @@ next_body:
 
 	  setVars(argTermP(*body, 0), valt1);
 	  setVars(argTermP(*body, 1), valt2);
-	} else
-	{ vsave = valt1 = valt2 = NULL;
-	  frame.ntables = 0;
 	}
 
 	deRef(a0);
@@ -2995,7 +3326,7 @@ resume:
     { size_t tc_jmp;
 
       if ( !ci->islocal )
-	balanceVars(frame.valt1, frame.valt2, ci);
+	balance_after_a(&frame, ci);
       Output_1(ci, C_JMP, (code)0);
       tc_jmp = PC(ci);
       OpCode(ci, frame.tc_or-1) = (code)(PC(ci) - frame.tc_or);
@@ -3016,12 +3347,10 @@ resume:
 
     case CB_SEMI_B:				/* (A ; B) after B */
       if ( !ci->islocal )
-	balanceVars(frame.valt2, frame.valt1, ci);
+	balance_after_b(&frame, ci);
       OpCode(ci, frame.tc_jmp-1) = (code)(PC(ci) - frame.tc_jmp);
       if ( !ci->islocal )
-      { orVars(frame.valt1, frame.valt2);
-	copyVarTable(ci->used_var, frame.valt1);
-      }
+	join_vars(&frame, ci);
       pop_var_tables(&vtstack, frame.ntables);
       goto resume;
 
@@ -3049,7 +3378,7 @@ resume:
     { size_t tc_jmp;
 
       if ( !ci->islocal )
-	balanceVars(frame.valt1, frame.valt2, ci);
+	balance_after_a(&frame, ci);
       Output_1(ci, C_JMP, (code)0);
       tc_jmp = PC(ci);
       OpCode(ci, frame.tc_or-1) = (code)(PC(ci) - frame.tc_or);
@@ -3070,12 +3399,10 @@ resume:
 
     case CB_ITE_ELSE:				/* (A -> B ; C) after C */
       if ( !ci->islocal )
-	balanceVars(frame.valt2, frame.valt1, ci);
+	balance_after_b(&frame, ci);
       OpCode(ci, frame.tc_jmp-1) = (code)(PC(ci) - frame.tc_jmp);
       if ( !ci->islocal )
-      { orVars(frame.valt1, frame.valt2);
-	copyVarTable(ci->used_var, frame.valt1);
-      }
+	join_vars(&frame, ci);
       pop_var_tables(&vtstack, frame.ntables);
       goto resume;
 
