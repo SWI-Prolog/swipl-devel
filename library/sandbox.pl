@@ -535,6 +535,7 @@ safe_primitive(system:nonground(_,_)).
 safe_primitive(system:cyclic_term(_)).
 safe_primitive(acyclic_term(_)).
 safe_primitive(system:is_stream(_)).
+safe_primitive(system:is_address(_)).
 safe_primitive(system:'$is_char'(_)).
 safe_primitive(system:'$is_char_code'(_)).
 safe_primitive(system:'$is_char_list'(_,_)).
