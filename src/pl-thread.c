@@ -1165,6 +1165,7 @@ bool
 exitPrologThreads(void)
 { bool rc = true;
 #ifdef O_PLMT
+  GET_LD
   int i;
   int me = PL_thread_self();
   int canceled = 0;
@@ -1178,13 +1179,15 @@ exitPrologThreads(void)
 
     if ( info && info->thread_data && i != me )
     { switch(info->status)
-      { case PL_THREAD_FAILED:
+      { case PL_THREAD_SUCCEEDED:
+	case PL_THREAD_FAILED:
 	case PL_THREAD_EXITED:
 	case PL_THREAD_EXCEPTION:
 	{ void *r;
 	  int rc;
 
-	  if ( !COMPARE_AND_SWAP_INT(&info->joining_by, 0, me) &&
+	  if ( !info->is_engine && info->has_tid && !info->detached &&
+	       COMPARE_AND_SWAP_INT(&info->joining_by, 0, me) &&
 	       (rc=pthread_join(info->tid, &r)) )
 	    Sdprintf("Failed to join thread %d: %s\n", i, ThError(rc));
 
@@ -1192,7 +1195,12 @@ exitPrologThreads(void)
 	}
 	case PL_THREAD_RUNNING:
 	{ if ( !info->is_engine )
-	  { info->thread_data->thread.exit_requested = EXIT_REQ_PROCESS;
+	  { PL_local_data_t *ld;		/* the thread may exit */
+
+	    if ( !(ld=acquire_ldata(info)) )
+	      continue;
+	    ld->thread.exit_requested = EXIT_REQ_PROCESS;
+	    release_ldata(ld);
 
 	    if ( info->cancel )
 	    { switch( (*info->cancel)(i) )
