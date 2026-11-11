@@ -1,6 +1,32 @@
 # Garbage collecting functors
 
-Status: **design, not implemented.**
+Status: **option 1 implemented** (branch `functor-gc`).  See the
+comment "Functor garbage collection" in `src/pl-funct.c`.  The
+implementation differs from the plan below in these points:
+
+  - Functors are permanent by default for the kernel.  Only
+    `lookupVolatileFunctor()`, used by `=../2`, `functor/3,4`,
+    `compound_name_arity/3`, `compound_name_arguments/3` and the
+    reader, creates collectable functors.
+  - Foreign code follows the atom contract: `PL_new_functor()` adds a
+    reference, `PL_register_functor()` and `PL_unregister_functor()`
+    add and remove one.  `PL_get_functor()` adds none: code that keeps
+    such a functor must register it.  In the packages only `table`
+    (`functor(F)` option) and `odbc` (`null(F(_))`, findall templates)
+    kept a functor from `PL_get_functor()`; they now use
+    `PL_new_functor()`.
+  - Procedures, record keys, trie keys and `flag/3` keys make their
+    functor permanent rather than counting references.  Clauses and
+    records (except the unlocked records of findall bags and message
+    queues, which AGC marks) count references.
+  - A thread publishes the functor it just looked up in
+    `LD->atoms.volatile_functor` (hazard pointer).  Code that
+    temporarily replaces functor cells (cycle detection in records,
+    `term_hash/2`, bisimulation, cyclic `copy_term/2`, term
+    factorization) uses `startHideFunctors()`/`restoreHiddenFunctor()`/
+    `endHideFunctors()`.
+  - Collected `struct functorDef`s are not freed but reused, so a
+    lock-free lookup never touches freed memory.
 
 Atoms are garbage collected; functors are not.  This note looks at the
 options for collecting both, including merging atoms and functors into

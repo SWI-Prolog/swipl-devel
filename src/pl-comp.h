@@ -67,6 +67,10 @@ Clause		assert_term(term_t term, Module m, ClauseRef where,
 			    atom_t owner, SourceLoc loc, int flags);
 bool		forAtomsInCodes(size_t size, Code PC,
 				int (func)(atom_t a, void*), void *ctx);
+void		register_clause_symbols(Clause clause, bool local);
+bool		forAtomsAndFunctorsInClause(Clause clause,
+				int (func)(atom_t a, void*), void *ctx,
+				void (*ffunc)(functor_t f));
 bool		forAtomsInClause(Clause clause,
 				 int (func)(atom_t a, void*), void *ctx);
 Code		stepDynPC(Code PC, const code_info *ci);

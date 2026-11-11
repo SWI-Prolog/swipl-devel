@@ -5089,8 +5089,10 @@ entities. See \secref{blob} for details.
     \predicate{current_functor}{2}{?Name, ?Arity}
 True when \arg{Name}/\arg{Arity} is a known functor. This means that at
 some point in time a term with name \arg{Name} and \arg{Arity} arguments
-was created. Functor objects are currently not subject to garbage
-collection. Due to timing, \nopredref{t}{2} below with instantiated
+was created.  Functors are garbage collected by atom garbage collection
+(see garbage_collect_atoms/0) if they are created from data, e.g., by
+\predref{=..}{2}, functor/3 or read/1, and no longer used by a term, a
+clause or a record.  So, a functor may disappear.  Due to timing, \nopredref{t}{2} below with instantiated
 \arg{Name} and \arg{Arity} can theoretically fail, i.e., a functor may
 be visible in instantiated mode while it is not yet visible in unbound
 mode.  Considering that the only practical value of current_functor/2

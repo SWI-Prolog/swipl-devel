@@ -101,6 +101,7 @@ newDefinition(FunctorDef fd, Module m)
 { Definition def = allocHeapOrHalt(sizeof(*def));
 
   memset(def, 0, sizeof(*def));
+  permanentFunctor(fd->functor);	/* see pl-funct.c */
   def->functor = fd;
   def->module  = m;
 #if defined(__SANITIZE_ADDRESS__) && defined(HAVE_SANITIZER_LSAN_INTERFACE_H)
@@ -1777,7 +1778,8 @@ register_local_atom_clause(atom_t a, void *ctx)
 
 void
 freeClause(Clause c)
-{ forAtomsInClause(c, unregister_atom_clause, NULL);
+{ forAtomsAndFunctorsInClause(c, unregister_atom_clause, NULL,
+			      releaseFunctor);
 
   for(;;)				/* see release_clause_blob() */
   { unsigned int flags = c->flags;
@@ -4392,10 +4394,11 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
       copy->predicate = copy_def;
       if ( def->module != copy_def->module )
 	remoduleClause(copy, def->module, copy_def->module);
-      forAtomsInClause(copy,
-		       ison(copy_def, P_LOCALISED) ? register_local_atom_clause
-						   : register_atom_clause,
-		       NULL);
+      forAtomsAndFunctorsInClause(copy,
+				  ison(copy_def, P_LOCALISED)
+					? register_local_atom_clause
+					: register_atom_clause,
+				  NULL, acquireFunctor);
       assertProcedure(to, copy, CL_END);
     }
   }

@@ -198,7 +198,7 @@ restore_graph(Buffer b)
   bs_node *end = n + entriesBuffer(b, bs_node);
 
   for(; n<end; n++)
-    n->term->definition = n->functor;
+    restoreHiddenFunctor(&n->term->definition, n->functor);
 }
 
 
@@ -923,10 +923,12 @@ term_quotient(DECL_LD Word p, bs_graph *g, Buffer b, word opaque, bool minimal)
 
   memset(g, 0, sizeof(*g));
 
+  startHideFunctors();			/* see restoreHiddenFunctor() */
   rc = build_graph(p, b, opaque);
   if ( rc == true )
     rc = setup_graph(g, b, &leaf, &nleaf);
   restore_graph(b);			/* the term is usable again */
+  endHideFunctors();
 
   /* Now the stacks may be touched, so a graph that does not fit in an int
      can be reported as what it is.  PL_error() answers false, which is this

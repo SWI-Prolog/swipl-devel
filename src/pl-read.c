@@ -4349,7 +4349,7 @@ ensureSpaceForTermRefs(DECL_LD size_t n)
 #define build_term(atom, arity, _PL_rd) LDFUNC(build_term, atom, arity, _PL_rd)
 static bool
 build_term(DECL_LD atom_t atom, int arity, ReadData _PL_rd)
-{ functor_t functor = lookupFunctorDef(atom, arity);
+{ functor_t functor = lookupVolatileFunctor(atom, arity);
   word w;
   Word argp;
 

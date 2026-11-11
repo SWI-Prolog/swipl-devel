@@ -759,19 +759,35 @@ PL_new_functor_sz(DECL_LD atom_t f, size_t arity)
 }
 
 
+/* The public PL_new_functor() adds a reference to the functor, which
+   foreign code may drop using PL_unregister_functor().  See pl-funct.c.
+*/
+
 API_STUB(functor_t)
 (PL_new_functor_sz)(atom_t f, size_t arity)
 ( if ( !GD->initialised )
     initFunctors();
-  return PL_new_functor_sz(f, arity); )
+  return lookupFunctorRef(f, arity); )
 
 functor_t
 (PL_new_functor)(atom_t f, int arity)
 { if ( arity >= 0 )
-    return PL_new_functor_sz(f, arity);
+    return (PL_new_functor_sz)(f, arity);
   fatalError("Arity out of range: %d", arity);
   return 0;
 }
+
+API_STUB(void)
+(PL_register_functor)(functor_t f)
+( valid_functor_t(f);
+  acquireFunctor(f);
+)
+
+API_STUB(void)
+(PL_unregister_functor)(functor_t f)
+( valid_functor_t(f);
+  releaseFunctor(f);
+)
 
 
 atom_t
@@ -2647,6 +2663,10 @@ PL_get_functor(DECL_LD term_t t, functor_t *f)
   return false;
 }
 
+
+/* The functor is valid as long as the term is.  Foreign code that keeps
+   it must use PL_register_functor().  See pl-funct.c.
+*/
 
 API_STUB(bool)
 (PL_get_functor)(term_t t, functor_t *f)

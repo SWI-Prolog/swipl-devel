@@ -41,6 +41,7 @@
 #include "pl-attvar.h"
 #include "pl-pro.h"
 #include "pl-gc.h"
+#include "pl-funct.h"
 #define AC_TERM_WALK_LRD 1
 #include "pl-termwalk.c"
 
@@ -573,8 +574,8 @@ exitCyclicCopy(DECL_LD int flags)
       if ( *p2 == VAR_MARK )		/* sharing variables */
       { setVar(*p2);
 	setVar(*p);
-      } else
-      { *p = *p2 | MARK_MASK;		/* cyclic terms */
+      } else				/* cyclic terms */
+      { restoreHiddenFunctor(p, *p2 | MARK_MASK);
       }
     } else
     { Word old = NULL;			/* Silence compiler */
@@ -710,6 +711,7 @@ copy_term(DECL_LD Word from, Word to, const cp_options *options)
 	    goto out;
 	  }
 	  ft->definition = ff->definition & ~BOTH_MASK;
+	  pushVolatileFunctor(ft->definition);
 	  ff->definition = makeRefG((Word)ft);
 	  TrailCyclic(&ff->definition);
 	  *to = consCompound(ft);
@@ -727,6 +729,7 @@ copy_term(DECL_LD Word from, Word to, const cp_options *options)
 	    goto out;
 	  }
 	  ft->definition = ff->definition & ~BOTH_MASK;
+	  pushVolatileFunctor(ft->definition);
 	  *to = consCompound(ft);
 
 	  if ( pushWorkAgendaLRD(&agenda, arity, ff->arguments, ft->arguments) )
@@ -795,9 +798,11 @@ again:
       return rc;
     }
   }
+  startHideFunctors();			/* see exitCyclicCopy() */
   initCyclicCopy();
   rc = copy_term(from, to, options);
   exitCyclicCopy(options->flags);
+  endHideFunctors();
   cp_unmark(from, options->flags);
   DEBUG(0,
 	if ( rc == true )	     // May lead to "Reference to higher address"

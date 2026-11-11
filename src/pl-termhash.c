@@ -43,6 +43,7 @@
 #include "pl-gmp.h"
 #include "pl-pro.h"
 #include "pl-bisim.h"
+#include "pl-funct.h"
 #define AC_TERM_WALK 1
 #include "pl-termwalk.c"
 
@@ -361,6 +362,7 @@ termHashValue(DECL_LD Word p, unsigned int *hval)
     work = allocFromBuffer(b, sizeof(*work));	/* cannot fail */
     start_term(work, b, *p);
     work->parent_offset = (size_t)-1;
+    startHideFunctors();		/* see restore below */
     t->definition = consInt(0);
 
     while ( (p = next_arg(&work, b)) )
@@ -413,8 +415,9 @@ termHashValue(DECL_LD Word p, unsigned int *hval)
 	*hval = d->hash;
 
       for(; d<end; d++)
-      { d->term->definition = d->functor;
+      { restoreHiddenFunctor(&d->term->definition, d->functor);
       }
+      endHideFunctors();
     }
 
     discardBuffer(b);

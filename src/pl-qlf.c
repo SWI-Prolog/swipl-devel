@@ -1600,9 +1600,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 		break;
 	      }
 	      case CA1_DATA:
-	      { word w = loadXR(state);
-		if ( isAtom(w) )
-		  PL_register_atom(word2atom(w));
+	      { word w = loadXR(state);	/* see register_clause_symbols() */
 		addCode(w);
 		break;
 	      }
@@ -1741,6 +1739,7 @@ loadPredicate(DECL_LD wic_state *state, int skip)
 	  bcl->code_size = ncodes;
 	  clause = (Clause)PL_malloc_atomic(csize);
 	  memcpy(clause, bcl, csize);
+	  register_clause_symbols(clause, false);
 
 	  if ( has_dicts )
 	  { if ( !resortDictsInClause(clause) )

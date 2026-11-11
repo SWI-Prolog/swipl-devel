@@ -545,6 +545,8 @@ PL_EXPORT(void)		_PL_debug_unregister_atom(atom_t a,
 #endif
 PL_EXPORT(functor_t)	PL_new_functor_sz(atom_t f, size_t a);
 PL_EXPORT(functor_t)	PL_new_functor(atom_t f, int a);
+PL_EXPORT(void)		PL_register_functor(functor_t f);
+PL_EXPORT(void)		PL_unregister_functor(functor_t f);
 PL_EXPORT(atom_t)	PL_functor_name(functor_t f);
 PL_EXPORT(int)		PL_functor_arity(functor_t f);
 PL_EXPORT(size_t)	PL_functor_arity_sz(functor_t f);

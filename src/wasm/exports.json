@@ -12,6 +12,8 @@
     "_PL_functor_arity",
     "_PL_register_atom",
     "_PL_unregister_atom",
+    "_PL_register_functor",
+    "_PL_unregister_functor",
     "_PL_term_type",
     "_PL_is_variable",
     "_PL_is_ground",

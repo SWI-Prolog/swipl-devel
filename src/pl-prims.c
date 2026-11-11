@@ -1420,7 +1420,7 @@ restore_shared_functors(DECL_LD Word vars)
     Word p = &v[4];
 
     deRef(p);
-    t->definition = *p;
+    restoreHiddenFunctor(&t->definition, *p);
     setVar(*p);
 
     vars = &v[2];
@@ -1513,9 +1513,11 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
     break;
   }
 
+  startHideFunctors();			/* see restoreHiddenFunctor() */
   reverse_factor_pointers(valTermRef(vars));
   link_shared(t);
   restore_shared_functors(valTermRef(vars));
+  endHideFunctors();
   PL_close_foreign_frame(fid);
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
@@ -2589,7 +2591,7 @@ PRED_IMPL("functor", 3, functor, 0)
   if ( arity == 0 )
     return PL_unify(A1, A2);
   if ( PL_get_atom_ex(A2, &name) )
-    return PL_unify_functor(A1, PL_new_functor(name, arity));
+    return PL_unify_functor(A1, lookupVolatileFunctor(name, arity));
 
   fail;
 }
@@ -2622,7 +2624,7 @@ PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
        !PL_get_size_ex(A3, &arity) )
     fail;
 
-  return PL_unify_compound(A1, PL_new_functor(name, arity));
+  return PL_unify_compound(A1, lookupVolatileFunctor(name, arity));
 }
 
 
@@ -2683,10 +2685,10 @@ PRED_IMPL("functor", 4, functor, 0)
   if ( arity > 0 )
   { return ( PL_get_atom_ex(A2, &name) &&
 	     match_functor_type(A4, type, ATOM_compound) &&
-	     PL_unify_compound(A1, PL_new_functor(name, arity)) );
+	     PL_unify_compound(A1, lookupVolatileFunctor(name, arity)) );
   } else if ( PL_get_atom(A2, &name) )
   { if ( type == ATOM_compound )
-      return PL_unify_compound(A1, PL_new_functor(name, 0));
+      return PL_unify_compound(A1, lookupVolatileFunctor(name, 0));
     else if ( type == ATOM_callable || type == ATOM_atom )
       return PL_unify_atom(A1, name);
     else if ( type == ATOM_atomic )
@@ -2720,7 +2722,7 @@ PRED_IMPL("$filled_array", 4, filled_array, 0)
        !PL_get_size_ex(A3, &arity) )
     return false;
 
-  f = PL_new_functor(name, arity);
+  f = lookupVolatileFunctor(name, arity);
   if ( !(p = allocGlobal(arity+1)) )
     return false;
   v = valTermRef(A4);
@@ -3207,7 +3209,7 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
     { Word l = valTermRef(tail);
 
       *valTermRef(head) = consCompound(p);
-      *p++ = PL_new_functor(name, arity);
+      *p++ = lookupVolatileFunctor(name, arity);
       deRef(l);
       while(isList(*l))
       { Word h = HeadList(l);
@@ -3292,7 +3294,7 @@ PRED_IMPL("compound_name_arguments", 3, compound_name_arguments, 0)
 	return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     }
 
-    if ( !PL_unify_compound(t, PL_new_functor(name, (size_t)len)) )
+    if ( !PL_unify_compound(t, lookupVolatileFunctor(name, (size_t)len)) )
       fail;
 
     for(n=1; PL_get_list(tail, head, tail); n++)

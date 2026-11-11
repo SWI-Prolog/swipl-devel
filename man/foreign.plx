@@ -1057,12 +1057,23 @@ Recover an atom from its index as obtained by PL_atom_index().
 
     \cfunction{functor_t}{PL_new_functor}{atom_t name, int arity}
 Returns a {\em functor identifier}, a handle for the name/arity pair.
-The returned handle is valid for the entire Prolog session. Future
-versions may garbage collect functors as part of atom garbage
-collection. Currently aborts the process with a \jargon{fatal error} on
+Functors are garbage collected by atom garbage collection if no term,
+clause or record uses them.  As PL_new_atom(), PL_new_functor() adds a
+reference to the functor, so foreign code may keep it, e.g., in a
+static variable.  If the functor is no longer needed, foreign code may
+call PL_unregister_functor().  See also PL_register_functor().
+Currently aborts the process with a \jargon{fatal error} on
 failure. Future versions may raise a resource exception and return
 \exam{(atom_t)0}.
 
+    \cfunction{void}{PL_register_functor}{functor_t f}
+Add a reference to \arg{f}.  Foreign code that keeps a functor it did
+not obtain from PL_new_functor(), e.g., from PL_get_functor(), must
+use this.  See also \secref{atomgc}.
+    \cfunction{void}{PL_unregister_functor}{functor_t f}
+Remove a reference added by PL_new_functor() or PL_register_functor().
+A functor without references is garbage collected if it is not used
+by a term, a clause or a record.
     \cfunction{atom_t}{PL_functor_name}{functor_t f}
 Return an atom representing the name of the given functor.
     \cfunction{size_t}{PL_functor_arity}{functor_t f}
@@ -1546,8 +1557,10 @@ may fail because the number cannot be represented as a float.
 
 \cfunction{bool}{PL_get_functor}{term_t +t, functor_t *f}
 If \arg{t} is compound or an atom, the Prolog representation of the
-name-arity pair will be assigned over \arg{f}. See also
-PL_get_name_arity() and PL_is_functor().
+name-arity pair will be assigned over \arg{f}.  The functor is valid as
+long as the term is.  Foreign code that keeps the functor must call
+PL_register_functor().  See also PL_get_name_arity() and
+PL_is_functor().
 
 \cfunction{bool}{PL_get_name_arity}{term_t +t, atom_t *name, size_t *arity}
 If \arg{t} is compound or an atom, the functor name will be assigned
