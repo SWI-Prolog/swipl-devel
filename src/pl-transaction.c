@@ -654,6 +654,10 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
     LD->transaction.gen_base   = GEN_INFINITE;
     LD->transaction.gen_start  = 0;
     LD->transaction.flags      = 0;
+#ifdef O_PLMT
+    if ( mutex )
+      put_mutex(mutex);
+#endif
   }
 
   if ( (flags&TR_BULK) )
