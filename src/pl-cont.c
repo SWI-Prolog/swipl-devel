@@ -318,9 +318,10 @@ put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc,
       { size_t arity = arityFunctor(env_f);
 	term_t av = PL_new_term_refs(arity);
 
-	fr = (LocalFrame)valTermRef(fr_ref);
 	for(size_t i=1; i<arity; i++)
+	{ fr = (LocalFrame)valTermRef(fr_ref); /* PL_put_term() may shift */
 	  PL_put_term(av+i, consTermRef(argFrameP(fr, i)));
+	}
 
 	if ( PL_cons_list_v(contv, depth, contv) &&
 	     PL_cons_functor(av+0, FUNCTOR_call_continuation1, contv) &&
