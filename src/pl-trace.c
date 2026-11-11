@@ -364,11 +364,11 @@ canUnifyTermWithGoal(DECL_LD LocalFrame fr)
     case TRACE_FIND_TERM:
     { if ( find->goal.term.functor == fr->predicate->functor->functor )
       { fid_t cid;
+	term_t frref = consTermRef(fr);	/* before anything may shift */
+	size_t i, arity = fr->predicate->functor->arity;
 
 	if ( (cid=PL_open_foreign_frame()) )
 	{ term_t t = PL_new_term_ref();
-	  term_t frref = consTermRef(fr);
-	  size_t i, arity = fr->predicate->functor->arity;
 	  bool rval = true;
 
 	  if ( !copyRecordToGlobal(t, find->goal.term.term,
@@ -763,9 +763,13 @@ traceAction(const char *cmd, int port, LocalFrame frame, Choice bfr,
 		return PL_TRACE_ACTION_AGAIN;
     case '/':	FeedBack("/");
 		Sflush(Sdout);
-		if ( setupFind(&s[1]) )
-		{ clear(frame, FR_SKIPPED);
-		  return PL_TRACE_ACTION_CONTINUE;
+		{ term_t fref = consTermRef(frame);
+
+		  if ( setupFind(&s[1]) )	/* may shift */
+		  { frame = (LocalFrame)valTermRef(fref);
+		    clear(frame, FR_SKIPPED);
+		    return PL_TRACE_ACTION_CONTINUE;
+		  }
 		}
 		return PL_TRACE_ACTION_AGAIN;
     case '.':   if ( LD->trace.find &&
@@ -1327,10 +1331,12 @@ saveGoal(LocalFrame frame, ssize_t at_depth, bool interactive)
   if ( !(frame = frameAtLevel(frame, at_depth, interactive)) )
     return false;
 
+  term_t fref = consTermRef(frame);
   if ( (fid = PL_open_foreign_frame()) )
   { term_t goal;
 
     if ( (goal = PL_new_term_ref()) &&
+	 (frame = (LocalFrame)valTermRef(fref)) &&	/* may be shifted */
 	 put_frame_goal(goal, frame) &&
 	 PL_record_az(ATOM_saved_goals, goal, 0, RECORDA) )
     { if ( interactive )
@@ -1364,6 +1370,44 @@ writeContextFrame(IOSTREAM *out, pl_context_t *ctx, int flags)
 
 #define SHOW_FRAME(fr) ( isDebugFrame(fr, 0) || !(flags&PL_BT_USER) )
 
+/* writeContextFrame() may call Prolog, which may shift the stacks.  The
+   contexts hold pointers into the local stack.  Save and restore them
+   as offsets.
+*/
+
+typedef struct context_refs
+{ term_t fr;
+  term_t qf;
+} context_refs;
+
+static void
+save_context(pl_context_t *c, context_refs *r)
+{ GET_LD
+
+  r->fr = c->fr ? consTermRef(c->fr) : 0;
+  r->qf = c->qf ? consTermRef(c->qf) : 0;
+}
+
+static void
+restore_context(pl_context_t *c, context_refs *r)
+{ GET_LD
+
+  c->fr = r->fr ? (LocalFrame)valTermRef(r->fr) : NULL;
+  c->qf = r->qf ? (QueryFrame)valTermRef(r->qf) : NULL;
+}
+
+static void
+writeContextFrameSafe(IOSTREAM *out, pl_context_t *ctx, pl_context_t *ctx2,
+		      int flags)
+{ context_refs r1, r2;
+
+  save_context(ctx, &r1);
+  save_context(ctx2, &r2);
+  writeContextFrame(out, ctx, flags);
+  restore_context(ctx, &r1);
+  restore_context(ctx2, &r2);
+}
+
 static void
 _PL_backtrace(IOSTREAM *out, int depth, int flags)
 { pl_context_t ctx;
@@ -1372,7 +1416,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
   { GET_LD
     Definition def = NULL;
     int same_proc = 0;
-    pl_context_t rctx;			/* recursive context */
+    pl_context_t rctx = {0};		/* recursive context */
 
     if ( gc_status.active )
     { flags |= PL_BT_SAFE;
@@ -1415,7 +1459,8 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
       } else
       { if ( same_proc >= 10 )
 	{ if ( isDebugFrame(rctx.fr, 0) || !(flags&PL_BT_USER) )
-	  { writeContextFrame(out, &rctx, flags);
+	  { writeContextFrameSafe(out, &rctx, &ctx, flags);
+	    frame = ctx.fr;
 	    depth--;
 	  }
 	  same_proc = 0;
@@ -1424,7 +1469,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
       }
 
       if ( SHOW_FRAME(frame) )
-      { writeContextFrame(out, &ctx, flags);
+      { writeContextFrameSafe(out, &ctx, &rctx, flags);
 	depth--;
       }
     }

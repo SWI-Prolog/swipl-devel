@@ -638,9 +638,21 @@ PL_call_event_hook_va(DECL_LD pl_event_type ev, va_list args)
     return true;
   }
 
+  term_t frref = 0;			/* PLEV_FRAMEFINISHED: the frame */
+  if ( ev == PLEV_FRAMEFINISHED )	/* as offset; the stacks may shift */
+  { va_list a2;
+
+    va_copy(a2, args);
+    frref = consTermRef(va_arg(a2, LocalFrame));
+    va_end(a2);
+  }
+
   if ( !saveWakeup(&wstate, true) )
     return false;
-  av = PL_new_term_refs(event_decl->argc+1);
+  if ( !(av = PL_new_term_refs(event_decl->argc+1)) )
+  { restoreWakeup(&wstate);
+    return false;
+  }
 
   switch(ev)
   { case PLEV_ABORT:
@@ -674,9 +686,9 @@ PL_call_event_hook_va(DECL_LD pl_event_type ev, va_list args)
       break;
     }
     case PLEV_FRAMEFINISHED:
-    { LocalFrame fr = va_arg(args, LocalFrame);
+    { (void)va_arg(args, LocalFrame);	/* see frref */
 
-      rc = PL_put_frame(av+1, fr);
+      rc = PL_put_frame(av+1, (LocalFrame)valTermRef(frref));
       break;
     }
 #ifdef O_ENGINES
