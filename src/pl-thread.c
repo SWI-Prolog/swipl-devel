@@ -3068,7 +3068,7 @@ PRED_IMPL("set_thread", 2, set_thread, 0)
       if ( PL_get_atom_ex(arg, &alias) )
       { if ( info->symbol && symbol_alias(info->symbol) )
 	  return PL_permission_error("re-alias", "thread", A1);
-	return aliasThread(PL_thread_self(), ATOM_thread, alias);
+	return aliasThread(info->pl_tid, ATOM_thread, alias);
       }
       return false;
     } else if ( name == ATOM_debug )
@@ -3663,9 +3663,10 @@ PRED_IMPL("thread_signal", 2, thread_signal, META|PL_FA_ISO)
       rc = get_thread(thread, &info, true);
       if ( rc && !(rc=is_alive(info->status)) )
 	rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_thread, thread);
-      PL_thread_raise(info->pl_tid, sig);
+      if ( rc )
+	PL_thread_raise(info->pl_tid, sig);
       PL_UNLOCK(L_THREAD);
-      return true;
+      return rc;
     } else
     { return PL_domain_error("signal", goal);
     }
@@ -8185,6 +8186,8 @@ sizeof_local_definitions(PL_local_data_t *ld)
   { Definition def = ch->definition;
     Definition local;
 
+    if ( !def )				/* see unregisterLocalDefinition() */
+      continue;
     assert(ison(def, P_THREAD_LOCAL));
     if ( (local = getProcDefinitionForThread(def, ld->thread.info->pl_tid)) )
       size += sizeof_predicate(local);
