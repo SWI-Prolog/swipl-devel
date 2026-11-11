@@ -43,7 +43,8 @@
 
 Some threads repeatedly create and destroy a named message queue while
 others send to it and ask for its properties.  Threads that found the
-queue used to access it after it was freed.
+queue used to access it after it was freed.  Likewise, enumerating
+anonymous queues could access a queue reclaimed by atom-GC.
 */
 
 queue_destroy_race :-
@@ -53,7 +54,9 @@ queue_destroy_race :-
 	findall(T, ( between(1, 3, _),
 		     thread_create(use(2000), T, [])
 		   ), Users),
-	append(Churners, Users, Threads),
+	thread_create(anon_churn(3000), A, []),
+	thread_create(agc(200), G, []),
+	append([[A,G], Churners, Users], Threads),
 	maplist(join, Threads).
 
 join(T) :-
@@ -76,3 +79,25 @@ use(N) :-
 		       _, true),
 		 ignore(is_message_queue(qdr_queue))
 	       )).
+
+anon_churn(N) :-
+	forall(between(1, N, I),
+	       ( message_queue_create(Q),
+		 thread_send_message(Q, I),
+		 (   I mod 3 =:= 0
+		 ->  message_queue_destroy(Q)
+		 ;   true
+		 )
+	       )).
+
+agc(N) :-
+	forall(between(1, N, _),
+	       ( garbage_collect_atoms,
+		 forall(message_queue_property(Q, size(_)),
+			assertion(atom_or_blob(Q))),
+		 sleep(0.001)
+	       )).
+
+atom_or_blob(Q) :-
+	blob(Q, Type),
+	memberchk(Type, [text, message_queue]).
