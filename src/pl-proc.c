@@ -2515,8 +2515,9 @@ ddi_add_access_gen(DirtyDefInfo ddi, gen_t access)
 bool
 ddi_is_garbage(DirtyDefInfo ddi, gen_t start, Buffer tr_starts, Clause cl)
 { assert(ison(ddi, DDI_MARKING));
-
-  if ( cl->generation.erased >= start )
+				/* A clause erased at `start` is invisible */
+				/* at `start` (GLOBALLY_VISIBLE_CLAUSE()) */
+  if ( cl->generation.erased > start )
   { if ( cl->generation.erased >= GEN_TRANSACTION_BASE &&
 	 tr_starts && !isEmptyBuffer(tr_starts) )
     { gen_t *g0  = baseBuffer(tr_starts, gen_t);
@@ -2879,8 +2880,12 @@ localClauseGC(DECL_LD)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 (*) We set the initial generation to   GEN_MAX  to know which predicates
-have been marked. We can only reclaim   clauses  that were erased before
-the start generation of the clause garbage collector.
+have been marked. We can only reclaim   clauses  that were erased at or
+before the start generation of the clause garbage collector.  A clause
+erased at generation G is not visible for a frame at generation G, so
+a clause that is erased at the start generation is garbage.  Before,
+the last clause erased before CGC was kept until some other database
+update advanced the generation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 foreign_t
