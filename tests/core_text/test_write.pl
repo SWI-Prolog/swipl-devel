@@ -184,6 +184,15 @@ test(quote_non_ascii, S == "f('aé','éa','é',ab)") :-	% Issue #1542
 			      [ quoted(true),
 				quote_non_ascii(true)
 			      ])).
+test(nul, S == "f('a\\0\\b',\"\\0\\1\")") :-
+    atom_codes(A, [0'a, 0, 0'b]),
+    string_codes(Str, [0, 0'1]),
+    with_output_to(string(S), writeq(f(A, Str))).
+test(nul, T == f(A, Str)) :-
+    atom_codes(A, [0'a, 0, 0'b]),
+    string_codes(Str, [0, 0'1]),
+    with_output_to(string(S), writeq(f(A, Str))),
+    term_string(T, S).
 
 :- end_tests(write_quoted).
 
