@@ -514,6 +514,8 @@ PRED_IMPL("\\=", 2, not_unify, 0)
 
 full_check:
   ex = PL_new_term_ref();
+  p1 = valTermRef(A1);			/* PL_new_term_ref() may shift */
+  p2 = p1+1;
 
   if ( can_unify(p1, p2, ex) )
     return false;
@@ -575,14 +577,16 @@ bool
 can_unify(Word t1, Word t2, term_t ex)
 { GET_LD
   fid_t fid;
+  int handle_exception = !ex;
 
-  if ( (fid = PL_open_foreign_frame()) )
-  { int handle_exception = !ex;
+  PushPtr(t1); PushPtr(t2);		/* creating the frame may shift */
+  fid = PL_open_foreign_frame();
+  if ( fid && !ex )
+    ex = PL_new_term_ref();
+  PopPtr(t2); PopPtr(t1);
 
-    if ( !ex )
-      ex = PL_new_term_ref();
-
-    if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT) &&
+  if ( fid )
+  { if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT) &&
 	 foreignWakeup(ex) )
     { PL_discard_foreign_frame(fid);
       return true;
@@ -2897,14 +2901,24 @@ unify_vp(DECL_LD Word vp, Word val)
 }
 
 
-#define may_share_in_duplicate(p) LDFUNC(may_share_in_duplicate, p)
+/* may_share_in_duplicate() returns a term reference to the argn-th
+   argument of term if this is a compound term, so duplicate_term() can
+   share it with the new value.  Returns 0 otherwise.
+*/
+
+#define may_share_in_duplicate(term, argn) \
+	LDFUNC(may_share_in_duplicate, term, argn)
 
 static term_t
-may_share_in_duplicate(DECL_LD Word p)
-{ deRef(p);
+may_share_in_duplicate(DECL_LD term_t term, size_t argn)
+{ term_t share = PL_new_term_ref();	/* may shift: take pointers after */
+  Word p = valTermRef(term);
+
+  deRef(p);
+  p = argTermP(*p, argn-1);
+  deRef(p);
   if ( isTerm(*p) )
-  { term_t share = PL_new_term_ref();
-    *valTermRef(share) = *p;
+  { *valTermRef(share) = *p;
     return share;
   }
 
@@ -2953,7 +2967,7 @@ setarg(DECL_LD size_t argn, term_t term, term_t value, unsigned int flags)
     if ( isGlobalPtr(*v) )
     { if ( isTerm(*v) && !(flags & SETARG_LINK) )
       { term_t copy = PL_new_term_ref();
-	term_t keep = may_share_in_duplicate(argTermP(*a, argn-1));
+	term_t keep = may_share_in_duplicate(term, argn);
 	size_t nshare = keep ? 1 : 0;
 
 	if ( !duplicate_term(value, copy, nshare, keep) )
