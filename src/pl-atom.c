@@ -549,9 +549,13 @@ deadBlobType(atom_t a)
 #ifdef O_PLMT
 
 #define acquire_atom_table(t, b) \
-  { LD->thread.info->access.atom_table = GD->atoms.table; \
-    t = LD->thread.info->access.atom_table->table; \
-    b = LD->thread.info->access.atom_table->buckets; \
+  { AtomTable _at; \
+    do \
+    { _at = LOAD_SEQ_CST(GD->atoms.table); \
+      PUBLISH_HAZARD(LD->thread.info->access.atom_table, _at); \
+    } while ( _at != LOAD_SEQ_CST(GD->atoms.table) ); \
+    t = _at->table; \
+    b = _at->buckets; \
   }
 
 #define release_atom_table() \
@@ -560,7 +564,7 @@ deadBlobType(atom_t a)
   }
 
 #define acquire_atom_bucket(b) \
-  { LD->thread.info->access.atom_bucket = (b); \
+  { PUBLISH_HAZARD(LD->thread.info->access.atom_bucket, (b)); \
   }
 
 #define release_atom_bucket() \

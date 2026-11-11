@@ -51,9 +51,13 @@ See pl-atom.c for many useful comments on the representation.
 #ifdef O_PLMT
 
 #define acquire_functor_table(t, b) \
-  { LD->thread.info->access.functor_table = functorDefTable; \
-    t = LD->thread.info->access.functor_table->table; \
-    b = LD->thread.info->access.functor_table->buckets; \
+  { FunctorTable _ft; \
+    do \
+    { _ft = LOAD_SEQ_CST(functorDefTable); \
+      PUBLISH_HAZARD(LD->thread.info->access.functor_table, _ft); \
+    } while ( _ft != LOAD_SEQ_CST(functorDefTable) ); \
+    t = _ft->table; \
+    b = _ft->buckets; \
   }
 
 #define release_functor_table() \
