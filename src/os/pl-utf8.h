@@ -102,28 +102,24 @@ PL_utf8_code_point(const char **i, const char *e, int *cp)
     return _PL__utf8_code_point(i, e, cp);
 }
 
+/* The skip functions must agree with PL_utf8_code_point() on invalid
+   input: callers count characters using them and decode afterwards.
+*/
+
 static inline char *
 utf8_skip_char(const char *in)
-{ if ( !(in[0]&0x80) )
-  { return (char*)in+1;
-  } else
-  { in++;
-    while ( ISUTF8_CB(in[0]) )
-      in++;
-    return (char*)in;
-  }
+{ int cp;
+
+  PL_utf8_code_point(&in, NULL, &cp);
+  return (char*)in;
 }
 
 static inline char *
 utf8_skip_char_e(const char *in, const char *end)
-{ if ( !(in[0]&0x80) )
-  { return (char*)in+1;
-  } else
-  { in++;
-    while ( in < end && ISUTF8_CB(in[0]) )
-      in++;
-    return (char*)in;
-  }
+{ int cp;
+
+  PL_utf8_code_point(&in, end, &cp);
+  return (char*)in;
 }
 
 static inline char *

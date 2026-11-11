@@ -44,7 +44,8 @@
 
 test_unicode :-
     run_tests([ numbers,
-		unicode_preds
+		unicode_preds,
+		utf8_decode
 	      ]).
 
 :- begin_tests(numbers).
@@ -74,3 +75,52 @@ test(string_length, Len == 1) :-
     atom_length('\U0001F600', Len).
 
 :- end_tests(unicode_preds).
+
+:- begin_tests(utf8_decode).
+
+%   decode(+Bytes, -Codes)
+%
+%   Decode Bytes as UTF-8 from a stream.  Warnings for illegal input are
+%   suppressed.
+
+decode(Bytes, Codes) :-
+    tmp_file_stream(binary, File, Out),
+    call_cleanup(
+        ( maplist(put_byte(Out), Bytes),
+          close(Out),
+          setup_call_cleanup(
+              open(File, read, In, [encoding(utf8)]),
+              with_quiet_warnings(read_codes(In, Codes)),
+              close(In))
+        ),
+        delete_file(File)).
+
+with_quiet_warnings(Goal) :-
+    setup_call_cleanup(
+        asserta((user:message_hook(_, warning, _) :- true), Ref),
+        Goal,
+        erase(Ref)).
+
+read_codes(In, Codes) :-
+    get_code(In, C0),
+    read_codes(C0, In, Codes).
+
+read_codes(-1, _, []) :- !.
+read_codes(C, In, [C|T]) :-
+    get_code(In, C1),
+    read_codes(C1, In, T).
+
+test(valid, Codes == [0x41, 0xE9, 0x20AC, 0x1F600]) :-
+    decode([0x41, 0xC3,0xA9, 0xE2,0x82,0xAC, 0xF0,0x9F,0x98,0x80], Codes).
+test(overlong, Codes == [0xFFFD, 0xFFFD, 0xFFFD, 0x41]) :-
+    decode([0xC0,0xAE, 0xC0,0xAF, 0xC0,0x80, 0x41], Codes).
+test(overlong3, Codes == [0xFFFD, 0x41]) :-
+    decode([0xE0,0x80,0xAF, 0x41], Codes).
+test(too_large, Codes == [0xFFFD, 0x41]) :-
+    decode([0xF4,0x90,0x80,0x80, 0x41], Codes).
+test(five_byte, Codes == [0xFFFD,0xFFFD,0xFFFD,0xFFFD,0xFFFD, 0x41]) :-
+    decode([0xF8,0x88,0x80,0x80,0x80, 0x41], Codes).
+test(truncated, Codes == [0x41, 0xFFFD]) :-
+    decode([0x41, 0xE2,0x82], Codes).
+
+:- end_tests(utf8_decode).

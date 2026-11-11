@@ -1318,7 +1318,7 @@ retry:
       break;
     case ENC_ASCII:
     { c = get_byte(s);
-      if ( c > 128 )
+      if ( c >= 128 )
 	Sseterr(s, SIO_WARN, "non-ASCII character");
       break;
     }
@@ -1363,26 +1363,35 @@ retry:
 	break;
 
       if ( c & 0x80 )
-      { int extra = UTF8_FBN(c);
+      { static const int min_code[4] = { 0, 0x80, 0x800, 0x10000 };
+	int extra = UTF8_FBN(c);
+	int bytes;
 	int code;
 
-	if ( extra < 0 )
+	if ( extra < 1 || extra > 3 )	/* only up to UNICODE_MAX */
 	{ Sseterr(s, SIO_WARN, "Illegal UTF-8 start");
 	  c = UTF8_MALFORMED_REPLACEMENT;
 	  goto out;
 	}
 
+	bytes = extra;
 	code = UTF8_FBV(c,extra);
 	for( ; extra > 0; extra-- )
 	{ int c2 = get_byte(s);
 
-	  if ( !ISUTF8_CB(c2) )
+	  if ( c2 == EOF || !ISUTF8_CB(c2) )
 	  { Sseterr(s, SIO_WARN, "Illegal UTF-8 continuation");
 	    c = UTF8_MALFORMED_REPLACEMENT;
-	    Sungetc(c2, s);
+	    if ( c2 != EOF )
+	      Sungetc(c2, s);
 	    goto out;
 	  }
 	  code = (code<<6)+(c2&0x3f);
+	}
+	if ( code < min_code[bytes] || code > UNICODE_MAX )
+	{ Sseterr(s, SIO_WARN, "Illegal UTF-8 sequence");
+	  c = UTF8_MALFORMED_REPLACEMENT;
+	  goto out;
 	}
 	if ( IS_UTF16_SURROGATE(code) )
 	{ Sseterr(s, SIO_WARN, "UTF-8 surrogate code point");
@@ -1429,7 +1438,11 @@ retry:
 	*p++ = (char)c1;
       }
 
-      c = chr;
+      if ( !VALID_CODE_POINT(chr) )
+      { Sseterr(s, SIO_WARN, "Illegal UCS character");
+	c = UTF8_MALFORMED_REPLACEMENT;
+      } else
+	c = chr;
       break;
     }
 #endif
