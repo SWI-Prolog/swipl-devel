@@ -147,5 +147,26 @@ test(update,
                       Ready = true
                     ),
                     [db(false),module(M)]).
+test(workers, Status == [true,true]) :- % used to deadlock
+    retractall(job(_)),
+    thread_create(worker, T1, []),
+    thread_create(worker, T2, []),
+    sleep(0.1),
+    forall(between(1, 200, I), assertz(job(I))),
+    assertz(job(done)),
+    assertz(job(done)),
+    10+( thread_join(T1, S1),
+         thread_join(T2, S2)
+       ),
+    Status = [S1,S2].
+
+:- dynamic job/1.
+
+worker :-
+    thread_wait(retract(job(X)), [wait_preds([job/1])]),
+    (   X == done
+    ->  true
+    ;   worker
+    ).
 
 :- end_tests(thread_wait).
