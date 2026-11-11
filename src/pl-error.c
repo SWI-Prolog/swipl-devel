@@ -136,6 +136,28 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
     msg_rep = REP_MB;
   }
 
+					/* Word arguments become invalid */
+  word ptrval[2] = {0};			/* if the stacks are shifted */
+  { va_list pargs;
+
+    va_start(pargs, id);
+    switch(id)
+    { case ERR_PTR_TYPE:
+      case ERR_PTR_DOMAIN:
+	(void)va_arg(pargs, atom_t);
+	ptrval[0] = linkValNoG(va_arg(pargs, Word));
+	break;
+      case ERR_OCCURS_CHECK:
+      case ERR_INCOMPARABLE:
+	ptrval[0] = linkValNoG(va_arg(pargs, Word));
+	ptrval[1] = linkValNoG(va_arg(pargs, Word));
+	break;
+      default:
+	break;
+    }
+    va_end(pargs);
+  }
+
   LD->exception.processing = true;	/* allow using spare stack */
 
   if ( !(fid = PL_open_foreign_frame()) )
@@ -183,13 +205,11 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
 			   PL_TERM, actual);
       break;
     case ERR_PTR_TYPE:			/* atom_t, Word */
-      { Word ptr;
-
-	expected = va_arg(args, atom_t);
-	ptr      = va_arg(args, Word);
+      { expected = va_arg(args, atom_t);
+	(void)va_arg(args, Word);	/* see ptrval */
 	actual   = PL_new_term_ref();
 
-	*valTermRef(actual) = *ptr;
+	*valTermRef(actual) = ptrval[0];
 	goto case_type_error;
       }
     }
@@ -273,13 +293,11 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
 			   PL_TERM, arg);
       break;
     case ERR_PTR_DOMAIN:		/* atom_t, Word */
-      { Word ptr;
-
-	domain = va_arg(args, atom_t);
-	ptr    = va_arg(args, Word);
+      { domain = va_arg(args, atom_t);
+	(void)va_arg(args, Word);	/* see ptrval */
 	arg    = PL_new_term_ref();
 
-	*valTermRef(arg) = *ptr;
+	*valTermRef(arg) = ptrval[0];
 	goto case_domain_error;
       }
     }
@@ -526,30 +544,25 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
       break;
     }
     case ERR_OCCURS_CHECK:
-    { Word p1  = va_arg(args, Word);
-      Word p2  = va_arg(args, Word);
-
-      rc = PL_unify_term(formal,
-			 PL_FUNCTOR, FUNCTOR_occurs_check2,
-			   PL_TERM, pushWordAsTermRef(p1),
-			   PL_TERM, pushWordAsTermRef(p2));
-      popTermRef();
-      popTermRef();
-
-      break;
-    }
     case ERR_INCOMPARABLE:
-    { Word p1  = va_arg(args, Word);
-      Word p2  = va_arg(args, Word);
+    { term_t t1 = PL_new_term_ref();
+      term_t t2 = PL_new_term_ref();
 
-      rc = PL_unify_term(formal,
-			 PL_FUNCTOR, FUNCTOR_representation_error1,
-			   PL_FUNCTOR, FUNCTOR_standard_order2,
-			     PL_TERM, pushWordAsTermRef(p1),
-			     PL_TERM, pushWordAsTermRef(p2));
-      popTermRef();
-      popTermRef();
-
+      (void)va_arg(args, Word);		/* see ptrval */
+      (void)va_arg(args, Word);
+      *valTermRef(t1) = ptrval[0];
+      *valTermRef(t2) = ptrval[1];
+      if ( id == ERR_OCCURS_CHECK )
+	rc = PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_occurs_check2,
+			     PL_TERM, t1,
+			     PL_TERM, t2);
+      else
+	rc = PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_representation_error1,
+			     PL_FUNCTOR, FUNCTOR_standard_order2,
+			       PL_TERM, t1,
+			       PL_TERM, t2);
       break;
     }
     case ERR_TIMEOUT:
