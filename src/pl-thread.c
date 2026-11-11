@@ -5697,8 +5697,13 @@ get_message_queue_unlocked(DECL_LD term_t t, message_queue **queue)
 /* Get a message queue and lock it
 */
 
+#define get_message_queue_locked(t, queue) \
+	LDFUNC(get_message_queue_locked, t, queue)
+
+/* As get_message_queue(), but the caller holds L_THREAD */
+
 static bool
-get_message_queue(DECL_LD term_t t, message_queue **queue)
+get_message_queue_locked(DECL_LD term_t t, message_queue **queue)
 { bool rc;
   message_queue *q;
   PL_blob_t *type;
@@ -5717,10 +5722,9 @@ get_message_queue(DECL_LD term_t t, message_queue **queue)
     return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_message_queue, t);
   }
 
-  PL_LOCK(L_THREAD);
   rc = get_message_queue_unlocked(t, queue);
   if ( rc )
-  { message_queue *q = *queue;
+  { q = *queue;
 
     simpleMutexLock(&q->mutex);
     if ( q->destroyed )
@@ -5728,6 +5732,26 @@ get_message_queue(DECL_LD term_t t, message_queue **queue)
       simpleMutexUnlock(&q->mutex);
     }
   }
+
+  return rc;
+}
+
+/* Get a message queue and lock it.  For named queues we hold L_THREAD
+   until we locked the queue.  message_queue_destroy/1 does the same and
+   removes the queue from the table, so no thread can have found a named
+   queue without having it locked when it is freed.
+*/
+
+static bool
+get_message_queue(DECL_LD term_t t, message_queue **queue)
+{ bool rc;
+  PL_blob_t *type;
+
+  if ( PL_get_blob(t, NULL, NULL, &type) && type == &message_queue_blob )
+    return get_message_queue_locked(t, queue); /* anonymous queue */
+
+  PL_LOCK(L_THREAD);
+  rc = get_message_queue_locked(t, queue);
   PL_UNLOCK(L_THREAD);
 
   return rc;
@@ -5740,7 +5764,7 @@ get_message_queue(DECL_LD term_t t, message_queue **queue)
 static void
 release_message_queue(message_queue *queue)
 { int del = ( queue->destroyed &&
-	      !(queue->waiting || queue->wait_for_drain) &&
+	      !(queue->waiting || queue->wait_for_drain || queue->pins) &&
 	      queue->type != QTYPE_THREAD );
 
   simpleMutexUnlock(&queue->mutex);
@@ -5750,6 +5774,23 @@ release_message_queue(message_queue *queue)
     if ( !queue->anonymous )
       PL_free(queue);
   }
+}
+
+/* A pinned message queue is not freed if it is destroyed.  This is
+   used to access a queue without holding its lock, while it may be
+   destroyed concurrently.  The queue must be locked to pin it.
+*/
+
+static void
+pin_message_queue(message_queue *queue)	/* queue is locked */
+{ queue->pins++;
+}
+
+static void
+unpin_message_queue(message_queue *queue)
+{ simpleMutexLock(&queue->mutex);
+  queue->pins--;
+  release_message_queue(queue);		/* may free the queue */
 }
 
 static
@@ -5800,11 +5841,15 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
 { PRED_LD
   message_queue *q;
 
-  if ( !get_message_queue(A1, &q) )
+  PL_LOCK(L_THREAD);			/* other threads find named queues */
+  if ( !get_message_queue_locked(A1, &q) ) /* holding L_THREAD until they */
+  { PL_UNLOCK(L_THREAD);		/* locked the queue */
     return false;
+  }
 
   if ( q->type == QTYPE_THREAD )
-  { release_message_queue(q);
+  { PL_UNLOCK(L_THREAD);
+    release_message_queue(q);
 
     return PL_error(NULL, 0, "is a thread-queue", ERR_PERMISSION,
 		    ATOM_destroy, ATOM_message_queue, A1);
@@ -5813,6 +5858,7 @@ PRED_IMPL("message_queue_destroy", 1, message_queue_destroy, 0)
   simpleMutexLock(&queueTable_mutex);	/* see markAtomsMessageQueues() */
   deleteHTableWP(queueTable, (table_key_t)q->id);
   simpleMutexUnlock(&queueTable_mutex);
+  PL_UNLOCK(L_THREAD);
 
   if ( !q->anonymous )
     PL_unregister_atom(q->id);
@@ -5849,8 +5895,14 @@ PRED_IMPL("is_message_queue", 1, is_message_queue, 0)
   }
 
   if ( queueTable && PL_get_atom(A1, &id) )
-  { if ( (q = lookupHTableWP(queueTable, id)) )
-      return !q->destroyed;
+  { bool rc = false;
+
+    PL_LOCK(L_THREAD);			/* see get_message_queue() */
+    if ( (q = lookupHTableWP(queueTable, id)) )
+      rc = !q->destroyed;
+    PL_UNLOCK(L_THREAD);
+
+    return rc;
   }
 
   return false;
@@ -5930,8 +5982,51 @@ typedef struct
 } qprop_enum;
 
 
+/* Get the next queue from the queue table and pin it, so we can read
+   its properties while it may be destroyed concurrently.  The queue
+   is only valid if it is still in the table under L_THREAD.  See
+   get_message_queue().
+*/
+
+#define next_enum_queue(state) LDFUNC(next_enum_queue, state)
+
+static bool
+next_enum_queue(DECL_LD qprop_enum *state)
+{ table_key_t k;
+  table_value_t tv;
+
+  if ( state->q )
+  { unpin_message_queue(state->q);
+    state->q = NULL;
+  }
+
+  while ( advanceTableEnum(state->e, &k, &tv) )
+  { message_queue *q = val2ptr(tv);
+    bool found = false;
+
+    PL_LOCK(L_THREAD);
+    if ( lookupHTableWP(queueTable, k) == q )
+    { simpleMutexLock(&q->mutex);
+      if ( (found = !q->destroyed) )
+	pin_message_queue(q);
+      simpleMutexUnlock(&q->mutex);
+    }
+    PL_UNLOCK(L_THREAD);
+
+    if ( found )
+    { state->q = q;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
+#define advance_qstate(state) LDFUNC(advance_qstate, state)
+
 static int
-advance_qstate(qprop_enum *state)
+advance_qstate(DECL_LD qprop_enum *state)
 { if ( state->enum_properties )
   { state->p++;
     if ( state->p->functor )
@@ -5940,27 +6035,24 @@ advance_qstate(qprop_enum *state)
     state->p = qprop_list;
   }
   if ( state->e )
-  { table_value_t tv;
-
-    if ( advanceTableEnum(state->e, NULL, &tv) )
-    { message_queue *q = val2ptr(tv);
-      state->q = q;
-
-      succeed;
-    }
-  }
+    return next_enum_queue(state);
 
   fail;
 }
 
 
 static void
-free_qstate(qprop_enum *state)
-{ if ( state->e )
+done_qstate(qprop_enum *state, bool allocated)
+{ if ( state->q )
+    unpin_message_queue(state->q);
+  if ( state->e )
     freeTableEnum(state->e);
 
-  freeForeignState(state, sizeof(*state));
+  if ( allocated )
+    freeForeignState(state, sizeof(*state));
 }
+
+#define free_qstate(state) done_qstate(state, true)
 
 
 static
@@ -5994,7 +6086,8 @@ PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
 	    fail;
 	}
       } else if ( get_message_queue(queue, &state->q) )
-      { release_message_queue(state->q); /* FIXME: we need some form of locking! */
+      { pin_message_queue(state->q);	/* the queue may be destroyed */
+	release_message_queue(state->q);
 
 	switch( get_prop_def(property, ATOM_message_queue_property,
 			     qprop_list, &state->p) )
@@ -6025,15 +6118,10 @@ PRED_IMPL("message_queue_property", 2, message_property, PL_FA_NONDETERMINISTIC)
 
 enumerate:
   if ( !state->q )			/* first time, enumerating queues */
-  { table_value_t tv;
-
-    assert(state->e);
-    if ( advanceTableEnum(state->e, NULL, &tv) )
-    { message_queue *q = val2ptr(tv);
-      state->q = q;
-    } else
-    { freeTableEnum(state->e);
-      assert(state == &statebuf);
+  { assert(state->e);
+    if ( !next_enum_queue(state) )
+    { assert(state == &statebuf);
+      done_qstate(state, false);
       fail;
     }
   }
@@ -6068,19 +6156,13 @@ enumerate:
 	  ForeignRedoPtr(state);
 	}
 
-	if ( state != &statebuf )
-	  free_qstate(state);
-	else if ( state->e )
-	  freeTableEnum(state->e);
+	done_qstate(state, state != &statebuf);
 	succeed;
       }
 
       if ( !advance_qstate(state) )
       { error:
-	if ( state != &statebuf )
-	  free_qstate(state);
-	else if ( state->e )
-	  freeTableEnum(state->e);
+	done_qstate(state, state != &statebuf);
 	fail;
       }
     }
