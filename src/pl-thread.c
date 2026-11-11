@@ -506,6 +506,7 @@ round_pages(size_t n)
 static simpleMutex queueTable_mutex;	/* GC synchronization */
 static simpleMutex handle_mutex;	/* thread_handle->info and */
 					/* PL_thread_info_t->discarded */
+static simpleMutex local_defs_mutex;	/* see sync_local_definitions() */
 
 #ifdef HAVE___THREAD
 __thread PL_local_data_t *GLOBAL_LD;
@@ -1015,6 +1016,7 @@ initPrologThreads(void)
   initAlloc();
   simpleMutexInit(&handle_mutex);	/* innermost lock, see */
 					/* release_thread_handle() */
+  simpleMutexInit(&local_defs_mutex);
 #if defined(USE_CRITICAL_SECTIONS) && !defined(O_SHARED_KERNEL)
   W32initMutexes();		/* see also DllMain() */
 #endif
@@ -3271,7 +3273,9 @@ sizeof_thread(PL_thread_info_t *info)
     size += sizeStackP(&ld->stacks.argument);
 
     size += sizeof_message_queue(&ld->thread.messages);
+    simpleMutexLock(&local_defs_mutex);
     size += sizeof_local_definitions(ld);
+    simpleMutexUnlock(&local_defs_mutex);
 
     if ( ld->tabling.node_pool )
       size += ld->tabling.node_pool->size;
@@ -8453,6 +8457,22 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
 }
 
 
+/* Other threads may access our thread-local definitions:
+
+   - The definitions of a thread are destroyed after its status left
+     PL_THREAD_RUNNING under L_THREAD.  So, lookup and use them under
+     L_THREAD after checking the status.
+   - Walking the clauses requires local_defs_mutex.  localClauseGC()
+     calls sync_local_definitions() before freeing the clause references
+     it removed.
+*/
+
+void
+sync_local_definitions(void)
+{ simpleMutexLock(&local_defs_mutex);
+  simpleMutexUnlock(&local_defs_mutex);
+}
+
 static size_t
 sizeof_local_definitions(PL_local_data_t *ld)
 { DefinitionChain ch = ld->thread.local_definitions;
@@ -8511,8 +8531,9 @@ PRED_IMPL("$thread_local_clause_count", 3, thread_local_clause_count, 0)
   if ( !get_thread(thread, &info, false) )
     fail;
 
-  PL_LOCK(L_THREAD);
-  if ( (def = getProcDefinitionForThread(proc->definition, info->pl_tid)) )
+  PL_LOCK(L_THREAD);			/* see sync_local_definitions() */
+  if ( info->status == PL_THREAD_RUNNING &&
+       (def = getProcDefinitionForThread(proc->definition, info->pl_tid)) )
     number_of_clauses = def->impl.clauses.number_of_clauses;
   PL_UNLOCK(L_THREAD);
 
@@ -8552,10 +8573,14 @@ PRED_IMPL("$thread_local_predicate_size", 3, thread_local_predicate_size, 0)
   if ( !get_thread(thread, &info, false) )
     fail;
 
-  PL_LOCK(L_THREAD);
-  if ( (found=(def=getProcDefinitionForThread(proc->definition,
-					      info->pl_tid))) )
+  PL_LOCK(L_THREAD);			/* see sync_local_definitions() */
+  if ( (found = (info->status == PL_THREAD_RUNNING &&
+		 (def=getProcDefinitionForThread(proc->definition,
+						 info->pl_tid)))) )
+  { simpleMutexLock(&local_defs_mutex);
     size = sizeof_predicate(def);
+    simpleMutexUnlock(&local_defs_mutex);
+  }
   PL_UNLOCK(L_THREAD);
 
   return found && PL_unify_int64(bytes, size);
