@@ -4535,7 +4535,15 @@ compatibility with older records.
     stack.  See also PL_record_external() and PL_erase_external().
     The data is \emph{not} validated: \arg{record} must have been
     created using PL_record_external() and must not be modified.
-    Use fast_term_serialized/2 for data from an untrusted source.
+    Use PL_recorded_external_len() for data from an untrusted source.
+\cfunction{bool}{PL_recorded_external_len}{const char *record, size_t len,
+					      term_t -t}
+    As PL_recorded_external(), but \arg{record} is a record of
+    \arg{len} bytes from an untrusted source, for example read from a
+    file or database.  The data is validated before it is used.  If
+    it is not a valid record of exactly \arg{len} bytes the function
+    fails without raising an exception.  Validation makes decoding
+    somewhat slower.
 \cfunction{bool}{PL_erase_external}{char *record}
     Remove the recorded term from the Prolog database, reclaiming all
     associated memory resources.

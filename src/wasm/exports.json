@@ -177,6 +177,7 @@
     "_PL_erase",
     "_PL_record_external",
     "_PL_recorded_external",
+    "_PL_recorded_external_len",
     "_PL_erase_external",
     "_PL_get_file_name",
     "_PL_get_file_nameW",
