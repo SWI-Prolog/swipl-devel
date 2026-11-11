@@ -6442,6 +6442,9 @@ markPredicatesInEnvironments(PL_local_data_t *ld, void *ctx)
 { GET_LD
   Word lbase, lend, current;
 
+  if ( !ld->magic )
+    return;				/* thread is exiting; see */
+					/* freePrologThread() */
   if ( ld->transaction.gen_start )
   { Buffer tr_starts = ctx;
 
