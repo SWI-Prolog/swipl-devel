@@ -1468,6 +1468,9 @@ pl_get_dict(term_t PL__t0, size_t PL__ac, int ex, control_t PL__ctx)
       { for( ; i < arity; i += 2 )
 	{ Word np;
 
+	  p = valTermRef(A2);		/* the stacks may have moved */
+	  deRef(p);
+	  f = valueTerm(*p);
 	  deRef2(&f->arguments[i+1], np);	/* TBD: check type */
 	  if ( unify_ptrs(&f->arguments[i], valTermRef(A3),
 			  ALLOW_GC|ALLOW_SHIFT) &&
@@ -1974,10 +1977,10 @@ get_dict_kv(DECL_LD term_t t0, int arity)
   Word p = valTermRef(t0+1);
   deRef(p);
   if ( isTerm(*p) )
-  { Functor f = valueTerm(*p);
-    size_t darity = arityFunctor(f->definition);
+  { functor_t df = functorTerm(*p);
+    size_t darity = arityFunctor(df);
 
-    if ( !is_dict_functor(f->definition) )
+    if ( !is_dict_functor(df) )
       return PL_type_error("dict", t0+1);
 
     if ( i > darity/2 )
@@ -1992,7 +1995,7 @@ get_dict_kv(DECL_LD term_t t0, int arity)
     for(size_t di=0; di < dict_count; di++)
     { term_t dict = t0+1+di;
 
-      if ( di > 0 && !PL_is_functor(dict, f->definition) )
+      if ( di > 0 && !PL_is_functor(dict, df) )
       { if ( !PL_is_dict(dict) )
 	  return PL_type_error("dict", dict);
 	else
