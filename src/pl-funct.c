@@ -126,62 +126,89 @@ registerFunctor(FunctorDef fd)
 }
 
 
-functor_t
-lookupFunctorDef(DECL_LD atom_t atom, size_t arity)
-{ int v;
-  FunctorDef *table;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Lookup is lock-free.  Creating a functor  and rehashing the table happen
+under L_FUNCTOR.  A new functor is  added   to  the  array (which is what
+rehashFunctors() uses) before it is published   in  the table.  A lookup
+may miss an existing functor while  rehashFunctors()  relinks the chains.
+Therefore we search again under L_FUNCTOR before   we  conclude that the
+functor does not exist.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define find_functor(atom, arity) LDFUNC(find_functor, atom, arity)
+
+static functor_t
+find_functor(DECL_LD atom_t atom, size_t arity)
+{ FunctorDef *table;
   int buckets;
-  FunctorDef f, head;
+  functor_t rc = 0;
 
-redo:
   acquire_functor_table(table, buckets);
-
-  v = (int)pointerHashValue(atom, buckets);
-  head = table[v];
-
-  DEBUG(9, Sdprintf("Lookup functor %s/%zd = ", stringAtom(atom), arity));
-  for(f = table[v]; f; f = f->next)
-  { if (atom == f->name && f->arity == arity)
-    { DEBUG(9, Sdprintf("%p (old)\n", f));
-      if ( !FUNCTOR_IS_VALID(f->flags) )
-      { goto redo;
-      }
-      release_functor_table();
-      return f->functor;
+  int v = (int)pointerHashValue(atom, buckets);
+  for(FunctorDef f = table[v]; f; f = f->next)
+  { if ( atom == f->name && f->arity == arity &&
+	 FUNCTOR_IS_VALID(f->flags) )
+    { rc = f->functor;
+      break;
     }
   }
-
-  if ( functorDefTable->buckets * 2 < GD->statistics.functors )
-  { PL_LOCK(L_FUNCTOR);
-    rehashFunctors();
-    PL_UNLOCK(L_FUNCTOR);
-  }
-
-  if ( !( table == functorDefTable->table && head == table[v] ) )
-    goto redo;
-
-  f = (FunctorDef) allocHeapOrHalt(sizeof(struct functorDef));
-  f->functor = 0L;
-  f->name    = atom;
-  f->arity   = arity;
-  f->flags   = 0;
-  f->next    = table[v];
-  if ( !( COMPARE_AND_SWAP_PTR(&table[v], head, f) &&
-	  !GD->functors.rehashing &&
-          table == functorDefTable->table) )
-  { PL_free(f);
-    goto redo;
-  }
-  registerFunctor(f);
-
-  ATOMIC_INC(&GD->statistics.functors);
-  PL_register_atom(atom);
-
-  DEBUG(9, Sdprintf("%p (new)\n", f));
-
   release_functor_table();
 
-  return f->functor;
+  return rc;
+}
+
+/* Find a functor in the current table.  Caller holds L_FUNCTOR */
+
+static FunctorDef
+find_functor_locked(atom_t atom, size_t arity)
+{ FunctorTable t = functorDefTable;
+  int v = (int)pointerHashValue(atom, t->buckets);
+
+  for(FunctorDef f = t->table[v]; f; f = f->next)
+  { if ( atom == f->name && f->arity == arity )
+      return f;
+  }
+
+  return NULL;
+}
+
+
+functor_t
+lookupFunctorDef(DECL_LD atom_t atom, size_t arity)
+{ functor_t rc;
+  FunctorDef f;
+
+  if ( (rc=find_functor(atom, arity)) )
+    return rc;
+
+  PL_LOCK(L_FUNCTOR);
+  if ( (f=find_functor_locked(atom, arity)) )
+  { rc = f->functor;
+  } else
+  { if ( functorDefTable->buckets * 2 < GD->statistics.functors )
+      rehashFunctors();
+
+    FunctorTable t = functorDefTable;
+    int v = (int)pointerHashValue(atom, t->buckets);
+
+    f = (FunctorDef) allocHeapOrHalt(sizeof(struct functorDef));
+    f->functor = 0L;
+    f->name    = atom;
+    f->arity   = arity;
+    f->flags   = 0;
+    f->next    = t->table[v];
+    registerFunctor(f);
+    MEMORY_RELEASE();			/* publish complete functor */
+    t->table[v] = f;
+    rc = f->functor;
+
+    ATOMIC_INC(&GD->statistics.functors);
+    PL_register_atom(atom);
+    DEBUG(9, Sdprintf("%p (new)\n", f));
+  }
+  PL_UNLOCK(L_FUNCTOR);
+
+  return rc;
 }
 
 
@@ -220,7 +247,6 @@ rehashFunctors(void)
 	Sdprintf("Rehashing functor-table (%d --> %d)\n",
 		 functorDefTable->buckets, newtab->buckets));
 
-  GD->functors.rehashing = true;
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
     FunctorDef *b;
@@ -246,8 +272,8 @@ rehashFunctors(void)
     }
   }
 
+  MEMORY_RELEASE();			/* publish filled table */
   functorDefTable = newtab;
-  GD->functors.rehashing = false;
   maybe_free_functor_tables();
 }
 
@@ -258,37 +284,17 @@ not known.
 
 functor_t
 isCurrentFunctor(atom_t atom, size_t arity)
-{
-#ifdef O_PLMT
-  GET_LD
-#endif
-  unsigned int v;
-  int buckets;
-  FunctorDef *table;
-  FunctorDef f;
-  functor_t rc = 0;
+{ GET_LD
+  functor_t rc;
 
-redo:
-  acquire_functor_table(table, buckets);
+  if ( !(rc=find_functor(atom, arity)) )
+  { FunctorDef f;
 
-  v = (unsigned int)pointerHashValue(atom, buckets);
-  for(f = table[v]; f; f = f->next)
-  { if ( FUNCTOR_IS_VALID(f->flags) && atom == f->name && f->arity == arity )
-    { release_functor_table();
+    PL_LOCK(L_FUNCTOR);			/* we may miss it during a rehash */
+    if ( (f=find_functor_locked(atom, arity)) )
       rc = f->functor;
-      break;
-    }
-  }
-
-  release_functor_table();
-
-  if ( !rc && functorDefTable->buckets * 2 < GD->statistics.functors )
-  { PL_LOCK(L_FUNCTOR);
-    rehashFunctors();
     PL_UNLOCK(L_FUNCTOR);
   }
-  if ( table != functorDefTable->table )
-    goto redo;
 
   return rc;
 }
