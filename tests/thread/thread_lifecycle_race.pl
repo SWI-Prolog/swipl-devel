@@ -43,11 +43,14 @@
   crash on the destroyed engine mutex.
 - thread_create/3 with inherit_from(T) for a thread T that completed
   but was not joined used to crash.
+- thread_detach/1 on a thread that completed or was completing did not
+  reclaim the thread.
 */
 
 thread_lifecycle_race :-
 	forall(between(1, 500, _), engine_round),
-	inherit_from_completed.
+	inherit_from_completed,
+	detach_completed.
 
 engine_round :-
 	engine_create(X, between(1, inf, X), E),
@@ -75,3 +78,27 @@ wait_completed(T) :-
 	sleep(0.01),
 	wait_completed(T).
 wait_completed(_).
+
+detach_completed :-
+	findall(T, thread_property(T, status(_)), Before),
+	forall(between(1, 500, _),
+	       ( thread_create(true, T, []),
+		 thread_detach(T)
+	       )),
+	thread_create(true, T1, []),
+	wait_completed(T1),
+	thread_detach(T1),
+	wait_threads(Before, 100).
+
+wait_threads(Before, N) :-
+	findall(T, thread_property(T, status(_)), Now),
+	length(Before, LB),
+	length(Now, LN),
+	(   LN =< LB
+	->  true
+	;   N > 0
+	->  sleep(0.01),
+	    N1 is N - 1,
+	    wait_threads(Before, N1)
+	;   assertion(LN =< LB)
+	).

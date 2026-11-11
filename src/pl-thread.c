@@ -827,6 +827,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     info->thread_data = NULL;		/* avoid a loop */
     info->has_tid = false;		/* needed? */
     info->c_stack = NULL;
+    bool detached = info->detached;	/* see thread_detach/1 */
     if ( !after_fork )
       PL_UNLOCK(L_THREAD);
 
@@ -844,7 +845,7 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       pthread_detach(info->tid);
 #endif
     }
-    if ( info->detached || acknowledge )
+    if ( detached || acknowledge )
       free_thread_info(info);
 #else
     free_thread_info(info);
@@ -3034,6 +3035,8 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
     { assert(rc == ESRCH);
 
       release = info;
+    } else if ( !info->thread_data )	/* exited without being detached */
+    { release = info;			/* see freePrologThread() */
     } else
     { PL_register_atom(info->symbol);
       info->detached = true;
