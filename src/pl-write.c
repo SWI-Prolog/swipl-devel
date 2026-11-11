@@ -903,7 +903,7 @@ unicode_quoted_escape(int c)
 static int
 putQuoted(int c, int quote, int flags, IOSTREAM *stream)
 { if ( (flags & PL_WRT_CHARESCAPES) )
-  { if ( !unicode_quoted_escape(c) && c != quote && c != '\\' &&
+  { if ( c != 0 && !unicode_quoted_escape(c) && c != quote && c != '\\' &&
 	 (!stream || Scanrepresent(c, stream) == 0) )
     { if ( !Putc(c, stream) )
 	return -1;
@@ -916,7 +916,12 @@ putQuoted(int c, int quote, int flags, IOSTREAM *stream)
       { esc[0] = (char)c;
       } else
       { switch(c)
-	{ case 7:
+	{ case 0:
+	    esc[0] = '0';
+	    esc[1] = '\\';
+	    esc[2] = EOS;
+	    break;
+	  case 7:
 	    esc[0] = 'a';
 	    break;
 	  case '\b':
