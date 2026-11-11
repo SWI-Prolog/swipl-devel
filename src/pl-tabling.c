@@ -1677,6 +1677,7 @@ retry:
 		{ if ( !tshare )
 		  { tshare = allocGlobalNoShift(3);
 		    assert(tshare);
+		    setVar(tshare[0]);		/* set at the end; keep GC safe */
 		    tshare[1] = linkValI(valTermRef(skel));
 		    tshare[2] = *p;
 		    nshare = 1;
