@@ -2701,9 +2701,10 @@ definition as dirty for the global clause GC, which marks the stacks of
 all threads, the owner reclaims its erased clauses itself: it marks the
 generations at which its own frames and C iterations access these
 definitions and calls cleanDefinition() for them.  Unlinked clause
-references need not linger: no other thread can be walking the clause
-list, and we run at a safe point, skipping a definition this thread is
-walking from C (LD->thread.info->access.predicate).
+references need not linger: we run at a safe point, skipping a
+definition this thread is walking from C
+(LD->thread.info->access.predicate), and other threads only walk the
+clause list holding a lock (see sync_local_definitions()).
 
 registerErasedClauses() counts the erased clauses.  If the count reaches
 the threshold, we signal SIG_CLAUSE_GC, which calls localClauseGC() at
@@ -2841,6 +2842,10 @@ localClauseGC(DECL_LD)
     }
     LD->clauses.local.active = false;
 
+#ifdef O_PLMT
+    if ( LD->clauses.local.lingering )
+      sync_local_definitions();		/* wait for remote walkers */
+#endif
     ClauseRef next;
     for(ClauseRef cref = LD->clauses.local.lingering; cref; cref = next)
     { next = cref->d.gnext;

@@ -39,6 +39,8 @@
           ]).
 :- use_module(library(aggregate)).
 :- use_module(library(debug)).
+:- use_module(library(lists)).
+:- use_module(library(apply)).
 
 :- thread_local p/1, q/1.
 
@@ -50,6 +52,7 @@
 
 test_thread_property :-
     test_local_size,
+    test_local_cgc_size,
     test_thread_property(100).
 
 %   The copy of p/1 in another thread has 100 clauses.  The main thread
@@ -66,6 +69,39 @@ test_local_size :-
     thread_join(Id),
     assertion(\+ '$thread_local_predicate_size'(test_thread_property:p(_),
                                                 Id, _)).
+
+%   Ask for the size of p/1 in other threads while these reclaim
+%   retracted clauses of p/1 and terminate.
+
+test_local_cgc_size :-
+    findall(Id, ( between(1, 4, _),
+                  thread_create(churn(100000), Id, [])
+                ), Ids),
+    thread_create(poll_local(Ids), Poller, []),
+    maplist(thread_join, Ids),
+    thread_send_message(Poller, done),
+    thread_join(Poller).
+
+churn(N) :-
+    forall(between(1, 1000, I), assertz(p(I))),
+    forall(between(1, N, I),
+           ( assertz(p(I)),
+             retract(p(I))
+           )).
+
+poll_local(_) :-
+    thread_self(Me),
+    thread_get_message(Me, done, [timeout(0)]),
+    !.
+poll_local(Ids) :-
+    forall(member(Id, Ids),
+           ( ignore('$thread_local_predicate_size'(test_thread_property:p(_),
+                                                   Id, _)),
+             ignore('$thread_local_clause_count'(test_thread_property:p(_),
+                                                 Id, _)),
+             ignore(catch(thread_property(Id, size(_)), _, true))
+           )),
+    poll_local(Ids).
 
 wait_clauses(Id, N) :-
     (   '$thread_local_clause_count'(test_thread_property:p(_), Id, N)

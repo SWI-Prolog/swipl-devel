@@ -676,6 +676,7 @@ double		ThreadCPUTime(int which);
 void		updatePendingThreadSignals(void);
 bool		require_c_stack(size_t needed);
 void		clear_low_c_stack(void);
+void		sync_local_definitions(void);
 
 #undef LDFUNC_DECLARATIONS
 
