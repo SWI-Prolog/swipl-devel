@@ -4557,6 +4557,7 @@ typedef struct thread_message
   record_t            message;		/* message in queue */
   word		      key;		/* Indexing key */
   uint64_t	      sequence_id;	/* Numbered sequence */
+  bool		      claimed;		/* Being taken; see get_message() */
 } thread_message;
 
 
@@ -4576,6 +4577,7 @@ create_thread_message(DECL_LD term_t msg)
   { msgp->next    = NULL;
     msgp->message = rec;
     msgp->key     = getIndexOfTerm(msg);
+    msgp->claimed = false;
   } else
   { freeRecord(rec);
   }
@@ -4961,6 +4963,8 @@ we also need to lock to avoid  get_message() destroying the record while
 markAtomsMessageQueue() scans it. This fixes the reopened Bug#142.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static void pin_message_queue(message_queue *queue);
+
 #define get_message(queue, msg, deadline, retry) \
 	LDFUNC(get_message, queue, msg, deadline, retry)
 
@@ -4984,6 +4988,7 @@ get_message(DECL_LD message_queue *queue, term_t msg,
   { int rc;
     thread_message *msgp = queue->head;
     thread_message *prev = NULL;
+    bool skipped_claimed = false;
 
     if ( queue->destroyed )
       return MSG_WAIT_DESTROYED;
@@ -4995,6 +5000,10 @@ get_message(DECL_LD message_queue *queue, term_t msg,
     for( ; msgp; prev = msgp, msgp = msgp->next )
     { term_t tmp;
 
+      if ( msgp->claimed )		/* another thread is taking it */
+      { skipped_claimed = true;
+	continue;
+      }
       if ( msgp->sequence_id < seen )
       { QSTAT(skipped);
 	DEBUG(MSG_QUEUE, Sdprintf("Already seen %ld (<%ld)\n",
@@ -5023,11 +5032,39 @@ get_message(DECL_LD message_queue *queue, term_t msg,
 
       if ( rc )
       { term_t ex = PL_new_term_ref();
+#ifdef O_PLMT
+	bool unlocked = false;
 
+	if ( (LD->alerted & ALERT_WAKEUP) )
+	{ msgp->claimed = true;		/* Woken goals may use this queue: */
+	  pin_message_queue(queue);	/* run them without holding its lock */
+	  simpleMutexUnlock(&queue->mutex);
+	  unlocked = true;
+	}
+#endif
 	if ( !(rc=foreignWakeup(ex)) )
 	{ if ( !isVar(*valTermRef(ex)) )
 	    PL_raise_exception(ex);
 	}
+#ifdef O_PLMT
+	if ( unlocked )
+	{ simpleMutexLock(&queue->mutex);
+	  queue->pins--;		/* the caller releases the queue */
+	  msgp->claimed = false;
+	  if ( queue->destroyed )
+	  { PL_discard_foreign_frame(fid);
+	    return MSG_WAIT_DESTROYED;
+	  }
+	  if ( rc )			/* the list may have changed */
+	  { thread_message *m;
+
+	    for(prev=NULL, m=queue->head; m != msgp; prev=m, m=m->next)
+	      assert(m);
+	  } else if ( queue->waiting )	/* others may have skipped it */
+	  { cv_broadcast(&queue->cond_var);
+	  }
+	}
+#endif
       }
 
       if ( rc )
@@ -5070,6 +5107,8 @@ get_message(DECL_LD message_queue *queue, term_t msg,
     }
 
 #ifdef O_PLMT
+    if ( skipped_claimed )		/* reconsider it if the claim fails */
+      seen = 0;
     queue->waiting++;
     queue->waiting_var += isvar;
     DEBUG(MSG_QUEUE_WAIT, Sdprintf("%d: waiting on queue\n", PL_thread_self()));
@@ -5127,7 +5166,9 @@ peek_message(DECL_LD message_queue *queue, term_t msg)
   msgp = queue->head;
 
   for( msgp = queue->head; msgp; msgp = msgp->next )
-  { if ( key && msgp->key && key != msgp->key )
+  { if ( msgp->claimed )			/* being taken; see get_message() */
+      continue;
+    if ( key && msgp->key && key != msgp->key )
       continue;
 
     if ( !PL_recorded(msgp->message, tmp) )
@@ -5190,7 +5231,7 @@ destroy_thread_message_queue(message_queue *q)
   while(!done)
   { simpleMutexLock(&q->mutex);
     q->destroyed = true;
-    if ( q->waiting || q->wait_for_drain )
+    if ( q->waiting || q->wait_for_drain || q->pins )
     { if ( q->waiting )
 	cv_broadcast(&q->cond_var);
       if ( q->wait_for_drain )
