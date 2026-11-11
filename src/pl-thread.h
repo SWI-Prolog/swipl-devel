@@ -106,13 +106,13 @@ typedef enum
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
   unsigned short    open_count;		/* for PL_thread_detach_engine() */
-  unsigned	    detached      : 1;	/* detached thread */
-  unsigned	    debug         : 1;	/* thread can be debugged */
-  unsigned	    in_exit_hooks : 1;	/* true: running exit hooks */
-  unsigned	    has_tid       : 1;	/* true: tid = valid */
-  unsigned	    is_engine	  : 1;	/* true: created as engine */
-  unsigned	    c_stack_low   : 1;	/* true: Signalled low C stack */
-  unsigned	    joined_by_creator : 1;
+  bool		    detached;		/* detached thread */
+  bool		    debug;		/* thread can be debugged */
+  bool		    in_exit_hooks;	/* true: running exit hooks */
+  bool		    has_tid;		/* true: tid = valid */
+  bool		    is_engine;		/* true: created as engine */
+  bool		    c_stack_low;	/* true: Signalled low C stack */
+  bool		    joined_by_creator;
   int		    joining_by;		/* TID of joining thread */
   c_stack_info	   *c_stack;
   size_t	    stack_limit;	/* Stack sizes */
