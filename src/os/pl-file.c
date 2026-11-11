@@ -3240,6 +3240,24 @@ get_ucs2(const char *us, int be)
 }
 
 
+/* True if the UTF-8 sequence at `us` is a valid start of a character
+   that is incomplete because the data ends at `es`.
+*/
+
+static bool
+utf8_incomplete(const char *us, const char *es)
+{ int ex = UTF8_FBN(us[0]);
+
+  if ( ex < 1 || ex > 3 || us+ex+1 <= es )
+    return false;
+  for(us++; us < es; us++)
+  { if ( !ISUTF8_CB(us[0]) )
+      return false;
+  }
+
+  return true;
+}
+
 #define read_pending_input(input, list, tail, chars) \
 	LDFUNC(read_pending_input, input, list, tail, chars)
 
@@ -3353,25 +3371,12 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	size_t count = 0, i;
 
 	while(us<es)
-	{ if ( !(us[0]&0x80) )
-	  { count++;
-	    us++;
-	  } else
-	  { int ex = UTF8_FBN(us[0]);
+	{ int c;
 
-	    if ( ex >= 0 )
-	    { const char *ec = us + ex + 1;
-
-	      if ( ec <= es )
-	      { count++;
-		us=ec;
-	      } else			/* incomplete multi-byte */
-		break;
-	    } else
-	    { Sseterr(s, SIO_WARN, "Illegal multibyte Sequence");
-	      goto failure;
-	    }
-	  }
+	  if ( utf8_incomplete(us, es) && !(s->flags&SIO_FEOF) )
+	    break;			/* wait for the remainder */
+	  PL_utf8_code_point(&us, es, &c);
+	  count++;
 	}
 
 	DEBUG(2, Sdprintf("Got %ld codes from %d bytes; incomplete: %ld\n",
@@ -3383,7 +3388,10 @@ read_pending_input(DECL_LD term_t input, term_t list, term_t tail, int chars)
 	for(us=buf,i=0; i<count; i++)
 	{ int c;
 
-	  PL_utf8_code_point(&us, es, &c);
+	  if ( PL_utf8_code_point(&us, es, &c) < 0 )
+	  { Sseterr(s, SIO_WARN, "Illegal UTF-8 sequence");
+	    c = UTF8_MALFORMED_REPLACEMENT;
+	  }
 	  if ( c == '\r' && skip_cr(s) )
 	    continue;
 	  if ( s->position )

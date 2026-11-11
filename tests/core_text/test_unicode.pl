@@ -101,6 +101,30 @@ with_quiet_warnings(Goal) :-
         Goal,
         erase(Ref)).
 
+%   decode_pending(+Bytes, -Codes)
+%
+%   As decode/2, using read_pending_codes/3.
+
+decode_pending(Bytes, Codes) :-
+    tmp_file_stream(binary, File, Out),
+    call_cleanup(
+        ( maplist(put_byte(Out), Bytes),
+          close(Out),
+          setup_call_cleanup(
+              open(File, read, In, [encoding(utf8)]),
+              with_quiet_warnings(read_pending(In, Codes)),
+              close(In))
+        ),
+        delete_file(File)).
+
+read_pending(In, Codes) :-
+    fill_buffer(In),
+    read_pending_codes(In, Codes, Tail),
+    (   Codes == Tail
+    ->  Tail = []
+    ;   read_pending(In, Tail)
+    ).
+
 read_codes(In, Codes) :-
     get_code(In, C0),
     read_codes(C0, In, Codes).
@@ -122,5 +146,11 @@ test(five_byte, Codes == [0xFFFD,0xFFFD,0xFFFD,0xFFFD,0xFFFD, 0x41]) :-
     decode([0xF8,0x88,0x80,0x80,0x80, 0x41], Codes).
 test(truncated, Codes == [0x41, 0xFFFD]) :-
     decode([0x41, 0xE2,0x82], Codes).
+test(pending, Codes == [0xFFFD, 0x41, 0xFFFD, 0xFFFD, 0x42]) :-
+    decode_pending([0x80, 0x41, 0xC0,0xAE, 0x42], Codes).
+test(pending, Codes == [0x61, 0x20AC, 0x62]) :-
+    decode_pending([0x61, 0xE2,0x82,0xAC, 0x62], Codes).
+test(pending_truncated, Codes == [0x78, 0xFFFD, 0xFFFD]) :-
+    decode_pending([0x78, 0xE2,0x82], Codes).
 
 :- end_tests(utf8_decode).
