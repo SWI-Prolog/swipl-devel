@@ -496,6 +496,11 @@ or wrong behaviour now or later).
   the term is of the wrong type or a \const{representation_error}
   in case the C type cannot represent the Prolog value (e.g., a C
   \ctype{int} while the Prolog integer is out of reach for this type).
+  The representation error is of the form
+  \exam{representation_error(Type(Value))}, e.g.,
+  \exam{representation_error(int(4294967296))}.  A negative integer
+  for an unsigned type raises
+  \exam{domain_error(not_less_than_zero, Value)}.
   \definition{PL_put_*()}
   This group converts C data to a Prolog term.  Such a function
   returning \const{false} always raises a \const{resource_error},
@@ -1354,6 +1359,12 @@ if \arg{t} is of the wrong type, but also if the text cannot be
 represented.  See the \const{REP_*} flags below for details.
 See also PL_get_wchars() and PL_get_nchars().
 
+Text that contains a 0-code cannot be represented as a 0-terminated
+string.  If such text is converted by PL_get_chars() or another function
+that does not return the length, the function fails or, if
+\const{CVT_EXCEPTION} is given, raises the exception
+\exam{representation_error(nul_terminated_string(Text))}.
+
 The first set of flags (\const{CVT_ATOM} through \const{CVT_VARIABLE},
 if set, are tested in order, using the first that matches. If none of
 these match, then a check is made for one of \const{CVT_WRITE},
@@ -1656,6 +1667,7 @@ See PL_get_list_chars().
     \cfunction{bool}{PL_get_nchars}{term_t t, size_t *len, char **s,
 				   unsigned int flags}
 See PL_get_chars().  The \arg{len} pointer may be \const{NULL}.
+If \arg{len} is not \const{NULL}, the text may contain 0-codes.
     \cfunction{bool}{PL_put_atom_nchars}{term_t t, size_t len, const char *s}
 See PL_put_atom_chars().
     \cfunction{bool}{PL_put_string_nchars}{term_t t, size_t len, const char *s}
@@ -2891,6 +2903,13 @@ created stream handle (e.g., the third argument of open/3).
 
     \cfunction{bool}{PL_representation_error}{const char *resource}
 Raise \exam{representation_error(resource)}. See representation_error/1.
+
+    \cfunction{bool}{PL_representation_error_culprit}{const char *resource,
+						     term_t culprit}
+Raise \exam{representation_error(resource(culprit))}. This variation
+of PL_representation_error() includes the value that could not be
+represented.  For example, the integer conversion functions use
+\exam{representation_error(uint(Value))}.
 
     \cfunction{bool}{PL_type_error}{const char *expected, term_t culprit}
 Raise \exam{type_error(expected, culprit)}.  See type_error/2.

@@ -45,6 +45,7 @@ throw(error(<Formal>, <SWI-Prolog>))
 #include "pl-fli.h"
 #include "pl-attvar.h"
 #include "pl-proc.h"
+#include "pl-funct.h"
 #include "os/pl-cstack.h"
 /* BeOS has EACCES defined elsewhere, but errno is here */
 #if !defined(EACCES) || defined(__BEOS__)
@@ -301,6 +302,16 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
       rc = PL_unify_term(formal,
 			 PL_FUNCTOR, FUNCTOR_representation_error1,
 			   PL_ATOM, what);
+      break;
+    }
+    case ERR_REPRESENTATION_CULPRIT:	/* representation_error(What(Culprit)) */
+    { atom_t what = va_arg(args, atom_t);
+      term_t culprit = va_arg(args, term_t);
+
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_representation_error1,
+			   PL_FUNCTOR, lookupFunctorDef(what, 1),
+			     PL_TERM, culprit);
       break;
     }
   { Definition def;				/* shared variables */
@@ -873,6 +884,16 @@ PL_representation_error(const char *representation)
 
 
 bool
+PL_representation_error_culprit(const char *representation, term_t culprit)
+{ atom_t r = PL_new_atom(representation);
+  bool rc = PL_error(NULL, 0, NULL, ERR_REPRESENTATION_CULPRIT, r, culprit);
+  PL_unregister_atom(r);
+
+  return rc;
+}
+
+
+bool
 PL_type_error(const char *expected, term_t actual)
 { valid_term_t(actual);
   return PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, expected, actual);
@@ -1083,6 +1104,44 @@ API_STUB(bool)
 )
 
 
+/* int_range_error() raises the error for an integer `t` that cannot be
+   represented as the C integer type `type`.  A negative integer for an
+   unsigned type is a domain error.
+*/
+
+static bool
+is_negative_integer(term_t t)
+{ GET_LD
+  number n;
+  bool neg = false;
+
+  if ( PL_get_number(t, &n) )
+  { switch(n.type)
+    { case V_INTEGER:
+	neg = n.value.i < 0;
+	break;
+#ifdef O_BIGNUM
+      case V_MPZ:
+	neg = mpz_sgn(n.value.mpz) < 0;
+	break;
+#endif
+      default:
+	break;
+    }
+    clearNumber(&n);
+  }
+
+  return neg;
+}
+
+bool
+int_range_error(term_t t, atom_t type, bool is_unsigned)
+{ if ( is_unsigned && is_negative_integer(t) )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, t);
+
+  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION_CULPRIT, type, t);
+}
+
 bool
 PL_get_integer_ex(term_t t, int *i)
 { GET_LD
@@ -1092,7 +1151,7 @@ PL_get_integer_ex(term_t t, int *i)
     succeed;
 
   if ( PL_is_integer(t) )
-    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int);
+    return int_range_error(t, ATOM_int, false);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
@@ -1103,7 +1162,7 @@ PL_get_long_ex(DECL_LD term_t t, long *i)
     return true;
 
   if ( PL_is_integer(t) )
-    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_long);
+    return int_range_error(t, ATOM_long, false);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
@@ -1120,7 +1179,7 @@ PL_get_int64_ex(DECL_LD term_t t, int64_t *i)
     return true;
 
   if ( PL_is_integer(t) )
-    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int64_t);
+    return int_range_error(t, ATOM_int64_t, false);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
@@ -1153,13 +1212,13 @@ API_STUB(bool)
 #endif
 
 static int
-fits_size(int64_t val)
+fits_size(int64_t val, term_t t)
 { if ( (uintptr_t)val <= (uintptr_t)UINTPTR_MAX )
     return true;
-  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+  return int_range_error(t, ATOM_size_t, true);
 }
 #else
-#define fits_size(v) true
+#define fits_size(v, t) true
 #endif
 
 bool
@@ -1175,7 +1234,7 @@ PL_get_size_ex(DECL_LD term_t t, size_t *i)
     {
 #if SIZEOF_VOIDP < SIZEOF_WORD
       if ( v > SIZE_MAX )
-	return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+	return int_range_error(t, ATOM_size_t, true);
 #endif
       *i = (size_t)v;
       return true;
@@ -1188,7 +1247,7 @@ PL_get_size_ex(DECL_LD term_t t, size_t *i)
   { switch(n.type)
     { case V_INTEGER:
 	if ( n.value.i >= 0 )
-	{ if ( fits_size(n.value.i) )
+	{ if ( fits_size(n.value.i, t) )
 	  { *i = (size_t)n.value.i;
 	    return true;
 	  }
@@ -1209,14 +1268,14 @@ PL_get_size_ex(DECL_LD term_t t, size_t *i)
 	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			    ATOM_not_less_than_zero, t);
 	  case 1:
-	    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+	    return int_range_error(t, ATOM_size_t, true);
 	  default:
 	    assert(0);
 	    return false;
 	}
       }
 #else
-      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+      return int_range_error(t, ATOM_size_t, true);
 #endif
       default:
 	break;
@@ -1269,14 +1328,14 @@ pl_get_uint64(DECL_LD term_t t, uint64_t *i, int ex)
 				 ATOM_not_less_than_zero, t)
 		      : false;
 	  case 1:
-	    return ex ? PL_representation_error("uint64_t") : false;
+	    return ex ? int_range_error(t, ATOM_uint64_t, true) : false;
 	  default:
 	    assert(0);
 	    return false;
 	}
       }
 #else
-      return ex ? PL_representation_error("uint64_t") : false;
+      return ex ? int_range_error(t, ATOM_uint64_t, true) : false;
 #endif
       default:
 	break;

@@ -185,7 +185,7 @@ PRED_IMPL("set_flag", 2, set_flag, 0)
       }
 #ifdef O_GMP
       case V_MPZ:
-	return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int64_t);
+	return int_range_error(value, ATOM_int64_t, false);
       case V_MPQ:
 	goto type_error;
 #endif

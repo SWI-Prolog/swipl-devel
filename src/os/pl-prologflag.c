@@ -1438,13 +1438,13 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 #ifdef O_ATOMGC
       if ( k == ATOM_agc_margin )
       { if ( i < 0 || i > SIZE_MAX )
-	  return PL_representation_error("size_t"),NULL;
+	  return int_range_error(value, ATOM_size_t, true),NULL;
 	GD->atoms.margin = (size_t)i;
       } else
 #endif
       if ( k == ATOM_table_space )
       { if ( i < 0 || i > SIZE_MAX )
-	  return PL_representation_error("size_t"),NULL;
+	  return int_range_error(value, ATOM_size_t, true),NULL;
 	if ( !LD->tabling.node_pool )
 	  LD->tabling.node_pool = new_alloc_pool("private_table_space", (size_t)i);
 	else
@@ -1453,7 +1453,7 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 #ifdef O_PLMT
       else if ( k == ATOM_shared_table_space )
       { if ( i < 0 || i > SIZE_MAX )
-	  return PL_representation_error("size_t"),NULL;
+	  return int_range_error(value, ATOM_size_t, true),NULL;
 	if ( !GD->tabling.node_pool )
 	{ alloc_pool *pool = new_alloc_pool("shared_table_space", (size_t)i);
 	  if ( pool && !COMPARE_AND_SWAP_PTR(&GD->tabling.node_pool, NULL, pool) )
@@ -1464,22 +1464,22 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
 #endif
       else if ( k == ATOM_table_compile_threshold )
       { if ( i < 0 || i > SIZE_MAX )
-	  return PL_representation_error("size_t"),NULL;
+	  return int_range_error(value, ATOM_size_t, true),NULL;
 	LD->table_flags.compile_threshold = (size_t)i;
       }
       else if ( k == ATOM_table_drop_intermediate )
       { if ( i < 0 || i > SIZE_MAX )
-	  return PL_representation_error("size_t"),NULL;
+	  return int_range_error(value, ATOM_size_t, true),NULL;
 	LD->table_flags.drop_intermediate = (size_t)i;
       }
       else if ( k == ATOM_stack_limit )
       { if ( i < 0 || i > SIZE_MAX )
-	  return PL_representation_error("size_t"),NULL;
+	  return int_range_error(value, ATOM_size_t, true),NULL;
 	if ( !set_stack_limit((size_t)i) )
 	  return false;
       } else if ( k == ATOM_string_stack_tripwire )
       { if ( i < 0 || i > UINT_MAX )
-	  return PL_representation_error("uint"),NULL;
+	  return int_range_error(value, ATOM_uint, true),NULL;
 	LD->fli.string_buffers.tripwire = (unsigned int)i;
       } else if ( k == ATOM_heartbeat )
       { if ( i < 0 )

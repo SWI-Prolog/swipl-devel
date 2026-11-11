@@ -164,11 +164,15 @@ uninstantiation_error(Culprit) :-
 
 %!  representation_error(+Flag).
 %
-%   A representation error indicates a limitation of the implementation.
-%   SWI-Prolog has no such limits that are  not covered by other errors,
-%   but  an  example  of  a  representation   error  in  another  Prolog
-%   implementation could be an attempt to create   a  term with an arity
-%   higher than supported by the system.
+%   A representation error indicates a limitation of the implementation:
+%   the value is logically valid, but cannot be handled.  Examples are an
+%   arity higher than supported by the system or a Prolog integer that
+%   is too large for the C integer type used by a foreign predicate.
+%
+%   Besides the atomic flags defined by ISO, SWI-Prolog uses flags of
+%   the form Id(Culprit), where Culprit is the value that cannot be
+%   represented, e.g., representation_error(uint(4294967296)) or
+%   representation_error(nul_terminated_string(Text)).
 
 representation_error(Flag) :-
     throw(error(representation_error(Flag), _)).

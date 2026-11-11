@@ -228,6 +228,13 @@ iso_message(uninstantiation_error(Var)) -->
 iso_message(representation_error(standard_order(T1, T2))) -->
     [ 'Cyclic terms have no standard order: ~p and ~p'-[T1, T2] ].
 iso_message(representation_error(What)) -->
+    { compound(What),
+      compound_name_arguments(What, Id, [Culprit]),
+      !,
+      culprit_write_options(Options)
+    },
+    [ 'Cannot represent ~W as `~w'''-[Culprit, Options, Id] ].
+iso_message(representation_error(What)) -->
     [ 'Cannot represent due to `~w'''-[What] ].
 iso_message(permission_error(Action, Type, Object)) -->
     permission_error(Action, Type, Object).
@@ -261,6 +268,16 @@ iso_message(syntax_error(Id)) -->
     syntax_error(Id).
 iso_message(occurs_check(Var, In)) -->
     [ 'Cannot unify ~p with ~p: would create an infinite tree'-[Var, In] ].
+
+%!  culprit_write_options(-Options) is det.
+%
+%   Options to print a culprit that may be large.  The defaults limit
+%   the depth and length of text.  The flag `print_write_options` may
+%   override them.
+
+culprit_write_options(Options) :-
+    current_prolog_flag(print_write_options, Options0),
+    Options = [max_depth(10), max_text(100)|Options0].
 
 %!  permission_error(Action, Type, Object)//
 %

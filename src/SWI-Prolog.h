@@ -787,6 +787,8 @@ PL_EXPORT(bool)		PL_get_nil_ex(term_t l);
 PL_EXPORT(bool)		PL_instantiation_error(term_t culprit);
 PL_EXPORT(bool)		PL_uninstantiation_error(term_t culprit);
 PL_EXPORT(bool)		PL_representation_error(const char *resource);
+PL_EXPORT(bool)		PL_representation_error_culprit(const char *resource,
+							term_t culprit);
 PL_EXPORT(bool)		PL_type_error(const char *expected, term_t culprit);
 PL_EXPORT(bool)		PL_domain_error(const char *expected, term_t culprit);
 PL_EXPORT(bool)		PL_existence_error(const char *type, term_t culprit);
