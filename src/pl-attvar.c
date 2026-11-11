@@ -553,9 +553,10 @@ saveWakeup(DECL_LD wakeup_state *state, bool forceframe)
       exception_term = 0;
     }
 
-    if ( *(h=valTermRef(LD->attvar.head)) )
+    if ( *valTermRef(LD->attvar.head) )
     { state->flags |= WAKEUP_STATE_WAKEUP;
       s = PL_new_term_refs(2);
+      h = valTermRef(LD->attvar.head);	/* may have been shifted */
 
       DEBUG(1, pl_writeln(LD->attvar.head));
 
@@ -1129,10 +1130,10 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
   if ( !PL_get_atom_ex(A2, &name) )
     return false;
 
+  term_t g2 = PL_new_term_ref();	/* before taking pointers */
   g = valTermRef(A3);
   if ( !isTerm(*g) || functorTerm(*g) != FUNCTOR_colon2 )
   { Word t = gTop;
-    term_t g2 = PL_new_term_ref();
 
     gTop += 3;
     t[0] = FUNCTOR_colon2;

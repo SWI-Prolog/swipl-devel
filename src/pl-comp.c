@@ -7996,10 +7996,12 @@ det_goal_error(DECL_LD LocalFrame fr, Code pc_error, atom_t found)
   if ( found == ATOM_fail )
     clearUninitialisedVarsFrame(fr, pc_det);
 
+  term_t fr_ref = consTermRef(fr);
   if ( (fid=PL_open_foreign_frame()) )
   { term_t goal = PL_new_term_ref();
     bool rc;
 
+    fr = (LocalFrame)valTermRef(fr_ref);	/* the stacks may have moved */
     if ( (rc=decompile_body_range(goal, fr, cl, pc_det+3, C_DETTRUE)) )
     { if ( a == ATOM_warning )
       { rc = printMessage(ATOM_warning,

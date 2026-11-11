@@ -503,8 +503,8 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
 
     if ( !is_gval(val) )
       continue;
-    if ( PL_unify_atom(A1, name) &&
-	 unify_ptrs(valTermRef(A2), &val, 0) )
+    if ( unify_ptrs(valTermRef(A2), &val, 0) && /* before val may move */
+	 PL_unify_atom(A1, name) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);
     } else
