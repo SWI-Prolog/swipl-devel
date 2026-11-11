@@ -51,7 +51,8 @@ thread_lifecycle_race :-
 	forall(between(1, 500, _), engine_round),
 	inherit_from_completed,
 	detach_completed,
-	mutex_released_on_exit.
+	mutex_released_on_exit,
+	join_gced_handles.
 
 engine_round :-
 	engine_create(X, between(1, inf, X), E),
@@ -114,3 +115,35 @@ mutex_released_on_exit :-
 	assertion(mutex_trylock(M)),
 	mutex_unlock(M),
 	mutex_destroy(M).
+
+%	Join threads by their integer id while their handles are
+%	garbage collected.  Both used to reclaim the thread.
+
+join_gced_handles :-
+	thread_create(agc(50), A, []),
+	forall(between(1, 15, _), join_round),
+	thread_join(A).
+
+join_round :-
+	findall(I, (between(1, 10, _), thread_id_only(I)), Ids),
+	sleep(0.01),
+	garbage_collect,
+	garbage_collect_atoms,
+	forall(member(I, Ids), join_completed(I)).
+
+thread_id_only(I) :-
+	thread_create(true, T, []),
+	thread_property(T, id(I)).
+
+join_completed(I) :-
+	(   catch(thread_property(I, status(S)), _, fail),
+	    S \== running
+	->  catch(thread_join(I, _), _, true)
+	;   true
+	).
+
+agc(N) :-
+	forall(between(1, N, _),
+	       ( garbage_collect_atoms,
+		 sleep(0.001)
+	       )).

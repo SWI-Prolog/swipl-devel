@@ -504,6 +504,8 @@ round_pages(size_t n)
 		 *******************************/
 
 static simpleMutex queueTable_mutex;	/* GC synchronization */
+static simpleMutex handle_mutex;	/* thread_handle->info and */
+					/* PL_thread_info_t->discarded */
 
 #ifdef HAVE___THREAD
 __thread PL_local_data_t *GLOBAL_LD;
@@ -1000,7 +1002,8 @@ initPrologThreads(void)
   static int init_ldata_key = false;
 
   initAlloc();
-
+  simpleMutexInit(&handle_mutex);	/* innermost lock, see */
+					/* release_thread_handle() */
 #if defined(USE_CRITICAL_SECTIONS) && !defined(O_SHARED_KERNEL)
   W32initMutexes();		/* see also DllMain() */
 #endif
@@ -1508,7 +1511,11 @@ discard_thread(thread_handle *h)
   PL_thread_info_t *info;
 
   PL_LOCK(L_THREAD);
-  if ( !(info=h->info) )		/* already reclaimed */
+  simpleMutexLock(&handle_mutex);
+  if ( (info = h->info) )		/* h is freed when we are done */
+    info->discarded = NULL;
+  simpleMutexUnlock(&handle_mutex);
+  if ( !info )				/* already reclaimed */
   { PL_UNLOCK(L_THREAD);
     return;
   }
@@ -1519,8 +1526,11 @@ discard_thread(thread_handle *h)
     }
   } else if ( !alive && !info->detached )
   { if ( !(join = COMPARE_AND_SWAP_INT(&info->joining_by, 0, -1)) )
-    { h->info = NULL;			/* thread_join/2 is joining and */
-      PL_UNLOCK(L_THREAD);		/* reclaims the thread */
+    { simpleMutexLock(&handle_mutex);	/* thread_join/2 is joining and */
+      h->info = NULL;			/* reclaims the thread */
+      info->discarded = NULL;
+      simpleMutexUnlock(&handle_mutex);
+      PL_UNLOCK(L_THREAD);
       return;
     }
   }
@@ -1641,9 +1651,15 @@ release_thread_handle(atom_t aref)
   thread_handle *ref   = *refp;
   PL_thread_info_t *info;
 
-  if ( (info=ref->info) )
+  simpleMutexLock(&handle_mutex);	/* We are called from atom-GC, */
+  if ( (info=ref->info) )		/* so we cannot use L_THREAD */
+  { info->symbol = 0;			/* free_thread_info() clears */
+    info->discarded = ref;		/* ref->info */
+  }
+  simpleMutexUnlock(&handle_mutex);
+
+  if ( info )
   { /* assert(info->detached == false || info->is_engine); TBD: Sort out */
-    info->symbol = 0;				/* TBD: Dubious */
     gc_thread(ref);
   } else
   {
@@ -2843,11 +2859,19 @@ free_thread_info(PL_thread_info_t *info)
   }
 
   PL_LOCK(L_THREAD);
+  simpleMutexLock(&handle_mutex);
+  if ( info->discarded )		/* see release_thread_handle() */
+  { info->discarded->info = NULL;
+    info->discarded = NULL;
+  }
+  simpleMutexUnlock(&handle_mutex);
   if ( info->symbol )
   { thread_handle *th;
 
     if ( (th=symbol_thread_handle(info->symbol)) )
-    { th->info = NULL;
+    { simpleMutexLock(&handle_mutex);
+      th->info = NULL;
+      simpleMutexUnlock(&handle_mutex);
       if ( th->alias && !info->is_engine )
 	unalias_thread(th);
     }
@@ -3006,7 +3030,7 @@ PRED_IMPL("thread_join", 2, thread_join, 0)
        COMPARE_AND_SWAP_INT((int*)&info->status, (int)status, (int)PL_THREAD_JOINED) )
   { rval = unify_thread_status(retcode, info, status, false);
 
-    info->joining_by = 0;
+					/* keep joining_by: see discard_thread() */
     if ( info->joined_by_creator ) /* that was (thus) me */
     { LD->thread.child_cputime    += info->statistics.cputime;
       LD->thread.child_inferences += info->statistics.inferences;
