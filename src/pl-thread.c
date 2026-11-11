@@ -8462,9 +8462,10 @@ cleanupLocalDefinitions(PL_local_data_t *ld)
    - The definitions of a thread are destroyed after its status left
      PL_THREAD_RUNNING under L_THREAD.  So, lookup and use them under
      L_THREAD after checking the status.
-   - Walking the clauses requires local_defs_mutex.  localClauseGC()
-     calls sync_local_definitions() before freeing the clause references
-     it removed.
+   - Walking the clauses and clause indexes requires local_defs_mutex.
+     localClauseGC() calls sync_local_definitions() before freeing the
+     clause references it removed and cleanDefinition() before freeing
+     the lingering clause indexes.
 */
 
 void

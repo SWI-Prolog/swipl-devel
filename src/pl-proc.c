@@ -1906,6 +1906,10 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start,
     gen_t active = ddi_oldest_generation(ddi);
     if ( start < active )
       active = start;
+#ifdef O_PLMT
+    if ( ison(def, P_LOCALISED) && def->lingering )
+      sync_local_definitions();		/* other threads may walk the */
+#endif					/* clause indexes */
     free_lingering(&def->lingering, active);
 
     DEBUG(CHK_SECURE,
