@@ -3310,6 +3310,21 @@ free_retract_context(DECL_LD retract_context *ctx)
     freeForeignState(ctx, sizeof(*ctx));
 }
 
+/* head_arguments() returns a pointer to the arguments of the clause
+   head `head` or NULL if the head is an atom.  The pointer is only
+   valid until the stacks are shifted or garbage collected.
+*/
+
+#define head_arguments(head) LDFUNC(head_arguments, head)
+static Word
+head_arguments(DECL_LD term_t head)
+{ Word p = valTermRef(head);
+
+  deRef(p);
+  return isTerm(*p) ? argTermP(*p, 0) : NULL;
+}
+
+
 static
 PRED_IMPL("retract", 1, retract,
 	  PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
@@ -3348,12 +3363,7 @@ PRED_IMPL("retract", 1, retract,
     if ( !rc )
       return false;
 
-    argv = valTermRef(head);
-    deRef(argv);
-    if ( isTerm(*argv) )		/* retract(foobar(a1, ...)) */
-      argv = argTermP(*argv, 0);
-    else
-      argv = NULL;			/* retract(foobar) */
+    argv = head_arguments(head);
 
     if ( CTX_CNTRL == FRG_FIRST_CALL )
     { functor_t fd;
@@ -3446,6 +3456,7 @@ PRED_IMPL("retract", 1, retract,
 	break;
 
       PL_rewind_foreign_frame(fid);
+      argv = head_arguments(head);	/* decompile() may have shifted */
       cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
     }
 
@@ -3556,6 +3567,7 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   } else
   { struct clause_choice chp;
 
+    argv = head_arguments(thehead);	/* PL_open_foreign_frame() may shift */
     if ( !(cref = firstClause(argv, environment_frame, def, &chp)) )
     { popPredicateAccess(def);
       leaveDefinition(def);
@@ -3583,10 +3595,7 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
 	return true;
       }
 
-      if ( argv )				/* may be shifted */
-      { argv = valTermRef(thehead);
-	argv = argTermP(*argv, 0);
-      }
+      argv = head_arguments(thehead);	/* may be shifted */
 
       cref = nextClause(&chp, argv, environment_frame, def);
       rc = true;
