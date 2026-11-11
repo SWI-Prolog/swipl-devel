@@ -788,6 +788,17 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
       info->detached = true;		/* cleanup */
     }
 
+#ifdef O_PLMT
+    { double delay = 0.0001;		/* wait for thread_create/3 using */
+					/* inherit_from(Me) */
+      while ( LOAD_SEQ_CST(info->inheriting) > 0 )
+      { Pause(delay);
+	if ( delay < 0.01 )
+	  delay *= 2;
+      }
+    }
+#endif
+
   #ifdef O_PROFILE
     if ( ld->profile.active )
     { if ( after_fork )			/* timer is stopped by the fork */
@@ -2435,6 +2446,20 @@ set_affinity(term_t affinity, pthread_attr_t *attr)
 }
 
 
+/* Release the target of thread_create/3's inherit_from option.  See
+   freePrologThread(), which waits for `inheriting` to drop to 0.
+*/
+
+static void
+end_inherit(PL_local_data_t *ldold)
+{ GET_LD
+
+  if ( ldold != LD )
+  { ATOMIC_DEC(&ldold->thread.info->inheriting);
+    release_ldata(ldold);
+  }
+}
+
 foreign_t
 pl_thread_create(term_t goal, term_t id, term_t options)
 { GET_LD
@@ -2498,8 +2523,10 @@ pl_thread_create(term_t goal, term_t id, term_t options)
       { ld = acquire_ldata(oinfo);
       }
       if ( ld )
-	ldold = ld;			/* released after copy_local_data() */
-      else
+      { ldold = ld;			/* released by end_inherit() */
+	if ( ld != LD )
+	  ATOMIC_INC(&oinfo->inheriting); /* see freePrologThread() */
+      } else
 	PL_existence_error("thread", inherit_from);
     }
     PL_UNLOCK(L_THREAD);
@@ -2517,7 +2544,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
   if ( !PL_is_variable(id) &&
        !(PL_get_atom(id, &idname) && idname == alias) )
-  { free_thread_info(info);
+  { end_inherit(ldold);
+    free_thread_info(info);
     return PL_error("thread_create", 3, NULL, ERR_UNINSTANTIATION, 2, id);
   }
 
@@ -2529,12 +2557,14 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   th = create_thread_handle(info);
   if ( alias )
   { if ( !aliasThread(info->pl_tid, ATOM_thread, alias) )
-    { free_thread_info(info);
+    { end_inherit(ldold);
+      free_thread_info(info);
       fail;
     }
   }
   if ( !unify_thread_id(id, info) )
-  { free_thread_info(info);
+  { end_inherit(ldold);
+    free_thread_info(info);
 
     if ( !PL_exception(0) )
       return PL_uninstantiation_error(id);
@@ -2549,8 +2579,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   copy_local_data(ldnew, ldold, &attr);
   ldnew->thread.creator = ldold->thread.info;
   ldnew->thread.creator_seq_id = ldold->thread.seq_id;
-  if ( ldold != LD )
-    release_ldata(ldold);		/* see inherit_from */
+  end_inherit(ldold);
   if ( at_exit )
     register_event_hook(&ldnew->event.hook.onthreadexit, 0, false, at_exit, 0);
   info->class = class;
