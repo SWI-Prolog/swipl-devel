@@ -1706,24 +1706,20 @@ alloc_thread(void)
   ld = allocHeapOrHalt(sizeof(PL_local_data_t));
   memset(ld, 0, sizeof(PL_local_data_t));
 
-  do
-  { info = GD->thread.free;
-  } while ( info &&
-	    !COMPARE_AND_SWAP_PTR(&GD->thread.free, info, info->next_free) );
-
-  if ( info )
+  PL_LOCK(L_THREAD);			/* see free_thread_info() */
+  if ( (info = GD->thread.free) )
   { int i = info->pl_tid;
+
+    GD->thread.free = info->next_free;
     assert(info->status == PL_THREAD_UNUSED);
     memset(info, 0, sizeof(*info));
     info->pl_tid = i;
-    PL_LOCK(L_THREAD);
   } else
   { int i;
 
     info = allocHeapOrHalt(sizeof(*info));
     memset(info, 0, sizeof(*info));
 
-    PL_LOCK(L_THREAD);
     i = info->pl_tid = ++GD->thread.highest_allocated;
     if ( i == GD->thread.thread_max )
       resizeThreadMax();
@@ -2816,7 +2812,6 @@ unalias_thread(thread_handle *th)
 static void
 free_thread_info(PL_thread_info_t *info)
 { record_t rec_rv, rec_g;
-  PL_thread_info_t *freelist;
 
   assert(info->status != PL_THREAD_UNUSED);
   info->status = PL_THREAD_UNUSED;
@@ -2860,12 +2855,9 @@ free_thread_info(PL_thread_info_t *info)
 
     GD->thread.highest_id = i;
   }
+  info->next_free = GD->thread.free;	/* a lock-free stack suffers from */
+  GD->thread.free = info;		/* the ABA problem */
   PL_UNLOCK(L_THREAD);
-
-  do
-  { freelist = GD->thread.free;
-    info->next_free = freelist;
-  } while( !COMPARE_AND_SWAP_PTR(&GD->thread.free, freelist, info) );
 
   if ( rec_rv ) PL_erase(rec_rv);
   if ( rec_g )  PL_erase(rec_g);
