@@ -490,11 +490,20 @@ PRED_IMPL("mutex_unlock", 1, mutex_unlock, 0)
 }
 
 
-static
-PRED_IMPL("mutex_unlock_all", 0, mutex_unlock_all, 0)
+/* unlock_mutexes_of_thread() unlocks all mutexes held by the calling
+   thread.  It is called on thread exit, such that a mutex held by a
+   terminated thread is not considered to be owned by a new thread
+   that reuses its id.
+*/
+
+void
+unlock_mutexes_of_thread(void)
 { TableEnum e;
   table_value_t tv;
   int tid = PL_thread_self();
+
+  if ( !GD->thread.mutexTable )
+    return;
 
   PL_LOCK(L_UMUTEX);			/* mutexes cannot be destroyed */
   e = newTableEnumWP(GD->thread.mutexTable);
@@ -509,6 +518,11 @@ PRED_IMPL("mutex_unlock_all", 0, mutex_unlock_all, 0)
   }
   freeTableEnum(e);
   PL_UNLOCK(L_UMUTEX);
+}
+
+static
+PRED_IMPL("mutex_unlock_all", 0, mutex_unlock_all, 0)
+{ unlock_mutexes_of_thread();
   return true;
 }
 
