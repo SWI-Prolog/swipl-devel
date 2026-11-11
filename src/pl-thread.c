@@ -1624,7 +1624,13 @@ release_thread_handle(atom_t aref)
     info->symbol = 0;				/* TBD: Dubious */
     gc_thread(ref);
   } else
+  {
+#ifdef O_PLMT
+    if ( ison(ref, TH_IS_INTERACTOR) && ref->interactor.mutex )
+      simpleMutexDelete(ref->interactor.mutex); /* see destroy_interactor() */
+#endif
     PL_free(ref);
+  }
 
   return true;
 }
@@ -2447,10 +2453,23 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   }
   if ( inherit_from )
   { PL_thread_info_t *oinfo;
+    PL_local_data_t *ld = NULL;
 
+    PL_LOCK(L_THREAD);			/* the thread must be alive */
     if ( get_thread(inherit_from, &oinfo, true) )
-    { ldold = oinfo->thread_data;
-    } else
+    { if ( oinfo->status == PL_THREAD_CREATED && oinfo->thread_data )
+      { ld = oinfo->thread_data;	/* not yet started: magic is not set */
+	PUBLISH_HAZARD(LD->thread.info->access.ldata, ld);
+      } else if ( oinfo->status == PL_THREAD_RUNNING )
+      { ld = acquire_ldata(oinfo);
+      }
+      if ( ld )
+	ldold = ld;			/* released after copy_local_data() */
+      else
+	PL_existence_error("thread", inherit_from);
+    }
+    PL_UNLOCK(L_THREAD);
+    if ( !ld )
     { free_thread_info(info);
       return false;
     }
@@ -2496,6 +2515,8 @@ pl_thread_create(term_t goal, term_t id, term_t options)
   copy_local_data(ldnew, ldold, &attr);
   ldnew->thread.creator = ldold->thread.info;
   ldnew->thread.creator_seq_id = ldold->thread.seq_id;
+  if ( ldold != LD )
+    release_ldata(ldold);		/* see inherit_from */
   if ( at_exit )
     register_event_hook(&ldnew->event.hook.onthreadexit, 0, false, at_exit, 0);
   info->class = class;
@@ -2874,13 +2895,14 @@ update_debug_mode_from_class(PL_local_data_t *ld, bool *old)
 }
 
 static bool
-set_thread_class(PL_thread_info_t *info, atom_t class)
+set_thread_class(PL_thread_info_t *info, PL_local_data_t *ld,
+		 atom_t class)
 { if ( info->class != class )
   { atom_t old = info->class;
     info->class = class;
     if ( old )   PL_unregister_atom(old);
     if ( class ) PL_register_atom(class);
-    update_debug_mode_from_class(info->thread_data, NULL);
+    update_debug_mode_from_class(ld, NULL);
   }
 
   return true;
@@ -3079,17 +3101,28 @@ PRED_IMPL("set_thread", 2, set_thread, 0)
 	return true;
       }
       return false;
-    } else if ( name == ATOM_debug_mode )
-    { bool val;
-      if ( PL_get_stdbool_ex(arg, &val) )
-	return debugmode(info->thread_data, val, NULL, 0);
-      return false;
-    } else if ( name == ATOM_class )
-    { atom_t class;
-      if ( PL_get_atom_ex(arg, &class) )
-      { return set_thread_class(info, class);
-      }
-      return false;
+    } else if ( name == ATOM_debug_mode || name == ATOM_class )
+    { PL_local_data_t *ld;		/* the thread may exit */
+      bool rc;
+      bool bval;
+      atom_t aval;
+
+      if ( name == ATOM_debug_mode ? !PL_get_stdbool_ex(arg, &bval)
+				   : !PL_get_atom_ex(arg, &aval) )
+	return false;
+      if ( info == LD->thread.info )
+	ld = LD;
+      else if ( !(ld = acquire_ldata(info)) )
+	return PL_existence_error("thread", A1);
+
+      if ( name == ATOM_debug_mode )
+	rc = debugmode(ld, bval, NULL, 0);
+      else
+	rc = set_thread_class(info, ld, aval);
+
+      if ( ld != LD )
+	release_ldata(ld);
+      return rc;
     } else
     { return PL_domain_error("thread_property", A2);
     }
@@ -4201,8 +4234,10 @@ destroy_interactor(thread_handle *th, bool gc, bool unlock)
 #ifdef O_PLMT
   if ( unlock )
     simpleMutexUnlock(th->interactor.mutex);
-  simpleMutexDelete(th->interactor.mutex);
-  th->interactor.mutex = NULL;
+  if ( gc )				/* otherwise other threads may */
+  { simpleMutexDelete(th->interactor.mutex); /* use it; it is deleted */
+    th->interactor.mutex = NULL;	/* by release_thread_handle() */
+  }
 #endif
   unalias_thread(th);
 }
@@ -4446,7 +4481,9 @@ PRED_IMPL("engine_post", 2, engine_post, 0)
   { int rc;
 
     simpleMutexLock(th->interactor.mutex);
-    if ( !th->interactor.package )
+    if ( !th->interactor.query )	/* destroyed while we waited */
+    { rc = PL_existence_error("engine", A1);
+    } else if ( !th->interactor.package )
     { if ( (th->interactor.package = PL_record(A2)) )
 	rc = true;
       else
