@@ -43,7 +43,14 @@ UTF-8 Decoding, based on http://www.cl.cam.ac.uk/~mgk25/unicode.html
 _PL_utf8_code_point() advanced `i` but not beyond   `e`.  It returns the
 number of bytes consumed or `-1`  if   the  sequence is invalid. In that
 case it consumes one char.  Contributed by Abramo Bagnara.
+
+Only the shortest encoding of a code point up to UNICODE_MAX is valid.
+Overlong encodings would allow e.g., hiding "/" or "." from code that
+checks the bytes.  utf8_skip_char() and utf8_strlen() use this function
+such that all agree on the number of characters in invalid UTF-8.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static const int utf8_min_code[4] = { 0, 0x80, 0x800, 0x10000 };
 
 int
 _PL__utf8_code_point(const char **i, const char *e, int *cp)
@@ -67,12 +74,6 @@ _PL__utf8_code_point(const char **i, const char *e, int *cp)
   } else if ( c < 0xf8 )
   { code = c & 0x07;
     n = 3;
-  } else if ( c < 0xfc )
-  { code = c & 0x03;
-    n = 4;
-  } else if (c < 0xfe)
-  { code = c & 0x01;
-    n = 5;
   } else
   { return -1;
   }
@@ -87,6 +88,9 @@ _PL__utf8_code_point(const char **i, const char *e, int *cp)
 
     code = (code << 6) | (c & 0x3f);
   }
+
+  if ( code < utf8_min_code[n] || code > UNICODE_MAX )
+    return -1;				/* overlong or too large */
 
   *i += n;
   *cp = code;
