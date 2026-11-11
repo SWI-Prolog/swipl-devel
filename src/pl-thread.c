@@ -1491,15 +1491,24 @@ discard_thread(thread_handle *h)
   }
 
   bool alive = false;
+  bool join = false;
   PL_thread_info_t *info;
 
   PL_LOCK(L_THREAD);
-  if ( (info=h->info) &&
-       (alive=is_alive(info->status)) &&
-       !info->detached )
+  if ( !(info=h->info) )		/* already reclaimed */
+  { PL_UNLOCK(L_THREAD);
+    return;
+  }
+  if ( (alive=is_alive(info->status)) && !info->detached )
   { if ( info->has_tid )
     { if ( pthread_detach(info->tid) == 0 )
 	info->detached = true;
+    }
+  } else if ( !alive && !info->detached )
+  { if ( !(join = COMPARE_AND_SWAP_INT(&info->joining_by, 0, -1)) )
+    { h->info = NULL;			/* thread_join/2 is joining and */
+      PL_UNLOCK(L_THREAD);		/* reclaims the thread */
+      return;
     }
   }
   PL_UNLOCK(L_THREAD);
@@ -1507,8 +1516,7 @@ discard_thread(thread_handle *h)
   if ( !alive )
   { double delay = 0.0001;
 
-    if ( !info->detached &&
-	 COMPARE_AND_SWAP_INT(&info->joining_by, 0, -1) )
+    if ( join )
     { void *r;
 
       while( pthread_join(info->tid, &r) == EINTR )
