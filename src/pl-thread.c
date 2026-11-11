@@ -4606,7 +4606,7 @@ queue_message(DECL_LD message_queue *queue, thread_message *msgp,
   {
 #ifdef O_PLMT
     queue->wait_for_drain++;
-    while ( queue->size >= queue->max_size )
+    while ( queue->max_size > 0 && queue->size >= queue->max_size )
     { switch ( dispatch_cond_wait(queue, QUEUE_WAIT_DRAIN, deadline, retry) )
       { case CV_INTR:
 	{ if ( !LD )			/* needed for clean exit */
@@ -5167,8 +5167,7 @@ destroy_message_queue(message_queue *queue)
 #ifdef O_PLMT
   simpleMutexDelete(&queue->gc_mutex);
   cv_destroy(&queue->cond_var);
-  if ( queue->max_size > 0 )
-    cv_destroy(&queue->drain_var);
+  cv_destroy(&queue->drain_var);
   if ( !queue->anonymous )
     simpleMutexDelete(&queue->mutex);
 #endif
@@ -5213,8 +5212,7 @@ init_message_queue(message_queue *queue, size_t max_size)
   simpleMutexInit(&queue->mutex);
   simpleMutexInit(&queue->gc_mutex);
   cv_init(&queue->cond_var, NULL);
-  if ( queue->max_size != 0 )
-    cv_init(&queue->drain_var, NULL);
+  cv_init(&queue->drain_var, NULL);	/* max_size may be changed */
 #endif
   queue->initialized = true;
 }
@@ -6114,9 +6112,9 @@ PRED_IMPL("message_queue_set", 2, message_queue_set, 0)
 	q->max_size = mx;
 
 #if O_PLMT
-	if ( mx > omax && q->wait_for_drain )
+	if ( (mx == 0 || mx > omax) && q->wait_for_drain )
 	{ DEBUG(MSG_QUEUE, Sdprintf("Queue drained. wakeup writers\n"));
-	  cv_signal(&q->drain_var);
+	  cv_broadcast(&q->drain_var);
 	}
 #endif
 
