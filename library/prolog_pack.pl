@@ -904,7 +904,7 @@ pack_unpack_from_local(Source0, PackTopDir, Name, PackDir, Options) :-
     ;   \+ option(git(false), Options),
         is_git_directory(Source)
     ->  remove_existing_pack(PackDir, Options),
-        run_process(path(git), [clone, Source, PackDir], [])
+        run_process(path(git), [clone, '--', Source, PackDir], [])
     ;   prepare_pack_dir(PackDir, Options),
         copy_directory(Source, PackDir)
     ).
@@ -1955,10 +1955,12 @@ pack_download_from_url(URL, PackTopDir, Pack, Options) :-
     directory_file_path(PackTopDir, Pack, PackDir),
     prepare_pack_dir(PackDir, Options),
     (   option(branch(Branch), Options)
-    ->  Extra = ['--branch', Branch]
+    ->  git_ref_argument(Branch),
+        Extra = ['--branch', Branch]
     ;   Extra = []
     ),
-    run_process(path(git), [clone, URL, PackDir|Extra], []),
+    append([clone|Extra], ['--', URL, PackDir], Argv),
+    run_process(path(git), Argv, []),
     git_checkout_version(PackDir, [update(false)|Options]),
     option(pack_dir(PackDir), Options, _).
 pack_download_from_url(URL0, PackTopDir, Pack, Options) :-
@@ -2054,6 +2056,7 @@ git_checkout_version(PackDir, Options) :-
 git_checkout_version(PackDir, Options) :-
     option(commit(Hash), Options),
     !,
+    git_ref_argument(Hash),
     run_process(path(git), ['-C', PackDir, checkout, '--quiet', Hash], []).
 git_checkout_version(PackDir, Options) :-
     option(version(Version), Options),
@@ -2068,6 +2071,7 @@ git_checkout_version(PackDir, Options) :-
     ->  true
     ;   existence_error(version_tag, Version)
     ),
+    git_ref_argument(Tag),
     run_process(path(git), ['-C', PackDir, checkout, Tag], []).
 git_checkout_version(_PackDir, Options) :-
     option(fresh(true), Options),
@@ -2089,7 +2093,21 @@ git_ensure_on_branch(PackDir, Branch) :-
     git_current_branch(Branch, [directory(PackDir)]),
     !.
 git_ensure_on_branch(PackDir, Branch) :-
+    git_ref_argument(Branch),
     run_process(path(git), ['-C', PackDir, checkout, Branch], []).
+
+%   git_ref_argument(+Ref) is det.
+%
+%   Ref is passed to git as a commit, tag or branch.  These may come from
+%   the pack server or repository.  Raise an error if git would process
+%   Ref as an option.
+
+git_ref_argument(Ref) :-
+    (   atomic(Ref),
+        sub_atom(Ref, 0, _, _, -)
+    ->  domain_error(git_ref, Ref)
+    ;   true
+    ).
 
 read_lines_to_atoms(Atoms, In) :-
     read_line_to_string(In, Line),
