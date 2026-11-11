@@ -221,12 +221,12 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	  fail;
 	}
 
-	if ( !PL_unify(n, low) )
-	  fail;
+					/* l and h may point into the global */
+					/* stack.  Copy before PL_unify() */
 	if ( hinf == false && cmpNumbers(&l, &h) == 0 )
 	{ clearInteger(&l);
 	  clearInteger(&h);
-	  succeed;
+	  return PL_unify(n, low);
 	}
 
 	state = allocForeignState(sizeof(*state));
@@ -235,6 +235,12 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	state->hinf = hinf;
 	clearInteger(&l);
 	clearInteger(&h);
+	if ( !PL_unify(n, low) )
+	{ clearInteger(&state->low);
+	  clearInteger(&state->high);
+	  freeForeignState(state, sizeof(*state));
+	  fail;
+	}
 	ForeignRedoPtr(state);
 	/*NOTREACHED*/
       }
@@ -434,11 +440,29 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
       }
     }
 
-    rc = ( ((PL_get_number(A1, &lo)) ? (cmpNumbers(&lo, &n) == -1)
-				     : PL_unify_number(A1, &lo)) &&
-	   ((PL_get_number(A2, &hi)) ? (cmpNumbers(&n, &hi) == -1)
-				     : PL_unify_number(A2, &hi))
-	 );
+#ifdef O_BIGNUM
+    if ( n.type == V_MPZ )		/* n may point into the global stack, */
+    { number copy;			/* which PL_unify_number() may GC */
+
+      cpNumber(&copy, &n);
+      n = copy;
+    }
+#endif
+
+    number a;				/* value of A1 or A2 */
+
+    if ( PL_get_number(A1, &a) )
+    { rc = cmpNumbers(&a, &n) == -1;
+      clearNumber(&a);
+    } else
+      rc = PL_unify_number(A1, &lo);
+    if ( rc )
+    { if ( PL_get_number(A2, &a) )
+      { rc = cmpNumbers(&n, &a) == -1;
+	clearNumber(&a);
+      } else
+	rc = PL_unify_number(A2, &hi);
+    }
 
   } else
   { rc = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, A1);
@@ -641,6 +665,26 @@ ar_compare(Number n1, Number n2, int what)
 }
 
 
+/* own_number() makes sure n does not refer to a big integer or rational
+   number on the global stack.  Such a number becomes invalid if the
+   stacks are shifted or garbage collected.
+*/
+
+static bool
+own_number(Number n)
+{
+#ifdef O_BIGNUM
+  if ( n->type == V_MPZ || n->type == V_MPQ )
+  { number copy;
+
+    cpNumber(&copy, n);
+    clearNumber(n);
+    *n = copy;
+  }
+#endif
+  return true;
+}
+
 bool
 compareNumbers(DECL_LD term_t n1, term_t n2, int what)
 { AR_CTX
@@ -650,6 +694,7 @@ compareNumbers(DECL_LD term_t n1, term_t n2, int what)
   AR_BEGIN();
 
   if ( valueExpression(n1, &left) &&
+       own_number(&left) &&		/* evaluating n2 may GC */
        valueExpression(n2, &right) )
   { rc = ar_compare(&left, &right, what);
 
