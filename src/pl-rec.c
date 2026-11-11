@@ -2329,6 +2329,22 @@ PL_recorded_external(const char *rec, term_t t)
 }
 
 
+/* PL_recorded_external_len() is PL_recorded_external() for a record of
+   `len` bytes from an untrusted source.  It fails silently if the data
+   is not a valid record.
+*/
+
+bool
+PL_recorded_external_len(const char *rec, size_t len, term_t t)
+{ GET_LD
+
+  if ( len == 0 )
+    return false;
+
+  return recorded_external(rec, len, t);
+}
+
+
 
 bool
 PL_erase_external(char *rec)

@@ -977,6 +977,8 @@ PL_EXPORT(record_t)	PL_duplicate_record(record_t r);
 
 PL_EXPORT(char *)	PL_record_external(term_t t, size_t *size);
 PL_EXPORT(bool)		PL_recorded_external(const char *rec, term_t term);
+PL_EXPORT(bool)		PL_recorded_external_len(const char *rec, size_t len,
+						 term_t term);
 PL_EXPORT(bool)		PL_erase_external(char *rec);
 
 		 /*******************************
