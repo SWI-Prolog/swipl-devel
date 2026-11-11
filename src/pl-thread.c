@@ -2890,26 +2890,24 @@ free_thread_info(PL_thread_info_t *info)
   }
 
   PL_LOCK(L_THREAD);
-  simpleMutexLock(&handle_mutex);
-  if ( info->discarded )		/* see release_thread_handle() */
+  simpleMutexLock(&handle_mutex);	/* see release_thread_handle() */
+  if ( info->discarded )
   { info->discarded->info = NULL;
     info->discarded = NULL;
   }
-  simpleMutexUnlock(&handle_mutex);
-  if ( info->symbol )
+  atom_t symbol = info->symbol;		/* may be reclaimed by atom-GC */
+  if ( symbol )				/* unless we hold handle_mutex */
   { thread_handle *th;
 
-    if ( (th=symbol_thread_handle(info->symbol)) )
-    { simpleMutexLock(&handle_mutex);
-      th->info = NULL;
-      simpleMutexUnlock(&handle_mutex);
+    if ( (th=symbol_thread_handle(symbol)) )
+    { th->info = NULL;
       if ( th->alias && !info->is_engine )
 	unalias_thread(th);
     }
-
-    if ( info->detached && !info->is_engine )
-      PL_unregister_atom(info->symbol);
   }
+  simpleMutexUnlock(&handle_mutex);
+  if ( symbol && info->detached && !info->is_engine )
+    PL_unregister_atom(symbol);		/* registered: not reclaimed */
 
   if ( (rec_rv=info->return_value) )	/* sync with unify_thread_status() */
     info->return_value = NULL;
