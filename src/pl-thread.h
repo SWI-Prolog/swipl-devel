@@ -232,6 +232,7 @@ typedef struct pl_mutex
   int count;				/* lock count */
   int owner;				/* integer id of owner */
   atom_t id;				/* id of the mutex */
+  int users;				/* # get_mutex() without put_mutex() */
   unsigned anonymous    : 1;		/* <mutex>(0x...) */
   unsigned initialized  : 1;		/* Mutex is initialized */
   unsigned destroyed    : 1;		/* Mutex is destroyed */
