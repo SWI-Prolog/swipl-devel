@@ -496,17 +496,32 @@ typedef struct
   tmp_buffer	codes;			/* scratch code table */
 } compileInfo, *CompileInfo;
 
-/* Register an atom that the clause we compile refers to.  The clauses of
- * a thread-local predicate are only accessible to their thread, so its
- * atoms may stay local (see clause_dbref()).
+/* Add the references of a new clause to its atoms and functors.  The
+ * clauses of a thread-local predicate are only accessible to their
+ * thread, so its atoms may stay local (see clause_dbref()).  See
+ * for_atoms_in_codes() and freeClause().
  */
 
-static inline void
-registerClauseAtom(atom_t a, const compileInfo *ci)
-{ if ( ci->local_atoms )
-    registerAtomLocally(a);
-  else
-    PL_register_atom(a);
+static int
+register_clause_atom(atom_t a, void *ctx)
+{ PL_register_atom(a);
+  (void)ctx;
+  return true;
+}
+
+static int
+register_local_clause_atom(atom_t a, void *ctx)
+{ registerAtomLocally(a);
+  (void)ctx;
+  return true;
+}
+
+void
+register_clause_symbols(Clause clause, bool local)
+{ forAtomsAndFunctorsInClause(clause,
+			      local ? register_local_clause_atom
+				    : register_clause_atom,
+			      NULL, acquireFunctor);
 }
 
 
@@ -2754,6 +2769,7 @@ Finish up the clause.
     ATOMIC_ADD(&m->code_size, clsize);
     memcpy(cl, &clause, sizeofClause(0));
     memcpy(cl->codes, baseBuffer(&ci->codes, code), sizeOfBuffer(&ci->codes));
+    register_clause_symbols(cl, ci->local_atoms);
 
     ATOMIC_ADD(&GD->statistics.codes, clause.code_size);
     ATOMIC_INC(&GD->statistics.clauses);
@@ -3692,9 +3708,7 @@ A void.  Generate either B_VOID or H_VOID.
       if ( isNil(*arg) )
       {	Output_0(ci, (where & A_BODY) ? B_NIL : H_NIL);
       } else
-      { if ( !ci->islocal )
-	  registerClauseAtom(word2atom(*arg), ci);
-	Output_1(ci, (where & A_BODY) ? B_ATOM : H_ATOM, word2code(*arg));
+      { Output_1(ci, (where & A_BODY) ? B_ATOM : H_ATOM, word2code(*arg));
       }
       rc = true;
       goto resume;
@@ -4430,7 +4444,6 @@ lco(CompileInfo ci, size_t pc0)
 #endif
       case B_ATOM:
       { code a = *s++;
-	registerClauseAtom(a, ci);	/* TBD: unregister on failure */
 	Output_2(ci, L_ATOM, VAROFFSET(oarg), a);
 	break;
       }
@@ -5039,8 +5052,6 @@ compileBodyUnify(DECL_LD Word arg, compileInfo *ci)
     first = isFirstVarSet(ci->used_var, i1);
     if ( is_portable_constant(*a2) )
     { Output_2(ci, first ? B_UNIFY_FC : B_UNIFY_VC, VAROFFSET(i1), word2code(*a2));
-      if ( isAtom(*a2) )
-	registerClauseAtom(word2atom(*a2), ci);
     } else
     { int where = (first ? A_BODY : A_HEAD|A_ARG);
       Output_1(ci, first ? B_UNIFY_FIRSTVAR : B_UNIFY_VAR, VAROFFSET(i1));
@@ -5132,8 +5143,6 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
     if ( f1 && isFirstVarSet(ci->used_var, i1) )
       Output_1(ci, C_VAR, VAROFFSET(i1));
     Output_2(ci, B_EQ_VC, VAROFFSET(i1), word2code(*a2));
-    if ( isAtom(*a2) )
-      registerClauseAtom(word2atom(*a2), ci);
     return true;
   }
   if ( i2 >= 0 && is_portable_constant(*a1) )	/* const == Var */
@@ -5142,8 +5151,6 @@ compileBodyEQ(DECL_LD Word arg, compileInfo *ci)
     if ( f2 && isFirstVarSet(ci->used_var, i2) )
       Output_1(ci, C_VAR, VAROFFSET(i2));
     Output_2(ci, B_EQ_VC, VAROFFSET(i2), word2code(*a1));
-    if ( isAtom(*a1) )
-      registerClauseAtom(word2atom(*a1), ci);
     return true;
   }
 
@@ -5218,8 +5225,6 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
     if ( f1 && isFirstVarSet(ci->used_var, i1) )
       Output_1(ci, C_VAR, VAROFFSET(i1));
     Output_2(ci, B_NEQ_VC, VAROFFSET(i1), word2code(*a2));
-    if ( isAtom(*a2) )
-      registerClauseAtom(word2atom(*a2), ci);
     return true;
   }
   if ( i2 >= 0 && is_portable_constant(*a1) )	/* const == Var */
@@ -5228,8 +5233,6 @@ compileBodyNEQ(DECL_LD Word arg, compileInfo *ci)
     if ( f2 && isFirstVarSet(ci->used_var, i2) )
       Output_1(ci, C_VAR, VAROFFSET(i2));
     Output_2(ci, B_NEQ_VC, VAROFFSET(i2), word2code(*a1));
-    if ( isAtom(*a1) )
-      registerClauseAtom(word2atom(*a1), ci);
     return true;
   }
 
@@ -5518,40 +5521,39 @@ output_indirect(DECL_LD compileInfo *ci, code op, Word p)
 
 #ifdef O_ATOMGC
 
-bool
-forAtomsInCodes(size_t size, Code PC, int (func)(atom_t a, void*), void *ctx)
+/* Walk the atoms and functors in VM code.  Atoms are in CA1_DATA
+   arguments, functors in CA1_FUNC arguments.  Instructions with a
+   variable number of arguments only hold indirect data.  Clauses hold a
+   reference to their atoms and functors.  These are added after the
+   clause is compiled (see register_clause_symbols()) and removed by
+   freeClause(), both using this function, so they always agree.
+*/
+
+static bool
+for_atoms_in_codes(size_t size, Code PC, int (func)(atom_t a, void*),
+		   void *ctx, void (*ffunc)(functor_t f))
 { Code ep = PC + size;
 
   for( ; PC < ep; PC = stepPC(PC) )
-  { code c = fetchop(PC);
+  { const code_info *vmi = &codeTable[fetchop(PC)];
 
-    switch(c)
-    { case H_ATOM:
-      case B_ATOM:
-      { word w = PC[1];
+    if ( vmi->arguments == VM_DYNARGC )
+      continue;
+    const char *ats = VM_ARGTYPES(vmi);
+    for(int an=0; ats[an]; an++)
+    { switch(ats[an])
+      { case CA1_DATA:
+	{ word w = code2word(PC[an+1]);
 
-	if ( isAtom(w) && !(*func)(word2atom(w), ctx) )
-	  return false;
-	break;
+	  if ( isAtom(w) && func && !(*func)(word2atom(w), ctx) )
+	    return false;
+	  break;
+	}
+	case CA1_FUNC:
+	  if ( ffunc )
+	    (*ffunc)((functor_t)PC[an+1]);
+	  break;
       }
-      case B_EQ_VC:
-      case B_UNIFY_FC:
-      case B_UNIFY_VC:			/* var, const */
-      { word w = PC[2];
-
-	if ( isAtom(w) && !(*func)(word2atom(w), ctx) )
-	  return false;
-	break;
-      }
-					/* compiled tries own their atoms */
-      case T_ATOM:
-	if ( !(*func)(code2atom(PC[1]), ctx) )
-	  return false;
-	break;
-      case T_TRY_ATOM:
-	if ( !(*func)(code2atom(PC[2]), ctx) )
-	  return false;
-	break;
     }
   }
 
@@ -5559,8 +5561,23 @@ forAtomsInCodes(size_t size, Code PC, int (func)(atom_t a, void*), void *ctx)
 }
 
 bool
+forAtomsInCodes(size_t size, Code PC, int (func)(atom_t a, void*), void *ctx)
+{ return for_atoms_in_codes(size, PC, func, ctx, NULL);
+}
+
+bool
 forAtomsInClause(Clause clause, int (func)(atom_t a, void*), void *ctx)
 { return forAtomsInCodes(clause->code_size, clause->codes, func, ctx);
+}
+
+/* As forAtomsInClause(), also calling ffunc() on the functors */
+
+bool
+forAtomsAndFunctorsInClause(Clause clause,
+			    int (func)(atom_t a, void*), void *ctx,
+			    void (*ffunc)(functor_t f))
+{ return for_atoms_in_codes(clause->code_size, clause->codes,
+			    func, ctx, ffunc);
 }
 
 #endif /*O_ATOMGC*/
@@ -9284,8 +9301,6 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 
 	      if ( !isConst(val) )
 		return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_atomic, a);
-	      if ( isAtom(val) )
-		PL_register_atom(word2atom(val));
 
 	      Output_a(ci, word2code(val));
 	      break;
@@ -9429,6 +9444,7 @@ PRED_IMPL("$vm_assert", 3, vm_assert, PL_FA_TRANSPARENT)
   GD->statistics.codes += clause.code_size;
   memcpy(cl->codes, baseBuffer(&ci.codes, code), sizeOfBuffer(&ci.codes));
   discardBuffer(&ci.codes);
+  register_clause_symbols(cl, ison(def, P_LOCALISED));
   ATOMIC_ADD(&GD->statistics.codes, cl->code_size);
   ATOMIC_INC(&GD->statistics.clauses);
   if ( orig )

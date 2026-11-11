@@ -35,6 +35,7 @@
 */
 
 /*#define O_DEBUG 1*/
+#include "pl-funct.h"
 #include "pl-atom.h"
 #include "pl-setup.h"
 #include "pl-gc.h"
@@ -1800,6 +1801,7 @@ pl_garbage_collect_atoms(void)
   markAtomsMessageQueues();
 #endif
   markAtomsInTries();			/* after the stacks */
+  collectFunctors();			/* unregisters their names */
   oldcollected = GD->atoms.collected;
   reclaimed = collectAtoms();
   GD->atoms.collected += reclaimed;

@@ -34,6 +34,7 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+#include "pl-funct.h"
 #include "pl-flag.h"
 #include "pl-rec.h"
 
@@ -97,6 +98,8 @@ lookupFlag(word key)
   f->key = key;
   if ( isAtom(key) )
     PL_register_atom(word2atom(key));
+  else if ( isFunctor(key) )
+    permanentFunctor((functor_t)key);
   f->type = FLG_INTEGER;
   f->value.i = 0;
   if ( (of=addHTableWP(GD->flags.table, key, f)) != f )

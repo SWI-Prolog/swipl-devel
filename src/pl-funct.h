@@ -42,11 +42,22 @@
 
 #if USE_LD_MACROS
 #define lookupFunctorDef(atom, arity) LDFUNC(lookupFunctorDef, atom, arity)
+#define lookupFunctorRef(atom, arity) LDFUNC(lookupFunctorRef, atom, arity)
+#define lookupVolatileFunctor(atom, arity) \
+	LDFUNC(lookupVolatileFunctor, atom, arity)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 functor_t	lookupFunctorDef(atom_t atom, size_t arity);
+functor_t	lookupVolatileFunctor(atom_t atom, size_t arity);
+functor_t	lookupFunctorRef(atom_t atom, size_t arity);
 functor_t	isCurrentFunctor(atom_t atom, size_t arity);
+void		permanentFunctor(functor_t f);
+void		acquireFunctor(functor_t f);
+void		releaseFunctor(functor_t f);
+void		markFunctor(functor_t w);
+size_t		collectFunctors(void);
+int64_t		collectedFunctors(void);
 void		initFunctors(void);
 void		cleanupFunctors(void);
 int		checkFunctors(void);
@@ -55,5 +66,47 @@ foreign_t	pl_current_functor(term_t name, term_t arity,
 size_t		functor_space(void);
 
 #undef LDFUNC_DECLARATIONS
+
+/* Code that temporarily replaces the functor of compounds on the global
+   stack, e.g., to detect cycles, must call startHideFunctors() before
+   and endHideFunctors() after, and restore the functors using
+   restoreHiddenFunctor().  So, AGC does not collect a functor it could
+   not see.  See collectFunctors().
+*/
+
+#if USE_LD_MACROS
+#define startHideFunctors(_) LDFUNC(startHideFunctors, _)
+#define endHideFunctors(_)   LDFUNC(endHideFunctors, _)
+#endif
+
+static inline void
+startHideFunctors(DECL_LD)
+{ LD->atoms.functor_hide++;		/* odd: hiding */
+  MEMORY_BARRIER();
+}
+
+static inline void
+endHideFunctors(DECL_LD)
+{ MEMORY_RELEASE();
+  LD->atoms.functor_hide++;
+}
+
+/* A functor is copied to a new cell on the global stack, which AGC may
+   not scan.  Compare pushVolatileAtom().
+*/
+
+static inline void
+pushVolatileFunctor(word f)
+{ if ( unlikely(LOAD_SEQ_CST(GD->atoms.gc_active)) )
+    markFunctor(f);
+}
+
+static inline void
+restoreHiddenFunctor(Word p, word f)
+{ *p = f;
+  if ( unlikely(LOAD_SEQ_CST(GD->atoms.gc_active)) )
+    markFunctor(f);
+}
+
 
 #endif /*_PL_FUNCT_H*/

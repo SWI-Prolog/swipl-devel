@@ -1506,7 +1506,15 @@ struct functorDef
 		  /* CONTROL_F	   Compiled control-structure */
 		  /* ARITH_F	   Arithmetic function */
 		  /* VALID_F	   Fully defined functor */
+  unsigned int	references;	/* count and FUNCTOR_*_REF (pl-funct.c) */
+  FunctorDef	next_free;	/* next in GD->functors.free */
 };
+
+#define FUNCTOR_PERMANENT_REF	((unsigned int)0x1 << (INTBITSIZE-1))
+#define FUNCTOR_MARKED_REF	((unsigned int)0x1 << (INTBITSIZE-2))
+#define FUNCTOR_DESTROY_REF	((unsigned int)0x1 << (INTBITSIZE-3))
+#define FUNCTOR_REF_COUNT(ref)	((ref) & (FUNCTOR_DESTROY_REF-1))
+#define FUNCTOR_REF_SATURATED	((FUNCTOR_DESTROY_REF-1)/2) /* -> permanent */
 
 
 typedef struct functor_array

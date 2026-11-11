@@ -35,6 +35,7 @@
 */
 
 #define NO_TRIE_GEN_HELPERS 1
+#include "pl-funct.h"
 #include "pl-incl.h"
 #include "pl-comp.h"
 #include "pl-trie.h"
@@ -1165,6 +1166,8 @@ new_trie_node(trie *trie, word key)
   trie_node_chunk *c;
   bool bump;
 
+  if ( isFunctor(key) )			/* see pl-funct.c */
+    permanentFunctor((functor_t)key);
   if ( (n = alloc_trie_node(trie, &c, &bump)) )
   { TRIE_COUNT_INC(trie, node_count);
     memset(n, 0, sizeof(*n));
@@ -5195,7 +5198,8 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
   cref->next         = NULL;
   cref->d.key        = 0;
   cref->value.clause = cl;
-  forAtomsInClause(cl, register_trie_clause_atom, NULL);
+  forAtomsAndFunctorsInClause(cl, register_trie_clause_atom, NULL,
+			      acquireFunctor);
   *cp = cl;
 
   ATOMIC_ADD(&GD->statistics.codes, cl->code_size);

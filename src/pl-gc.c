@@ -48,6 +48,7 @@
 #include "pl-util.h"
 #include "pl-attvar.h"
 #include "pl-proc.h"
+#include "pl-funct.h"
 #include "pl-setup.h"
 #include "pl-bag.h"
 #include "pl-wam.h"
@@ -6314,6 +6315,7 @@ markAtomsOnGlobalStack(PL_local_data_t *ld, atom_mark_func mark, bool safe)
   Word gtop  = ld->stacks.global.top;
   Word current;
   word w;
+  bool functors = (mark == markAtom);	/* global AGC: also mark functors */
 
 #ifdef O_DEBUG_ATOMGC
   DEBUG(MSG_AGC,
@@ -6326,6 +6328,9 @@ markAtomsOnGlobalStack(PL_local_data_t *ld, atom_mark_func mark, bool safe)
 
     if ( isAtom(w) )
     { (*mark)(word2atom(w));
+    } else if ( isFunctor(w) )
+    { if ( functors )
+	markFunctor(w);
     } else if ( unlikely(isIndirectHdr(w)) )
     { word sz = wsizeofInd(w) + 1; /* = _careful_ offset_word() */
       if ( safe )
@@ -6362,6 +6367,8 @@ markAtomsOnLocalStack(PL_local_data_t *ld, atom_mark_func mark)
 
     if ( isAtom(w) )
       (*mark)(word2atom(w));
+    else if ( isFunctor(w) && mark == markAtom )
+      markFunctor(w);			/* clauses compiled on the stack */
   }
 }
 
@@ -6401,6 +6408,8 @@ markAtomsOnStacks(PL_local_data_t *ld, void *ctx)
 	  Sfprintf(atomLogFd, "Mark atoms.unregistering\n"));
 #endif
   (*mark)(ld->atoms.unregistering);	/* see PL_unregister_atom() */
+  if ( mark == markAtom && ld->atoms.volatile_functor )
+    markFunctor(LOAD_SEQ_CST(ld->atoms.volatile_functor));
   markAtomsOnLocalStack(ld, mark);
   markAtomsOnGlobalStack(ld, mark, safe);
   markAtomsFindall(ld, mark);

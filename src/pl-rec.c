@@ -101,6 +101,8 @@ lookupRecordList(word key)
   } else
   { if ( isAtom(key) )			/* can also be functor_t */
       PL_register_atom(word2atom(key));
+    else if ( isFunctor(key) )
+      permanentFunctor((functor_t)key);
     l = allocHeapOrHalt(sizeof(*l));
     memset(l, 0, sizeof(*l));
     l->key = key;
@@ -457,6 +459,8 @@ addFunctor(CompileInfo info, functor_t f)
     } else
     { addOpCode(info, PL_TYPE_COMPOUND);
       addWord(info, f);
+      if ( info->lock )
+	acquireFunctor(f);
     }
   }
 
@@ -663,7 +667,7 @@ unvisit(DECL_LD)
 { cycle_mark mark;
 
   while( popSegStack(&LD->cycle.lstack, &mark, cycle_mark) )
-  { mark.term->definition = mark.fdef;
+  { restoreHiddenFunctor(&mark.term->definition, mark.fdef);
   }
 }
 
@@ -724,11 +728,13 @@ compileTermToHeap_ex(DECL_LD term_t t,
   info.external = (flags & R_EXTERNAL);
   info.lock = !(info.external || (flags&R_NOLOCK));
 
+  startHideFunctors();			/* see unvisit() */
   initTermAgenda(&agenda, 1, valTermRef(t));
   rc = compile_term_to_heap(&agenda, &info);
   clearTermAgenda(&agenda);
   restoreVars(&info);
   unvisit();
+  endHideFunctors();
 
   if ( rc )
   { size = rsize + sizeOfBuffer(&info.code);
@@ -876,6 +882,7 @@ compile_external_record(DECL_LD term_t t, record_data *data)
   data->info.size = 0;
   data->info.nvars = 0;
 
+  startHideFunctors();			/* see unvisit() */
   initTermAgenda(&agenda, 1, p);
   rc = compile_term_to_heap(&agenda, &data->info);
   clearTermAgenda(&agenda);
@@ -883,6 +890,7 @@ compile_external_record(DECL_LD term_t t, record_data *data)
     first |= REC_GROUND;
   restoreVars(&data->info);
   unvisit();
+  endHideFunctors();
   if ( !rc )
     return rec_error(&data->info);
   scode = (int)sizeOfBuffer(&data->info.code);
@@ -2042,7 +2050,8 @@ skipLong(CopyInfo b)
 
 
 static void
-scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
+scanAtomsRecord(CopyInfo b, void (*func)(atom_t a),
+		void (*ffunc)(functor_t f))
 { size_t work = 0;
 
   do
@@ -2109,6 +2118,8 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
       { word fdef = fetchWord(b);
 	size_t arity;
 
+	if ( ffunc )
+	  (*ffunc)(fdef);
 	arity = arityFunctor(fdef);
 	work += arity;
 	continue;
@@ -2150,7 +2161,7 @@ markAtomsRecord(Record record, atom_mark_func mark)
 
   ci.base = ci.data = dataRecord(record);
   ci.version_map = NULL;
-  scanAtomsRecord(&ci, mark);
+  scanAtomsRecord(&ci, mark, mark == markAtom ? markFunctor : NULL);
   assert(ci.data == addPointer(record, record->size));
 #endif
 }
@@ -2178,9 +2189,9 @@ freeRecord(Record record)
     ci.base = ci.data = dataRecord(record);
     ci.version_map = NULL;
 #ifdef O_DEBUG_ATOMGC
-    scanAtomsRecord(&ci, unregister_atom_rec);
+    scanAtomsRecord(&ci, unregister_atom_rec, releaseFunctor);
 #else
-    scanAtomsRecord(&ci, PL_unregister_atom);
+    scanAtomsRecord(&ci, PL_unregister_atom, releaseFunctor);
 #endif
     assert(ci.data == addPointer(record, record->size));
   }
