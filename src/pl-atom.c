@@ -1132,7 +1132,10 @@ they manage to register the atom in   the old table before rehashAtoms()
 activates the new table the insertion   is successful, but rehashAtoms()
 may not have moved the atom to the new   table. Now we will repeat if we
 bypassed the LOCK as either GD->atoms.rehashing is true or the new table
-is activated.
+is activated.  We check GD->atoms.rehashing again after the CAS, which
+is a full barrier.  rehashAtoms() has a barrier between setting
+GD->atoms.rehashing and scanning the atoms, so either we see the flag
+or rehashAtoms() sees our reserved atom and waits for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static bool
@@ -1282,6 +1285,7 @@ redo:
   { a->next = table[v];
     if ( !( !GD->atoms.rehashing &&	/* See (**) above */
             COMPARE_AND_SWAP_PTR(&table[v], head, a) &&
+	    !LOAD_SEQ_CST(GD->atoms.rehashing) &&
 	    table == GD->atoms.table->table ) )
     { if ( isoff(type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
@@ -3114,6 +3118,7 @@ rehashAtoms(void)
 		 GD->atoms.table->buckets, newtab->buckets));
 
   GD->atoms.rehashing = true;
+  MEMORY_BARRIER();			/* See (**) at lookupBlob() */
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -3146,6 +3151,7 @@ redo:
     }
   }
 
+  MEMORY_RELEASE();			/* publish filled table */
   GD->atoms.table = newtab;
   GD->atoms.rehashing = false;
 
