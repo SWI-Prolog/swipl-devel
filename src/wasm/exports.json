@@ -130,6 +130,7 @@
     "_PL_instantiation_error",
     "_PL_uninstantiation_error",
     "_PL_representation_error",
+    "_PL_representation_error_culprit",
     "_PL_type_error",
     "_PL_domain_error",
     "_PL_existence_error",

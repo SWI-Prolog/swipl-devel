@@ -1208,7 +1208,7 @@ _PL_cvt_i_char(term_t p, char *c, int mn, int mx)
   }
 
   if ( PL_is_integer(p) )
-    return PL_representation_error(mn < 0 ? "char" : "uchar");
+    return int_range_error(p, mn < 0 ? ATOM_char : ATOM_uchar, mn == 0);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, p);
 }
@@ -1244,7 +1244,7 @@ _PL_cvt_i_short(term_t p, short *s, int mn, int mx)
   }
 
   if ( PL_is_integer(p) )
-    return PL_representation_error(mn < 0 ? "short" : "ushort");
+    return int_range_error(p, mn < 0 ? ATOM_short : ATOM_ushort, mn == 0);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, p);
 }
@@ -1277,7 +1277,7 @@ PL_cvt_i_uint(term_t t, unsigned int *c)
     return true;
 
   if ( PL_is_integer(t) )
-    return PL_representation_error("uint");
+    return int_range_error(t, ATOM_uint, true);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
@@ -1835,7 +1835,8 @@ PL_get_arg_values(term_t t, size_t from, size_t count,
 	} else
 	{ if ( (flags&CVT_EXCEPTION) )
 	  { if ( v->type == PL_INTEGER )
-	    { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int64_t);
+	    { int_range_error(pushWordAsTermRef(p), ATOM_int64_t, false);
+	      popTermRef();
 	    } else
 	    { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer,
 		       pushWordAsTermRef(p));
@@ -2154,7 +2155,14 @@ PL_get_list_nchars(term_t l, size_t *length, char **s, unsigned int flags)
     size_t len = entriesBuffer(b, char);
 
     if ( length )
-      *length = len;
+    { *length = len;
+    } else if ( memchr(baseBuffer(b, char), 0, len) )
+    { unfindBuffer(b, flags);
+      if ( (flags&CVT_EXCEPTION) )
+	return PL_error(NULL, 0, NULL, ERR_REPRESENTATION_CULPRIT,
+			ATOM_nul_terminated_string, l);
+      return false;
+    }
     addBuffer(b, EOS, char);
     r = baseBuffer(b, char);
 
@@ -2178,6 +2186,37 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
 }
 
 
+/* If the caller does not ask for the length, the text is used as a
+   0-terminated string.  Text with an embedded 0-code cannot be passed
+   this way: the remainder would be silently ignored.
+*/
+
+static bool
+nul_terminated_text(term_t culprit, PL_chars_t *text, unsigned flags)
+{ bool nul;
+
+  if ( text->encoding == ENC_WCHAR )
+  { const pl_wchar_t *w = text->text.w;
+    const pl_wchar_t *e = &w[text->length];
+
+    while(w < e && *w)
+      w++;
+    nul = (w < e);
+  } else
+  { nul = (memchr(text->text.t, 0, text->length) != NULL);
+  }
+
+  if ( !nul )
+    return true;
+
+  PL_free_text(text);
+  if ( (flags&CVT_EXCEPTION) )
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION_CULPRIT,
+		    ATOM_nul_terminated_string, culprit);
+  return false;
+}
+
+
 bool
 PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
 { GET_LD
@@ -2188,6 +2227,7 @@ PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
   PL_STRINGS_MARK_IF_MALLOC(flags);
   rc = ( PL_get_text(l, &text, flags) &&
 	 PL_promote_text(&text) &&
+	 (length || nul_terminated_text(l, &text, flags)) &&
 	 PL_save_text(&text, flags) );
   PL_STRINGS_RELEASE_IF_MALLOC(flags);
 
@@ -2211,6 +2251,7 @@ PL_get_nchars(term_t l, size_t *length, char **s, unsigned flags)
   PL_STRINGS_MARK_IF_MALLOC(flags);
   rc = ( PL_get_text(l, &text, flags) &&
 	 PL_mb_text(&text, flags) &&
+	 (length || nul_terminated_text(l, &text, flags)) &&
 	 PL_save_text(&text, flags) );
   PL_STRINGS_RELEASE_IF_MALLOC(flags);
 
