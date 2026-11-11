@@ -468,6 +468,7 @@ static bool
 ldata_in_use(PL_local_data_t *ld)
 { int i;
 
+  MEMORY_BARRIER();			/* see PUBLISH_HAZARD() */
   for(i=1; i<=GD->thread.highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
     if ( info && info->access.ldata == ld )
@@ -8512,6 +8513,7 @@ pl_atom_table_in_use(AtomTable atom_table)
 #ifdef O_PLMT
   int i;
 
+  MEMORY_BARRIER();			/* see PUBLISH_HAZARD() */
   for(i=1; i<=GD->thread.highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
     if ( info && info->access.atom_table == atom_table )
@@ -8551,6 +8553,7 @@ pl_atom_buckets_in_use(void)
 
   Atom **buckets = allocHeapOrHalt(sz * sizeof(Atom*));
   memset(buckets, 0, sz * sizeof(Atom*));
+  MEMORY_BARRIER();			/* see PUBLISH_HAZARD() */
 
   for(i=1; i<=GD->thread.highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
@@ -8631,6 +8634,7 @@ pl_functor_table_in_use(FunctorTable functor_table)
   int me = PL_thread_self();
   int i;
 
+  MEMORY_BARRIER();			/* see PUBLISH_HAZARD() */
   for(i=1; i<=GD->thread.highest_id; i++)
   { PL_thread_info_t *info = GD->thread.threads[i];
     if ( i != me && info && info->access.functor_table == functor_table )

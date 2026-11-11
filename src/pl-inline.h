@@ -401,6 +401,26 @@ MSB64(int64_t i)
 #define MEMORY_RELEASE() (void)0
 #endif
 
+/* Hazard pointers.  A thread announces it uses an object by storing it
+   in a hazard slot that is scanned by the thread that wants to free the
+   object.  The store must be visible before the announcing thread reads
+   the object, and the freeing thread must make the object unreachable
+   and execute MEMORY_BARRIER() before scanning the hazard slots.  The
+   announcing thread must re-check the object is still reachable after
+   publishing.
+*/
+
+#ifdef HAVE_GCC_ATOMIC
+#define PUBLISH_HAZARD(slot, val) \
+	__atomic_store_n(&(slot), (val), __ATOMIC_SEQ_CST)
+#define LOAD_SEQ_CST(var) \
+	__atomic_load_n(&(var), __ATOMIC_SEQ_CST)
+#else
+#define PUBLISH_HAZARD(slot, val) \
+	do { (slot) = (val); MEMORY_BARRIER(); } while(0)
+#define LOAD_SEQ_CST(var) (var)
+#endif
+
 #ifndef max
 #ifdef HAVE___AUTO_TYPE
 #define max(x,y) ( \
@@ -877,8 +897,8 @@ murmur_key(const void *ptr, size_t n)
 static inline PL_local_data_t *
 acquire_ldata(DECL_LD PL_thread_info_t *info)
 { PL_local_data_t *ld = info->thread_data;
-  LD->thread.info->access.ldata = ld;
-  if ( ld && ld->magic == LD_MAGIC )
+  PUBLISH_HAZARD(LD->thread.info->access.ldata, ld);
+  if ( ld && LOAD_SEQ_CST(ld->magic) == LD_MAGIC )
     return ld;
   LD->thread.info->access.ldata = NULL;
   return NULL;
