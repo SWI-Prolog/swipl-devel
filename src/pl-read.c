@@ -6711,16 +6711,16 @@ read_term(DECL_LD term_t term, ReadData rd)
   result = term_av(-1, rd);
   p = valTermRef(result[0]);
   if ( varInfo(*p, rd) )		/* reading a single variable */
-  { Word v = allocGlobal(1);
+  { Word v;
 
-    if ( !v )
-      goto out;
-    setVar(*v);
     if ( (rc2=ensureSpaceForTermRefs(1)) != true )
     { rc = raiseStackOverflow(rc2);
       goto out;
     }
-    p = valTermRef(result[0]);		/* may be shifted */
+    if ( !(v = allocGlobal(1)) )	/* may shift or GC */
+      goto out;
+    setVar(*v);
+    p = valTermRef(result[0]);
     readValHandle(result[0], v, rd);
     *p = makeRefG(v);
   }

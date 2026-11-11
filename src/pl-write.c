@@ -1859,13 +1859,18 @@ writeNumber(DECL_LD term_t t, write_options *options)
     case V_MPQ:
     { mpz_t num, den;			/* num/den */
       char sep = ison(options, PL_WRT_RAT_NATURAL) ? '/' : 'r';
+      number copy;			/* n is on the global stack, which */
+      bool rc;				/* may move while writing */
 
-      num[0] = *mpq_numref(n.value.mpq);
-      den[0] = *mpq_denref(n.value.mpq);
-      return ( writeMPZ(num, options) &&
-	       Sputcode(sep, options->out) != EOF &&
-	       (options->out->lastc = EOF) &&
-	       writeMPZ(den, options) );
+      cpNumber(&copy, &n);
+      num[0] = *mpq_numref(copy.value.mpq);
+      den[0] = *mpq_denref(copy.value.mpq);
+      rc = ( writeMPZ(num, options) &&
+	     Sputcode(sep, options->out) != EOF &&
+	     (options->out->lastc = EOF) &&
+	     writeMPZ(den, options) );
+      clearNumber(&copy);
+      return rc;
     }
 #endif
     default:
