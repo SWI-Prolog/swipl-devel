@@ -6431,10 +6431,12 @@ is_pointer_like(void *ptr)
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-(*) Note that unlike for markAtomsOnLocalStack(), we do not need to look
-behind the official top of the stack   as frames are never written above
-lTop. If anything is added, it will  be   at  a  newer generation, so we
-don't care.
+(*) A new frame is created at lTop and   gets its generation before lTop
+is moved over it (see  depart_or_retry_continue()).   If  we  miss this
+frame, a clause that is erased after the  frame got its generation may
+be reclaimed before the frame selects  its   clauses.  So, we also scan
+for a frame at lTop.  Stale frames above  lTop can only make us keep
+clauses longer.  There is always LOCAL_MARGIN space above lTop.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -6458,6 +6460,8 @@ markPredicatesInEnvironments(PL_local_data_t *ld, void *ctx)
 
   lbase = (Word)ld->stacks.local.base;
   lend  = (Word)ld->stacks.local.top;		/* see (*) */
+  if ( (Word)ld->stacks.local.max - lend > 2*ARGOFFSET/(int)sizeof(word) )
+    lend++;
   for(current = lbase; current < lend; current++ )
   { LocalFrame fr = (LocalFrame)current;
 
