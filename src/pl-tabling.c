@@ -3328,6 +3328,33 @@ pred_max_table_subgoal_size(DECL_LD const Definition def)
 }
 
 
+/* A stack epoch is used to detect that the stacks were shifted or
+   garbage collected, which invalidates pointers into the stacks.
+*/
+
+typedef struct stack_epoch
+{ int64_t	gcs;
+  Word		gbase;
+  void	       *lbase;
+} stack_epoch;
+
+#define get_stack_epoch(e) LDFUNC(get_stack_epoch, e)
+static void
+get_stack_epoch(DECL_LD stack_epoch *e)
+{ e->gcs   = LD->gc.stats.totals.collections;
+  e->gbase = gBase;
+  e->lbase = lBase;
+}
+
+#define stacks_moved(e) LDFUNC(stacks_moved, e)
+static bool
+stacks_moved(DECL_LD const stack_epoch *e)
+{ return ( e->gcs   != LD->gc.stats.totals.collections ||
+	   e->gbase != gBase ||
+	   e->lbase != (void*)lBase );
+}
+
+
 #define get_answer_table(def, t, ret, clrefp, flags) LDFUNC(get_answer_table, def, t, ret, clrefp, flags)
 static trie *
 get_answer_table(DECL_LD Definition def, term_t t, term_t ret, atom_t *clrefp,
@@ -3436,9 +3463,23 @@ retry:
     }
 
 #ifdef O_PLMT
+    stack_epoch epoch;
+
+    get_stack_epoch(&epoch);
     if ( !claim_answer_table(atrie, clrefp, flags) )
     { discardBuffer(&vars);
       return NULL;
+    }
+    if ( ret && stacks_moved(&epoch) )	/* waiting or compiling moved */
+    { emptyBuffer(&vars, (size_t)-1);	/* the stacks: vars is invalid */
+      Mark(m);
+      v = valTermRef(t);
+      if ( trie_lookup_abstract(variants, NULL, &node, v, false,
+				&sa, &vars) <= 0 ||
+	   !node->value || value_trie(node->value) != atrie )
+      { discardBuffer(&vars);
+	return NULL;
+      }
     }
 #endif
 
@@ -12737,6 +12778,8 @@ flat_skeleton(DECL_LD TmpBuffer vars)
 }
 
 
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 tbl_complete_answer_clause() is the fast path of the S_TABLED supervisor
 for calling a variant tabled predicate (TP_VARIANT).  If the table for
@@ -12756,9 +12799,11 @@ Returns
 
 Calls whose arguments are atomic or unbound variables use
 trie_lookup_flat() on the frame arguments.  This does not allocate
-anything if the table does not exist or is not complete.  As we ensure
-there is space for the skeleton beforehand, the stacks cannot move.
-Other calls create M:Head and use trie_lookup_abstract().
+anything if the table does not exist or is not complete.  We ensure
+there is space for the skeleton beforehand, but compiling the answer
+trie may move the stacks, which invalidates the variables found by the
+lookup.  If this happens we do the lookup again.  Other calls create
+M:Head and use trie_lookup_abstract().
 
 Must be called from a supervisor with the VM registers saved and lTop
 above the arguments.
@@ -12786,7 +12831,7 @@ tbl_complete_answer_clause(DECL_LD Definition def)
     return 0;
 
   if ( hasStackSpace(arity+1, arity) )
-  { LocalFrame fr = LD->query->registers.fr;
+  { LocalFrame fr;
     unsigned int id = start_node_id(tp);
     node_array **sap = start_node_array(shared);
     trie_node *start = get_start_node(*sap, id);
@@ -12795,16 +12840,32 @@ tbl_complete_answer_clause(DECL_LD Definition def)
     trie_node *node;
     atom_t clref = 0;
     int rc;
+    stack_epoch epoch;
+    int retried = 0;
 
     initBuffer(&vars);
+  retry_flat:
+    fr = LD->query->registers.fr;
     rc = trie_lookup_flat(variants, &start, &node, def, argFrameP(fr, 0),
 			  &vars);
     if ( !cached && start )
       set_start_node(sap, id, start);
     if ( rc != TRIE_LOOKUP_NOT_FLAT )
-    { if ( rc == true && node->value &&
+    { get_stack_epoch(&epoch);
+      if ( rc == true && node->value &&
 	   (clref=complete_answer_clause(value_trie(node->value))) )
       { trie *atrie = value_trie(node->value);
+
+	if ( clref != ATOM_error &&	/* compiling the clause moved the */
+	     stacks_moved(&epoch) )	/* stacks: vars is invalid */
+	{ emptyBuffer(&vars, (size_t)-1);
+	  clref = 0;
+	  if ( !retried++ && hasStackSpace(arity+1, arity) )
+	    goto retry_flat;		/* the clause is compiled now */
+	  discardBuffer(&vars);
+	  return 0;
+	}
+
 	word skel = flat_skeleton(&vars);
 
 	if ( (clref = call_complete_table(atrie, def, clref)) != ATOM_fail &&
@@ -12833,6 +12894,8 @@ complete_answer_clause_term(DECL_LD Definition def, trie *variants)
   trie *atrie;
   trie_node *node;
   int rc;
+  stack_epoch epoch;
+  int retried = 0;
 
   if ( !(fid = PL_open_foreign_frame()) )
     return ATOM_error;
@@ -12853,8 +12916,16 @@ retry:
     goto out_buf;			/* new, abstracted or error */
 
   atrie = value_trie(node->value);
+  get_stack_epoch(&epoch);
   if ( !(clref = complete_answer_clause(atrie)) )
     goto out_buf;
+  if ( clref != ATOM_error && stacks_moved(&epoch) )
+  { emptyBuffer(&vars, (size_t)-1);	/* compiling moved the stacks */
+    clref = 0;
+    if ( !retried++ )
+      goto retry;			/* the clause is compiled now */
+    goto out_buf;
+  }
 
   if ( isEmptyBuffer(&vars) )
   { PL_put_atom(skel, ATOM_ret);
