@@ -679,7 +679,8 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 
 	    memset(&mbs, 0, sizeof(mbs));
 	    while( n > 0 )
-	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0 )
+	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 ||
+		   rc == (size_t)-2 || rc == 0 )
 		return PL_error(NULL, 0, "cannot represent text in current locale",
 				ERR_REPRESENTATION, ATOM_encoding);
 
@@ -1425,6 +1426,8 @@ PL_canonicalise_text(PL_chars_t *text)
 	while( n > 0 )
 	{ if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0)
 	    return ERR_TEXT_ILLEGAL_MULTIBYTE_SEQUENCE;
+	  if ( rc == (size_t)-2 )
+	    return ERR_TEXT_INCOMPLETE_MULTIBYTE_SEQUENCE;
 
 	  if ( wc > 0xff )
 	    wide = true;
@@ -1664,7 +1667,8 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	    b = findBuffer(BUF_STACK);
 	    memset(&mbs, 0, sizeof(mbs));
 	    while( n > 0 )
-	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0)
+	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 ||
+		   rc == (size_t)-2 || rc == 0 )
 		return false;		/* encoding error */
 
 	      utf8tobuffer(wc, b);
