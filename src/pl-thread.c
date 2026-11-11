@@ -5635,6 +5635,11 @@ write_message_queue_ref(IOSTREAM *s, atom_t aref, int flags)
 GC a message queue from the atom  garbage collector. This should be fine
 because atoms in messages do  not  have   locked  atoms,  so  we are not
 calling atom functions.
+
+message_queue_property/2 finds anonymous queues  in   the  queue table.
+It pins the queue under queueTable_mutex and then gets a reference to
+the atom using lookupBlob(),  which  waits   while  we  decide. Refuse
+reclaiming a pinned queue, so the lookup finds the same atom.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static int
@@ -5646,11 +5651,17 @@ release_message_queue_ref(atom_t aref)
 	Sdprintf("GC message_queue %p\n", ref->queue));
 
   if ( (q=ref->queue) )
-  { destroy_message_queue(q);			/* can be called twice */
+  { simpleMutexLock(&queueTable_mutex);
+    if ( q->pins )
+    { simpleMutexUnlock(&queueTable_mutex);
+      return false;				/* see next_enum_queue() */
+    }
     if ( !q->destroyed )
     { GET_LD
       deleteHTableWP(queueTable, q->id);
     }
+    simpleMutexUnlock(&queueTable_mutex);
+    destroy_message_queue(q);			/* can be called twice */
     simpleMutexDelete(&q->mutex);
     PL_free(q);
   }
@@ -6124,6 +6135,7 @@ static const tprop qprop_list [] =
 typedef struct
 { TableEnum e;				/* Enumerator on queue-table */
   message_queue *q;			/* current queue */
+  atom_t id;				/* referenced handle of q */
   const tprop *p;			/* Pointer in properties */
   int enum_properties;			/* Enumerate the properties */
 } qprop_enum;
@@ -6132,8 +6144,22 @@ typedef struct
 /* Get the next queue from the queue table and pin it, so we can read
    its properties while it may be destroyed concurrently.  The queue
    is only valid if it is still in the table under L_THREAD.  See
-   get_message_queue().
+   get_message_queue().  We also need a reference to its handle, which
+   may be reclaimed concurrently.  See release_message_queue_ref().
 */
+
+static void
+release_enum_queue(qprop_enum *state)
+{ if ( state->q )
+  { unpin_message_queue(state->q);
+    state->q = NULL;
+  }
+  if ( state->id )
+  { PL_unregister_atom(state->id);
+    state->id = 0;
+  }
+}
+
 
 #define next_enum_queue(state) LDFUNC(next_enum_queue, state)
 
@@ -6142,26 +6168,38 @@ next_enum_queue(DECL_LD qprop_enum *state)
 { table_key_t k;
   table_value_t tv;
 
-  if ( state->q )
-  { unpin_message_queue(state->q);
-    state->q = NULL;
-  }
+  release_enum_queue(state);
 
   while ( advanceTableEnum(state->e, &k, &tv) )
   { message_queue *q = val2ptr(tv);
     bool found = false;
 
     PL_LOCK(L_THREAD);
+    simpleMutexLock(&queueTable_mutex);
     if ( lookupHTableWP(queueTable, k) == q )
     { simpleMutexLock(&q->mutex);
       if ( (found = !q->destroyed) )
-	pin_message_queue(q);
+      { pin_message_queue(q);
+	if ( !q->anonymous )
+	{ PL_register_atom(q->id);	/* registered by the queue */
+	  state->id = q->id;
+	}
+      }
       simpleMutexUnlock(&q->mutex);
     }
+    simpleMutexUnlock(&queueTable_mutex);
     PL_UNLOCK(L_THREAD);
 
     if ( found )
     { state->q = q;
+      if ( q->anonymous )
+      { mqref ref = { .queue = q };
+	bool new;
+
+	state->id = lookupBlob((void*)&ref, sizeof(ref),
+			       &message_queue_blob, &new);
+	assert(!new);
+      }
       return true;
     }
   }
@@ -6190,8 +6228,7 @@ advance_qstate(DECL_LD qprop_enum *state)
 
 static void
 done_qstate(qprop_enum *state, bool allocated)
-{ if ( state->q )
-    unpin_message_queue(state->q);
+{ release_enum_queue(state);
   if ( state->e )
     freeTableEnum(state->e);
 
@@ -6288,7 +6325,7 @@ enumerate:
 	    goto error;
 	}
 	if ( state->e )
-	{ if ( !unify_queue(queue, state->q) )
+	{ if ( !PL_unify_atom(queue, state->id) )
 	    goto error;
 	}
 
