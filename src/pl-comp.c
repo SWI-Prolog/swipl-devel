@@ -9261,7 +9261,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 	      {
 #ifdef O_GMP
 		case CA1_MPZ:
-		  if ( !isMPQNum(*ap) )
+		  if ( !isMPZNum(*ap) )
 		    return PL_error(NULL, 0, "must be an mpz", ERR_TYPE, ATOM_integer, a);
 		  break;
 		case CA1_MPQ:
