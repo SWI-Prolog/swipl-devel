@@ -43,6 +43,8 @@
   crash on the destroyed engine mutex.
 - thread_create/3 with inherit_from(T) for a thread T that completed
   but was not joined used to crash.
+- thread_create/3 with inherit_from(T) for a thread T that was
+  terminating could copy from freed data.
 - thread_detach/1 on a thread that completed or was completing did not
   reclaim the thread.
 */
@@ -50,6 +52,7 @@
 thread_lifecycle_race :-
 	forall(between(1, 500, _), engine_round),
 	inherit_from_completed,
+	inherit_from_exiting,
 	detach_completed,
 	mutex_released_on_exit,
 	join_gced_handles.
@@ -73,6 +76,22 @@ inherit_from_completed :-
 	assertion(E = error(existence_error(thread, _), _)),
 	assertion(var(T2)),
 	thread_join(T).
+
+%	Inherit from a thread while it terminates.
+
+inherit_from_exiting :-
+	forall(between(1, 300, _), inherit_round).
+
+inherit_round :-
+	thread_create(true, T, []),
+	catch(thread_create(true, T2, [inherit_from(T)]), E, true),
+	(   var(E)
+	->  thread_join(T2, S2),
+	    assertion(S2 == true)
+	;   assertion(E = error(existence_error(thread, _), _))
+	),
+	thread_join(T, S),
+	assertion(S == true).
 
 wait_completed(T) :-
 	thread_property(T, status(running)),
