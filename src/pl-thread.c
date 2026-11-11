@@ -773,6 +773,11 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
 	info->in_exit_hooks = false;
 	WITH_LD(ld) endCritical();	/* TBD: exception? */
       }
+#ifdef O_PLMT				/* release mutexes we hold */
+      if ( !info->is_engine && info->has_tid &&
+	   pthread_equal(info->tid, pthread_self()) )
+	unlock_mutexes_of_thread();
+#endif
     } else
     {
 #ifdef O_PLMT

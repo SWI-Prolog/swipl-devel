@@ -50,7 +50,8 @@
 thread_lifecycle_race :-
 	forall(between(1, 500, _), engine_round),
 	inherit_from_completed,
-	detach_completed.
+	detach_completed,
+	mutex_released_on_exit.
 
 engine_round :-
 	engine_create(X, between(1, inf, X), E),
@@ -102,3 +103,14 @@ wait_threads(Before, N) :-
 	    wait_threads(Before, N1)
 	;   assertion(LN =< LB)
 	).
+
+%	A mutex held by a thread that terminates is released.
+
+mutex_released_on_exit :-
+	mutex_create(M),
+	thread_create(mutex_lock(M), T, []),
+	thread_join(T, Status),
+	assertion(Status == true),
+	assertion(mutex_trylock(M)),
+	mutex_unlock(M),
+	mutex_destroy(M).
