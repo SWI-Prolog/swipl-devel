@@ -6496,7 +6496,9 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
   timespec_set_dbl(&retry, retry_every);
 
   LD->thread.waiting_for->signalled = false;
+  Module olocked = LD->thread.waiting_for->locked;
   simpleMutexLock(&module->wait->mutex);
+  LD->thread.waiting_for->locked = module;
   for(;;)
   { if ( (ign_filter || wait_filter_satisfied()) &&
 	 ( (rc = ((!modified || unify_modified(modified)) &&
@@ -6532,6 +6534,8 @@ PRED_IMPL("thread_wait", 2, thread_wait, 0)
     }
   }
 out_for_loop:
+  unregister_waiting(module, LD);	/* signal_waiting_threads() walks */
+  LD->thread.waiting_for->locked = olocked; /* the list holding the mutex */
   simpleMutexUnlock(&module->wait->mutex);
 
 out:
@@ -6641,8 +6645,8 @@ int
 signal_waiting_threads(Module m, thread_wait_channel *wch)
 { GET_LD
   thread_dcell *c;
-  int done = 0;
-  int lock = !LD->thread.waiting_for || !LD->thread.waiting_for->registered;
+  int done = 0;					/* do we already hold it? */
+  int lock = !LD->thread.waiting_for || LD->thread.waiting_for->locked != m;
 
   if ( updating(m) )
     return 0;
@@ -6669,7 +6673,7 @@ static const PL_option_t thread_update_options[] =
 static
 PRED_IMPL("thread_update", 2, thread_update, PL_FA_TRANSPARENT)
 { PRED_LD
-  int lock = !LD->thread.waiting_for || !LD->thread.waiting_for->registered;
+  int lock;
   int rc;
   atom_t notify = ATOM_broadcast;
   atom_t mname = NULL_ATOM;
@@ -6696,8 +6700,11 @@ PRED_IMPL("thread_update", 2, thread_update, PL_FA_TRANSPARENT)
 
   wakeupThreadsModule(module, 0);
 
-  if ( lock )
-    simpleMutexLock(&module->wait->mutex);
+  Module olocked = LD->thread.waiting_for->locked;
+  if ( (lock = (olocked != module)) )
+  { simpleMutexLock(&module->wait->mutex);
+    LD->thread.waiting_for->locked = module;
+  }
 
   mc.module = module;
   mc.prev = LD->thread.waiting_for->updating;
@@ -6720,7 +6727,9 @@ PRED_IMPL("thread_update", 2, thread_update, PL_FA_TRANSPARENT)
 
 out:
   if ( lock )
+  { LD->thread.waiting_for->locked = olocked;
     simpleMutexUnlock(&module->wait->mutex);
+  }
 
   return rc;
 }

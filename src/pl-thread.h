@@ -474,6 +474,7 @@ typedef struct thread_wait_for		/* thread data for wait/update */
   int		signalled;		/* are we signalled? */
   thread_dcell *registered;		/* cell in thread_wait_area */
   struct module_cell *updating;		/* thread_update/2 modules */
+  struct module *locked;		/* we hold locked->wait->mutex */
 } thread_wait_for;
 
 typedef struct thread_wait_area		/* module data for wait/update */
