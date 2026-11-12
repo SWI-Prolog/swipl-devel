@@ -397,6 +397,11 @@ void *alloca ();
 #include <sys/types.h>
 #if __MINGW32__
 typedef _sigset_t sigset_t;
+/* With SEH, longjmp() unwinds the stack, which crashes when jumping
+ * out of VMI functions (engine_yield/1).  We only jump over C frames,
+ * so the plain non-SEH version suffices.
+ */
+#define __USE_MINGW_SETJMP_NON_SEH 1
 #endif
 #include <setjmp.h>
 #ifdef ASSERT_H_REQUIRES_STDIO_H
