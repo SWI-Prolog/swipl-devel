@@ -347,7 +347,9 @@ db_load(Module, File) :-
     retractall(db_file(Module, _, _, _, _)),
     debug(db, 'Loading database ~w', [File]),
     catch(setup_call_cleanup(
-              open(File, read, In, [encoding(utf8), newline(posix)]),
+              open(File, read, In, [ encoding(utf8), newline(posix),
+                                     encoding_errors(error)
+                                   ]),
               load_db_end(In, Module, File, Created, EndPos),
               close(In)),
           error(existence_error(source_sink, File), _), fail),
@@ -358,7 +360,9 @@ db_load(Module, File) :-
 db_load_incremental(Module, File) :-
     db_file(Module, File, Created, _, EndPos0),
     setup_call_cleanup(
-        ( open(File, read, In, [encoding(utf8), newline(posix)]),
+        ( open(File, read, In, [ encoding(utf8), newline(posix),
+                                 encoding_errors(error)
+                               ]),
           read_action(In, created(Created0)),
           set_stream_position(In, EndPos0)
         ),
