@@ -144,11 +144,19 @@ test(global_agc_skips, true(Collected > 400)) :-
     garbage_collect_atoms,		% our sweep
     '$local_atoms'(collected, C1),
     Collected is C1-C0.
-test(empty_chunks_returned, [true(Held > 300), true(Chunks < 50)]) :-
+%   A chunk that holds a live blob stays, as do the empty chunks that
+%   make room for max(2*Live, LOCAL_AGC_MIN=1024) blobs (64 per chunk).
+%   How many blobs survive depends on the earlier tests and what the
+%   stacks still refer to, so we do not bound the number of chunks as
+%   such.
+
+test(empty_chunks_returned, [true(Held > 300), true(Chunks =< Max)]) :-
     held_chunks(20_000, Held),		% about 313 chunks
     garbage_collect,			% remove the list from the stack
     garbage_collect_atoms,
-    '$local_atoms'(chunks, Chunks).
+    '$local_atoms'(chunks, Chunks),
+    '$local_atoms'(live, Live),
+    Max is Live + max(2*Live, 1024)//64 + 1.
 test(exit_releases, true(Grown < 100)) :-
     statistics(atoms, A0),
     in_thread(churn(500)),		% below the threshold: no sweep
