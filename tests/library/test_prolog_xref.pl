@@ -42,7 +42,8 @@
 :- use_module(library(lists)).
 
 test_prolog_xref :-
-    run_tests([ prolog_canonical_source
+    run_tests([ prolog_canonical_source,
+                xref_defined_class
               ]).
 
 :- dynamic data_dir/1.
@@ -82,3 +83,29 @@ test(relative_name_of_loaded_file, [Before-After == Abs-Abs]) :-
     canonical_relative('xref_loaded.pl', After).
 
 :- end_tests(prolog_canonical_source).
+
+:- begin_tests(xref_defined_class).
+
+test(enumerate, [ condition(current_prolog_flag(threads, true)),
+                  Classes == [xref_test_class_a, xref_test_class_b]
+                ]) :-
+    data_file('xref_classes.pl', File),
+    thread_self(Me),
+    thread_create(( defined_classes(File, Classes0),
+                    thread_send_message(Me, xref_classes(Classes0))
+                  ), Id),
+    thread_join(Id, true),
+    thread_get_message(xref_classes(Classes)).
+
+%   Disable autoloading, as reading the directive would otherwise
+%   autoload xpce.  The flag is thread-local.
+
+defined_classes(File, Classes) :-
+    set_prolog_flag(autoload, false),
+    setup_call_cleanup(
+        xref_source(File, [silent(true)]),
+        findall(C, xref_defined_class(File, C, local(_,_,_)), Classes0),
+        xref_clean(File)),
+    msort(Classes0, Classes).
+
+:- end_tests(xref_defined_class).
