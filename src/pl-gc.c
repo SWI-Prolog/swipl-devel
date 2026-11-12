@@ -2172,6 +2172,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
       case I_VAR:
       case I_NONVAR:
       case I_INTEGER:
+      case I_RATIONAL:
       case I_FLOAT:
       case I_NUMBER:
       case I_ATOMIC:
@@ -2182,6 +2183,7 @@ walk_and_mark(DECL_LD walk_state *state, Code PC, code end)
       case I_CALLCONT:
       case I_SHIFT:
       case I_SHIFTCP:
+      case A_ROUNDTOWARDS_V:
 	mark_frame_var(state, PC[0]);
 	break;
 
