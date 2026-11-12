@@ -2387,10 +2387,14 @@ load_files(Module:Files, Options) :-
     file_name_extension(Base, QlfExt, QlfFile),
     (   access_file(QlfFile, read),
         (   '$qlf_out_of_date'(FullFile, QlfFile, Why)
-	->  (   access_file(QlfFile, write)
+	->  (   access_file(QlfFile, write),
+		'$qlf_may_write'
 	    ->  print_message(informational,
 			      qlf(recompile(Spec, FullFile, QlfFile, Why))),
 		Mode = qcompile,
+		LoadFile = FullFile
+	    ;   access_file(QlfFile, write)
+	    ->  Mode = compile,		% see '$qlf_may_write'/0
 		LoadFile = FullFile
 	    ;   Why == old,
 		(   current_prolog_flag(home, PlHome),
@@ -2410,11 +2414,25 @@ load_files(Module:Files, Options) :-
 	    LoadFile = QlfFile
 	)
     ->  !
-    ;   '$qlf_auto'(FullFile, QlfFile, Options)
+    ;   '$qlf_may_write',
+	'$qlf_auto'(FullFile, QlfFile, Options)
     ->  !, Mode = qcompile,
 	LoadFile = FullFile
     ).
 '$qlf_file'(_, FullFile, FullFile, compile, _).
+
+%!  '$qlf_may_write' is semidet.
+%
+%   True if we may (re)create a .qlf file while loading.  Not in system
+%   mode (flag `access_level`): the predicates would be compiled as
+%   system predicates, and the .qlf file records this.  Loading such a
+%   .qlf in user mode then still makes them system predicates.  This
+%   happened when the boot compilation, which runs in system mode, loads
+%   libraries with an outdated .qlf.  We load the source instead and
+%   leave the .qlf to be recompiled by a later load.
+
+'$qlf_may_write' :-
+    \+ current_prolog_flag(access_level, system).
 
 %!  '$qlf_out_of_date'(+PlFile, +QlfFile, -Why) is semidet.
 %

@@ -336,6 +336,34 @@ test(a_file_that_is_no_qlf_file_is_out_of_date,
     write_source(Qlf, "not a qlf file\n"),
     '$qlf_out_of_date'(Pl, Qlf, Why).
 
+%       An out-of-date .qlf file is recompiled when loaded, but not in
+%       system mode: the .qlf file would record the predicates as system
+%       predicates, also for later loads in user mode.  This happened
+%       when the boot compilation loaded libraries.
+
+test(an_outdated_qlf_is_recompiled_in_user_mode,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf])),
+       Mode == qcompile
+     ]) :-
+    write_source(Pl, "answer(43).\n"),
+    touch(Pl, Qlf, 10),
+    file_name_extension(Spec, pl, Pl),
+    '$qlf_file'(Spec, Pl, _, Mode, []).
+test(but_loaded_from_source_in_system_mode,
+     [ setup(compiled_file(Pl, Qlf)),
+       cleanup(remove_files([Pl, Qlf])),
+       Mode-Load == compile-Pl
+     ]) :-
+    write_source(Pl, "answer(43).\n"),
+    touch(Pl, Qlf, 10),
+    file_name_extension(Spec, pl, Pl),
+    current_prolog_flag(access_level, Old),
+    setup_call_cleanup(
+        set_prolog_flag(access_level, system),
+        '$qlf_file'(Spec, Pl, Load, Mode, []),
+        set_prolog_flag(access_level, Old)).
+
 :- end_tests(qlf_staleness).
 
 %!  compiled_file(-PlFile, -QlfFile) is det.
