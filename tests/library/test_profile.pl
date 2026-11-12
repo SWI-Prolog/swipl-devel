@@ -143,7 +143,10 @@ a_predicate_with_a_name_that_is_far_too_long_for_its_column.
 many_redos :-
     \+ ( between(1, 2 000 000, X), X < 0 ).
 
-:- begin_tests(profile_default, [condition(text_report)]).
+:- begin_tests(profile_default,
+               [ setup(text_report),
+                 cleanup(gui_report)
+               ]).
 
 % With profile_exact = auto, profile/2 uses exact timing if the clock is
 % cheap to read, which is typically not the case in virtual machines.
@@ -160,12 +163,18 @@ test(flag_false, Exact == false) :-
 :- end_tests(profile_default).
 
 %   The report of profile/2 is textual unless the GUI hooks into it.
+%   xpce defines that hook as soon as it is loaded, which is at startup
+%   on macOS.  We disable it while testing, so these tests do not load
+%   or open the GUI and run on every platform.
 
 text_report :-
-    \+ ( predicate_property(prolog:show_profile_hook(_),
-                            number_of_clauses(N)),
-         N > 0
-       ).
+    (   predicate_property(prolog:show_profile_hook(_), defined)
+    ->  wrap_predicate(prolog:show_profile_hook(_), test_profile, _, fail)
+    ;   true
+    ).
+
+gui_report :-
+    ignore(unwrap_predicate(prolog:show_profile_hook/1, test_profile)).
 
 profile_with_flag(Value, Exact) :-
     current_prolog_flag(profile_exact, Old),
