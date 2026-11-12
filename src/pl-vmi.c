@@ -4063,8 +4063,13 @@ VMI(A_ROUNDTOWARDS_V, 0, 1, (CA1_VAR))
     set_rounding(rm);
     NEXT_INSTRUCTION;
   } else
-  { resetArithStack();
-    THROW_EXCEPTION;
+  { if ( isVar(*p) )
+      PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+    else if ( isAtom(*p) )
+      PL_error(NULL, 0, NULL, ERR_PTR_DOMAIN, ATOM_round, p);
+    else
+      PL_error(NULL, 0, NULL, ERR_PTR_TYPE, ATOM_atom, p);
+    AR_THROW_EXCEPTION;
   }
 }
 END_VMI

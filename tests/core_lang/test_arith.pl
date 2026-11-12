@@ -1144,6 +1144,23 @@ test(cmp_vi_unbound, error(instantiation_error)) :-
 test(cmp_cond, L == [lt,eq,gt,lt]) :-
 	findall(R, (member(X-Y, [1-2, 2-2, 3-2, 1.0-2]), cmp_cond(X, Y, R)), L).
 
+% A variable rounding mode is compiled to A_ROUNDTOWARDS_V
+
+test(roundtoward_var,			% WASM has no rounding modes
+     condition(\+ current_prolog_flag(emscripten, true))) :-
+	round_var(to_positive, P),
+	round_var(to_negative, N),
+	P > N.
+test(roundtoward_var_domain, error(domain_error(round, foo))) :-
+	round_var(foo, _).
+test(roundtoward_var_unbound, error(instantiation_error)) :-
+	round_var(_, _).
+test(roundtoward_var_type, error(type_error(atom, 1))) :-
+	round_var(1, _).
+
+round_var(Mode, Y) :-
+	Y is roundtoward(1.0/3, Mode).
+
 cmp_vv(lt, X, Y) :- X < Y.
 cmp_vv(gt, X, Y) :- X > Y.
 cmp_vv(le, X, Y) :- X =< Y.
