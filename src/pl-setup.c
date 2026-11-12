@@ -114,6 +114,7 @@ setupProlog(void)
 
   DEBUG(1, Sdprintf("wam_table ...\n"));
   initWamTable();
+  DEBUG(0, checkGCWalk());
   DEBUG(1, Sdprintf("character types ...\n"));
   initCharTypes();
   DEBUG(1, Sdprintf("foreign predicates ...\n"));

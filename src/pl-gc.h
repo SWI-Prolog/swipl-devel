@@ -72,6 +72,9 @@ COLD boolex_t	growLocalSpace(size_t bytes, int flags);
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
 void		clearLocalVariablesFrame(LocalFrame fr);
 void		setLTopInBody(void);
+#ifdef O_DEBUG
+void		checkGCWalk(void);
+#endif
 word		check_foreign(void);	/* DEBUG(CHK_SECURE...) stuff */
 /* Context for markAtomsOnStacks().  NULL is markAtom(), not safe. */
 typedef struct atom_mark_ctx

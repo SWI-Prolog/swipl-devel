@@ -2339,6 +2339,97 @@ mark_active_environment(bit_vector *active, LocalFrame fr, Code PC)
 }
 
 
+#ifdef O_DEBUG
+/* checkGCWalk() verifies that walk_and_mark() handles every VM
+ * instruction with a variable argument.  A variable that is not marked
+ * is reset by GC while the clause still needs it.  For each such
+ * instruction we walk `<op> <args> I_EXIT` and check that each CA1_VAR
+ * argument is marked and each CA1_FVAR argument is marked or cleared.
+ * Instructions with a jump are skipped: walk_and_mark() follows the
+ * jump.  gc_walk_ignored() lists instructions that are deliberately not
+ * handled.  Called at startup in debug builds.
+ */
+
+static bool
+gc_walk_ignored(vmi op)
+{ switch(op)
+  { case S_MQUAL:		/* supervisor code is not walked */
+    case S_LMQUAL:
+    case L_VAR:			/* LCO: the original B_* code follows */
+    case L_VOID:
+    case L_ATOM:
+    case L_NIL:
+    case L_SMALLINT:
+    case L_SMALLINTW:
+      return true;
+    default:
+      return false;
+  }
+}
+
+void
+checkGCWalk(void)
+{ GET_LD
+  int bad = 0;
+  char missing[256] = "";
+
+  for(int op = 0; op < I_HIGHEST; op++)
+  { const code_info *ci = &codeTable[op];
+    const char *at = VM_ARGTYPES(ci);
+    int argc = ci->arguments;
+    bool has_var = false;
+    bool has_jump = false;
+
+    if ( argc == VM_DYNARGC || gc_walk_ignored(op) )
+      continue;
+    for(int i=0; i<argc; i++)
+    { if ( at[i] == CA1_VAR || at[i] == CA1_FVAR )
+	has_var = true;
+      else if ( at[i] == CA1_JUMP )
+	has_jump = true;
+    }
+    if ( !has_var || has_jump )
+      continue;
+
+    code codes[VM_ARGC+2];
+    char abuf[64], cbuf[64];
+    bit_vector *active = (bit_vector*)abuf;
+    bit_vector *clear  = (bit_vector*)cbuf;
+    walk_state state = {0};
+
+    assert(sizeof_bitvector(VM_ARGC) <= sizeof(abuf));
+    init_bitvector(active, VM_ARGC);
+    init_bitvector(clear,  VM_ARGC);
+    codes[0] = encode(op);
+    for(int i=0; i<argc; i++)
+      codes[i+1] = (at[i] == CA1_VAR || at[i] == CA1_FVAR) ? VAROFFSET(i)
+							    : 1; /* C_VAR_N count */
+    codes[argc+1] = encode(I_EXIT);
+
+    state.flags  = GCM_ACTIVE|GCM_CLEAR|GCM_CHOICE;
+    state.active = active;
+    state.clear  = clear;
+    state.c0     = codes;
+    walk_and_mark(&state, codes, I_EXIT);
+
+    for(int i=0; i<argc; i++)
+    { if ( (at[i] == CA1_VAR  && !true_bit(active, i)) ||
+	   (at[i] == CA1_FVAR && !true_bit(active, i) && !true_bit(clear, i)) )
+      { size_t len = strlen(missing);
+
+	snprintf(missing+len, sizeof(missing)-len, " %s/%d", ci->name, i+1);
+	bad++;
+      }
+    }
+  }
+
+  if ( bad )
+    sysError("walk_and_mark() does not handle %d variable "
+	     "arguments (VMI/argument):%s", bad, missing);
+}
+#endif /*O_DEBUG*/
+
+
 #ifdef MARK_ALT_CLAUSES
 static void
 mark_alt_clauses(DECL_LD LocalFrame fr, ClauseRef cref)
