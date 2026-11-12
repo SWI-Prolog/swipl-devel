@@ -50,7 +50,8 @@ test_messages :-
     run_tests([ predicate_reference,
                 predicate_kind,
                 predicate_source_location,
-                message_elements
+                message_elements,
+                exception_format
               ]).
 
 :- dynamic
@@ -295,3 +296,57 @@ elements_format(Elements, String) :-
     format(string(String), Fmt, Args).
 
 :- end_tests(message_elements).
+
+
+		 /*******************************
+		 *     FORMAT IN EXCEPTIONS	*
+		 *******************************/
+
+% Exceptions may be data from elsewhere, e.g., an error received from a
+% remote pengine.  A format(Fmt, Args) term inside an exception is not
+% formatted if Fmt calls goals (~@, ~W).  A message issued by the
+% program itself still is.
+
+:- begin_tests(exception_format).
+
+test(error_format, Ran == false) :-
+    goal_ran(error(format('~@', [test_messages:mark]), _), Ran, _).
+test(error_format_w, Ran == false) :-
+    goal_ran(error(format('~W', [x, [portray_goal(test_messages:mark_portray)]]), _),
+             Ran, _).
+test(unhandled_exception, Ran == false) :-
+    goal_ran(unhandled_exception(format('~@', [test_messages:mark])), Ran, _).
+test(thread_completion, Ran == false) :-
+    goal_ran(abnormal_thread_completion(g, exception(format('~@', [test_messages:mark]))),
+             Ran, _).
+test(nested, Ran == false) :-
+    goal_ran(unhandled_exception(unhandled_exception(format('~@', [test_messages:mark]))),
+             Ran, _).
+test(printed_as_term, S == "format(~@,[test_messages:mark])") :-
+    goal_ran(error(format('~@', [test_messages:mark]), _), _, S).
+test(safe_format_kept, S == "a 1") :-
+    goal_ran(error(format('a ~w', [1]), _), _, S).
+test(escaped_tilde_is_not_a_directive, S == "~@ x") :-
+    goal_ran(error(format('~~@ ~w', [x]), _), _, S).
+test(own_message_still_formatted, Ran == true) :-
+    goal_ran(format('~@', [test_messages:mark]), Ran, _).
+
+:- end_tests(exception_format).
+
+%!  goal_ran(+Message, -Ran, -String) is det.
+%
+%   Print Message and tell whether mark/0 or mark_portray/2 ran.  String
+%   is the printed text.
+
+goal_ran(Message, Ran, String) :-
+    nb_setval(test_messages_ran, false),
+    '$messages':translate_message(Message, Lines, []),
+    with_output_to(string(Raw),
+                   print_message_lines(current_output, '', Lines)),
+    split_string(Raw, "", "\n", [String]),
+    nb_getval(test_messages_ran, Ran).
+
+mark :-
+    nb_setval(test_messages_ran, true).
+mark_portray(_, _) :-
+    mark.
