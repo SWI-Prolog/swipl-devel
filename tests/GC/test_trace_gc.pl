@@ -62,7 +62,9 @@ user:message_hook(gc(done(_,_,_,_,_,_,_)), _, _) :-
 
 :- begin_tests(trace_gc).
 
-test(user_error, Status == true) :-
+test(user_error, [ condition(current_prolog_flag(threads, true)),
+                   Status == true
+                 ]) :-
     thread_create(gc_to_user_error, Id),
     thread_join(Id, Status).
 test(exception, Error == gc_hook_error) :-
