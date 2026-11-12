@@ -896,8 +896,17 @@ murmur_key(const void *ptr, size_t n)
 #define acquire_ldata(info) LDFUNC(acquire_ldata, info)
 static inline PL_local_data_t *
 acquire_ldata(DECL_LD PL_thread_info_t *info)
-{ PL_local_data_t *ld = info->thread_data;
-  PUBLISH_HAZARD(LD->thread.info->access.ldata, ld);
+{ PL_local_data_t *ld;
+
+  /* Publish the hazard and verify info->thread_data still holds `ld`
+     before using it.  freePrologThread() clears info->thread_data
+     before maybe_free_local_data() scans the hazards.
+  */
+  do
+  { ld = LOAD_SEQ_CST(info->thread_data);
+    PUBLISH_HAZARD(LD->thread.info->access.ldata, ld);
+  } while ( ld != LOAD_SEQ_CST(info->thread_data) );
+
   if ( ld && LOAD_SEQ_CST(ld->magic) == LD_MAGIC )
     return ld;
   LD->thread.info->access.ldata = NULL;
