@@ -76,6 +76,7 @@ void		releaseLocalAtoms(PL_local_data_t *ld);
 void		discardBlob(atom_t a);
 void		disownBlob(atom_t a);
 bool		shareLocalBlob(atom_t a, PL_blob_t *type, const void *data);
+bool		registerAtomIfLive(atom_t a);
 void		registerAtomLocally(atom_t a);
 bool		promoteLocalAtom(Atom a);
 void		promoteAtomIfLocal(atom_t a);

@@ -566,6 +566,7 @@ static thread_handle *create_thread_handle(PL_thread_info_t *info);
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
 static thread_handle *symbol_thread_handle(atom_t a);
+static atom_t	info_alias(PL_thread_info_t *info);
 static void	destroy_interactor(thread_handle *th, bool gc, bool unlock);
 static void	detach_engine(PL_engine_t e);
 static void	initMessageQueues(void);
@@ -1450,9 +1451,8 @@ aliasThread(int tid, atom_t type, atom_t name)
   info = GD->thread.threads[tid];
   if ( (th = create_thread_handle(info)) )
   { th->alias = name;
-    PL_register_atom(name);
-    PL_register_atom(info->symbol);
-    addNewHTable(threadTable, name, info->symbol);
+    PL_register_atom(name);		/* the alias keeps the */
+    addNewHTable(threadTable, name, th->symbol); /* registration */
   } else
   { rc = PL_no_memory();
   }
@@ -1475,7 +1475,6 @@ to deadlock during crash analysis ...
 bool
 PL_get_thread_alias(int tid, atom_t *alias)
 { PL_thread_info_t *info;
-  thread_handle *th;
 
   if ( tid == 0 )
     tid = PL_thread_self();
@@ -1483,13 +1482,8 @@ PL_get_thread_alias(int tid, atom_t *alias)
     return false;
 
   info = GD->thread.threads[tid];
-  if ( info->symbol &&
-       (th=symbol_thread_handle(info->symbol)) &&
-       th->alias )
-  { *alias = th->alias;
-
+  if ( (*alias = info_alias(info)) )
     return true;
-  }
 
   return false;
 }
@@ -1535,7 +1529,12 @@ discard_thread(thread_handle *h)
   if ( (alive=is_alive(info->status)) && !info->detached )
   { if ( info->has_tid )
     { if ( pthread_detach(info->tid) == 0 )
-	info->detached = true;
+      { simpleMutexLock(&handle_mutex);	/* the handle may have been */
+	info->detached = true;		/* re-created: register it */
+	if ( info->symbol )		/* see free_thread_info() */
+	  registerAtomIfLive(info->symbol);
+	simpleMutexUnlock(&handle_mutex);
+      }
     }
   } else if ( !alive && !info->detached )
   { if ( !(join = COMPARE_AND_SWAP_INT(&info->joining_by, 0, -1)) )
@@ -1667,7 +1666,12 @@ release_thread_handle(atom_t aref)
   simpleMutexLock(&handle_mutex);	/* We are called from atom-GC, */
   if ( (info=ref->info) )		/* so we cannot use L_THREAD */
   { info->symbol = 0;			/* free_thread_info() clears */
-    info->discarded = ref;		/* ref->info */
+    if ( info->discarded )		/* a re-created handle: an older */
+    { ref->info = NULL;			/* one is already queued */
+      info = NULL;
+    } else
+    { info->discarded = ref;		/* ref->info */
+    }
   }
   simpleMutexUnlock(&handle_mutex);
 
@@ -2072,7 +2076,7 @@ PRED_IMPL("$thread_sigwait", 1, thread_sigwait, 0)
 const char *
 threadName(int id)
 { PL_thread_info_t *info;
-  thread_handle *th;
+  atom_t alias;
   char tmp[16];
 
   if ( id == 0 )
@@ -2081,10 +2085,8 @@ threadName(int id)
     return "[Not a prolog thread]";
 
   info = GD->thread.threads[id];
-  if ( info->symbol &&
-       (th=symbol_thread_handle(info->symbol)) &&
-       th->alias )
-    return PL_atom_chars(th->alias);
+  if ( (alias=info_alias(info)) )
+    return PL_atom_chars(alias);
 
   snprintf(tmp, sizeof tmp, "%d", id);
   return buffer_string(tmp, BUF_STACK);
@@ -2252,11 +2254,9 @@ start_thread(void *closure)
     info->status = PL_THREAD_RUNNING;
     PL_UNLOCK(L_THREAD);
 
-    thread_handle *th;
-    if ( info->symbol &&
-	 (th=symbol_thread_handle(info->symbol)) &&
-	 th->alias )
-      set_os_thread_name(th->alias);
+    atom_t alias;
+    if ( (alias=info_alias(info)) )
+      set_os_thread_name(alias);
     update_debug_mode_from_class(LD, NULL);
 
     goal = PL_new_term_ref();
@@ -2573,8 +2573,7 @@ pl_thread_create(term_t goal, term_t id, term_t options)
 
     fail;
   }
-  if ( !info->detached )
-    PL_unregister_atom(th->symbol);
+  PL_unregister_atom(th->symbol);	/* see create_thread_handle() */
 
   info->goal = PL_record(goal);
   info->module = PL_context();
@@ -2665,6 +2664,26 @@ symbol_thread_handle(atom_t a)
 }
 
 
+/* info_alias() returns the alias of the thread or NULL_ATOM.  Atom-GC
+ * may reclaim info->symbol at any moment.  release_thread_handle()
+ * clears info->symbol holding handle_mutex, so we must hold it while
+ * using the symbol.  The alias itself is registered.
+ */
+
+static atom_t
+info_alias(PL_thread_info_t *info)
+{ atom_t alias = NULL_ATOM;
+  thread_handle *th;
+
+  simpleMutexLock(&handle_mutex);
+  if ( info->symbol && (th=symbol_thread_handle(info->symbol)) )
+    alias = th->alias;
+  simpleMutexUnlock(&handle_mutex);
+
+  return alias;
+}
+
+
 static bool
 get_thread(term_t t, PL_thread_info_t **info, bool warn)
 { GET_LD
@@ -2716,42 +2735,87 @@ get_thread(term_t t, PL_thread_info_t **info, bool warn)
 }
 
 
+/* current_thread_handle() returns the handle of `info` with its symbol
+ * registered, or NULL if there is none.  Caller holds handle_mutex.
+ * free_thread_info() sets the status to PL_THREAD_UNUSED before it
+ * takes handle_mutex, so we never give a handle to a freed thread.  If
+ * atom-GC is destroying the handle, its release_thread_handle() waits
+ * for handle_mutex.  We detach the handle from `info`, so the release
+ * merely frees it, and the caller can create a new one.
+ */
+
+static thread_handle *
+current_thread_handle(PL_thread_info_t *info)
+{ atom_t symbol;
+  thread_handle *th;
+
+  if ( info->status == PL_THREAD_UNUSED || !(symbol=info->symbol) )
+    return NULL;
+  th = symbol_thread_handle(symbol);
+  if ( registerAtomIfLive(symbol) )
+    return th;
+
+  th->info = NULL;
+  info->symbol = 0;
+  return NULL;
+}
+
+
+/* create_thread_handle() returns the handle for `info`, creating one if
+ * there is none.  Atom-GC may reclaim handles concurrently, so the
+ * handle's symbol is registered and the caller must unregister it.  A
+ * detached thread holds a registration of its symbol, which is dropped
+ * by free_thread_info().
+ */
+
 static thread_handle *
 create_thread_handle(DECL_LD PL_thread_info_t *info)
-{ atom_t symbol;
+{ thread_handle *th;
+  thread_handle *ref;
 
-  if ( (symbol=info->symbol) )
-  { return symbol_thread_handle(symbol);
-  } else
-  { thread_handle *ref;
+  simpleMutexLock(&handle_mutex);
+  th = current_thread_handle(info);
+  simpleMutexUnlock(&handle_mutex);
+  if ( th )
+    return th;
 
+#ifdef O_PLMT
+  if ( info->is_engine )
+    ref = PL_malloc(sizeof(*ref)+sizeof(simpleMutex));
+  else
+#endif
+    ref = PL_malloc(sizeof(*ref));
+
+  if ( ref )
+  { bool new;
+
+    memset(ref, 0, sizeof(*ref));
 #ifdef O_PLMT
     if ( info->is_engine )
-      ref = PL_malloc(sizeof(*ref)+sizeof(simpleMutex));
-    else
-#endif
-      ref = PL_malloc(sizeof(*ref));
-
-    if ( ref )
-    { bool new;
-
-      memset(ref, 0, sizeof(*ref));
-#ifdef O_PLMT
-      if ( info->is_engine )
-      { ref->interactor.mutex = (simpleMutex*)(ref+1);
-	simpleMutexInit(ref->interactor.mutex);
-      }
-#endif
-
-      ref->info      = info;
-      ref->engine_id = info->pl_tid;
-      ref->symbol    = lookupBlob((char*)&ref, sizeof(ref), &thread_blob, &new);
-      assert(new);
-      info->symbol   = ref->symbol;
+    { ref->interactor.mutex = (simpleMutex*)(ref+1);
+      simpleMutexInit(ref->interactor.mutex);
     }
+#endif
 
-    return ref;
+    ref->engine_id = info->pl_tid;
+    ref->symbol    = lookupBlob((char*)&ref, sizeof(ref), &thread_blob, &new);
+    assert(new);			/* registered */
+
+    simpleMutexLock(&handle_mutex);
+    if ( (th=current_thread_handle(info)) ||
+	 info->status == PL_THREAD_UNUSED )
+    { simpleMutexUnlock(&handle_mutex);	/* another thread was faster */
+      PL_unregister_atom(ref->symbol);	/* or the thread is gone. */
+      return th;			/* ref->info is NULL: release */
+    }					/* frees ref */
+    ref->info    = info;
+    info->symbol = ref->symbol;
+    if ( info->detached && !info->is_engine )
+      PL_register_atom(ref->symbol);	/* see free_thread_info() */
+    simpleMutexUnlock(&handle_mutex);
   }
+
+  return ref;
 }
 
 
@@ -2761,8 +2825,10 @@ unify_thread_id(DECL_LD term_t id, PL_thread_info_t *info)
 
   if ( (th = create_thread_handle(info)) )
   { atom_t name = th->alias ? th->alias : th->symbol;
+    bool rc = PL_unify_atom(id, name);
 
-    return PL_unify_atom(id, name);
+    PL_unregister_atom(th->symbol);	/* see create_thread_handle() */
+    return rc;
   } else					/* during destruction? */
     return PL_unify_integer(id, info->pl_tid);
 }
@@ -2896,7 +2962,8 @@ free_thread_info(PL_thread_info_t *info)
     info->discarded = NULL;
   }
   atom_t symbol = info->symbol;		/* may be reclaimed by atom-GC */
-  if ( symbol )				/* unless we hold handle_mutex */
+  bool registered = false;		/* unless we hold handle_mutex */
+  if ( symbol )
   { thread_handle *th;
 
     if ( (th=symbol_thread_handle(symbol)) )
@@ -2904,10 +2971,13 @@ free_thread_info(PL_thread_info_t *info)
       if ( th->alias && !info->is_engine )
 	unalias_thread(th);
     }
+					/* atom-GC destroys it: no references */
+    registered = !ATOM_IS_DESTROYED(atomValue(symbol)->references);
+    info->symbol = 0;
   }
   simpleMutexUnlock(&handle_mutex);
-  if ( symbol && info->detached && !info->is_engine )
-    PL_unregister_atom(symbol);		/* registered: not reclaimed */
+  if ( registered && info->detached && !info->is_engine )
+    PL_unregister_atom(symbol);		/* see create_thread_handle() */
 
   if ( (rec_rv=info->return_value) )	/* sync with unify_thread_status() */
     info->return_value = NULL;
@@ -3104,8 +3174,11 @@ PRED_IMPL("thread_detach", 1, thread_detach, 0)
     } else if ( !info->thread_data )	/* exited without being detached */
     { release = info;			/* see freePrologThread() */
     } else
-    { PL_register_atom(info->symbol);
-      info->detached = true;
+    { simpleMutexLock(&handle_mutex);	/* see create_thread_handle() */
+      info->detached = true;		/* if atom-GC is destroying the */
+      if ( info->symbol )		/* symbol, it is cleared by */
+	registerAtomIfLive(info->symbol); /* release_thread_handle() */
+      simpleMutexUnlock(&handle_mutex);
     }
   }
 
@@ -3158,7 +3231,7 @@ PRED_IMPL("set_thread", 2, set_thread, 0)
     if ( name == ATOM_alias )
     { atom_t alias;
       if ( PL_get_atom_ex(arg, &alias) )
-      { if ( info->symbol && symbol_alias(info->symbol) )
+      { if ( info_alias(info) )
 	  return PL_permission_error("re-alias", "thread", A1);
 	return aliasThread(info->pl_tid, ATOM_thread, alias);
       }
@@ -3312,10 +3385,9 @@ thread_id_property(DECL_LD void *ctx, term_t prop)
 static bool
 thread_alias_property(DECL_LD void *ctx, term_t prop)
 { PL_thread_info_t *info = ctx;
-  atom_t symbol, alias;
+  atom_t alias;
 
-  if ( (symbol=info->symbol) &&
-       (alias=symbol_alias(symbol)) )
+  if ( (alias=info_alias(info)) )
     return PL_unify_atom(prop, alias);
 
   return false;

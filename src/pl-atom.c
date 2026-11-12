@@ -2809,6 +2809,43 @@ void
  * suspensions of its tabling worklists.
  */
 
+/* As PL_register_atom(), but fails if atom-GC is destroying `a`: its
+ * release hook may be running.  This is for atoms that are found in a
+ * data structure that the release hook updates, such as the thread
+ * handles in PL_thread_info_t.  If we register first, atom-GC no longer
+ * destroys `a`.  Thread handles are global atoms, so no promotion.
+ */
+
+bool
+registerAtomIfLive(atom_t a)
+{
+#ifdef O_ATOMGC
+  size_t index = indexAtom(a);
+
+  if ( index >= GD->atoms.builtin )
+  { Atom p = fetchAtomArray(index);
+
+    for(;;)
+    { unsigned int ref = p->references;
+
+      if ( ATOM_IS_DESTROYED(ref) || !ATOM_IS_VALID(ref) )
+	return false;
+      if ( ATOM_IS_LOCAL(ref) )
+	return register_atom(p, true), true;
+      if ( COMPARE_AND_SWAP_UINT(&p->references, ref, ref+1) )
+      { if ( ATOM_REF_COUNT(ref+1) == 1 )
+	{ ATOMIC_DEC(&GD->atoms.unregistered);
+	  del_type_units(p);
+	}
+	return true;
+      }
+    }
+  }
+#endif
+  return true;
+}
+
+
 void
 registerAtomLocally(atom_t a)
 {
