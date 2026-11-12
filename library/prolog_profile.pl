@@ -141,8 +141,18 @@ profile(Goal0, Options) :-
     option(sample_rate(Rate), Options, DefRate),
     must_be(between(1.0,1000), Rate),
     expand_goal(Goal0, Goal),
-    call_cleanup('$profile'(Goal, How, Ports, Rate),
-                 prolog_statistics:show_profile(Options)).
+    call_cleanup('$profile'(Goal, How, Ports, Rate), Catcher,
+                 show_profile_after(Catcher, Options)).
+
+%   If another thread is profiling, '$profile'/4 raises a permission
+%   error before it runs Goal.  There is no profile to show then, and
+%   showing one would open the GUI for nothing.
+
+show_profile_after(exception(error(permission_error(profile, thread, _), _)),
+                   _) :-
+    !.
+show_profile_after(_, Options) :-
+    show_profile(Options).
 
 exact(auto, Time, Exact) :-
     !,
