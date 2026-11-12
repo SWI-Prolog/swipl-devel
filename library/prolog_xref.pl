@@ -750,8 +750,7 @@ xref_used_class(Source, Class) :-
 xref_defined_class(Source, Class, local(Line, Super, Summary)) :-
     prolog_canonical_source(Source, Src),
     defined_class(Class, Super, Summary, Src, Line),
-    integer(Line),
-    !.
+    integer(Line).
 xref_defined_class(Source, Class, file(File)) :-
     prolog_canonical_source(Source, Src),
     defined_class(Class, _, _, Src, file(File)).
