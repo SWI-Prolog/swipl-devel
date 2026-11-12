@@ -2028,6 +2028,7 @@ VMH(depart_alerted, 0, (), ())
     LOAD_REGISTERS(QID);
     if ( !rc )
       THROW_EXCEPTION;
+    setGenerationFrame(FR);	/* see the database as the undo left it */
   }
 
   Profile(FR->prof_node = profCall(DEF));
