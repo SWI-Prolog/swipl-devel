@@ -739,9 +739,16 @@ convert_setting_text(Type, Atom, Term) :-
                  *******************************/
 
 :- multifile
-    sandbox:safe_meta_predicate/1.
+    sandbox:safe_meta/2.
 
-sandbox:safe_meta_predicate(settings:setting/2).
+%   Sandboxed code may only read settings of its own module: settings of
+%   other modules may hold, e.g., passwords.  An unqualified Name refers
+%   to the calling module.
+
+sandbox:safe_meta(settings:setting(Name, _Value), []) :-
+    \+ ( nonvar(Name),
+         Name = _:_
+       ).
 
 
 		 /*******************************

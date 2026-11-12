@@ -52,6 +52,7 @@ test_sandbox :-
 :- begin_tests(sandbox).
 :- use_module(library(sandbox)).
 :- use_module(library(aggregate)).
+:- use_module(library(settings)).
 
 my_call(G) :-
 	phrase({G},_).
@@ -135,5 +136,13 @@ test(use_module, error(_)) :-
 	safe_goal(use_module(library('dialect/../lists'))).
 test(use_module) :-
 	safe_goal(use_module(library(lists))).
+% Settings of other modules may hold, e.g., passwords.
+test(setting, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(setting(app:password, _)).
+test(setting, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(setting(_:_, _)).
+test(setting) :-
+	safe_goal(setting(my_setting, _)),
+	safe_goal(setting(_, _)).
 
 :- end_tests(sandbox).
