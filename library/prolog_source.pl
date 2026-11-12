@@ -876,7 +876,7 @@ prolog_canonical_source(Src, Id) :-             % Call hook
     prolog:xref_source_identifier(Src, Id),
     !.
 prolog_canonical_source(Source, Src) :-
-    source_file(Source),
+    loaded_source_file(Source),
     !,
     Src = Source.
 prolog_canonical_source(Source, Src) :-
@@ -885,6 +885,19 @@ prolog_canonical_source(Source, Src) :-
                          access(read),
                          file_errors(fail)
                        ]),
+    !.
+
+%   loaded_source_file(+Source) is semidet.
+%
+%   True if Source is the name of a loaded source file.  Unlike
+%   source_file/1, Source is not resolved: a relative name or alias
+%   for a loaded file must canonicalise to its absolute name, the same
+%   as when the file is not loaded.
+
+loaded_source_file(Source) :-
+    atom(Source),
+    '$time_source_file'(Source, Time, _),
+    float(Time),
     !.
 
 
