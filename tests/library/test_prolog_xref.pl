@@ -43,7 +43,8 @@
 
 test_prolog_xref :-
     run_tests([ prolog_canonical_source,
-                xref_defined_class
+                xref_defined_class,
+                xref_conditions
               ]).
 
 :- dynamic data_dir/1.
@@ -109,3 +110,20 @@ defined_classes(File, Classes) :-
     msort(Classes0, Classes).
 
 :- end_tests(xref_defined_class).
+
+:- begin_tests(xref_conditions).
+
+test(no_code, Ran == false) :-
+    nb_setval(xref_cond_ran, false),
+    data_file('xref_cond_user.pl', File),
+    setup_call_cleanup(
+        xref_source(File, [silent(true)]),
+        true,
+        xref_clean(File)),
+    nb_getval(xref_cond_ran, Ran).
+test(safe_condition, Exports == [good/0]) :-
+    data_file('xref_cond_imported.pl', File),
+    prolog_file_directives(File, Directives, []),
+    findall(PI, member((:- export(PI)), Directives), Exports).
+
+:- end_tests(xref_conditions).
