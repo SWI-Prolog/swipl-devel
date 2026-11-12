@@ -39,6 +39,7 @@
             edit/0
           ]).
 :- autoload(library(lists), [member/2, append/3, select/3, append/2]).
+:- autoload(library(error), [domain_error/2]).
 :- autoload(library(make), [make/0]).
 :- autoload(library(prolog_breakpoints), [breakpoint_property/2]).
 :- autoload(library(apply), [foldl/5, maplist/3, maplist/2]).
@@ -417,6 +418,7 @@ external_edit_command(Location, Command) :-
     file_name_extension(Base, _, EditorFile),
     edit_command(Base, Cmd),
     prolog_to_os_filename(File, OsFile),
+    shell_safe_file(File, OsFile),
     atom_codes(Cmd, S0),
     substitute('%e', Editor, S0, S1),
     substitute('%f', OsFile, S1, S2),
@@ -430,6 +432,7 @@ external_edit_command(Location, Command) :-
     file_name_extension(Base, _, EditorFile),
     edit_command(Base, Cmd),
     prolog_to_os_filename(File, OsFile),
+    shell_safe_file(File, OsFile),
     atom_codes(Cmd, S0),
     substitute('%e', Editor, S0, S1),
     substitute('%f', OsFile, S1, S),
@@ -439,7 +442,35 @@ external_edit_command(Location, Command) :-
 external_edit_command(Location, Command) :-
     #{file:File} :< Location,
     editor(Editor),
+    shell_safe_file(File, File),
     format(string(Command), '"~w" "~w"', [Editor, File]).
+
+%!  shell_safe_file(+File, +OsFile) is det.
+%
+%   The editor command is run using shell/1, where the file name
+%   appears inside quotes of the edit_command/2 template.  Refuse file
+%   names with characters that may end the quoted text or are expanded
+%   by the shell.
+%
+%   @error domain_error(shell_safe_file_name, File)
+
+shell_safe_file(File, OsFile) :-
+    atom_codes(OsFile, Codes),
+    (   member(C, Codes),
+        unsafe_file_char(C)
+    ->  domain_error(shell_safe_file_name, File)
+    ;   true
+    ).
+
+unsafe_file_char(C) :-
+    C < 0' .
+unsafe_file_char(C) :-
+    memberchk(C, `'"\`$`).
+unsafe_file_char(C) :-
+    current_prolog_flag(windows, true),
+    !,
+    memberchk(C, `%!^&|<>`).
+unsafe_file_char(0'\\).
 
 is_pceemacs(pce_emacs).
 is_pceemacs(built_in).
