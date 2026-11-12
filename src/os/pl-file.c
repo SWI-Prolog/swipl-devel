@@ -1592,6 +1592,18 @@ reportStreamError(IOSTREAM *s)
       Sclearerr(s);
 
       return false;
+    } else if ( s->encoding_errors && (s->flags & SIO_INPUT) )
+    { term_t culprit;			/* encoding_errors(error) */
+      bool rc = ( !exception_term &&	/* keep e.g. the reader's error */
+		  (culprit=PL_new_term_ref()) &&
+		  PL_unify_term(culprit,
+				PL_FUNCTOR, FUNCTOR_encoding1,
+				  PL_CHARS, s->message) &&
+		  PL_syntax_error_term(culprit, s) );
+      (void)rc;
+      Sseterr(s, 0, NULL);
+
+      return false;
     } else
     { int rc;
 
@@ -1617,6 +1629,30 @@ streamStatus(IOSTREAM *s)
   }
 
   return releaseStream(s);
+}
+
+
+/** Set the stream property encoding_errors(Mode) of `s'.  With `error',
+ * reportStreamError() raises error(syntax_error(encoding(Message)), _)
+ * for input that cannot be decoded rather than printing a warning.
+ */
+
+static bool
+atom_to_encoding_errors_ex(atom_t a, IOSTREAM *s)
+{ if ( a == ATOM_error )
+    s->encoding_errors = true;
+  else if ( a == ATOM_warning )
+    s->encoding_errors = false;
+  else
+  { GET_LD
+    term_t t;
+
+    return ( (t=PL_new_term_ref()) &&
+	     PL_put_atom(t, a) &&
+	     PL_domain_error("encoding_errors", t) );
+  }
+
+  return true;
 }
 
 
@@ -2620,6 +2656,14 @@ set_stream(DECL_LD IOSTREAM *s, term_t stream, atom_t aname, term_t a)
     return PL_error(NULL, 0, NULL, ERR_PERMISSION,
 		    ATOM_locale, ATOM_stream, stream);
 #endif
+  } else if ( aname == ATOM_encoding_errors )
+  { atom_t val;
+
+    if ( !PL_get_atom_ex(a, &val) ||
+	 !atom_to_encoding_errors_ex(val, s) )
+      return false;
+
+    return true;
   } else if ( aname == ATOM_representation_errors )
   { atom_t val;
 
@@ -2710,6 +2754,7 @@ static const set_stream_info ss_info[] =
   SS_INFO(ATOM_tty,		      SS_BOTH),
   SS_INFO(ATOM_encoding,	      SS_BOTH),
   SS_INFO(ATOM_unicode_atoms,	      SS_READ),
+  SS_INFO(ATOM_encoding_errors,	      SS_READ),
   SS_INFO(ATOM_locale,		      SS_BOTH),
   SS_INFO(ATOM_representation_errors, SS_WRITE),
   SS_INFO(ATOM_write_errors,          SS_WRITE),
@@ -4323,6 +4368,7 @@ static const PL_option_t open4_options[] =
   { ATOM_locale,	 OPT_LOCALE },
 #endif
   { ATOM_unicode_atoms,	 OPT_ATOM },
+  { ATOM_encoding_errors, OPT_ATOM },
   { NULL_ATOM,		 0 }
 };
 
@@ -4390,6 +4436,7 @@ openStream(term_t file, term_t mode, term_t options)
   int	 bom		= -1;
   term_t create		= 0;
   atom_t unicode_atoms_opt = NULL_ATOM;
+  atom_t encoding_errors_opt = NULL_ATOM;
   char   how[16];
   char  *h		= how;
   char *path;
@@ -4408,7 +4455,7 @@ openStream(term_t file, term_t mode, term_t options)
 			  &close_on_abort, &buffer, &lock, &wait,
 			  &encoding, &newline, &bom, &create
 			  LOCALE_ARG,
-			  &unicode_atoms_opt) )
+			  &unicode_atoms_opt, &encoding_errors_opt) )
       return false;
   }
 
@@ -4613,6 +4660,11 @@ openStream(term_t file, term_t mode, term_t options)
       return NULL;
     }
     s->unicode_atoms = (unsigned char)mode;
+  }
+  if ( encoding_errors_opt != NULL_ATOM &&
+       !atom_to_encoding_errors_ex(encoding_errors_opt, s) )
+  { Sclose(s);
+    return NULL;
   }
 
   return s;
@@ -5297,6 +5349,17 @@ stream_locale_prop(DECL_LD IOSTREAM *s, term_t prop)
 }
 #endif
 
+#define stream_encoding_errors_prop(s, prop) \
+	LDFUNC(stream_encoding_errors_prop, s, prop)
+static int
+stream_encoding_errors_prop(DECL_LD IOSTREAM *s, term_t prop)
+{ if ( !(s->flags & SIO_INPUT) )
+    return false;
+
+  return PL_unify_atom(prop, s->encoding_errors ? ATOM_error : ATOM_warning);
+}
+
+
 #define stream_reperror_prop(s, prop) LDFUNC(stream_reperror_prop, s, prop)
 static int
 stream_reperror_prop(DECL_LD IOSTREAM *s, term_t prop)
@@ -5447,6 +5510,7 @@ static const sprop sprop_list [] =
   _SP1( FUNCTOR_tty1,		stream_tty_prop ),
   _SP1( FUNCTOR_encoding1,	stream_encoding_prop ),
   _SP1( FUNCTOR_unicode_atoms1,	stream_unicode_atoms_prop ),
+  _SP1( FUNCTOR_encoding_errors1, stream_encoding_errors_prop ),
 #ifdef O_LOCALE
   _SP1( FUNCTOR_locale1,	stream_locale_prop ),
 #endif

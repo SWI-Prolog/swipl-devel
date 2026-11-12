@@ -45,7 +45,8 @@
 test_unicode :-
     run_tests([ numbers,
 		unicode_preds,
-		utf8_decode
+		utf8_decode,
+		encoding_errors
 	      ]).
 
 :- begin_tests(numbers).
@@ -154,3 +155,49 @@ test(pending_truncated, Codes == [0x78, 0xFFFD, 0xFFFD]) :-
     decode_pending([0x78, 0xE2,0x82], Codes).
 
 :- end_tests(utf8_decode).
+
+:- begin_tests(encoding_errors).
+
+%   decode_strict(+Bytes, -Codes)
+%
+%   Decode Bytes as UTF-8 from a stream opened with
+%   encoding_errors(error).
+
+decode_strict(Bytes, Codes) :-
+    tmp_file_stream(binary, File, Out),
+    call_cleanup(
+        ( maplist(put_byte(Out), Bytes),
+          close(Out),
+          setup_call_cleanup(
+              open(File, read, In,
+                   [encoding(utf8), encoding_errors(error)]),
+              read_stream_to_codes(In, Codes),
+              close(In))
+        ),
+        delete_file(File)).
+
+test(default, Mode == warning) :-
+    setup_call_cleanup(
+        open_string("", In),
+        stream_property(In, encoding_errors(Mode)),
+        close(In)).
+test(set_stream, Mode == error) :-
+    setup_call_cleanup(
+        open_string("", In),
+        ( set_stream(In, encoding_errors(error)),
+          stream_property(In, encoding_errors(Mode))
+        ),
+        close(In)).
+test(domain, error(domain_error(encoding_errors, nonsense))) :-
+    setup_call_cleanup(
+        open_string("", In),
+        set_stream(In, encoding_errors(nonsense)),
+        close(In)).
+test(valid, Codes == [0x41, 0xE9, 0x20AC]) :-
+    decode_strict([0x41, 0xC3,0xA9, 0xE2,0x82,0xAC], Codes).
+test(illegal, error(syntax_error(encoding(_)), _)) :-
+    decode_strict([0x41, 0xFF, 0x42], _).
+test(truncated, error(syntax_error(encoding(_)), _)) :-
+    decode_strict([0x41, 0xE2,0x82], _).
+
+:- end_tests(encoding_errors).

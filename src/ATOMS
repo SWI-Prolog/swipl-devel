@@ -296,6 +296,7 @@ A e			"e"
 A eager			"eager"
 A else			"else"
 A encoding		"encoding"
+A encoding_errors	"encoding_errors"
 A end			"end"
 A end_of_file		"end_of_file"
 A end_of_line		"end_of_line"
@@ -1200,6 +1201,7 @@ F dvard			1
 F dwakeup		1
 F e			0
 F encoding		1
+F encoding_errors	1
 F end			1
 F end_of_stream		1
 F engine		1
