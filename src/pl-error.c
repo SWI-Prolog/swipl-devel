@@ -1302,8 +1302,12 @@ PL_get_size_ex(DECL_LD term_t t, size_t *i)
 	    return false;
 	}
       }
-#else
-      return int_range_error(t, ATOM_size_t, true);
+#elif defined(O_BIGNUM)
+      case V_MPZ:
+	if ( mpz_sgn(n.value.mpz) < 0 )
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, t);
+	return int_range_error(t, ATOM_size_t, true);
 #endif
       default:
 	break;
