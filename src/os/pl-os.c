@@ -784,6 +784,17 @@ retry:
   if ( rc )
   { if ( !PrologPath(tmp, temp, sizeof(temp)) )
       return NULL_ATOM;
+    if ( ext[0] )			/* _wtempnam() has no extension */
+    { size_t len = strlen(temp);
+      size_t elen = strlen(ext);
+
+      if ( len+1+elen >= sizeof(temp) )
+      { errno = ENAMETOOLONG;
+	return NULL_ATOM;
+      }
+      temp[len] = '.';
+      memcpy(temp+len+1, ext, elen+1);
+    }
   } else
   { const char *sep  = id[0] ? "_" : "";
     const char *esep = ext[0] ? "." : "";

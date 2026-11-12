@@ -94,6 +94,11 @@ test(tmp_directory_clash,		% the next name exists: skip it
 	tmp_directory(test, Dir),
 	assertion(exists_directory(Dir)).
 
+test(tmp_file_extension, Ext == c) :-
+	tmp_file_stream(File, Out, [extension(c)]),
+	close(Out),
+	delete_file(File),
+	file_name_extension(_, Ext, File).
 test(tmp_directory_halt,		% halt removes files before their dir
      [ condition(exists_source(library(process))),
        Left == []
