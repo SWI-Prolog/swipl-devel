@@ -2389,6 +2389,7 @@ assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
   if ( proc && unlikely(!(LOAD_SEQ_CST(proc->flags)&PROC_PINNED)) )
     unvolatileProcedure(proc);
   acquire_def(def);
+  waitIndexFills(def);
   if ( !def->impl.clauses.last_clause )
   { def->impl.clauses.last_clause = cref;
     STORE_RELEASE(def->impl.clauses.first_clause, cref);
@@ -2577,7 +2578,8 @@ removeClausesPredicate(Definition def, size_t sfindex, int fromfile)
     registerDirtyDefinition(def);
 
   if ( GD->halt.cleaning != CLN_DATA )		/* normal operation */
-  { PL_LOCK(L_GENERATION);
+  { waitIndexFills(def);
+    PL_LOCK(L_GENERATION);
     update = global_generation()+1;
     acquire_def(def);
     for(c = def->impl.clauses.first_clause; c; c = next)
@@ -2685,6 +2687,7 @@ retract_clause(DECL_LD Clause clause, gen_t generation)
   }
 
   DEBUG(CHK_SECURE, checkDefinition(def));
+  waitIndexFills(def);
   set(clause, CL_ERASED);
   deleteActiveClauseFromIndexes(def, clause); /* just updates "dirtyness" */
   def->impl.clauses.number_of_clauses--;
@@ -2953,6 +2956,7 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
     bool was_dirty;
 
     LOCKDEF(def);
+    waitIndexFills(def);
     PL_LOCK(L_GENERATION);
     update = global_generation()+1;
     acquire_def(def);

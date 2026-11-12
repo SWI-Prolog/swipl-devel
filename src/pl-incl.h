@@ -1849,6 +1849,7 @@ struct definition
   unsigned int  shared;			/* #procedures sharing this def */
   unsigned int  clause_refs;		/* 1 + #CL_DEF_REF clauses */
   bool		functor_ref;		/* Holds a counted functor reference */
+  unsigned int	filling;		/* #clause indexes being filled */
   Module	module;			/* module of the predicate */
   struct linger_list  *lingering;	/* Assocated lingering objects */
   gen_t		last_modified;		/* Generation I was last modified */
