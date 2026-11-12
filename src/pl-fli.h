@@ -134,18 +134,22 @@ void		check_atom_t(atom_t t);
 void		check_functor_t(functor_t t);
 void		check_dict_key(atom_t a);
 
-/* The checks are enabled by the Prolog flag `validate_api` */
+/* The checks are enabled by the Prolog flag `validate_api`.  Atoms and
+   functors may be used from threads without a Prolog engine, where
+   there is no LD to hold the flag.  These are always checked.
+*/
 #define validateAPI() truePrologFlag(PLFLAG_VALIDATE_API)
+#define validateAPI_noLD() (!HAS_LD || validateAPI())
 #define valid_term_t(t) \
 	do { if ( validateAPI() ) check_term_t(t); } while(0)
 #define valid_user_term_t(t) \
 	do { if ( validateAPI() ) check_user_term_t(t); } while(0)
 #define valid_atom_t(a) \
-	do { if ( validateAPI() ) check_atom_t(a); } while(0)
+	do { if ( validateAPI_noLD() ) check_atom_t(a); } while(0)
 #define valid_functor_t(f) \
-	do { if ( validateAPI() ) check_functor_t(f); } while(0)
+	do { if ( validateAPI_noLD() ) check_functor_t(f); } while(0)
 #define valid_dict_key(a) \
-	do { if ( validateAPI() ) check_dict_key(a); } while(0)
+	do { if ( validateAPI_noLD() ) check_dict_key(a); } while(0)
 #else
 #define valid_term_t(t) (void)0
 #define valid_user_term_t(t) (void)0
