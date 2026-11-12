@@ -302,8 +302,10 @@ depth_limit(fail-1) :-
 
 type_test(type-1) :-
     X = Y, var(X), Y = a, nonvar(X).
+:- style_check(-no_effect).             % tests on constants are intended
 type_test(type-2) :-
     atom(hello), \+ atom(10), \+ atom("hello").
+:- style_check(+no_effect).
 type_test(type-3) :-
     call(callable, atom),
     call(callable, term(a)),
