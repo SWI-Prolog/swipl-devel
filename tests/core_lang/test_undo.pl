@@ -54,6 +54,14 @@ test(undo_or) :-
         fail
     ;   \+ a(1)
     ).
+test(undo_or_other_clause) :-          % a/1 is not empty after the undo
+    assert(a(0), Ref0),
+    (   assert(a(1), Ref),
+        undo(erase(Ref)),
+        fail
+    ;   \+ a(1)
+    ),
+    erase(Ref0).
 test(clauses) :-
     t1.
 test(error, throws(x)) :-
