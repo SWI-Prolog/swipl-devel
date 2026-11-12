@@ -259,6 +259,7 @@ typedef struct io_stream
   struct io_stream *	downstream;	/* stream providing our output */
   unsigned		newline : 2;	/* Newline mode */
   unsigned		erased : 1;	/* Stream was erased */
+  unsigned		encoding_errors : 1; /* Decoding errors raise an exception */
   int			io_errno;	/* Save errno value */
   char *		message;	/* error/warning message */
   void *		exception;	/* pending exception (record_t) */

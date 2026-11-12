@@ -5725,6 +5725,15 @@ The default encoding for type \const{text} is derived from the Prolog
 flag \prologflag{encoding}. For \const{binary} streams the default encoding
 is \const{octet}. For details on encoding issues, see \secref{encoding}.
 
+    \termitem{encoding_errors}{Mode}
+Determines what happens if input cannot be decoded according to the
+encoding, e.g., an invalid UTF-8 byte sequence or a sequence that is cut
+short by the end of the file.  If \arg{Mode} is \const{warning}
+(default), the character is replaced by U+FFFD and a warning is printed.
+If \arg{Mode} is \const{error}, reading raises the exception
+\term{error}{\term{syntax_error}{\term{encoding}{Message}}, Context}.
+Only applies to input streams.
+
     \termitem{eof_action}{Action}
 Defines what happens if the end of the input stream is reached. The
 default value for Action is \const{eof_code}, which makes get0/1 and
@@ -5867,6 +5876,10 @@ Windows.
     \termitem{encoding}{Encoding}
 Query the encoding used for text.  See \secref{encoding} for an
 overview of wide character and encoding issues in SWI-Prolog.
+
+    \termitem{encoding_errors}{Mode}
+For input streams, one of \const{warning} or \const{error}.  See the
+option \term{encoding_errors}{Mode} of open/4.
 
     \termitem{end_of_stream}{E}
 If \arg{Stream} is an input stream, unify \arg{E} with one of the
@@ -6083,6 +6096,10 @@ stream.  See \secref{encoding} for supported encodings.  The value
 \const{bom} causes the stream to check whether the current character
 is a Unicode BOM marker.  If a BOM marker is found, the encoding is
 set accordingly and the call succeeds.  Otherwise the call fails.
+
+    \termitem{encoding_errors}{Mode}
+Set the handling of input that cannot be decoded to \const{warning} or
+\const{error}.  See the option \term{encoding_errors}{Mode} of open/4.
 
     \termitem{eof_action}{Action}
 Set end-of-file handling to one of \const{eof_code}, \const{reset} or

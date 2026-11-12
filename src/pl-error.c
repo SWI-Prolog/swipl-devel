@@ -968,13 +968,28 @@ PL_no_memory(void)
 bool
 PL_syntax_error(const char *msg, IOSTREAM *in)
 { GET_LD
+  term_t culprit;
+
+  return ( (culprit = PL_new_term_ref()) &&
+	   PL_put_atom_chars(culprit, msg) &&
+	   PL_syntax_error_term(culprit, in) );
+}
+
+
+/** Raise error(syntax_error(Culprit), Location), where Location is the
+ * position in `in' if it is given.
+ */
+
+bool
+PL_syntax_error_term(term_t culprit, IOSTREAM *in)
+{ GET_LD
   term_t ex, loc;
 
   if ( (ex = PL_new_term_ref()) &&
        (loc = PL_new_term_ref()) &&
        PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
 		       PL_FUNCTOR, FUNCTOR_syntax_error1,
-			 PL_CHARS, msg,
+			 PL_TERM, culprit,
 		       PL_TERM, loc) )
   { if ( in )
     { IOPOS *pos;

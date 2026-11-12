@@ -124,6 +124,7 @@ typedef enum
 COLD bool		PL_error(const char *pred, size_t arity, const char *msg,
 			 PL_error_code id, ...);
 bool		PL_no_memory(void);
+bool		PL_syntax_error_term(term_t culprit, IOSTREAM *in);
 COLD bool		printMessage(atom_t severity, ...) WUNUSED;
 bool		printMessagev(atom_t severity, va_list args) WUNUSED;
 bool		PL_get_atom_ex(term_t t, atom_t *a) WUNUSED;
