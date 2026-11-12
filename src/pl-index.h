@@ -71,6 +71,7 @@ void		clearTriedIndexes(Definition def);
 void		reconsiderIndexes(Definition def);
 void		unallocClauseIndexTable(ClauseIndex ci);
 void		deleteActiveClauseFromIndexes(Definition def, Clause cl);
+void		waitForIndexFills(Definition def);
 bool		unify_index_pattern(Procedure proc, term_t value);
 void		deleteIndexes(Definition def, ClauseList cl, bool isnew);
 void		deleteIndexesDefinition(Definition def);
@@ -333,6 +334,30 @@ nextClause(DECL_LD const ClauseChoice chp, const Word argv,
     *chp = gchp;
     return cref;
   }
+}
+
+
+/* Wait until no index of `def` is being filled.  Called with `def`
+ * locked before changing its clause list or marking a clause erased.
+ * See hashDefinition().
+ */
+
+static inline void
+waitIndexFills(Definition def)
+{
+#ifdef O_PLMT
+#ifdef __GNUC__				/* see done_index_fill() */
+  unsigned int filling = __atomic_load_n(&def->filling, __ATOMIC_ACQUIRE);
+#else
+  unsigned int filling = def->filling;
+  MEMORY_ACQUIRE();
+#endif
+
+  if ( unlikely(filling) )
+    waitForIndexFills(def);
+#else
+  (void)def;
+#endif
 }
 
 #endif /*_PL_INDEX_H*/

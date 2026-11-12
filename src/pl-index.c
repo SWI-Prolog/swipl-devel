@@ -87,6 +87,8 @@
 static const struct clause_index dead_index = {0}; /* 0 for MSVC broken C11 */
 #define DEAD_INDEX   ((ClauseIndex)(&dead_index))
 #define ISDEADCI(ci) ((ci) == DEAD_INDEX)
+/* Dead, or invalid and waiting for retireIndex() */
+#define UNUSABLECI(ci) (ISDEADCI(ci) || (ci)->invalid)
 
 typedef struct hash_hints
 { float		speedup;		/* Expected speedup */
@@ -126,6 +128,9 @@ static void	replaceIndex(Definition def, ClauseList cl,
 			     ClauseIndex *cip, ClauseIndex ci);
 static void	deleteIndexP(Definition def, ClauseList cl, ClauseIndex *cip);
 static void	deleteIndex(Definition def, ClauseList cl, ClauseIndex ci);
+static void	retireIndex(Definition def, ClauseList cl, ClauseIndex ci);
+static void	start_index_fill(Definition def);
+static void	done_index_fill(Definition def);
 static void	insertIndex(Definition def, ClauseList clist, ClauseIndex ci);
 static void	setClauseChoice(ClauseRef cref, const IndexContext ctx);
 static bool	addClauseToIndex(ClauseIndex ci, Clause cl, ClauseRef where);
@@ -604,6 +609,7 @@ createIndex(DECL_LD Word argv, size_t argc, const ClauseList clist,
     if ( (ci=hashDefinition(clist, &hints, ctx)) )
     { while ( ci->incomplete )
 	wait_for_index(ci, clist, ctx);
+      MEMORY_ACQUIRE();			/* sync with completed_index() */
       if ( ci->invalid )
 	return CI_RETRY;
 
@@ -705,10 +711,11 @@ retry:
 	  }
 	}
 
-	if ( best_index->incomplete )
-	{ wait_for_index(best_index, clist, ctx);
+	if ( best_index->incomplete || best_index->invalid )
+	{ wait_for_index(best_index, clist, ctx); /* see retireIndex() */
 	  goto retry;
 	}
+	MEMORY_ACQUIRE();		/* sync with completed_index() */
       }
 
       unsigned int hi = hashIndex(chp->key, best_index->buckets);
@@ -1011,7 +1018,7 @@ addClauseToListIndexes(Definition def, ClauseList cl, Clause clause,
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
 
-      if ( ISDEADCI(ci) || !ci->entries )
+      if ( UNUSABLECI(ci) || !ci->entries )
 	continue;
 
       while ( ci->incomplete )
@@ -1440,7 +1447,7 @@ cleanClauseIndexes(Definition def, ClauseList cl, DirtyDefInfo ddi,
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
 
-      if ( ISDEADCI(ci) )
+      if ( UNUSABLECI(ci) )
 	continue;
       cleanClauseIndex(def, cl, ci, ddi, start, tr_starts);
     }
@@ -1692,7 +1699,7 @@ deleteActiveClauseFromIndexes(Definition def, Clause cl)
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
 
-      if ( ISDEADCI(ci) || !ci->entries )
+      if ( UNUSABLECI(ci) || !ci->entries )
 	continue;
 
       while( ci->incomplete )
@@ -1868,7 +1875,7 @@ delClauseFromIndex(Definition def, Clause cl)
     ClauseBucket ch;
     word key;
 
-    if ( ISDEADCI(ci) )
+    if ( UNUSABLECI(ci) || !ci->entries )
       continue;
 
     ch  = ci->entries;
@@ -1888,17 +1895,53 @@ delClauseFromIndex(Definition def, Clause cl)
 }
 
 
+static bool
+index_in_clist(ClauseList clist, ClauseIndex ci)
+{ ClauseIndex *cip;
+
+  if ( (cip=clist->clause_indexes) )
+  { for(; *cip; cip++)
+    { if ( *cip == ci )
+	return true;
+    }
+  }
+
+  return false;
+}
+
 static void
 wait_for_index(const ClauseIndex ci, ClauseList clist, IndexContext ctx)
-{ if ( !ci->entries && ctx && realize_clause_index(ci) )
-  { DEBUG(MSG_JIT,
-	  { char an[64];
-	    Sdprintf("[%d] realising index %s for %s\n",
-		     PL_thread_self(), iargsName(ci->args, an),
-		     predicateName(ctx->predicate)); });
+{ if ( !ci->entries && !ci->invalid && ctx )
+  { Definition def = ctx->predicate;
+    bool mine = false;
 
-    if ( !fill_clause_index(ci, clist, ctx) )
-    { ci->invalid = true;
+    LOCKDEF(def);			/* as hashDefinition() */
+    if ( !ci->entries && !ci->invalid )
+    { if ( !index_in_clist(clist, ci) )
+      { ci->invalid = true;		/* deleted: nobody will fill it */
+	completed_index(ci);
+      } else if ( realize_clause_index(ci) )
+      { start_index_fill(def);
+	mine = true;
+      }
+    }
+    UNLOCKDEF(def);
+
+    if ( mine )
+    { ClauseIndex filled;
+
+      DEBUG(MSG_JIT,
+	    { char an[64];
+	      Sdprintf("[%d] realising index %s for %s\n",
+		       PL_thread_self(), iargsName(ci->args, an),
+		       predicateName(def)); });
+
+      filled = fill_clause_index(ci, clist, ctx);
+      done_index_fill(def);
+      if ( !filled )
+      { retireIndex(def, clist, ci);
+	completed_index(ci);
+      }
       return;
     }
   }
@@ -1916,11 +1959,68 @@ wait_for_index(const ClauseIndex ci, ClauseList clist, IndexContext ctx)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+hashDefinition() fills a new index from the clause list without holding
+the predicate lock.  If a clause is added or erased while the list is
+being scanned, the thread doing so cannot know whether the scan has seen
+its change:
+
+  - A clause that is linked while the scan runs and that is seen by the
+    scan is added to the index by the scan and again by the thread that
+    asserts it.
+  - A clause that is marked erased while the scan runs and that is
+    skipped by the scan is not in the index when the erasing thread
+    updates the index for it.
+
+Therefore `def->filling` counts the indexes of `def` that are being
+filled and threads that add or erase a clause call waitIndexFills()
+before they change the clause list or the erased flag.  These are
+assertDefinition_(), retract_clause(), removeClausesPredicate() and
+reconsultFinalizePredicate().  They hold the predicate lock, which is
+also needed to start filling a new index, so
+`def->filling` remains zero until they are done.  A thread that reads
+zero must also see what the filling thread wrote into the index: the
+decrement in done_index_fill() is a full barrier and waitIndexFills()
+reads `def->filling` with acquire semantics.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+start_index_fill(Definition def)	/* def is locked */
+{ ATOMIC_INC(&def->filling);
+}
+
+static void
+done_index_fill(Definition def)
+{
+#ifdef O_PLMT
+  pthread_mutex_lock(&GD->thread.index.mutex);
+  ATOMIC_DEC(&def->filling);
+  pthread_cond_broadcast(&GD->thread.index.cond);
+  pthread_mutex_unlock(&GD->thread.index.mutex);
+#else
+  def->filling--;
+#endif
+}
+
+void
+waitForIndexFills(Definition def)	/* see waitIndexFills() */
+{
+#ifdef O_PLMT
+  pthread_mutex_lock(&GD->thread.index.mutex);
+  while( def->filling )
+    pthread_cond_wait(&GD->thread.index.cond, &GD->thread.index.mutex);
+  pthread_mutex_unlock(&GD->thread.index.mutex);
+#else
+  (void)def;
+#endif
+}
+
 static void
 completed_index(ClauseIndex ci)
 {
 #ifdef O_PLMT
   pthread_mutex_lock(&GD->thread.index.mutex);
+  MEMORY_RELEASE();			/* publish the index and `invalid` */
   ci->incomplete = false;
   pthread_cond_broadcast(&GD->thread.index.cond);
   pthread_mutex_unlock(&GD->thread.index.mutex);
@@ -1944,9 +2044,7 @@ fill_clause_index(ClauseIndex ci, ClauseList clist, IndexContext ctx)
 { for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
   { if ( isoff(cref->value.clause, CL_ERASED) )
     { if ( !addClauseToIndex(ci, cref->value.clause, CL_END) )
-      { ci->invalid = true;
-	completed_index(ci);
-	deleteIndex(ctx->predicate, clist, ci);
+      { ci->invalid = true;		/* caller retires, then completes */
 	return NULL;
       }
     }
@@ -1957,11 +2055,44 @@ fill_clause_index(ClauseIndex ci, ClauseList clist, IndexContext ctx)
 
   completed_index(ci);
   if ( !consider_better_index(ci->speedup, clist->number_of_clauses) )
+  { MEMORY_RELEASE();		/* readers do not check `incomplete` */
     ci->good = true;		/* `good` means complete and sufficient */
+  }
 
   return ci;
 }
 
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fill_clause_index() fails if a clause cannot be added to the index.  The
+index is then `invalid` and must be removed from the predicate.  As for
+any change to the array of indexes, this requires the predicate lock.
+The thread that filled the index can only take this lock after it called
+done_index_fill(), as a thread that holds the lock may be waiting for
+us in waitIndexFills().  The index is marked complete only after it is
+removed.  A goal that finds it incomplete waits and looks again.  A
+goal that finds it complete and invalid looked at the old array of
+indexes and looks again.  Threads that update the indexes hold the
+predicate lock and skip an invalid index without waiting for it, as
+completing it needs their lock.  retireIndex() does nothing if the
+index was already removed.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static void
+retireIndex(Definition def, ClauseList clist, ClauseIndex ci)
+{ ClauseIndex *cip;
+
+  LOCKDEF(def);
+  if ( (cip=clist->clause_indexes) )
+  { for(; *cip; cip++)
+    { if ( *cip == ci )
+      { deleteIndexP(def, clist, cip);
+	break;
+      }
+    }
+  }
+  UNLOCKDEF(def);
+}
 
 static ClauseIndex
 hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
@@ -1998,19 +2129,29 @@ hashDefinition(ClauseList clist, hash_hints *hints, IndexContext ctx)
   }
   ci = newClauseIndexTable(hints, true, ctx);
   insertIndex(ctx->predicate, clist, ci);
+  start_index_fill(ctx->predicate);
   UNLOCKDEF(ctx->predicate);
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Adding a pause here creates  a window where other threads may mark clauses
-as erased (CL_ERASED).  This prevents them being added to the just-created
-index.
-
-See the test_cgc_1 test case in tests/GC/test_cgc_1.pl
+Adding a pause here used to create a window where other threads could
+mark clauses as erased (CL_ERASED), such that they were not added to the
+just-created index while retract_clause() updated this index for them.
+See the test_cgc_1 test case in tests/GC/test_cgc_1.pl.  This window is
+closed by waitIndexFills(), which is called by all functions that erase
+a clause.
 
   usleep(1000);
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-  return fill_clause_index(ci, clist, ctx);
+  if ( !fill_clause_index(ci, clist, ctx) )
+  { done_index_fill(ctx->predicate);
+    retireIndex(ctx->predicate, clist, ci);
+    completed_index(ci);
+    return NULL;
+  }
+  done_index_fill(ctx->predicate);
+
+  return ci;
 }
 
 
@@ -2258,7 +2399,7 @@ checkClauseIndexSizes(Definition def, int nindexable)
   { for( ; *cip; cip++ )
     { ClauseIndex ci = *cip;
 
-      if ( ISDEADCI(ci) )
+      if ( UNUSABLECI(ci) || ci->incomplete )
 	continue;
 
       if ( ci->size != nindexable )
@@ -2290,7 +2431,7 @@ checkClauseIndexes(Definition def)
       unsigned int ci_dirty = 0;	/* # dirty buckets */
       unsigned int ci_size = 0;		/* # indexable values in table */
 
-      if ( ISDEADCI(ci) )
+      if ( UNUSABLECI(ci) )
 	continue;
       if ( ci->incomplete )		/* building async; stats may be wrong */
 	continue;
@@ -3455,7 +3596,7 @@ get_existing_index(ClauseIndex *cip, const hash_hints *hints)
 { if ( cip )
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
-      if ( !ISDEADCI(ci) )
+      if ( !UNUSABLECI(ci) )
       { if ( memcmp(ci->args, hints->args, sizeof(ci->args)) == 0 )
 	  return ci;
       }
@@ -3987,7 +4128,7 @@ add_deep_indexes(DECL_LD ClauseIndex ci, term_t head, term_t tail)
 	{ for(; *cip; cip++)
 	  { ClauseIndex ci = *cip;
 
-	    if ( ISDEADCI(ci) )
+	    if ( UNUSABLECI(ci) )
 	      continue;
 
 	    if ( !PL_unify_list(tail, head, tail) ||
@@ -4022,7 +4163,7 @@ unify_index_pattern(Procedure proc, term_t value)
     for(; *cip; cip++)
     { ClauseIndex ci = *cip;
 
-      if ( ISDEADCI(ci) )
+      if ( UNUSABLECI(ci) )
 	continue;
 
       found++;
