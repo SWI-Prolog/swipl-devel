@@ -194,6 +194,9 @@ write_truncated_db(File, Size) :-
 user:message_hook(persistency(Msg), Kind, _Lines) :-
     trapping,
     assertz(trapped(Kind-Msg)).
+user:message_hook(io_warning(_Stream, Msg), Kind, _Lines) :-
+    trapping,				% e.g., not decoding a UTF-8
+    assertz(trapped(Kind-io_warning(Msg))). % sequence cut short
 
 trap_messages :-
     retractall(trapped(_)),
