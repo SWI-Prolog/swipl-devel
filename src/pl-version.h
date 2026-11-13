@@ -43,4 +43,4 @@
 
 void	setGITVersion(void);
 
-#endif /*_PL_VERSION_H*/			
+#endif /*_PL_VERSION_H*/

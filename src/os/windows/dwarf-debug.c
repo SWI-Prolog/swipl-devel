@@ -4,10 +4,10 @@
 
 #define COFF_SYMBOL_SIZE 18
 
-int get_section_info(void* obj, 
+int get_section_info(void* obj,
                      Dwarf_Half section_index,
-                     Dwarf_Obj_Access_Section* return_section, 
-                     int* error) 
+                     Dwarf_Obj_Access_Section* return_section,
+                     int* error)
 { LOADED_IMAGE *image = obj;
   IMAGE_SECTION_HEADER *section = image->Sections + section_index;
 
@@ -15,7 +15,7 @@ int get_section_info(void* obj,
   return_section->size = section->Misc.VirtualSize;
 
   if (section->Name[0] == '/')
-  { return_section->name = 
+  { return_section->name =
          (char*)(image->MappedAddress + \
                  image->FileHeader->FileHeader.PointerToSymbolTable + \
                  image->FileHeader->FileHeader.NumberOfSymbols * COFF_SYMBOL_SIZE + \
@@ -27,39 +27,39 @@ int get_section_info(void* obj,
   return DW_DLV_OK;
 }
 
-Dwarf_Endianness get_byte_order(void* obj) 
+Dwarf_Endianness get_byte_order(void* obj)
 { return DW_OBJECT_LSB;
 }
 
-Dwarf_Small get_length_size(void* obj) 
+Dwarf_Small get_length_size(void* obj)
 { return sizeof(void*);
 }
 
-Dwarf_Small get_pointer_size(void* obj) 
+Dwarf_Small get_pointer_size(void* obj)
 { return sizeof(void*);
 }
 
-Dwarf_Unsigned get_section_count(void* obj) 
+Dwarf_Unsigned get_section_count(void* obj)
 { LOADED_IMAGE *image = obj;
   return image->NumberOfSections;
 }
 
 int load_section(void* obj,
-                 Dwarf_Half section_index, 
-                 Dwarf_Small** return_data, 
-                 int* error) 
+                 Dwarf_Half section_index,
+                 Dwarf_Small** return_data,
+                 int* error)
 { LOADED_IMAGE *image = obj;
   IMAGE_SECTION_HEADER *section = image->Sections + section_index;
- 
+
   *return_data = image->MappedAddress + section->PointerToRawData;
 
   return DW_DLV_OK;
 }
 
 int relocate_a_section(void* obj,
-                       Dwarf_Half section_index, 
-                       Dwarf_Debug dbg, 
-                       int* error) 
+                       Dwarf_Half section_index,
+                       Dwarf_Debug dbg,
+                       int* error)
 { /* not required for basic stacktraces */
   return DW_DLV_ERROR;
 }
@@ -96,18 +96,18 @@ int dwarf_function_symbol(Dwarf_Debug dbg, Dwarf_Addr address, Dwarf_Die die, ch
 
   if (dwarf_child(die, &next_die, &error) == DW_DLV_OK)
   { if (dwarf_function_symbol(dbg, address, next_die, symbol, symbol_offset) == DW_DLV_OK)
-    { dwarf_dealloc(dbg, die, DW_DLA_DIE);         
+    { dwarf_dealloc(dbg, die, DW_DLA_DIE);
       return DW_DLV_OK;
     }
   }
 
   if (dwarf_siblingof(dbg, die, &next_die, &error) == DW_DLV_OK)
   { if (dwarf_function_symbol(dbg, address, next_die, symbol, symbol_offset) == DW_DLV_OK)
-    { dwarf_dealloc(dbg, die, DW_DLA_DIE);         
+    { dwarf_dealloc(dbg, die, DW_DLA_DIE);
       return DW_DLV_OK;
     }
   }
- 
+
   dwarf_dealloc(dbg, die, DW_DLA_DIE);
   return DW_DLV_NO_ENTRY;
 }
@@ -170,11 +170,11 @@ int dwarf_die_from_address(LOADED_IMAGE *image, Dwarf_Addr address, Dwarf_Debug 
 
   dwarf_access_interface.object = image;
   dwarf_access_interface.methods = &dwarf_access_methods;
-   
+
   if (dwarf_object_init(&dwarf_access_interface,
                         NULL,
                         NULL,
-                        dbg, 
+                        dbg,
                         &error) != DW_DLV_OK)
     goto out;
 
@@ -211,7 +211,7 @@ out:
     }
     dwarf_dealloc(*dbg, aranges, DW_DLA_LIST);
   }
-   
+
   return ret;
 }
 
