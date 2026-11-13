@@ -711,7 +711,7 @@ help_text(Pred, HelpText) :-
 %
 %   The `link_scheme(man)` option of man_page//2 already wrote the manual
 %   references as ``man:`` IRIs, which a  terminal   emits as OSC8 hyperlinks
-%   (see ansi_hyperlink/3) and tty_link_hook/2 below resolves when clicked.
+%   (see ansi_hyperlink/3) and tty_link_hook/5 below resolves when clicked.
 %   This maps the remaining links, which  address   the  PlDoc server, onto
 %   the same IRIs.  Links we cannot resolve are removed.
 
@@ -740,25 +740,32 @@ apropos_uri_goal(URI, apropos(Query, [offset(Offset)])) :-
     catch(term_to_atom(Query+Offset, Text), error(_,_), fail),
     integer(Offset).
 
-%!  epilog:tty_link_hook(+Terminal, +Link) is semidet.
+%!  epilog:tty_link_hook(+Terminal, +Link, -Label, -Goal, +Options)
+%!      is semidet.
 %
-%   Open a ``man:`` or ``apropos:`` link  that was clicked in an Epilog
-%   Terminal.  We quit the pager if it is  still showing the page the link
-%   was clicked in and let the terminal run help/1 on the linked object or
+%   Handle a ``man:`` or ``apropos:`` link in an Epilog Terminal.  On a
+%   click we quit the pager if it is still showing the page the link was
+%   clicked in and let the terminal run help/1 on the linked object or
 %   continue the apropos/2 search.
 
-:- multifile epilog:tty_link_hook/2.
+:- multifile epilog:tty_link_hook/5.
 
-epilog:tty_link_hook(Terminal, URL) :-
-    link_goal(URL, Goal),
-    !,                                  % the link is ours, do not let
-    quit_pager(Terminal),               % Epilog pass it to a browser
+epilog:tty_link_hook(Terminal, URL, Label, help:follow_link(Terminal, Goal),
+                     _Options) :-
+    link_goal(URL, Goal, Label).
+
+link_goal(URL, help(Object), Label) :-
+    man_uri_object(URL, Object),
+    !,
+    format(string(Label), 'Help on ~p', [Object]).
+link_goal(URL, Goal, Label) :-
+    apropos_uri_goal(URL, Goal),
+    Goal = apropos(Query, _),
+    format(string(Label), 'More matches for apropos(~q)', [Query]).
+
+follow_link(Terminal, Goal) :-
+    quit_pager(Terminal),
     ignore(send(Terminal, inject, Goal)).
-
-link_goal(URL, help(Object)) :-
-    man_uri_object(URL, Object).
-link_goal(URL, Goal) :-
-    apropos_uri_goal(URL, Goal).
 
 %!  quit_pager(+Terminal) is det.
 %
