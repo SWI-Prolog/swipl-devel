@@ -129,7 +129,7 @@ Define operator in some table.  See   discussion  above for the relevant
 tables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 defOperator(Module m, atom_t name, unsigned char type, short priority, int force)
 { GET_LD
   operator *op;
@@ -582,7 +582,7 @@ current_op(DECL_LD Module m, int inherit,
 }
 
 #define get_op_module(a3, name, m) LDFUNC(get_op_module, a3, name, m)
-static int
+static bool
 get_op_module(DECL_LD term_t a3, term_t name, Module *m)
 { atom_t mname = 0;
   Word p;

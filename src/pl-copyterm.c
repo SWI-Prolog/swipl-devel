@@ -368,7 +368,7 @@ We must copy an attvar if
     -
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 must_copy_attvar(word w, int flags, int mode)
 { if ( flags & (COPY_ATTRS|COPY_MARKED) )
   { if ( flags & COPY_MARKED )

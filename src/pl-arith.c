@@ -880,7 +880,7 @@ check_float(Number n)
   return true;
 }
 
-static int
+static bool
 check_zero_div(int sign_n, Number r, char *func, int arity)
 { GET_LD
 
@@ -1357,7 +1357,7 @@ getCharExpression(DECL_LD Word p, Number r)
 		 *	     CONVERSION		*
 		 *******************************/
 
-static int
+static bool
 double_in_int64_range(double x)
 { int k;
   double y = frexp(x, &k);
@@ -1711,7 +1711,7 @@ check_int_bits(uint64_t bits)
 }
 
 
-static int
+static bool
 shift_to_far(Number n, Number shift, Number r, int dir)
 { if ( ar_sign_i(shift) * dir < 0 )	/* << */
   { return int_too_big();
@@ -2377,7 +2377,7 @@ not fit on the stacks and thus   this routine generates a stack overflow
 rather that doing all the work that will result in an overflow anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 get_int_exponent(Number n, uint64_t *expp)
 { int64_t i;
 
@@ -2443,7 +2443,7 @@ sign_f(double f)
 	     0 ;  /* sign_f(NaN) = 0 */
 }
 
-static inline int
+static inline bool
 pow64(int64_t m, int64_t n, int64_t *resp)	/* *resp = m^n */
 { int64_t res = 1;
 
@@ -3051,7 +3051,7 @@ http://www.gnu.org/software/autoconf/manual/autoconf-2.67/html_node/Floating-Poi
 #define IEEE754 1
 
 #ifdef IEEE754
-static inline int
+static inline bool
 signbit(double f)
 { union
   { double f;
@@ -4402,7 +4402,7 @@ ar_truncate(Number n1, Number r)
 #define MIN_RAND_SEED_LEN 16
 
 #define seed_from_dev(dev) LDFUNC(seed_from_dev, dev)
-static int
+static bool
 seed_from_dev(DECL_LD const char *dev)
 { int done = false;
 #if defined(S_ISCHR) && !defined(__WINDOWS__)
@@ -4448,7 +4448,7 @@ seed_from_dev(DECL_LD const char *dev)
 
 
 #define seed_from_crypt_context(_) LDFUNC(seed_from_crypt_context, _)
-static int
+static bool
 seed_from_crypt_context(DECL_LD)
 {
 #ifdef __WINDOWS__
@@ -5157,7 +5157,7 @@ get_arith_flag(DECL_LD term_t val, atom_t k)
 }
 
 #ifdef O_BIGNUM
-static int
+static bool
 set_restraint(term_t t, size_t *valp, size_t min)
 { GET_LD
   atom_t inf;
@@ -5175,7 +5175,7 @@ set_restraint(term_t t, size_t *valp, size_t min)
 }
 
 #define set_restraint_action(t, key, valp) LDFUNC(set_restraint_action, t, key, valp)
-static int
+static bool
 set_restraint_action(DECL_LD term_t t, atom_t key, atom_t *valp)
 { atom_t act;
 

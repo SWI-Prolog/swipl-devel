@@ -86,7 +86,7 @@ typedef struct find_data_tag
 Convert between integer frame reference and LocalFrame pointer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 PL_unify_frame(term_t t, LocalFrame fr)
 { GET_LD
 
@@ -324,11 +324,11 @@ static void		helpInterrupt(void);
 #endif
 static bool		hasAlternativesFrame(LocalFrame);
 static void		alternatives(Choice);
-static int		exceptionDetails(void);
-static int		listGoal(LocalFrame frame);
+static bool		exceptionDetails(void);
+static bool		listGoal(LocalFrame frame);
 static LocalFrame	frameAtLevel(LocalFrame frame, ssize_t at_depth,
 				     bool interactive);
-static int		saveGoal(LocalFrame frame, ssize_t at_depth,
+static bool		saveGoal(LocalFrame frame, ssize_t at_depth,
 				 bool interactive);
 static int		traceInterception(LocalFrame, Choice, int, Code);
 static int		traceAction(const char *cmd,
@@ -1247,7 +1247,7 @@ messageToString(term_t msg)
 }
 
 
-static int
+static bool
 exceptionDetails()
 { GET_LD
   term_t except = LD->exception.pending;
@@ -1269,7 +1269,7 @@ exceptionDetails()
 }
 
 
-static int
+static bool
 listGoal(LocalFrame frame)
 { GET_LD
   term_t fref = consTermRef((Word)frame);
@@ -1322,7 +1322,7 @@ frameAtLevel(LocalFrame frame, ssize_t at_depth, bool interactive)
 }
 
 
-static int
+static bool
 saveGoal(LocalFrame frame, ssize_t at_depth, bool interactive)
 { GET_LD
   fid_t fid;

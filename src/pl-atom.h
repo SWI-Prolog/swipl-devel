@@ -94,7 +94,7 @@ void		PL_blob_gc_released(Atom a);
 bool		AGC_wanted(void);
 #undef LDFUNC_DECLARATIONS
 
-static inline int
+static inline bool
 isBuiltInAtom(atom_t a)
 { size_t index = indexAtom(a);
   return index < GD->atoms.builtin;

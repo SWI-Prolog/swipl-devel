@@ -1036,7 +1036,7 @@ PL_demote_text(PL_chars_t *text, int flags)
 }
 
 
-static int
+static bool
 can_demote(PL_chars_t *text)
 { if ( text->encoding != ENC_ISO_LATIN_1 )
   { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
@@ -1059,7 +1059,7 @@ convert to ISO Latin-1. This predicate can   fail  of the text cannot be
 represented.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 wctobuffer(wchar_t c, mbstate_t *mbs, Buffer buf)
 { char b[PL_MB_LEN_MAX];
   size_t n;
@@ -1205,7 +1205,7 @@ flip_shorts(unsigned char *s, size_t len)
 }
 
 
-static int
+static bool
 native_byte_order(IOENC enc)
 {
 #ifdef WORDS_BIGENDIAN

@@ -86,7 +86,7 @@ void	  resortDict(Word p);
 	pl_for_dict(dict, LDFUNC_REF(funcname), closure, flags)
 
 #define termIsDict(w) LDFUNC(termIsDict, w)
-static inline int
+static inline bool
 termIsDict(DECL_LD word w)
 { Functor f = valueTerm(w);
   FunctorDef fd = valueFunctor(f->definition);
@@ -94,7 +94,7 @@ termIsDict(DECL_LD word w)
   return ( fd->name == ATOM_dict && fd->arity%2 == 1 );
 }
 
-static inline int
+static inline bool
 is_dict_key(word w)
 { return isAtom(w) || isTaggedInt(w);
 }

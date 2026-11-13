@@ -92,7 +92,7 @@ foreign language code or packages with which Prolog was linked together.
 #endif
 
 #define LDFUNC_DECLARATIONS
-static int allocStacks(void);
+static bool allocStacks(void);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 #undef LDFUNC_DECLARATIONS
@@ -459,7 +459,7 @@ to the main thread.
 #undef LD
 #define LD LOCAL_LD
 
-static int
+static bool
 is_fatal_signal(int sig)
 { switch(sig)
   {
@@ -1419,7 +1419,7 @@ We always support this even when compiled without OS-level signal support,
 because of internal virtual signal handling.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 get_meta_arg(term_t arg, term_t m, term_t t)
 { GET_LD
 
@@ -1434,7 +1434,7 @@ get_meta_arg(term_t arg, term_t m, term_t t)
 }
 
 
-static int
+static bool
 get_module(term_t t, Module *m)
 { GET_LD
   atom_t a;
@@ -1680,7 +1680,7 @@ init_stack(Stack s, char *name, size_t size, size_t spare, int gc)
 }
 
 
-static int
+static bool
 allocStacks(DECL_LD)
 { size_t minglobal = 8*SIZEOF_WORD K;
   size_t minlocal  = 4*SIZEOF_WORD K;

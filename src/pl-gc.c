@@ -639,7 +639,7 @@ gc_avg(gc_stats *stats)
 }
 
 #define unify_gc_reason(t, stat) LDFUNC(unify_gc_reason, t, stat)
-static int
+static bool
 unify_gc_reason(DECL_LD term_t t, gc_stat *stat)
 { int go = (stat->reason>> 0)&0xff;
   int gr = (stat->reason>> 8)&0xff;
@@ -659,7 +659,7 @@ unify_gc_reason(DECL_LD term_t t, gc_stat *stat)
 
 
 #define unify_gc_stats(t, stats, index) LDFUNC(unify_gc_stats, t, stats, index)
-static int
+static bool
 unify_gc_stats(DECL_LD term_t t, gc_stat *stats, int index)
 { term_t tail = PL_copy_term_ref(t);
   term_t head = PL_new_term_ref();
@@ -2968,7 +2968,7 @@ assignment for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define is_dead_attvar(p) LDFUNC(is_dead_attvar, p)
-static int
+static bool
 is_dead_attvar(DECL_LD Word p)
 { word w = *p;
 
@@ -4198,7 +4198,7 @@ set_start(DECL_LD Word m)
 
 
 #define is_start(m) LDFUNC(is_start, m)
-static int
+static bool
 is_start(DECL_LD Word m)
 { size_t i = m-gBase;
   int bit = i % INTBITS;
@@ -6519,7 +6519,7 @@ Find the latest generation at which a predicate is being used.
 
 #ifdef O_CLAUSEGC
 
-static inline int
+static inline bool
 is_pointer_like(void *ptr)
 {
 #if SIZEOF_VOIDP == 4

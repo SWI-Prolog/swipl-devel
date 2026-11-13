@@ -110,7 +110,7 @@ __builtin_popcount(size_t sz)
 #endif
 }
 
-static inline int
+static inline bool
 __builtin_saddll_overflow(long long int a, long long int b, long long int *res)
 { long long int r = a + b;
   if ( (r > 0 && a < 0 && b < 0) ||
@@ -579,9 +579,9 @@ popcount_bitvector(const bit_vector *v)
 		 *	     MISC STUFF		*
 		 *******************************/
 
-static int	  same_type_numbers(Number n1, Number n2) WUNUSED;
+static bool	  same_type_numbers(Number n1, Number n2) WUNUSED;
 
-static inline int
+static inline bool
 same_type_numbers(Number n1, Number n2)
 { if ( n1->type == n2->type )
     return true;

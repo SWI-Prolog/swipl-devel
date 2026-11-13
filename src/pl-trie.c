@@ -2147,7 +2147,7 @@ is_ground_trie_node(trie_node *node)
 		 *******************************/
 
 #if 0					/* debugging help */
-static int
+static bool
 print_key(word k)
 { size_t pop;
 
@@ -2162,7 +2162,7 @@ print_key(word k)
   return true;
 }
 
-static int
+static bool
 print_keys(Word k, size_t kc)
 { size_t i;
 
@@ -2684,7 +2684,7 @@ equal_value(word v1, word v2)
 
 
 #define unify_value(t, value) LDFUNC(unify_value, t, value)
-static int
+static bool
 unify_value(DECL_LD term_t t, word value)
 { if ( isTriePtrValue(value) )
   { return PL_unify_atom(t, trie_symbol(valueTriePtr(value)));

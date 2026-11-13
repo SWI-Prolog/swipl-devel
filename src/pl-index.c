@@ -199,7 +199,7 @@ NOTE: Indirects should not collide  with   functor_t  to  allow for deep
 indexing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline int
+static inline bool
 canIndex(word w)
 { for(;;)
   { switch(tag(w))
@@ -1513,7 +1513,7 @@ boundery  does  not  lead  to  repeated    re-evaluation  of  the  index
 capabilities.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 has_pow2_clauses(Definition def)
 { unsigned int nc = def->impl.clauses.number_of_clauses;
 
@@ -2102,7 +2102,7 @@ sortIndexes(ClauseIndex *cip)
 }
 
 
-static int
+static bool
 isSortedIndexes(ClauseIndex *cip)
 { if ( cip )
   { float speedup = (float)PLMAXINT;
@@ -2689,7 +2689,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 }
 
 
-static int
+static bool
 assessAddKey(hash_assessment *a, word key, int nvcomp)
 { if ( a->size > 0 && a->keys[a->size-1].key == key )
   { a->keys[a->size-1].count++;		/* TBD: Keep last-key? */

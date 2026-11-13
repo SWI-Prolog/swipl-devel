@@ -187,7 +187,7 @@ number_hash_data(DECL_LD word w, int64_t *ip, Buffer b)
 
 
 #define primitiveHashValue(term, hval) LDFUNC(primitiveHashValue, term, hval)
-static int
+static bool
 primitiveHashValue(DECL_LD word term, unsigned int *hval)
 { switch(tag(term))
   { case TAG_VAR:
@@ -547,7 +547,7 @@ push_var(Word p, sha1_state *state)
 { return pushSegStack(&state->vars, p, Word);
 }
 
-static int
+static bool
 push_attvar(Word p, sha1_state *state)
 { Word w = word2ptr(Word, *p);
   return ( pushSegStack(&state->vars, p, Word) &&

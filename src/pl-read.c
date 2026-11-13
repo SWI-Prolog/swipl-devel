@@ -1153,7 +1153,7 @@ ptr_to_location(const unsigned char *here, source_location *pos, ReadData _PL_rd
 
 
 
-static int
+static bool
 unify_location(term_t loc, const source_location *pos, ReadData _PL_rd)
 { GET_LD
   int rc = true;
@@ -1192,7 +1192,7 @@ unify_location(term_t loc, const source_location *pos, ReadData _PL_rd)
 }
 
 
-static int
+static bool
 unify_ptr_location(term_t loc, const unsigned char *here, ReadData _PL_rd)
 { source_location pos;
 
@@ -1273,7 +1273,7 @@ errorWarning(const char *id_str, term_t id_term, ReadData _PL_rd)
 }
 
 
-static int
+static bool
 numberError(strnumstat rc, ReadData _PL_rd)
 { return errorWarning(str_number_error(rc), 0, _PL_rd);
 }
@@ -1316,7 +1316,7 @@ singletonWarning(term_t term, const char *which, const char **vars, int nvars)
 	true	redo
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 reportReadError(ReadData rd)
 { int rc;
 
@@ -1535,7 +1535,7 @@ setErrorLocation(IOPOS *pos, size_t start, ReadData _PL_rd)
  * close codepoint — so get_token can re-tokenise it later.
  */
 
-static int
+static bool
 raw_read_quoted(int open, int close, ReadData _PL_rd)
 { IOPOS pbuf;
   IOPOS *pos;
@@ -1636,7 +1636,7 @@ out:
 
 
 #ifdef O_QUASIQUOTATIONS
-static int
+static bool
 raw_read_quasi_quotation(int c, ReadData _PL_rd)
 { addToBuffer(c, _PL_rd);
 
@@ -1664,7 +1664,7 @@ raw_read_identifier(int c, ReadData _PL_rd)
 
 
 #define add_comment(b, pos, _PL_rd) LDFUNC(add_comment, b, pos, _PL_rd)
-static int
+static bool
 add_comment(DECL_LD Buffer b, IOPOS *pos, ReadData _PL_rd)
 { term_t head, str;
 
@@ -1702,7 +1702,7 @@ add_comment(DECL_LD Buffer b, IOPOS *pos, ReadData _PL_rd)
 
 
 #define raw_read2(_PL_rd) LDFUNC(raw_read2, _PL_rd)
-static int
+static bool
 raw_read2(DECL_LD ReadData _PL_rd)
 { int c;
   bool something_read = false;
@@ -2085,7 +2085,7 @@ skipped.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define raw_read(_PL_rd, endp) LDFUNC(raw_read, _PL_rd, endp)
-static int
+static bool
 raw_read(DECL_LD ReadData _PL_rd, unsigned char **endp)
 { int rc;
 
@@ -2561,7 +2561,7 @@ parse_quasi_quotations(DECL_LD ReadData _PL_rd)
 }
 
 
-static int
+static bool
 is_quasi_quotation_syntax(term_t type, ReadData _PL_rd)
 { GET_LD
   term_t plain = PL_new_term_ref();
@@ -2702,7 +2702,7 @@ SkipSymbol(unsigned char *in, ReadData _PL_rd)
    numbers (e.g., hexadecimal), it is only _<blank>*.
 */
 
-static int
+static bool
 skip_digit_separator(cucharp *sp, int base, bool *grouped)
 { cucharp s = *sp;
 
@@ -3191,7 +3191,7 @@ addUTF8Buffer(Buffer b, int c)
 /* Forward declaration: defined below, called by
  * read_unicode_quote_token() above.
  */
-static int
+static bool
 get_unicode_quoted_string(unsigned char *in, int close,
 			  unsigned char *ein, unsigned char **end, Buffer buf,
 			  ReadData _PL_rd);
@@ -3271,7 +3271,7 @@ cleanup:
   return rc;
 }
 
-static int
+static bool
 get_unicode_quoted_string(unsigned char *in, int close,
 			  unsigned char *ein, unsigned char **end, Buffer buf,
 			  ReadData _PL_rd)
@@ -3306,7 +3306,7 @@ get_unicode_quoted_string(unsigned char *in, int close,
   return true;
 }
 
-static int
+static bool
 get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer buf,
 	   ReadData _PL_rd)
 { int quote;
@@ -3361,7 +3361,7 @@ get_string(unsigned char *in, unsigned char *ein, unsigned char **end, Buffer bu
 
 
 #ifdef O_QUASIQUOTATIONS
-static int
+static bool
 get_quasi_quotation(term_t t, unsigned char **here, unsigned char *ein,
 		    ReadData _PL_rd)
 { unsigned char *in, *start = *here;
@@ -3423,7 +3423,7 @@ float_tag(cucharp in, cucharp tag)
 }
 
 
-static int
+static bool
 starts_1dot(cucharp s)
 { if ( s[0] == '-' )
     s++;
@@ -3703,7 +3703,7 @@ str_number(cucharp in, ucharp *end, Number value, int flags)
 }
 
 
-static int
+static bool
 checkASCII(unsigned char *name, size_t len, const char *type)
 { size_t i;
 
@@ -4791,7 +4791,7 @@ op_name(DECL_LD op_entry *e)
 
 
 #define build_op_term(op, _PL_rd) LDFUNC(build_op_term, op, _PL_rd)
-static int
+static bool
 build_op_term(DECL_LD op_entry *op, ReadData _PL_rd)
 { term_t tmp;
   out_entry *e;
@@ -5023,7 +5023,7 @@ isOp(DECL_LD op_entry *e, unsigned char kind, ReadData _PL_rd)
 	side_op(i, _PL_rd)
 
 #define modify_op(cstate, cpri) LDFUNC(modify_op, cstate, cpri)
-static int
+static bool
 modify_op(DECL_LD cterm_state *cstate, int cpri)
 { ReadData _PL_rd = cstate->rd;
 
@@ -5382,7 +5382,7 @@ modify_op().
  * delimiter of paired terms; UTF-8-aware so non-ASCII close
  * characters (e.g. `»`, `」`, `’`) are matched correctly.
  */
-static int
+static bool
 stop_matches_codepoint(const char *stop, int code)
 { while ( *stop )
   { int c;
@@ -5821,7 +5821,7 @@ read_list_resume_elem(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
 
 
 #define read_list_resume_tail(f, _PL_rd) LDFUNC(read_list_resume_tail, f, _PL_rd)
-static int
+static bool
 read_list_resume_tail(DECL_LD pframe *f, ReadData _PL_rd)
 { term_t pv   = f->u.list.pv;
   term_t tail = f->u.list.tail;
@@ -5931,7 +5931,7 @@ read_bracket_start(DECL_LD pframe *f, Token token, ct_request *req,
 
 
 #define read_bracket_resume(f, _PL_rd) LDFUNC(read_bracket_resume, f, _PL_rd)
-static int
+static bool
 read_bracket_resume(DECL_LD pframe *f, ReadData _PL_rd)
 { Token token;
 
@@ -6088,7 +6088,7 @@ text.  See newDeadBlob() and lookupLiveBlob().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define read_blob_end(f, token, _PL_rd) LDFUNC(read_blob_end, f, token, _PL_rd)
-static int
+static bool
 read_blob_end(DECL_LD pframe *f, Token token, ReadData _PL_rd)
 { atom_t name = f->u.blob.name;
   term_t t;
@@ -6173,7 +6173,7 @@ read_blob_resume(DECL_LD pframe *f, ct_request *req, ReadData _PL_rd)
 }
 
 
-static int
+static bool
 is_key_token(Token token, ReadData _PL_rd)
 { switch(token->type)
   { case TK_NAME:
@@ -6211,7 +6211,7 @@ is_key_token(Token token, ReadData _PL_rd)
 #define P_VALUE (pv+2)
 
 #define read_dict_end(f, token, _PL_rd) LDFUNC(read_dict_end, f, token, _PL_rd)
-static int
+static bool
 read_dict_end(DECL_LD pframe *f, Token token, ReadData _PL_rd)
 { term_t pv = f->u.dict.pv;
 
@@ -6437,7 +6437,7 @@ read_qq_start(DECL_LD pframe *f, Token token, ct_request *req,
 
 
 #define read_qq_resume(f, _PL_rd) LDFUNC(read_qq_resume, f, _PL_rd)
-static int
+static bool
 read_qq_resume(DECL_LD pframe *f, ReadData _PL_rd)
 { term_t av = f->u.qq.av;
   term_t pv = f->u.qq.pv;
@@ -6644,7 +6644,7 @@ instantiate_template(-Term, +AtTerm)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define instantiate_template(term, at_term) LDFUNC(instantiate_template, term, at_term)
-static int
+static bool
 instantiate_template(DECL_LD term_t term, term_t at_term)
 { term_t template, substitutions, head, var, value;
 
@@ -6877,7 +6877,7 @@ pl_read(term_t term)
 
 
 #define unify_read_term_position(tpos) LDFUNC(unify_read_term_position, tpos)
-static int
+static bool
 unify_read_term_position(DECL_LD term_t tpos)
 { if ( tpos && source_line_no > 0 )
   { return PL_unify_term(tpos,
@@ -6944,7 +6944,7 @@ static const PL_option_t read_clause_options[] =
    variable names are not requested.
 */
 
-static int
+static bool
 callCommentHook(predicate_t comment_hook,
 		term_t comments, term_t tpos, term_t term, term_t varnames)
 { GET_LD

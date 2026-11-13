@@ -136,7 +136,7 @@ static bool	PL_get_uint(term_t t, unsigned int *i);
 #if O_VALIDATE_API
 
 #define in_foreign_argv(p)	LDFUNC(in_foreign_argv, p)
-static int
+static bool
 in_foreign_argv(DECL_LD Word p)
 { for(LocalFrame fr = environment_frame; fr; fr = parentFrame(fr))
   { if ( ison(fr->predicate, P_FOREIGN) )
@@ -5011,7 +5011,7 @@ has_emergency_space(void *sv, size_t needed)
 
 
 #define copy_exception(ex, bin) LDFUNC(copy_exception, ex, bin)
-static int
+static bool
 copy_exception(DECL_LD term_t ex, term_t bin)
 { fid_t fid;
 

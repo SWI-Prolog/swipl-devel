@@ -136,7 +136,7 @@ cleanupTerm(void)
 /* MT: Locked by calling lookupEntry()
 */
 
-static int
+static bool
 initTerm(void)
 { GET_LD
 

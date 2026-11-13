@@ -718,7 +718,7 @@ tmp_dir(void)
 }
 
 
-static int
+static bool
 verify_tmp_dir(const char* tmpdir)
 { const char *reason = NULL;
 
@@ -1285,7 +1285,7 @@ verify_entry() verifies the path cache for this   path is still safe. If
 not it updates the cache and returns false.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 verify_entry(CanonicalDir d)
 { char tmp[PATH_MAX];
   statstruct buf;
@@ -1400,7 +1400,7 @@ NetBIOS names.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #ifdef O_NETBIOS
-static int
+static bool
 isNetBIOSChar(int c)
 { return (c && !(c == '\\' || c == '/' || c == '*' || c == '?' ||
 		 c == '<'  || c == '>' || c == '|' || c == '.'));
@@ -1856,7 +1856,7 @@ IsAbsolutePath(const char *p)				/* /d:/ */
 }
 
 
-static inline int
+static inline bool
 isDriveRelativePath(const char *p)	/* '/...' */
 { return IS_DIR_SEPARATOR(p[0]) && !IsAbsolutePath(p);
 }
@@ -2107,7 +2107,7 @@ DirName(const char *f, char *dir)
     on `path'.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 is_cwd(const char *dir)
 { int rc;
 
@@ -2372,7 +2372,7 @@ ResetTty(void)
 #endif
 #endif
 
-static int
+static bool
 GetTtyState(int fd, struct termios *tio)
 { memset(tio, 0, sizeof(*tio));
 

@@ -624,7 +624,7 @@ setUnknownOption(term_t value, atom_t a)
   return true;
 }
 
-static int
+static bool
 checkOnError(term_t value, atom_t a, atom_t key)
 { if ( a == ATOM_print || a == ATOM_halt || a == ATOM_status )
     return true;
@@ -658,7 +658,7 @@ setFileNameCaseHandlingName(const char *name)
 }
 
 
-static int
+static bool
 setFileNameCaseHandling(atom_t a)
 { if ( !setFileNameCaseHandlingName(PL_atom_chars(a)) )
   { term_t value = PL_new_term_ref();
@@ -685,7 +685,7 @@ currentFileNameCaseHandling(void)
 }
 
 
-static int
+static bool
 setWriteAttributes(atom_t a)
 { GET_LD
   int mask = writeAttributeMask(a);
@@ -702,7 +702,7 @@ setWriteAttributes(atom_t a)
 }
 
 
-static int
+static bool
 setAccessLevelFromAtom(atom_t a)
 { GET_LD
 
@@ -717,7 +717,7 @@ setAccessLevelFromAtom(atom_t a)
 }
 
 
-static int
+static bool
 getOccursCheckMask(atom_t a, occurs_check_t *val)
 { if ( a == ATOM_false )
   { *val = OCCURS_CHECK_FALSE;
@@ -1033,7 +1033,7 @@ static const access_id access_id_list[] =
 };
 
 
-static int
+static bool
 set_win_file_access_check(term_t a)
 { char *s;
   const access_id *p;
@@ -2158,7 +2158,7 @@ unify_prolog_flag_value(DECL_LD Module m, atom_t key,
 }
 
 
-static int
+static bool
 unify_prolog_flag_access(prolog_flag *f, term_t access)
 { GET_LD
 
@@ -2941,7 +2941,7 @@ setVersionPrologFlag(void)
   setGITVersion();
 }
 
-static int
+static bool
 abi_version_dict(term_t dict)
 { GET_LD
   const atom_t keys[] = { ATOM_foreign_interface,

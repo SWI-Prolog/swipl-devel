@@ -135,7 +135,7 @@ int Slinesize = SIO_LINESIZE;		/* Sgets() buffer size */
 static ssize_t	S__flushbuf(IOSTREAM *s);
 static void	run_close_hooks(IOSTREAM *s);
 static int	S__removebuf(IOSTREAM *s);
-static int	S__seterror(IOSTREAM *s);
+static bool	S__seterror(IOSTREAM *s);
        void	unallocStream(IOSTREAM *s);
 static int	S__fileno(IOSTREAM *s);
 
@@ -145,7 +145,7 @@ static void		Sclose_buffer(IOSTREAM *s);
 #ifdef O_PLMT
 #define SLOCK(s)    if ( s->mutex ) recursiveMutexLock(s->mutex)
 #define SUNLOCK(s)  if ( s->mutex ) recursiveMutexUnlock(s->mutex)
-static inline int
+static inline bool
 STRYLOCK(IOSTREAM *s)
 { if ( s->mutex &&
        recursiveMutexTryLock(s->mutex) == EBUSY )
@@ -1796,7 +1796,7 @@ Sfeof(IOSTREAM *s)
 }
 
 
-static int
+static bool
 S__seterror(IOSTREAM *s)
 { if ( (s->flags & SIO_FERR) )
     return 0;				/* error already set */
@@ -3623,7 +3623,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #define O_BINARY 0
 #endif
 
-static int
+static bool
 get_mode(const char *s, int *mp)
 { int n, m = 0;
 

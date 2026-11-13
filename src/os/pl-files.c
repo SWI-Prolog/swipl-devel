@@ -297,7 +297,7 @@ DeRefLink(const	char *link, char *buf)
 }
 
 
-static int
+static bool
 SameFile(const char *f1, const char *f2)
 { GET_LD
 
@@ -378,7 +378,7 @@ RenameFile(const char *old, const char *new)
 }
 
 
-static int
+static bool
 MarkExecutable(const char *name)
 {
 #if ( (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || \
@@ -1046,7 +1046,7 @@ PRED_IMPL("$chdir", 1, chdir, 0)
 }
 
 
-static int
+static bool
 has_extension(const char *name, const char *ext)
 { GET_LD
   const char *s = name + strlen(name);
@@ -1069,7 +1069,7 @@ has_extension(const char *name, const char *ext)
 }
 
 
-static int
+static bool
 name_too_long(void)
 { return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
 }

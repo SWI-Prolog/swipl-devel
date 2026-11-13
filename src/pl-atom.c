@@ -228,7 +228,7 @@ static atom_t	lookupLocalBlob(DECL_LD const char *s, size_t length,
 				PL_blob_t *type);
 #endif
 #ifdef O_DEBUG_ATOMGC
-static int	tracking(const Atom a);
+static bool	tracking(const Atom a);
 IOSTREAM *atomLogFd = 0;
 #endif
 
@@ -1368,7 +1368,7 @@ lookupLocalAtom(DECL_LD const char *s, size_t length)
 #ifdef O_DEBUG_ATOMGC
 static char *t_tracking;
 
-static int
+static bool
 tracking(const Atom a)
 { return ( a->type == &text_atom &&
 	   strcmp(a->name, t_tracking) == 0 );
@@ -1645,7 +1645,7 @@ atomBucketInUse(Atom a, Atom **buckets)
   return false;
 }
 
-static int
+static bool
 destroyAtom(Atom a, Atom **buckets)
 { size_t index;
 
@@ -3047,7 +3047,7 @@ is_volatile_atom(atom_t a)
 
 #ifdef O_DEBUG
 
-static int
+static bool
 findAtomSelf(Atom a)
 {
 #if O_PLMT
@@ -3756,14 +3756,14 @@ typedef struct match
 /* An atom without references cannot be part of the program
 */
 
-static int
+static bool
 global_atom(Atom a)
 { return ( ATOM_REF_COUNT(a->references) != 0 ||
 	   indexAtom(a->atom) < GD->atoms.builtin );
 }
 
 
-static int
+static bool
 is_identifier_text(PL_chars_t *txt)
 { if ( txt->length == 0 )
     return false;
@@ -3802,7 +3802,7 @@ is_identifier_text(PL_chars_t *txt)
 }
 
 
-static int
+static bool
 extendAtom(char *prefix, bool *unique, char *common)
 { size_t index;
   int i, last=false;
@@ -3896,7 +3896,7 @@ compareMatch(const void *m1, const void *m2)
 }
 
 
-static int
+static bool
 extend_alternatives(PL_chars_t *prefix, struct match *altv, int *altn)
 { size_t index;
   int i, last=false;
@@ -4005,7 +4005,7 @@ atom_generator_create_key(void)
 static size_t atom_genetor_state;
 #endif
 
-static int
+static bool
 atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 { GET_LD
   size_t index;

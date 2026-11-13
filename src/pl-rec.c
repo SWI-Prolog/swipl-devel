@@ -413,7 +413,7 @@ addAtomValue(CompileInfo info, Atom a)
 }
 
 
-static int
+static bool
 addAtom(CompileInfo info, atom_t a)
 { if ( a == ATOM_nil )
   { addOpCode(info, PL_TYPE_NIL);
@@ -445,7 +445,7 @@ addAtom(CompileInfo info, atom_t a)
 }
 
 
-static int
+static bool
 addFunctor(CompileInfo info, functor_t f)
 { if ( f == FUNCTOR_dot2 )
   { addOpCode(info, PL_TYPE_CONS);
@@ -487,7 +487,7 @@ back where it came.
 #define valAttVarP(p) ((Word)((uintptr_t)(p) & ~0x1L))
 
 #define compile_term_to_heap(agenda, info) LDFUNC(compile_term_to_heap, agenda, info)
-static int
+static bool
 compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 { Word p;
 
@@ -824,7 +824,7 @@ discard_record_data(record_data *data)
     discardBuffer(&data->hdr);
 }
 
-static int
+static bool
 rec_error(CompileInfo info)
 { switch(info->error)
   { case EFAST_SERIALIZE:
@@ -843,7 +843,7 @@ rec_error(CompileInfo info)
 
 
 #define compile_external_record(t, data) LDFUNC(compile_external_record, t, data)
-static int
+static bool
 compile_external_record(DECL_LD term_t t, record_data *data)
 { Word p;
   int first = REC_HDR;
@@ -2756,7 +2756,7 @@ TBD: Also use this to move rule/2,3 to C?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define fixup_ssu(in, out) LDFUNC(fixup_ssu, in, out)
-static int
+static bool
 fixup_ssu(DECL_LD term_t in, term_t out)
 { term_t head  = PL_new_term_ref();
   term_t body  = PL_new_term_ref();

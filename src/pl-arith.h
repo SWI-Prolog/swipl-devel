@@ -186,13 +186,13 @@ popArgvArithStack(DECL_LD int n)
 		 *******************************/
 
 #define isMPQNum(w) LDFUNC(isMPQNum, w)
-static inline int
+static inline bool
 isMPQNum(DECL_LD word w)
 { return tagex(w) == TAGEX_INDIRECT_MPQ;
 }
 
 #define isMPZNum(w) LDFUNC(isMPZNum, w)
-static inline int
+static inline bool
 isMPZNum(DECL_LD word w)
 { return tagex(w) == TAGEX_INDIRECT_INT;
 }

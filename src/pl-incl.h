@@ -3173,7 +3173,7 @@ weak function, you should (e.g. for weak-importing malloc):
 4b. WEAK_TRY_CALL(malloc, sizeof(x)) to combine check and call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline int __ptr_to_bool(const intptr_t ptr) { return ptr != 0; }
+static inline bool __ptr_to_bool(const intptr_t ptr) { return ptr != 0; }
 #if HAVE_WEAK_ATTRIBUTE
 # define WEAK_DECLARE(RType, Name, Params) \
 	extern RType __attribute__((weak)) Name Params

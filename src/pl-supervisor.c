@@ -182,7 +182,7 @@ createForeignSupervisor(Definition def, Func f)
 }
 
 
-static int
+static bool
 equalSupervisors(const Code s1, const Code s2)
 { if ( s1 != s2 )
   { size_t sz1 = (size_t)s1[-1];

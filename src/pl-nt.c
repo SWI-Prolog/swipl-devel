@@ -405,7 +405,7 @@ typedef struct
   UINT        id;
 } showtype;
 
-static int
+static bool
 get_showCmd(term_t show, UINT *cmd)
 { char *s;
   showtype *st;
@@ -448,7 +448,7 @@ get_showCmd(term_t show, UINT *cmd)
 
 
 
-static int
+static bool
 win_exec(size_t len, const wchar_t *cmd, UINT show)
 { GET_LD
   STARTUPINFOW startup;
@@ -748,7 +748,7 @@ static const shell_error se_errors[] =
 };
 
 
-static int
+static bool
 win_shell(term_t op, term_t file, term_t how)
 { size_t lo, lf;
   wchar_t *o, *f;
@@ -949,7 +949,7 @@ PRED_IMPL("win_remove_dll_directory", 1, win_remove_dll_directory, 0)
 }
 
 
-static int
+static bool
 is_windows_abs_path(const wchar_t *path)
 { if ( path[1] == ':' && path[0] < 0x80 && iswalpha(path[0]) )
     return true;			/* drive */
@@ -1192,7 +1192,7 @@ static const folderid folderids[] =
 };
 
 
-static int
+static bool
 unify_csidl_path(term_t t, int csidl)
 { wchar_t buf[PATH_MAX];
 

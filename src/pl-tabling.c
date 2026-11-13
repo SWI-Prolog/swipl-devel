@@ -204,13 +204,13 @@ static void	free_worklist_set(worklist_set *wls, int freewl);
 static void	add_global_worklist(worklist *wl);
 static tbl_component *tbl_create_subcomponent(trie *leader);
 static worklist *tbl_add_worklist(trie *atrie, tbl_component *scc);
-static int	wl_has_work(const worklist *wl);
+static bool	wl_has_work(const worklist *wl);
 static cluster *new_answer_cluster(worklist *wl, answer *first);
 static void	wkl_append_left(worklist *wl, cluster *c);
-static int	wkl_add_answer(worklist *wl, trie_node *node);
+static bool	wkl_add_answer(worklist *wl, trie_node *node);
 static trie_node* wkl_mode_add_answer(worklist *wl, trie *trie, term_t answer,
 				      term_t delays);
-static int	tbl_put_moded_args(term_t t, trie_node *node);
+static bool	tbl_put_moded_args(term_t t, trie_node *node);
 static void	del_child_component(tbl_component *parent, tbl_component *child);
 static void	free_components_set(component_set *cs, int destroy);
 static bool	unify_skeleton(trie *trie, term_t wrapper, term_t skel);
@@ -222,7 +222,7 @@ static void	print_answer(const char *msg, trie_node *answer);
 static bool	put_delay_info(term_t t, trie_node *answer);
 static void	print_answer_table(trie *atrie, const char *msg, ...);
 #endif
-static int	simplify_component(tbl_component *scc);
+static bool	simplify_component(tbl_component *scc);
 static void	idg_destroy(idg_node *node);
 static void	idg_destroy_private(idg_node *node);
 static void	idg_clean_affected(idg_node *node);
@@ -230,26 +230,26 @@ static void	idg_clean_dependent(idg_node *node);
 static void	idg_free_mdeps(idg_node *child, idg_node *parent);
 static void	idg_release_registry(PL_local_data_t *ld);
 static void	idg_reset(idg_node *node);
-static int	idg_init_variant(trie *atrie, Definition def, term_t variant);
+static bool	idg_init_variant(trie *atrie, Definition def, term_t variant);
 static void	reeval_complete(trie *atrie);
 static void	reset_reevaluation(trie *atrie);
-static int	unify_component_status(term_t t, tbl_component *scc);
-static int	simplify_answer(worklist *wl, trie_node *answer, int truth);
+static bool	unify_component_status(term_t t, tbl_component *scc);
+static bool	simplify_answer(worklist *wl, trie_node *answer, int truth);
 static bool	table_is_incomplete(trie *trie);
 static void	free_node_array(node_array *a);
 static int	idg_add_edge(trie *atrie, trie *ctrie);
-static int	idg_set_current_wl(term_t wlref);
+static bool	idg_set_current_wl(term_t wlref);
 #ifdef O_PLMT
-static int	claim_answer_table(trie *atrie, atom_t *clrefp,
+static bool	claim_answer_table(trie *atrie, atom_t *clrefp,
 				   int flags);
 #endif
 static atom_t	table_status_reeval_wait(trie *atrie);
 static atom_t	tripwire_answers_for_subgoal(worklist *wl);
-static int	generalise_answer_substitution(term_t spec, term_t gen);
-static int	add_answer_count_restraint(void);
-static int	add_radial_restraint(void);
-static int	tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire);
-static int	tbl_pred_tripwire(Definition def, atom_t action, atom_t wire);
+static bool	generalise_answer_substitution(term_t spec, term_t gen);
+static bool	add_answer_count_restraint(void);
+static bool	add_radial_restraint(void);
+static bool	tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire);
+static bool	tbl_pred_tripwire(Definition def, atom_t action, atom_t wire);
 static bool	tripwire_incomplete_subgoals(Definition def);
 static bool	tripwire_scc_subgoals(worklist *wl, size_t size0);
 static idg_mdep *new_mdep(term_t t);
@@ -259,11 +259,11 @@ static void	mdep_empty_queues(idg_mdep *mdep);
 static int	mdep_unify_answers(term_t t, idg_mdep *mdep);
 static void	prune_deleted_mdeps(idg_node *idg);
 static void	tt_abolish_table(trie *atrie);
-static int	tt_has_modified_dependencies(trie *atrie);
+static bool	tt_has_modified_dependencies(trie *atrie);
 static void	tt_add_table(trie *atrie, int flags);
-static int	atrie_answer_event(trie *atrie, trie_node *node);
+static bool	atrie_answer_event(trie *atrie, trie_node *node);
 static table_props *get_predicate_table_props(Definition def);
-static int	inner_is_monotonic(void);
+static bool	inner_is_monotonic(void);
 static int	mono_queue_answer(trie *atrie, term_t ans, word an);
 static void	force_reeval(idg_node *n);
 static int	idg_changed(trie *atrie, int flags);
@@ -372,11 +372,11 @@ take_trie(trie *atrie, int tid)
 	  UNLOCK_SHARED_TABLE(__trie); \
 	} while(0)
 
-static int	wait_for_table_to_complete(trie *atrie);
-static int	table_needs_work(trie *atrie);
+static bool	wait_for_table_to_complete(trie *atrie);
+static bool	table_needs_work(trie *atrie);
 static void	register_waiting(int tid, trie *atrie);
 static void	unregister_waiting(int tid, trie *atrie);
-static int	is_deadlock(trie *atrie);
+static bool	is_deadlock(trie *atrie);
 
 #else /*O_PLMT*/
 
@@ -1071,7 +1071,7 @@ negative_worklist(DECL_LD tbl_component *scc)
 }
 
 
-static int
+static bool
 wl_has_work(const worklist *wl)
 { return wl->riac && wl->riac->next;
 }
@@ -1448,7 +1448,7 @@ variant table. If this node is not associated   with  a worklist it is a
 completed node and we are just propagating an undefined literal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 add_to_wl_delays(trie *at, trie_node *answer, worklist *wla)
 { worklist *wl = at->data.worklist;
 
@@ -1491,13 +1491,13 @@ Simplify a delay set after adding ds. This  pops the new delay set if it
 is a duplicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 equal_delay(const delay *a, const delay *b)
 { return ( a->variant == b->variant &&
 	   a->answer  == b->answer );
 }
 
-static int
+static bool
 equal_delay_set(const delay *delays, const delay_set *a, const delay_set *b)
 { if ( a->size == b->size )
   { size_t ia = a->offset;
@@ -1516,7 +1516,7 @@ equal_delay_set(const delay *delays, const delay_set *a, const delay_set *b)
 }
 
 
-static int
+static bool
 simplify_delay_set(delay_info *di, delay_set *ds)
 { delay     *delays = baseBuffer(&di->delays, delay);
   delay_set *base   = baseBuffer(&di->delay_sets, delay_set);
@@ -1999,7 +1999,7 @@ PRED_IMPL("$tbl_add_global_delays", 2, tbl_add_global_delays, 0)
 		 *	  SIMPLIFICATION	*
 		 *******************************/
 
-static int	answer_completion(tbl_component *scc);
+static bool	answer_completion(tbl_component *scc);
 
 typedef struct propagate
 { worklist  *worklist;
@@ -2023,7 +2023,7 @@ exit_spf_agenda(spf_agenda *a)
 { discardBuffer(&a->buffer);
 }
 
-static int
+static bool
 push_propagate(spf_agenda *a, worklist *wl, trie_node *answer, int result)
 { propagate *p = allocFromBuffer(&a->buffer, sizeof(*p));
 
@@ -2043,13 +2043,13 @@ pop_propagate(spf_agenda *a)
 }
 
 
-static int propagate_result(spf_agenda *agenda,
+static bool propagate_result(spf_agenda *agenda,
 			    worklist *wl, trie_node *answer, int result);
 #ifdef O_DEBUG
 static void print_delay(const char *msg, trie_node *variant, trie_node *answer);
 #endif
 
-static int
+static bool
 make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
 { delay_info *di = node_delayinfo(answer);
 
@@ -2075,7 +2075,7 @@ make_answer_unconditional(spf_agenda *agenda, trie_node *answer)
 }
 
 
-static int
+static bool
 remove_conditional_answer(spf_agenda *agenda, trie_node *answer)
 { delay_info *di = node_delayinfo(answer);
 
@@ -2252,7 +2252,7 @@ delay on this table.  propagate_to_answer() may delete entries itself (and
 destroy the answer), so we re-examine the buffer after each step.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 propagate_result(spf_agenda *agenda,
 		 worklist *wl, trie_node *panswer, int result)
 { size_t i = 0;
@@ -2282,7 +2282,7 @@ propagate_result(spf_agenda *agenda,
 }
 
 
-static int
+static bool
 simplify_answer(worklist *wl, trie_node *answer, int truth)
 { spf_agenda agenda;
   propagate *p;
@@ -2328,7 +2328,7 @@ table_has_no_answers(trie *atrie)
 }
 
 
-static int
+static bool
 simplify_component(tbl_component *scc)
 { spf_agenda agenda;
   propagate *p;
@@ -2470,7 +2470,7 @@ one positive dependency.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define call_answer_completion(atrie) LDFUNC(call_answer_completion, atrie)
-static int
+static bool
 call_answer_completion(DECL_LD trie *atrie)
 { fid_t fid;
 
@@ -2545,7 +2545,7 @@ has_positive_dl(trie_node *n)
   return false;
 }
 
-static int
+static bool
 is_ac_candidate_wl(worklist *wl)
 { if ( wl->undefined && !wl->answer_completed &&
        !isEmptyBuffer(&wl->delays) )
@@ -2563,7 +2563,7 @@ is_ac_candidate_wl(worklist *wl)
 #endif /*O_AC_EAGER*/
 
 
-static int
+static bool
 answer_completion(tbl_component *scc)
 { GET_LD
 
@@ -3894,7 +3894,7 @@ IS_TNOT(record_t r)
 }
 
 #define new_suspension(sp, term, is_tnot, instance) LDFUNC(new_suspension, sp, term, is_tnot, instance)
-static int
+static bool
 new_suspension(DECL_LD suspension *sp, term_t term, int is_tnot,
 	       term_t instance)
 { if ( !(sp->term=PL_record(term)) )
@@ -3963,7 +3963,7 @@ free_suspension_cluster(cluster *c)
 }
 
 #define add_to_suspension_cluster(c, sterm, is_tnot, instance) LDFUNC(add_to_suspension_cluster, c, sterm, is_tnot, instance)
-static int
+static bool
 add_to_suspension_cluster(DECL_LD cluster *c, term_t sterm, int is_tnot,
 			  term_t instance)
 { suspension s;
@@ -4316,7 +4316,7 @@ complete_worklist(DECL_LD worklist *wl, int destroy)
 }
 
 
-static int
+static bool
 worklist_negative(worklist *wl)
 { if ( !wl->negative )
   { wl->negative = true;
@@ -4362,7 +4362,7 @@ prune_answers_worklist(worklist *wl)
    no suspension right of the answer cluster
 */
 
-static int
+static bool
 worklist_work_done(worklist *wl)
 { return !wl->riac || !wl->riac->next;
 }
@@ -4442,7 +4442,7 @@ potentially_add_to_global_worklist(DECL_LD worklist *wl)
 }
 
 
-static int
+static bool
 wkl_add_answer(DECL_LD worklist *wl, trie_node *an)
 { potentially_add_to_global_worklist(wl);
   answer ans = {an};
@@ -4467,7 +4467,7 @@ wkl_add_answer(DECL_LD worklist *wl, trie_node *an)
 
 
 #define wkl_add_suspension(wl, suspension, is_tnot, inst) LDFUNC(wkl_add_suspension, wl, suspension, is_tnot, inst)
-static int
+static bool
 wkl_add_suspension(DECL_LD worklist *wl, term_t suspension, int is_tnot,
 		   term_t inst)
 { potentially_add_to_global_worklist(wl);
@@ -4512,7 +4512,7 @@ print_worklist(const char *prefix, worklist *wl)
 		 *******************************/
 
 #define unify_fresh(t, atrie, def, create) LDFUNC(unify_fresh, t, atrie, def, create)
-static int
+static bool
 unify_fresh(DECL_LD term_t t, trie *atrie, Definition def, int create)
 { if ( create )
   { if ( !tripwire_incomplete_subgoals(def) )
@@ -4575,7 +4575,7 @@ complete_or_invalid_status(DECL_LD trie *atrie, int create)
 
 
 #define unify_complete_or_invalid(t, atrie, def, create) LDFUNC(unify_complete_or_invalid, t, atrie, def, create)
-static int
+static bool
 unify_complete_or_invalid(DECL_LD term_t t, trie *atrie,
 			  Definition def, int create)
 { atom_t status = complete_or_invalid_status(atrie, create);
@@ -5751,7 +5751,7 @@ unify_arg_term(DECL_LD term_t a, Word v)
  */
 
 #define tbl_unify_answer(node, term) LDFUNC(tbl_unify_answer, node, term)
-static int
+static bool
 tbl_unify_answer(DECL_LD trie_node *node, term_t term)
 { if ( node )
   { if ( unlikely(ison(node, TN_SECONDARY)) )
@@ -5832,7 +5832,7 @@ unify_dependency(DECL_LD term_t a0, term_t dependency,
 
 
 
-static int
+static bool
 tbl_put_moded_args(DECL_LD term_t t, trie_node *node)
 { if ( node )
   { if ( unlikely(ison(node, TN_SECONDARY)) )
@@ -5914,7 +5914,7 @@ sindex_next(sindex_table *ix, ssize_t i)
  * exhausted, it keeps failing.
  */
 
-static int
+static bool
 wkl_next_suspension(wkl_step_state *state)
 { if ( state->candidates == CAND_KEYED )
   { ssize_t i = sindex_next(state->sindex,
@@ -5933,7 +5933,7 @@ wkl_next_suspension(wkl_step_state *state)
 
 
 #define advance_wkl_state(state) LDFUNC(advance_wkl_state, state)
-static int
+static bool
 advance_wkl_state(DECL_LD wkl_step_state *state)
 { next:
 
@@ -6991,7 +6991,7 @@ tbl_create_subcomponent(DECL_LD trie *leader)
 }
 
 
-static int
+static bool
 unify_component_status(DECL_LD term_t t, tbl_component *scc)
 { atom_t status;
 
@@ -7071,7 +7071,7 @@ PRED_IMPL("$tbl_scc", 1, tbl_scc, 0)
   return false;
 }
 
-static int
+static bool
 unify_wl_set(term_t l, worklist_set *wls)
 { GET_LD
   worklist **p;
@@ -7088,7 +7088,7 @@ unify_wl_set(term_t l, worklist_set *wls)
   return PL_unify_nil(tail);
 }
 
-static int
+static bool
 unify_scc_set(term_t l, component_set *cs)
 { GET_LD
   term_t tail = PL_copy_term_ref(l);
@@ -7140,7 +7140,7 @@ PRED_IMPL("$tbl_scc_data", 2, tbl_scc_data, 0)
 }
 
 
-static int
+static bool
 unify_cluster(term_t t, cluster *c, int is_riac)
 { GET_LD
 
@@ -7185,7 +7185,7 @@ unify_cluster(term_t t, cluster *c, int is_riac)
 }
 
 
-static int
+static bool
 unify_clusters(term_t t, worklist *wl)
 { GET_LD
   cluster *c;
@@ -7591,7 +7591,7 @@ PRED_IMPL("$tbl_answer_update_dl", 3, tbl_answer_update_dl,
  * predicate is not tabled.
  */
 
-static int
+static bool
 is_tabled(Definition def)
 { table_props *props;
 
@@ -7705,7 +7705,7 @@ rollback of the transaction.  More precisely:
       at the start of the reevaluation or the end.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 tt_has_modified_dependencies(DECL_LD trie *atrie)
 { idg_node *n;
   int found = false;
@@ -8026,7 +8026,7 @@ tt_rollback_answer(trie *atrie, trie_node *answer)
 }
 
 
-static int
+static bool
 tt_rollback_tables(Table affected)
 { int rc = true;
 
@@ -8056,7 +8056,7 @@ tt_rollback_tables(Table affected)
 }
 
 
-static int
+static bool
 tt_rollback_actions(Buffer b)
 { size_t *base = baseBuffer(b, size_t);
   size_t *top  = topBuffer(b, size_t);
@@ -8408,7 +8408,7 @@ idg_free_dependent(void *p, void *ctx)
  */
 
 #define idg_dependency_error(parent, child) LDFUNC(idg_dependency_error, parent, child)
-static int
+static bool
 idg_dependency_error(DECL_LD idg_node *parent, idg_node *child)
 { term_t av;
 
@@ -8426,7 +8426,7 @@ idg_dependency_error(DECL_LD idg_node *parent, idg_node *child)
 
 
 #define idg_dependency_error_dyncall(parent, call) LDFUNC(idg_dependency_error_dyncall, parent, call)
-static int
+static bool
 idg_dependency_error_dyncall(DECL_LD idg_node *parent, term_t call)
 { term_t av;
 
@@ -8443,7 +8443,7 @@ idg_dependency_error_dyncall(DECL_LD idg_node *parent, term_t call)
 
 
 #define idg_dependency_error_mono(src_trie, dst_trie) LDFUNC(idg_dependency_error_mono, src_trie, dst_trie)
-static int
+static bool
 idg_dependency_error_mono(DECL_LD trie *src_trie, trie *dst_trie)
 { term_t av;
 
@@ -8484,7 +8484,7 @@ mono_indexable(const idg_node *n)
 	   isoff(n->atrie, TRIE_ISSHARED) );
 }
 
-static int
+static bool
 idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 { volatile TablePP t;
   int added;
@@ -8583,7 +8583,7 @@ idg_add_child(DECL_LD idg_node *parent, idg_node *child, term_t dep, int flags)
 }
 
 
-static int
+static bool
 idg_init_variant(DECL_LD trie *atrie, Definition def, term_t variant)
 { if ( !atrie->data.IDG )
   { if ( unlikely(!def) )
@@ -8801,7 +8801,7 @@ PRED_IMPL("$idg_add_dyncall", 1, idg_add_dyncall, 0)
 }
 
 
-static int
+static bool
 idg_set_current_wl(DECL_LD term_t wlref)
 { worklist *wl;
 
@@ -8871,7 +8871,7 @@ typedef struct idg_edge_state
 } idg_edge_state;
 
 
-static int
+static bool
 advance_idg_edge_state(idg_edge_state *state)
 {
 retry:
@@ -9431,7 +9431,7 @@ idg_propagate_change(idg_node *n, int flags)
 }
 
 
-static int
+static bool
 change_incomplete_error(trie *atrie)
 { GET_LD
   term_t v;
@@ -9442,7 +9442,7 @@ change_incomplete_error(trie *atrie)
 }
 
 
-static int
+static bool
 idg_need_invalidated(idg_node *n)
 { if ( n->atrie->data.worklist == WL_DYNAMIC ||
        (n->monotonic && !n->lazy) )
@@ -10476,7 +10476,7 @@ mono_index_release(idg_node *src)
  * so we must propagate the IDG change event,
  */
 
-static int
+static bool
 mdep_queue_answer(idg_mdep *mdep, word ans)
 { int rc;
 
@@ -10595,7 +10595,7 @@ falsecount on a call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define idg_add_monotonic_edge(src_trie, dst_trie, dep) LDFUNC(idg_add_monotonic_edge, src_trie, dst_trie, dep)
-static int
+static bool
 idg_add_monotonic_edge(DECL_LD trie *src_trie, trie *dst_trie, term_t dep)
 { Definition def = dst_trie->data.predicate;
   idg_node *sn, *dn;
@@ -10792,7 +10792,7 @@ PRED_IMPL("$tbl_propagate_end", 1, tbl_propagate_end, 0)
  * call must shift/1 to establish the dependency.
  */
 
-static int
+static bool
 inner_is_monotonic(DECL_LD)
 { trie *dep;
 
@@ -10971,7 +10971,7 @@ typedef struct mono_scc_state
 } mono_scc_state;
 
 
-static int
+static bool
 mdep_is_empty(idg_mdep *mdep)
 { while ( mdep && mdep->magic == IDG_MDEP_MAGIC )
   { if ( mdep->queue && !isEmptyBuffer(mdep->queue) )
@@ -11086,7 +11086,7 @@ mono_scc_is_complete(DECL_LD idg_node *idg)
 }
 
 #define has_queued_answers(idg) LDFUNC(has_queued_answers, idg)
-static int
+static bool
 has_queued_answers(DECL_LD idg_node *idg)
 { int queued = false;
 
@@ -11464,7 +11464,7 @@ reeval_prep_node(trie_node *n, void *ctx)
  */
 
 #define prepare_reeval(atrie) LDFUNC(prepare_reeval, atrie)
-static int
+static bool
 prepare_reeval(DECL_LD trie *atrie)
 { idg_node *idg = atrie->data.IDG;
   worklist *wl  = atrie->data.worklist;
@@ -11732,7 +11732,7 @@ Send an event for a new answer. Returns  false if the event hooks raised
 an exception, i.e., failure is silently ignored.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 atrie_answer_event(DECL_LD trie *atrie, trie_node *answer)
 { Definition def;
 
@@ -11867,7 +11867,7 @@ tbl_get_predicate_attribute(Definition def, atom_t att, term_t value)
 
 
 #define get_size_or_inf(t, vp) LDFUNC(get_size_or_inf, t, vp)
-static int
+static bool
 get_size_or_inf(DECL_LD term_t t, size_t *vp)
 { size_t v;
   atom_t inf;
@@ -11898,7 +11898,7 @@ tbl_set_incremental_predicate(Definition def, int val)
 }
 
 
-static int
+static bool
 set_bool_attr(Definition def, unsigned int flag, term_t value)
 { int v;
 
@@ -11997,7 +11997,7 @@ tbl_is_restraint_flag(atom_t key)
 }
 
 
-static int
+static bool
 unify_restraint(term_t t, size_t val)
 { if ( val == (size_t)-1 )
     return false;
@@ -12034,7 +12034,7 @@ tbl_get_restraint_flag(DECL_LD term_t t, atom_t key)
 
 
 #define set_restraint_action(t, key, valp) LDFUNC(set_restraint_action, t, key, valp)
-static int
+static bool
 set_restraint_action(DECL_LD term_t t, atom_t key, atom_t *valp)
 { atom_t act;
 
@@ -12066,7 +12066,7 @@ set_restraint_action(DECL_LD term_t t, atom_t key, atom_t *valp)
 }
 
 
-static int
+static bool
 set_restraint(term_t t, size_t *valp)
 { GET_LD
   atom_t inf;
@@ -12141,7 +12141,7 @@ tripwire_answers_for_subgoal(DECL_LD worklist *wl)
  * this term when the answer count restraint is exceeded.
  */
 
-static int
+static bool
 generalise_answer_substitution(DECL_LD term_t spec, term_t gen)
 { Word p = valTermRef(spec);
 
@@ -12161,7 +12161,7 @@ generalise_answer_substitution(DECL_LD term_t spec, term_t gen)
  */
 
 
-static int
+static bool
 add_answer_count_restraint(void)
 { predicate_t pred;
 
@@ -12175,7 +12175,7 @@ add_answer_count_restraint(void)
 }
 
 
-static int
+static bool
 add_radial_restraint(void)
 { predicate_t pred;
 
@@ -12189,7 +12189,7 @@ add_radial_restraint(void)
 }
 
 
-static int
+static bool
 tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire)
 { GET_LD
   predicate_t pred;
@@ -12208,7 +12208,7 @@ tbl_wl_tripwire(worklist *wl, atom_t action, atom_t wire)
 }
 
 
-static int
+static bool
 tbl_pred_tripwire(Definition def, atom_t action, atom_t wire)
 { GET_LD
   predicate_t pred;
@@ -12264,7 +12264,7 @@ tripwire_scc_subgoals(DECL_LD worklist *wl, size_t size0)
 
 #if O_PLMT
 
-static int
+static bool
 table_needs_work(trie *atrie)
 { if ( ison(atrie, TRIE_COMPLETE) )
   { idg_node *n;
@@ -12299,7 +12299,7 @@ there is a single mutex. Future versions could  use an array of these to
 reduce contention.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 claim_answer_table(DECL_LD trie *atrie, atom_t *clrefp, int flags)
 { if ( ison(atrie, TRIE_ISSHARED) && !(flags&AT_NOCLAIM) )
   { int mytid = PL_thread_self();
@@ -12474,7 +12474,7 @@ stat_deadlock(trie *atrie)
 }
 
 
-static int
+static bool
 is_deadlock(trie *atrie)
 { int mytid = atrie->tid;
   trie *t = NULL;
@@ -12495,7 +12495,7 @@ is_deadlock(trie *atrie)
 }
 
 
-static int
+static bool
 wait_for_table_to_complete(trie *atrie)
 { DEBUG(MSG_TABLING_SHARED,
 	print_answer_table(atrie, "waiting for %d to complete", atrie->tid));

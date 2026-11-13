@@ -109,7 +109,7 @@ handling times must be cleaned, but that not only holds for this module.
 typedef int LDFUNCP (*property0_t)(DECL_LD IOSTREAM *s);
 typedef int LDFUNCP (*property_t)(DECL_LD IOSTREAM *s, term_t prop);
 
-static int	bad_encoding(const char *msg, atom_t name);
+static bool	bad_encoding(const char *msg, atom_t name);
 static int	noprotocol(void);
 static PL_blob_t stream_blob;
 
@@ -1274,7 +1274,7 @@ typedef enum
 
 
 #define checkStreamType(text, s, error) LDFUNC(checkStreamType, text, s, error)
-static int
+static bool
 checkStreamType(DECL_LD s_type text, IOSTREAM *s, atom_t *error)
 { if ( text == S_DONTCARE || LD->IO.stream_type_check == ST_FALSE )
     return true;			/* no checking */
@@ -1299,7 +1299,7 @@ checkStreamType(DECL_LD s_type text, IOSTREAM *s, atom_t *error)
 
 
 #define getOutputStream(t, text, stream) LDFUNC(getOutputStream, t, text, stream)
-static int
+static bool
 getOutputStream(DECL_LD term_t t, s_type text, IOSTREAM **stream)
 { atom_t a;
   IOSTREAM *s;
@@ -1366,7 +1366,7 @@ getBinaryOutputStream(DECL_LD term_t t, IOSTREAM **stream)
 
 
 #define getInputStream(t, text, stream) LDFUNC(getInputStream, t, text, stream)
-static int
+static bool
 getInputStream(DECL_LD term_t t, s_type text, IOSTREAM **stream)
 { atom_t a;
   IOSTREAM *s = NULL;				/* make compiler happy  */
@@ -2287,7 +2287,7 @@ PL_current_output()
 }
 
 
-static int
+static bool
 openProtocol(term_t f, int appnd)
 { GET_LD
   IOSTREAM *s;
@@ -3262,7 +3262,7 @@ size_t mbsnrtowcs(wchar_t *dest, const char **src,
 #endif
 #endif /*HAVE_MBSNRTOWCS*/
 
-static int
+static bool
 skip_cr(IOSTREAM *s)
 { if ( s->flags&SIO_TEXT )
   { switch(s->newline)
@@ -4167,7 +4167,7 @@ PL_encoding_to_atom(IOENC enc)
 }
 
 
-static int
+static bool
 bad_encoding(const char *msg, atom_t name)
 { GET_LD
   term_t t = PL_new_term_ref();
@@ -4222,7 +4222,7 @@ file_name_is_iri(const char *path)
 }
 
 
-static int
+static bool
 call_iri_hook(term_t argv, iri_op op, va_list args)
 { GET_LD
 
@@ -4312,7 +4312,7 @@ call_iri_hook(term_t argv, iri_op op, va_list args)
 }
 
 
-static int
+static bool
 iri_hook_va(const char *url, iri_op op, va_list args)
 { GET_LD
   fid_t fid;
@@ -4803,7 +4803,7 @@ PRED_IMPL("seeing", 1, seeing, 0)
 /* MT: Does not create a lock on the stream
 */
 
-static int
+static bool
 do_tell(term_t f, atom_t m)
 { GET_LD
   IOSTREAM *s;
@@ -5807,7 +5807,7 @@ PRED_IMPL("flush_output", 1, flush_output1, PL_FA_ISO)
 }
 
 
-static int
+static bool
 getStreamWithPosition(term_t stream, IOSTREAM **sp)
 { IOSTREAM *s;
 
@@ -5827,7 +5827,7 @@ getStreamWithPosition(term_t stream, IOSTREAM **sp)
 }
 
 
-static int
+static bool
 getRepositionableStream(term_t stream, IOSTREAM **sp)
 { GET_LD
   IOSTREAM *s;
@@ -6377,7 +6377,7 @@ static IOFUNCTIONS Sstderrfunctions =
 };
 
 
-static int
+static bool
 getIOStreams(term_t tin, term_t tout, term_t terror,
 	     IOSTREAM **in, IOSTREAM **out, IOSTREAM **error)
 { int rc;

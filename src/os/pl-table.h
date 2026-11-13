@@ -325,7 +325,7 @@ newTableEnumWP(TableWP ht)
 		 *             UTIL             *
 		 *******************************/
 
-static inline int
+static inline bool
 htable_valid_kv(void *kv)
 { intptr_t kvi = (intptr_t)kv;		/* avoid NULL, HTABLE_TOMBSTONE */
   return kvi > 0 || kvi	< -2;		/* and HTABLE_SENTINEL */

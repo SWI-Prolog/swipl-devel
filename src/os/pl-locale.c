@@ -106,7 +106,7 @@ ls_to_wcs(const char *in, const wchar_t *on_error)
 }
 
 
-static int
+static bool
 init_locale_strings(PL_locale *l, struct lconv *conv)
 { if ( conv )
   { l->decimal_point = ls_to_wcs(conv->decimal_point, L".");
@@ -241,7 +241,7 @@ free_locale_symbol(table_key_t name, table_value_t value)
 }
 
 
-static int
+static bool
 alias_locale(PL_locale *l, atom_t alias)
 { GET_LD
   int rc;
@@ -510,7 +510,7 @@ typedef struct
 } lprop_enum;
 
 
-static int
+static bool
 advance_lstate(lprop_enum *state)
 { if ( state->enum_properties )
   { state->p++;
@@ -546,7 +546,7 @@ free_lstate(lprop_enum *state)
 }
 
 
-static int
+static bool
 get_atom_arg(term_t t, atom_t *a)
 { GET_LD
   term_t t2 = PL_new_term_ref();
@@ -686,7 +686,7 @@ enumerate:
 }
 
 
-static int
+static bool
 set_chars(term_t t, wchar_t **valp)
 { wchar_t *s;
 
@@ -703,7 +703,7 @@ set_chars(term_t t, wchar_t **valp)
 
 #define MAX_GROUPING 10
 
-static int
+static bool
 get_group_size_ex(term_t t, int *s)
 { int i;
 
@@ -719,7 +719,7 @@ get_group_size_ex(term_t t, int *s)
 }
 
 
-static int
+static bool
 set_grouping(term_t t, char **valp)
 { GET_LD
   char s[MAX_GROUPING];

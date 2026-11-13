@@ -300,7 +300,7 @@ retract_clause_gen(Clause clause, gen_t generation)
 }
 
 #define transaction_commit(_) LDFUNC(transaction_commit, _)
-static int
+static bool
 transaction_commit(DECL_LD)
 { if ( LD->transaction.clauses )
   { gen_t gen_commit;
@@ -359,7 +359,7 @@ transaction_commit(DECL_LD)
 }
 
 #define transaction_discard(_) LDFUNC(transaction_discard, _)
-static int
+static bool
 transaction_discard(DECL_LD)
 { int rc = true;
 
@@ -503,7 +503,7 @@ transaction_updates(DECL_LD Buffer b)
 
 
 #define announce_updates(updates) LDFUNC(announce_updates, updates)
-static int
+static bool
 announce_updates(DECL_LD Buffer updates)
 { tr_update *u, *e;
 
@@ -754,7 +754,7 @@ PRED_IMPL("current_transaction", 1, current_transaction, PL_FA_NONDETERMINISTIC)
 }
 
 #define add_update(cl, action, tail, head, tmp) LDFUNC(add_update, cl, action, tail, head, tmp)
-static int
+static bool
 add_update(DECL_LD Clause cl, functor_t action,
 	   term_t tail, term_t head, term_t tmp)
 { return ( PL_put_clref(tmp, cl) &&

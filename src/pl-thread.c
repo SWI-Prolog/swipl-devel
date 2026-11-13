@@ -3554,7 +3554,7 @@ typedef struct
 } tprop_enum;
 
 
-static int
+static bool
 advance_state(tprop_enum *state)
 { if ( state->enum_properties )
   { state->p++;
@@ -5336,7 +5336,7 @@ get_message(DECL_LD message_queue *queue, term_t msg,
 }
 
 #define peek_message(queue, msg) LDFUNC(peek_message, queue, msg)
-static int
+static bool
 peek_message(DECL_LD message_queue *queue, term_t msg)
 { thread_message *msgp;
   term_t tmp = PL_new_term_ref();
@@ -6284,7 +6284,7 @@ next_enum_queue(DECL_LD qprop_enum *state)
 
 #define advance_qstate(state) LDFUNC(advance_qstate, state)
 
-static int
+static bool
 advance_qstate(DECL_LD qprop_enum *state)
 { if ( state->enum_properties )
   { state->p++;
@@ -6595,7 +6595,7 @@ free_thread_wait(PL_local_data_t *ld)
   }
 }
 
-static int
+static bool
 ensure_wait_area_module(Module module)
 { if ( !module->wait )
   { thread_wait_area *wa = new_wait_area();
@@ -6612,7 +6612,7 @@ ensure_wait_area_module(Module module)
 }
 
 #define ensure_waiting_for(_) LDFUNC(ensure_waiting_for, _)
-static int
+static bool
 ensure_waiting_for(DECL_LD)
 { if ( !LD->thread.waiting_for )
   { if ( !(LD->thread.waiting_for = malloc(sizeof(*LD->thread.waiting_for))) )
@@ -6679,7 +6679,7 @@ unregister_waiting(Module m, PL_local_data_t *ld)
 }
 
 #define add_wch(wch) LDFUNC(add_wch, wch)
-static int
+static bool
 add_wch(DECL_LD thread_wait_channel *wch)
 { wch->signalled = false;
   addBuffer(&LD->thread.waiting_for->channels, *wch, thread_wait_channel);
@@ -6688,7 +6688,7 @@ add_wch(DECL_LD thread_wait_channel *wch)
 }
 
 #define add_wait_for_module(m) LDFUNC(add_wait_for_module, m)
-static int
+static bool
 add_wait_for_module(DECL_LD Module m)
 { thread_wait_channel wch = {0};
 
@@ -6701,7 +6701,7 @@ add_wait_for_module(DECL_LD Module m)
 }
 
 #define thread_wait_preds(m, preds) LDFUNC(thread_wait_preds, m, preds)
-static int
+static bool
 thread_wait_preds(DECL_LD Module m, term_t preds)
 { term_t tail = PL_copy_term_ref(preds);
   term_t head = PL_new_term_ref();
@@ -6743,7 +6743,7 @@ thread_wait_preds(DECL_LD Module m, term_t preds)
 
 
 #define unify_modified(t) LDFUNC(unify_modified, t)
-static int
+static bool
 unify_modified(DECL_LD term_t t)
 { thread_wait_for *twf;
 
@@ -9166,7 +9166,7 @@ popNPredicateAccess(DECL_LD size_t n)
 }
 
 
-static inline int
+static inline bool
 is_pointer_like(void *ptr)
 {
 #if SIZEOF_VOIDP == 4
