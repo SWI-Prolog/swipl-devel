@@ -8532,6 +8532,8 @@ localiseDefinition(DECL_LD Definition def)
   local->impl.clauses.first_clause = NULL;
   local->impl.clauses.clause_indexes = NULL;
   local->filling = 0;
+  local->last_erased = 0;
+  local->erased_args = NULL;
   ATOMIC_INC(&GD->statistics.predicates);
   ATOMIC_ADD(&local->module->code_size, sizeof(*local));
   DEBUG(MSG_PRED_COUNT, Sdprintf("Localise def[%d] %s at %p\n",

@@ -112,9 +112,12 @@ typedef struct index_context
 	LDFUNC(setClauseChoice, cref, ctx)
 #define	first_clause_guarded(argv, argc, clist, ctx) \
 	LDFUNC(first_clause_guarded, argv, argc, clist, ctx)
-#define find_multi_argument_hash(ac, clist, inst, ninst, bthan, hints, ctx) \
-	LDFUNC(find_multi_argument_hash, ac, clist, inst, ninst, \
+#define find_multi_argument_hash(ac, clist, args, ke, inst, ninst, bthan, \
+				 hints, ctx) \
+	LDFUNC(find_multi_argument_hash, ac, clist, args, ke, inst, ninst, \
 	       bthan, hints, ctx)
+#define erased_args_unindexable(argc, clist, ci, ctx) \
+	LDFUNC(erased_args_unindexable, argc, clist, ci, ctx)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -152,9 +155,12 @@ static bool	realize_clause_index(ClauseIndex ci);
 static ClauseIndex fill_clause_index(ClauseIndex ci, ClauseList clist,
 				     IndexContext ctx);
 static bool	find_multi_argument_hash(iarg_t ac, ClauseList clist,
+					 arg_info *args, bool keep_erased,
 					 iarg_t *inst, int ninst,
 					 ClauseIndex better_than,
 					 hash_hints *hints, IndexContext ctx);
+static bool	erased_args_unindexable(size_t argc, ClauseList clist,
+					ClauseIndex ci, IndexContext ctx);
 static bool	set_candidate_indexes(Definition def, ClauseList clist,
 				      int max, bool lock);
 #undef LDFUNC_DECLARATIONS
@@ -633,6 +639,251 @@ TBD:
   - When to ignore the best and try again?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+An erased clause that is still in the clause list is visible to goals
+of an older generation: a goal that started before the clause was
+erased and all goals of a transaction or snapshot that started before.
+We call this an old goal.  An old goal finds the clause if it scans the
+clause list or uses an index that was created before the clause was
+erased.  An index that is created later is filled from the clauses that
+are not erased and thus misses clauses the old goal must see.  The same
+holds for concluding that a predicate has no clauses from the number of
+clauses that are not erased.
+
+  - sees_erased() tells whether a goal may see an erased clause of the
+    predicate.  It compares the generation of the goal to
+    `def->last_erased`, see setLastErased() in pl-proc.c.
+  - An index that is created for a goal that does not see erased
+    clauses is filled as before.  If erased clauses are skipped, the
+    index records `def->last_erased` in `ci->skipped_erased`.  An old
+    goal only uses such an index if index_covers().
+  - If the old goal cannot use the index, the index is replaced by one
+    that also holds the erased clauses (`ci->keeps_erased`).  This is
+    the index we would have if it was created before these clauses
+    were erased.  It is assessed and dimensioned for all clauses in the
+    clause list.  This is only done for a plain index at the outermost
+    level of a dynamic predicate, see fill_erased_clause().  In all
+    other cases the old goal scans the clause list.
+  - Old goals keep their assessments of the arguments apart from those
+    of the other goals, see erased_arg_info().  They are reset where the
+    assessments of the other goals are.  If they show that the argument
+    of an index cannot be indexed when the erased clauses are included,
+    the index is left to the other goals and the old goal tries the
+    next index, or creates one on another argument.
+
+A clause that is both created and erased inside a running transaction
+has generations that are local to this transaction.  It is only visible
+to goals of this transaction that are older than the erase, i.e., goals
+that started before the erase and search for their first clause after
+it.  `ci->skipped_tr` tells that such a clause is not in the index.  We
+do not know when it was erased and thus only use the index for goals of
+the current transaction generation.
+
+`ci->good_from` replaces the `good` flag of an index.  A goal uses the
+index without any further test if its generation is not older.  It is
+GOOD_NEVER until the index is complete and if we should look for a
+better one, GOOD_ALWAYS if no clause was skipped and otherwise the
+generation from which no goal sees a skipped clause.  Generations are
+compared as signed integers, which makes goals in a transaction older
+than any generation except for GOOD_ALWAYS.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define GOOD_ALWAYS	INT64_MIN
+#define GOOD_NEVER	INT64_MAX
+
+/* An index is published before it is filled, and goals that take the fast
+ * path do not test `incomplete`.  fill_clause_index() therefore sets
+ * good_from last, with release semantics, and goals read it with acquire
+ * semantics before they read the index.  The atomic access also keeps
+ * good_from whole on 32-bit systems; compilers without the GCC atomics use
+ * an atomic read-modify-write.
+ */
+
+static inline int64_t
+index_good_from(const struct clause_index *ci)
+{
+#ifdef __GNUC__
+  return __atomic_load_n(&ci->good_from, __ATOMIC_ACQUIRE);
+#else
+  return ATOMIC_ADD((int64_t *)&ci->good_from, 0);
+#endif
+}
+
+static inline void
+set_index_good_from(ClauseIndex ci, int64_t good_from)
+{
+#ifdef __GNUC__
+  __atomic_store_n(&ci->good_from, good_from, __ATOMIC_RELEASE);
+#else
+  int64_t old;
+
+  do
+  { old = ci->good_from;		/* the swap checks it */
+  } while( !COMPARE_AND_SWAP_INT64(&ci->good_from, old, good_from) );
+#endif
+}
+
+#define sees_erased(ctx) LDFUNC(sees_erased, ctx)
+static inline bool
+sees_erased(DECL_LD const IndexContext ctx)
+{ gen_t gen = ctx->generation;
+
+  if ( unlikely(gen >= GEN_TRANSACTION_BASE) )
+  { if ( gen < LD->transaction.generation ) /* older than our last change */
+      return true;
+    gen = LD->transaction.gen_start;
+  }
+
+  return gen < ctx->predicate->last_erased;
+}
+
+/* True if an index that is created for this goal must hold the erased
+ * clauses that are still in the clause list.
+ */
+
+#define index_keeps_erased(ctx) LDFUNC(index_keeps_erased, ctx)
+static inline bool
+index_keeps_erased(DECL_LD const IndexContext ctx)
+{ return ( ctx->depth == 0 &&
+	   ison(ctx->predicate, P_DYNAMIC) &&
+	   sees_erased(ctx) );
+}
+
+/* The number of clauses arguments are assessed for */
+
+static inline size_t
+assessed_clauses(const ClauseList clist, bool keep_erased)
+{ if ( unlikely(keep_erased) )
+    return clist->number_of_clauses + clist->erased_clauses;
+
+  return clist->number_of_clauses;
+}
+
+/* Old goals that see erased clauses assess arguments for an index that
+ * holds all clauses in the clause list.  They keep these assessments in
+ * `def->erased_args`, apart from those of the other goals, so neither
+ * kind of goal uses or replaces the assessments of the other.  The
+ * array is allocated when an old goal first assesses an argument.
+ */
+
+static arg_info *
+erased_arg_info(Definition def)
+{ if ( !def->erased_args )
+  { size_t bytes = sizeof(arg_info)*def->functor->arity;
+    arg_info *ai = allocHeapOrHalt(bytes);
+
+    memset(ai, 0, bytes);
+    if ( !COMPARE_AND_SWAP_PTR(&def->erased_args, NULL, ai) )
+      freeHeap(ai, bytes);
+  }
+
+  return def->erased_args;
+}
+
+static void
+clear_erased_assessments(Definition def)
+{ arg_info *ea = def->erased_args;
+
+  if ( ea )
+  { size_t arity = def->functor->arity;
+
+    for(size_t i=0; i<arity; i++)
+      ea[i].assessed = false;
+  }
+}
+
+/* The number of clauses `ci` was assessed for */
+
+static inline size_t
+indexed_clauses(const ClauseIndex ci, const ClauseList clist)
+{ if ( unlikely(ci->keeps_erased) )
+    return clist->number_of_clauses + clist->erased_clauses;
+
+  return clist->number_of_clauses;
+}
+
+/* True if the goal sees no clause of a clause list in which all
+ * clauses are erased.  The functions that erase a clause update
+ * `def->last_erased` and the number of erased clauses before they
+ * decrement the number of clauses.
+ */
+
+#define no_visible_clause(clist, ctx) LDFUNC(no_visible_clause, clist, ctx)
+static inline bool
+no_visible_clause(DECL_LD const ClauseList clist, const IndexContext ctx)
+{ MEMORY_ACQUIRE();			/* sync with setLastErased() */
+
+  return likely(clist->erased_clauses == 0) || !sees_erased(ctx);
+}
+
+/* True if no clause that was skipped when filling `ci` is visible to
+ * the goal.
+ */
+
+#define index_covers(ci, ctx) LDFUNC(index_covers, ci, ctx)
+static inline bool
+index_covers(DECL_LD const ClauseIndex ci, const IndexContext ctx)
+{ if ( likely(!ci->skipped_erased && !ci->skipped_tr) )
+  { return true;
+  } else
+  { gen_t gen = ctx->generation;
+
+    if ( gen >= GEN_TRANSACTION_BASE )
+    { if ( ci->skipped_tr && gen < LD->transaction.generation )
+	return false;
+      gen = LD->transaction.gen_start;
+    }
+
+    return gen >= ci->skipped_erased;
+  }
+}
+
+/* For a goal that cannot use the index it found, see index_covers().
+ * Kept apart so that the common path does not pay for them.
+ */
+
+#ifdef __GNUC__
+#define SCAN_NOINLINE __attribute__((noinline))
+#else
+#define SCAN_NOINLINE
+#endif
+
+/* The indexes after `ci` in the current array of indexes, or NULL if
+ * `ci` is not in this array.
+ */
+
+static COLD SCAN_NOINLINE ClauseIndex *
+index_after(ClauseList clist, ClauseIndex ci)
+{ ClauseIndex *cip;
+
+  if ( (cip=clist->clause_indexes) )
+  { for(; *cip; cip++)
+    { if ( *cip == ci )
+	return cip+1;
+    }
+  }
+
+  return NULL;
+}
+
+/* Scan the clause list, as first_clause_guarded() does at its end */
+
+#define first_clause_scan(argv, clist, ctx) \
+	LDFUNC(first_clause_scan, argv, clist, ctx)
+
+static COLD SCAN_NOINLINE ClauseRef
+first_clause_scan(DECL_LD const Word argv, ClauseList clist,
+		  const IndexContext ctx)
+{ ClauseChoice chp = ctx->chp;
+
+  chp->key  = indexOfWord(argv[clist->primary_index]);
+  chp->cref = clist->first_clause;
+  if ( chp->key )
+    return next_clause_primary_index(ctx);
+  else
+    return next_clause_unindexed(ctx);
+}
+
 static ClauseRef
 first_clause_guarded(DECL_LD const Word argv, size_t argc, ClauseList clist,
 		     const IndexContext ctx)
@@ -653,7 +904,13 @@ retry:
   cref = NULL;
 
   if ( unlikely(clist->number_of_clauses == 0) )
-    return NULL;
+  { if ( no_visible_clause(clist, ctx) )
+      return NULL;
+				/* an old goal and only erased clauses: */
+				/* do not scan them all in the fast path */
+    pkey = indexOfWord(argv[clist->primary_index]);
+    goto hashes;
+  }
 
   pindex = clist->primary_index;
   pkey = indexOfWord(argv[pindex]);
@@ -682,40 +939,64 @@ retry:
     /* else duplicate primary key: fall through to try hash */
   }
 
+hashes:
   /* Deal with possible hashes */
   if ( (cip=clist->clause_indexes) )
   { ClauseIndex best_index;
 
+  next_index:
     best_index = existing_hash(cip, argv, &chp->key);
 
     if ( best_index )
-    { if ( unlikely(!best_index->good) )
-      { if ( !clist->fixed_indexes &&
-	     !STATIC_RELOADING(ctx->predicate) &&
-	     consider_better_index(best_index->speedup,
-				   clist->number_of_clauses) )
-	{ ClauseIndex ci;
+    { int64_t good_from = index_good_from(best_index);
 
-	  DEBUG(MSG_JIT_POOR,
-		Sdprintf("Poor index %s of %s (trying to find better)\n",
-			 iargsName(best_index->args, NULL),
-			 predicateName(ctx->predicate)));
+      if ( unlikely((int64_t)ctx->generation < good_from) )
+      { if ( good_from == GOOD_NEVER )
+	{ if ( !clist->fixed_indexes &&
+	       !STATIC_RELOADING(ctx->predicate) &&
+	       consider_better_index(best_index->speedup,
+				     indexed_clauses(best_index, clist)) )
+	  { ClauseIndex ci;
 
-	  if ( (ci=createIndex(argv, argc, clist, best_index, ctx)) )
-	  { if ( unlikely(ci == CI_RETRY) )
-	      goto retry;
+	    DEBUG(MSG_JIT_POOR,
+		  Sdprintf("Poor index %s of %s (trying to find better)\n",
+			   iargsName(best_index->args, NULL),
+			   predicateName(ctx->predicate)));
 
-	    chp->key = indexKeyFromArgv(ci, argv);
-	    assert(chp->key);
-	    best_index = ci;
+	    if ( (ci=createIndex(argv, argc, clist, best_index, ctx)) )
+	    { if ( unlikely(ci == CI_RETRY) )
+		goto retry;
+
+	      chp->key = indexKeyFromArgv(ci, argv);
+	      assert(chp->key);
+	      best_index = ci;
+	    }
 	  }
+
+	  if ( best_index->incomplete || best_index->invalid )
+	  { wait_for_index(best_index, clist, ctx); /* see retireIndex() */
+	    goto retry;
+	  }
+	  MEMORY_ACQUIRE();		/* sync with completed_index() */
 	}
 
-	if ( best_index->incomplete || best_index->invalid )
-	{ wait_for_index(best_index, clist, ctx); /* see retireIndex() */
-	  goto retry;
+	if ( unlikely(!index_covers(best_index, ctx)) )
+	{ if ( !best_index->keeps_erased &&
+	       !best_index->is_list &&
+	       index_keeps_erased(ctx) )
+	  { if ( !erased_args_unindexable(argc, clist, best_index, ctx) )
+	    { DEBUG(MSG_JIT,
+		    Sdprintf("Index %s of %s lacks erased clauses; replacing\n",
+			     iargsName(best_index->args, NULL),
+			     predicateName(ctx->predicate)));
+	      retireIndex(ctx->predicate, clist, best_index);
+	      goto retry;		/* create one that has them */
+	    }
+	    if ( (cip=index_after(clist, best_index)) )
+	      goto next_index;		/* try the next one */
+	  }
+	  return first_clause_scan(argv, clist, ctx);
 	}
-	MEMORY_ACQUIRE();		/* sync with completed_index() */
       }
 
       unsigned int hi = hashIndex(chp->key, best_index->buckets);
@@ -755,9 +1036,13 @@ retry:
 
       chp->key = indexKeyFromArgv(ci, argv);
       assert(chp->key);
-      unsigned int hi = hashIndex(chp->key, ci->buckets);
-      chp->cref = ci->entries[hi].head;
-      return nextClauseFromBucket(ci, argv, ctx);
+      if ( likely(index_covers(ci, ctx)) )
+      { unsigned int hi = hashIndex(chp->key, ci->buckets);
+
+	chp->cref = ci->entries[hi].head;
+	return nextClauseFromBucket(ci, argv, ctx);
+      }
+      chp->key = pkey;			/* filled for another goal */
     }
   }
 
@@ -899,6 +1184,7 @@ newClauseIndexTable(hash_hints *hints, bool realised, IndexContext ctx)
   ci->buckets	 = 2<<hints->ln_buckets;
   ci->is_list	 = hints->list;
   ci->incomplete = true;
+  ci->good_from	 = GOOD_NEVER;
   ci->speedup	 = hints->speedup;
   copytpos(ci->position, ctx->position);
   if ( realised )
@@ -1411,7 +1697,10 @@ See also deleteActiveClauseFromIndexes() comment
 static void
 cleanClauseIndex(Definition def, ClauseList cl, ClauseIndex ci,
 		 DirtyDefInfo ddi, gen_t start, Buffer tr_starts)
-{ if ( cl->number_of_clauses < ci->resize_below )
+{ if ( cl->number_of_clauses < ci->resize_below ||
+       ( ci->keeps_erased &&		/* dimensioned for erased clauses */
+	 ci->buckets > 64 &&
+	 cl->number_of_clauses + cl->erased_clauses < ci->buckets/8 ) )
   { deleteIndex(def, cl, ci);
   } else
   { if ( ci->dirty )
@@ -1443,6 +1732,9 @@ cleanClauseIndexes(Definition def, ClauseList cl, DirtyDefInfo ddi,
 		   gen_t start, Buffer tr_starts)
 { ClauseIndex *cip;
 
+  if ( cl == &def->impl.clauses )	/* old goals counted the removed */
+    clear_erased_assessments(def);	/* clauses */
+
   if ( (cip=cl->clause_indexes) )
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
@@ -1465,6 +1757,7 @@ clearTriedIndexes(Definition def)
 
     ainfo->assessed = false;
   }
+  clear_erased_assessments(def);
 
   def->impl.clauses.jiti_tried = 0;
 }
@@ -1495,6 +1788,7 @@ reconsiderIndexes(Definition def)
     for(size_t i=0; i<arity; i++)
       clist->args[i].assessed = false;
   }
+  clear_erased_assessments(def);
 
   clist->jiti_tried       = 0;
   clist->pindex_verified  = false;
@@ -1560,6 +1854,7 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
       if ( cl->erased_clauses++ == 0 )
 	cb->dirty++;
+      MEMORY_RELEASE();			/* see no_visible_clause() */
       cl->number_of_clauses--;
     }
   } else
@@ -1571,6 +1866,7 @@ deleteActiveClauseFromBucket(ClauseBucket cb, word key)
 
 	if ( cl->erased_clauses++ == 0 )
 	  cb->dirty++;
+	MEMORY_RELEASE();		/* see no_visible_clause() */
 	cl->number_of_clauses--;
 
 #ifdef O_DEBUG
@@ -2039,24 +2335,94 @@ happened anyway, we retry. At the end,   we  lock the definition and add
 the new index to the indexes of the predicate.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+fill_erased_clause() is called by fill_clause_index() for a clause that
+is erased.
+
+(*) The goal we fill the index for may see erased clauses.  We add the
+clause and leave the index as if the clause was erased after the index
+was created: the clause is in its bucket and the bucket is dirty.  A
+clause without a key is in all buckets.  This is only done for a plain
+index on a dynamic predicate, where clause GC cleans the index and all
+threads that erase a clause wait for us, see waitIndexFills().  If
+clause GC removes most of these clauses, cleanClauseIndex() deletes the
+index.
+
+(**) Otherwise the clause is skipped.  It was erased no later than
+`def->last_erased`: this is set when a clause is marked erased and no
+clause is marked while we fill.  See index_covers().  Goals that do not
+see erased clauses use the index as they use any other index, see
+`ci->good_from`.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct erased_fill
+{ bool		skipped;		/* skipped an erased clause */
+  bool		skipped_tr;		/* idem, erased in a transaction */
+  unsigned int	kept;			/* # indexable clauses added */
+} erased_fill;
+
+static COLD void
+fill_erased_clause(ClauseIndex ci, Clause cl, bool keep, erased_fill *ef)
+{ if ( keep )				/* (*) */
+  { word key = indexKeyFromClause(ci, cl, NULL);
+
+    if ( key )
+    { ClauseBucket cb = &ci->entries[hashIndex(key, ci->buckets)];
+      unsigned int added = addClauseBucket(cb, cl, key, 0, CL_END, false);
+
+      ci->size += added;
+      ef->kept += added;
+      if ( cb->dirty++ == 0 )
+	ci->dirty++;
+    } else
+    { ClauseBucket cb = ci->entries;
+
+      for(unsigned int n = ci->buckets; n; n--, cb++)
+      { addClauseBucket(cb, cl, key, 0, CL_END, false);
+	if ( cb->dirty++ == 0 )
+	  ci->dirty++;
+      }
+    }
+  } else if ( cl->generation.erased >= GEN_TRANSACTION_BASE )
+  { ef->skipped_tr = true;		/* (**) */
+  } else
+  { ef->skipped = true;
+  }
+}
+
 static ClauseIndex
 fill_clause_index(ClauseIndex ci, ClauseList clist, IndexContext ctx)
-{ for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
-  { if ( isoff(cref->value.clause, CL_ERASED) )
-    { if ( !addClauseToIndex(ci, cref->value.clause, CL_END) )
+{ GET_LD
+  erased_fill erased = {0};
+  bool keep_erased = ( !ci->is_list && index_keeps_erased(ctx) );
+
+  for(ClauseRef cref = clist->first_clause; cref; cref = cref->next)
+  { Clause cl = cref->value.clause;
+
+    if ( isoff(cl, CL_ERASED) )
+    { if ( !addClauseToIndex(ci, cl, CL_END) )
       { ci->invalid = true;		/* caller retires, then completes */
 	return NULL;
       }
+    } else
+    { fill_erased_clause(ci, cl, keep_erased, &erased);
     }
   }
 
+  ci->keeps_erased = keep_erased;
+  ci->skipped_erased = erased.skipped ? ctx->predicate->last_erased : 0;
+  ci->skipped_tr = erased.skipped_tr;
   ci->resize_above = ci->size*2;
-  ci->resize_below = ci->size/4;
+  ci->resize_below = (ci->size-erased.kept)/4;
 
   completed_index(ci);
-  if ( !consider_better_index(ci->speedup, clist->number_of_clauses) )
-  { MEMORY_RELEASE();		/* readers do not check `incomplete` */
-    ci->good = true;		/* `good` means complete and sufficient */
+  if ( !consider_better_index(ci->speedup, indexed_clauses(ci, clist)) )
+  { if ( ci->skipped_erased )
+      set_index_good_from(ci, (int64_t)ci->skipped_erased);
+    else if ( erased.skipped_tr )
+      set_index_good_from(ci, 1);	/* not for goals in a transaction */
+    else
+      set_index_good_from(ci, GOOD_ALWAYS);
   }
 
   return ci;
@@ -2299,6 +2665,8 @@ replaceIndex(Definition def, ClauseList cl, ClauseIndex *cip, ClauseIndex ci)
       { arg_info *ai = &cl->args[a-1];
 
 	ai->assessed = false;
+	if ( cl == &def->impl.clauses && def->erased_args )
+	  def->erased_args[a-1].assessed = false;
       }
     }
 
@@ -2666,26 +3034,26 @@ alloc_assessment(assessment_set *as, iarg_t *ia)
 
 static int
 best_hash_assessment(const void *p1, const void *p2, void *ctx)
-{ ClauseList clist = ctx;
+{ const arg_info *args = ctx;
   const iarg_t *a1 = p1;
   const iarg_t *a2 = p2;
-  const arg_info *i1 = &clist->args[*a1];
-  const arg_info *i2 = &clist->args[*a2];
+  const arg_info *i1 = &args[*a1];
+  const arg_info *i2 = &args[*a2];
 
   return i1->speedup - i2->speedup > 0.0 ? -1 :
 	 i1->speedup - i2->speedup < 0.0 ?  1 : 0;
 }
 
 
-/* Sort assessments, represented by their argument position on
- * `clist` by decreasing speedup, i.e., best first.
+/* Sort assessments, represented by their argument position in
+ * `args` by decreasing speedup, i.e., best first.
  */
 
 static void
-sort_assessments(ClauseList clist,
+sort_assessments(arg_info *args,
 		 iarg_t *instantiated, int ninstantiated)
 { sort_r(instantiated, ninstantiated, sizeof(*instantiated),
-	 best_hash_assessment, clist);
+	 best_hash_assessment, args);
 }
 
 
@@ -2990,7 +3358,7 @@ Access a number of arguments on their suitability for a set of clauses.
 static void
 assess_scan_clauses(ClauseList clist, iarg_t ac,
 		    hash_assessment *assessments, int assess_count,
-		    IndexContext ctx)
+		    bool keep_erased, IndexContext ctx)
 { hash_assessment *a;
   ClauseRef cref;
   int i;
@@ -3027,7 +3395,7 @@ assess_scan_clauses(ClauseList clist, iarg_t ac,
     int carg = 0;
     ssize_t h_void = 0;
 
-    if ( ison(cl, CL_ERASED) )
+    if ( ison(cl, CL_ERASED) && !keep_erased )
       continue;
 
     pc = skipToTerm(cl, ctx->position, &h_void);
@@ -3093,23 +3461,26 @@ best_assessment(hash_assessment *assessments, int count, size_t clause_count)
   return best;
 }
 
-/* Update clist->args[i] for each candidate index in `aset`.  This fills
- * the argument's `ainfo` struct with the speedup, size and whether or not
- * a "list" index should be created"
+/* Update args[i] for each candidate index in `aset`.  This fills the
+ * argument's `ainfo` struct with the speedup, size and whether or not a
+ * "list" index should be created".  `args` is `clist->args` or, if
+ * `keep_erased`, the assessments of old goals.
  */
 
 static void
-assess_candidate_indexes(iarg_t ac, ClauseList clist, assessment_set *aset,
+assess_candidate_indexes(iarg_t ac, ClauseList clist, arg_info *args,
+			 bool keep_erased, assessment_set *aset,
 			 IndexContext ctx)
 { hash_assessment *a;
   int i;
 
-  assess_scan_clauses(clist, ac, aset->assessments, aset->count, ctx);
+  assess_scan_clauses(clist, ac, aset->assessments, aset->count,
+		      keep_erased, ctx);
 
   for(i=0, a=aset->assessments; i<aset->count; i++, a++)
-  { arg_info *ainfo = &clist->args[a->args[0]-1];
+  { arg_info *ainfo = &args[a->args[0]-1];
 
-    if ( assess_remove_duplicates(a, clist->number_of_clauses) )
+    if ( assess_remove_duplicates(a, assessed_clauses(clist, keep_erased)) )
     { DEBUG(MSG_JIT,
 	    Sdprintf("Assess index %s of %s: speedup %f, stdev=%f\n",
 		     iargsName(a->args, NULL),
@@ -3208,6 +3579,8 @@ bestHash(DECL_LD Word av, size_t argc,
   iarg_t *instantiated;
   int ninstantiated = 0;
   iarg_t ac = argc > MAXINDEXARG ? MAXINDEXARG : (iarg_t)argc;
+  bool keep_erased;
+  arg_info *args;
 
 					/* Step 1: find instantiated args */
   instantiated = alloca(ac*sizeof(*instantiated));
@@ -3219,27 +3592,32 @@ bestHash(DECL_LD Word av, size_t argc,
   if ( ninstantiated == 0 )
     return false;
   init_assessment_set(&aset);		/* Prepare for assessment */
-  ensure_arg_info(clist, ac);
+  keep_erased = ( unlikely(clist->erased_clauses) &&
+		  index_keeps_erased(ctx) );
+  if ( unlikely(keep_erased) )
+    args = erased_arg_info(ctx->predicate);
+  else
+    args = ensure_arg_info(clist, ac);
 
 					/* Step 2: find new unassessed args*/
   for(int i=0; i<ninstantiated; i++)
   { iarg_t arg = instantiated[i];
 
-    if ( !clist->args[arg].assessed )
+    if ( !args[arg].assessed )
     { ia[0] = arg+1;
       alloc_assessment(&aset, ia);
     }
   }
 
   if ( aset.count )			/* Step 3: assess them */
-  { assess_candidate_indexes(ac, clist, &aset, ctx);
+  { assess_candidate_indexes(ac, clist, args, keep_erased, &aset, ctx);
     free_assessment_set(&aset);
   }
 
 				/* Step 4: find the best (single) arg */
   for(int i=0; i<ninstantiated; i++)
   { iarg_t arg = instantiated[i];
-    arg_info *ainfo = &clist->args[arg];
+    arg_info *ainfo = &args[arg];
 
     if ( ainfo->speedup > best_speedup )
     { best = arg;
@@ -3248,7 +3626,8 @@ bestHash(DECL_LD Word av, size_t argc,
   }
 
   if ( best >= 0 )		/* Found at least one index */
-  { if ( consider_better_index(best_speedup, clist->number_of_clauses) &&
+  { if ( consider_better_index(best_speedup,
+			       assessed_clauses(clist, keep_erased)) &&
 	 ninstantiated > 1 )	/* ... but not a real good one ... */
     { DEBUG(MSG_JIT, Sdprintf("%s: %zd clauses, index [%d]: speedup = %f"
 			      "; trying multi-argument index\n",
@@ -3256,13 +3635,14 @@ bestHash(DECL_LD Word av, size_t argc,
 			      clist->number_of_clauses,
 			      best+1, best_speedup));
 
-      if ( find_multi_argument_hash(ac, clist, instantiated, ninstantiated,
+      if ( find_multi_argument_hash(ac, clist, args, keep_erased,
+				    instantiated, ninstantiated,
 				    better_than, hints, ctx) )
 	return true;
     }
 
     if ( better_index(better_than, best_speedup, MIN_SPEEDUP) )
-    { arg_info *ainfo = &clist->args[best];
+    { arg_info *ainfo = &args[best];
 
       cp_hints_from_arg_info(hints, (iarg_t) best, ainfo); /* dubious cast */
 
@@ -3286,15 +3666,16 @@ bestHash(DECL_LD Word av, size_t argc,
 
 static bool
 find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
+			 arg_info *args, bool keep_erased,
 			 iarg_t *instantiated, int ninstantiated,
 			 ClauseIndex better_than,
 			 hash_hints *hints, IndexContext ctx)
 { int ok, m, n;
 
-  sort_assessments(clist, instantiated, ninstantiated);
+  sort_assessments(args, instantiated, ninstantiated);
   for( ok=0;
        ok<ninstantiated &&
-	 clist->args[instantiated[ok]].speedup > MIN_SPEEDUP;
+	 args[instantiated[ok]].speedup > MIN_SPEEDUP;
        ok++ )
     ;
 
@@ -3315,9 +3696,10 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
       }
     }
 
-    assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
+    assess_scan_clauses(clist, ac, aset.assessments, aset.count,
+			keep_erased, ctx);
     nbest = best_assessment(aset.assessments, aset.count,
-			    clist->number_of_clauses);
+			    assessed_clauses(clist, keep_erased));
     if ( nbest && better_index(better_than, nbest->speedup, MIN_SPEEDUP) )
     { DEBUG(MSG_JIT, Sdprintf("%s: using index %s, speedup = %f\n",
 			      predicateName(ctx->predicate),
@@ -3334,6 +3716,36 @@ find_multi_argument_hash(DECL_LD iarg_t ac, ClauseList clist,
     }
     free_keys_in_assessment_set(&aset);
     free_assessment_set(&aset);
+  }
+
+  return false;
+}
+
+/* True if the argument of `ci` cannot be indexed if the erased clauses
+ * are included, as assessed for old goals.  Replacing `ci` by an index
+ * that holds these clauses would then only remove the index of the other
+ * goals.
+ */
+
+static bool
+erased_args_unindexable(DECL_LD size_t argc, ClauseList clist,
+			ClauseIndex ci, IndexContext ctx)
+{ if ( !ci->args[1] )
+  { arg_info *ea = erased_arg_info(ctx->predicate);
+    iarg_t arg = ci->args[0];
+
+    if ( !ea[arg-1].assessed )
+    { iarg_t ac = argc > MAXINDEXARG ? MAXINDEXARG : (iarg_t)argc;
+      iarg_t ia[MAX_MULTI_INDEX] = {arg};
+      assessment_set aset;
+
+      init_assessment_set(&aset);
+      alloc_assessment(&aset, ia);
+      assess_candidate_indexes(ac, clist, ea, true, &aset, ctx);
+      free_assessment_set(&aset);
+    }
+
+    return ea[arg-1].speedup == 0.0;
   }
 
   return false;
@@ -3390,7 +3802,7 @@ assess_all_arguments(iarg_t ac, ClauseList clist, const IndexContext ctx)
       alloc_assessment(&aset, ia);
     }
   }
-  assess_candidate_indexes(ac, clist, &aset, ctx);
+  assess_candidate_indexes(ac, clist, clist->args, false, &aset, ctx);
   free_assessment_set(&aset);
 }
 
@@ -3470,7 +3882,7 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
   { *nphints = 0;
     return true;
   }
-  sort_assessments(clist, assessments, nassessments);
+  sort_assessments(clist->args, assessments, nassessments);
 
   /* Create the good ones.  They are best and need not be combined */
   int good = create_good_indexes(clist,
@@ -3526,7 +3938,7 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
 	alloc_assessment(&aset, ia);
       }
     }
-    assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
+    assess_scan_clauses(clist, ac, aset.assessments, aset.count, false, ctx);
     alist = alloca(sizeof(*alist)*aset.count);
     ap = alist;
     for(int i=0; i<aset.count; i++)
@@ -3630,7 +4042,8 @@ sort_indexes(ClauseIndex *cip, int count)
 static bool
 set_candidate_indexes(Definition def, ClauseList clist, int max, bool lock)
 { hash_hints *hints = alloca(sizeof(*hints)*max);
-  index_context ctx = { .predicate = def, .position[0] = END_INDEX_POS };
+  index_context ctx = { .predicate = def, .position[0] = END_INDEX_POS,
+			.generation = global_generation() };
   iarg_t ac = def->functor->arity > MAXINDEXARG ? MAXINDEXARG
 						: (iarg_t)def->functor->arity;
 
@@ -3767,7 +4180,8 @@ PRED_IMPL("$candidate_indexes", 3, candidate_indexes, PL_FA_TRANSPARENT)
   Definition def = proc->definition;
   size_t arity = def->functor->arity;
   iarg_t ac = arity < MAXINDEXARG ? (iarg_t)arity : MAXINDEXARG;
-  index_context ctx = { .predicate = def, .position[0] = END_INDEX_POS };
+  index_context ctx = { .predicate = def, .position[0] = END_INDEX_POS,
+			.generation = global_generation() };
   candidate_indexes(ac, &def->impl.clauses, hints, &max, &ctx);
 
   term_t tail = PL_copy_term_ref(A2);

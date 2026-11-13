@@ -1018,6 +1018,8 @@ unallocDefinition(Definition def)
     freeHeap(def->tabling, sizeof(*def->tabling));
   if ( def->impl.any.args )
     freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
+  if ( def->erased_args )
+    freeHeap(def->erased_args, sizeof(arg_info)*def->functor->arity);
   if ( def->events )
     destroy_event_list(&def->events);
   freeCodesDefinition(def, false);
@@ -2539,6 +2541,28 @@ abolishProcedure(Procedure proc, Module module)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+`def->last_erased` is the latest generation at which a clause of `def`
+was erased.  A goal of this generation or later sees no erased clause.
+A goal that finds no clauses that are not erased uses this to decide
+that it has no clauses at all, see no_visible_clause() in pl-index.c.
+Therefore the functions that erase a clause call setLastErased() while
+they hold the predicate lock and before they update the clause counts
+of the predicate and its indexes.  They increment the number of erased
+clauses before they decrement the number of clauses, with a release
+barrier in between, so a goal that reads the decremented number of
+clauses also reads the erased clauses and `def->last_erased`.  A clause
+that is erased inside a transaction is not included: it was created in
+this transaction and goals outside the transaction cannot see it.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+setLastErased(Definition def, gen_t egen)
+{ if ( egen < GEN_MAX && egen > def->last_erased )
+    def->last_erased = egen;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Remove (mark for  deletion)  all  clauses   that  come  from  the  given
 source-file or any sourcefile. Note   that thread-local predicates don't
 have clauses from files, so we don't   need to bother. Returns number of
@@ -2577,10 +2601,12 @@ removeClausesPredicate(Definition def, size_t sfindex, int fromfile)
 #ifdef O_LOGICAL_UPDATE
 	cl->generation.erased = update;
 #endif
+	setLastErased(def, update);
 	deleted++;
 	memory += sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
-	def->impl.clauses.number_of_clauses--;
 	def->impl.clauses.erased_clauses++;
+	MEMORY_RELEASE();		/* see setLastErased() */
+	def->impl.clauses.number_of_clauses--;
 	if ( isoff(cl, UNIT_CLAUSE) )
 	  def->impl.clauses.number_of_rules--;
 	deleteActiveClauseFromIndexes(def, cl);
@@ -2669,9 +2695,11 @@ retract_clause(DECL_LD Clause clause, gen_t generation)
   DEBUG(CHK_SECURE, checkDefinition(def));
   waitIndexFills(def);
   set(clause, CL_ERASED);
+  setLastErased(def, clause->generation.erased);
   deleteActiveClauseFromIndexes(def, clause); /* just updates "dirtyness" */
-  def->impl.clauses.number_of_clauses--;
   def->impl.clauses.erased_clauses++;
+  MEMORY_RELEASE();			/* see setLastErased() */
+  def->impl.clauses.number_of_clauses--;
   if ( isoff(clause, UNIT_CLAUSE) )
     def->impl.clauses.number_of_rules--;
   DEBUG(CHK_SECURE, checkDefinition(def));
@@ -2887,6 +2915,7 @@ cleanDefinition(Definition def, DirtyDefInfo ddi, gen_t start,
     }
     if ( removed )
     { LOCKDEF(def);
+      waitIndexFills(def);
       cleanClauseIndexes(def, &def->impl.clauses, ddi, start, tr_starts);
       UNLOCKDEF(def);
     }
@@ -2945,10 +2974,12 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
       if ( cl->generation.erased == rl->reload_gen && isoff(cl, CL_ERASED) )
       { set(cl, CL_ERASED);
 	cl->generation.erased = update;
+	setLastErased(def, update);
 	deleted++;
 	memory += sizeofClause(cl->code_size) + SIZEOF_CREF_CLAUSE;
-	def->impl.clauses.number_of_clauses--;
 	def->impl.clauses.erased_clauses++;
+	MEMORY_RELEASE();		/* see setLastErased() */
+	def->impl.clauses.number_of_clauses--;
 	if ( isoff(cl, UNIT_CLAUSE) )
 	  def->impl.clauses.number_of_rules--;
 	deleteActiveClauseFromIndexes(def, cl);
