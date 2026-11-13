@@ -2017,6 +2017,17 @@ copyWordsScalarDown(void *to, const void *from, size_t n)
   }
 }
 
+static inline void
+clearWordsScalar(word *p, size_t n)
+{ for(; n > 0; n--)
+  {
+#ifdef __GNUC__
+    __asm__("" : "+r"(p));
+#endif
+    *p++ = 0;
+  }
+}
+
 static_assertion(sizeof(struct choice)%sizeof(word) == 0);
 static_assertion(sizeof(struct clause_choice)%sizeof(word) == 0);
 
