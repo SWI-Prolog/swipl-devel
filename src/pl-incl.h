@@ -1821,10 +1821,13 @@ struct clause_index
   unsigned	 is_list : 1;		/* Index with lists */
   unsigned	 incomplete : 1;	/* Index is incomplete */
   unsigned	 invalid : 1;		/* Index is invalid */
-  unsigned	 good : 1;		/* Index is (near) perfect */
+  unsigned	 keeps_erased : 1;	/* Filled with the erased clauses */
+  unsigned	 skipped_tr : 1;	/* Skipped clause erased in transaction */
   iarg_t	 args[MAX_MULTI_INDEX];	/* Indexed arguments */
   iarg_t	 position[MAXINDEXDEPTH+1]; /* Deep index position */
   float		 speedup;		/* Estimated speedup */
+  gen_t		 skipped_erased;	/* Erased clauses not in the index */
+  int64_t	 good_from;		/* (Near) perfect for goals from gen */
   ClauseBucket	 entries;		/* chains holding the clauses */
 };
 
@@ -1853,6 +1856,8 @@ struct definition
   Module	module;			/* module of the predicate */
   struct linger_list  *lingering;	/* Assocated lingering objects */
   gen_t		last_modified;		/* Generation I was last modified */
+  gen_t		last_erased;		/* Generation I last erased a clause */
+  arg_info     *erased_args;		/* Assessments of old goals */
   struct event_list  *events;		/* Forward update events */
   struct table_props *tabling;		/* Extended properties for tabling */
 #if defined(__SANITIZE_ADDRESS__)
