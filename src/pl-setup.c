@@ -1745,6 +1745,12 @@ freeStacks(DECL_LD)
     aTop = NULL;
     aBase = NULL;
   }
+  if ( LD->gc.remembered.addrs )	/* see gen_remember() */
+  { free(LD->gc.remembered.addrs);
+    LD->gc.remembered.addrs = NULL;
+    LD->gc.remembered.size = 0;
+    LD->gc.remembered.count = 0;
+  }
 }
 
 
