@@ -810,8 +810,7 @@ VMI(H_RFUNCTOR, 0, 1, (CA1_FUNC))
     c = consCompound(ap);
     *ap++ = f;
     ARGP = ap;
-    while(arity-->0)			/* must clear if we want to do GC */
-      setVar(*ap++);
+    clearWordsScalar(ap, arity);	/* must clear if we want to do GC */
     bindConst(p, c);
     UMODE = uwrite;
     NEXT_INSTRUCTION;
@@ -1699,15 +1698,13 @@ END_VMI
 VMI(B_RFUNCTOR, 0, 1, (CA1_FUNC))
 { functor_t f = (functor_t) *PC++;
   size_t arity = arityFunctor(f);
-  Word ap;
 
   ENSURE_GLOBAL_SPACE(1+arity, (void)0);
   *ARGP = consCompound(gTop);
   ARGP = gTop;
   *ARGP++ = f;
-  for(ap=ARGP; arity-->0;)		/* must clear if we want to do GC */
-    setVar(*ap++);
-  gTop = ap;
+  clearWordsScalar(ARGP, arity);	/* must clear if we want to do GC */
+  gTop = ARGP+arity;
 
   NEXT_INSTRUCTION;
 }
@@ -2900,8 +2897,7 @@ VMI(C_VAR_N, 0, 2, (CA1_FVAR,CA1_INTEGER))
 { Word vp = varFrameP(FR, *PC++);
   size_t count = *PC++;
 
-  while(count--)
-    setVar(*vp++);
+  clearWordsScalar(vp, count);
 
   NEXT_INSTRUCTION;
 }
@@ -6420,8 +6416,7 @@ VMI(T_FUNCTOR, 0, 1, (CA1_FUNC))
     *TrieTermP  = c;
     *TrieOffset = consInt(1);
     *ap++ = f;
-    while(arity-->0)			/* must clear if we want to do GC */
-      setVar(*ap++);
+    clearWordsScalar(ap, arity);	/* must clear if we want to do GC */
     bindConst(p, c);
     DEBUG(1, checkStacks(NULL));
     NEXT_INSTRUCTION;
