@@ -52,14 +52,14 @@
 		 *******************************/
 
 #define O_INDEX_QUICK_TEST 1
-#define O_INDEX_STATIC	   1
+/* O_INDEX_STATIC is defined in pl-index.h */
 
 		 /*******************************
 		 *	     PARAMETERS		*
 		 *******************************/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-  - MAX_LOOKAHEAD
+  - MAX_LOOKAHEAD (pl-index.h)
     Maximum number of clauses we look ahead on indexed clauses for an
     alternative clause. If the choice is committed this is lost effort,
     if it reaches the end of the clause list without finding one the
@@ -69,7 +69,7 @@
   - MAX_VAR_FRAC
     Do not create an index if the fraction of clauses with a variable
     in the target position exceeds this threshold.
-  - MIN_CLAUSES_FOR_INDEX
+  - MIN_CLAUSES_FOR_INDEX (pl-index.h)
     Create an index if there are more than this number of clauses
   - MIN_SPEEDUP_RATIO
     Need at least this ratio of #clauses/speedup for creating an index
@@ -78,8 +78,6 @@
 #define MIN_SPEEDUP           (GD->clause_index.min_speedup)
 #define MAX_VAR_FRAC          (GD->clause_index.max_var_fraction)
 #define MIN_SPEEDUP_RATIO     (GD->clause_index.min_speedup_ratio)
-#define MAX_LOOKAHEAD         (GD->clause_index.max_lookahead)
-#define MIN_CLAUSES_FOR_INDEX (GD->clause_index.min_clauses)
 
 
 		 /*******************************
@@ -160,12 +158,9 @@ static bool	set_candidate_indexes(Definition def, ClauseList clist,
 #define STATIC_RELOADING(pred) (LD->reload.generation && \
 				isoff(pred, P_DYNAMIC))
 
-/* Same as !cref->d.key || cref->d.key == k */
-#define cref_matches(cref, k) (((cref)->d.key == 0) | ((cref)->d.key == (k)))
-
-/* True if we do not need to check the generation */
-#define is_clean_predicate(def) \
-	isoff(ctx->predicate, P_DYNAMIC|P_DIRTYREG|P_RELOADING)
+/* True if we do not need to check the generation.  See also
+   cref_matches() in pl-index.h */
+#define is_clean_predicate(def) is_clean_definition(def)
 
 /* Map  a word  to  a hash  bucket offset.   This  now uses  Fibonacci
    hashing.  See https://en.wikipedia.org/wiki/Hash_function
@@ -780,9 +775,16 @@ retry:
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+first_clause_search() finds the first applicable clause and leaves
+information for finding the next clause in chp.  The common cases for a
+clean static predicate are handled by first_clause_static() in
+pl-index.h; callers use firstClause() which tries that path first.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 ClauseRef
-firstClause(DECL_LD Word argv, LocalFrame fr, Definition def,
-	    ClauseChoice chp)
+first_clause_search(DECL_LD Word argv, LocalFrame fr, Definition def,
+		    ClauseChoice chp)
 { ClauseRef cref;
   index_context ctx =
     { .generation  = generationFrame(fr),
@@ -811,8 +813,8 @@ firstClause(DECL_LD Word argv, LocalFrame fr, Definition def,
 
 
 ClauseRef
-nextClause(DECL_LD const ClauseChoice chp, const Word argv,
-	   const LocalFrame fr, const Definition def)
+next_clause_search(DECL_LD const ClauseChoice chp, const Word argv,
+		   const LocalFrame fr, const Definition def)
 { ClauseRef cref;
 
   (void)argv;				/* we want to use these later */
