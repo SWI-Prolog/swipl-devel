@@ -305,7 +305,7 @@ char_type_by_name(atom_t name, int arity)
 }
 
 
-static int
+static bool
 advanceGen(generator *gen)
 { if ( gen->do_enum & ENUM_CHAR )
   { if ( ++gen->current > UNICODE_MAX )
@@ -737,7 +737,7 @@ skip_separators(PL_chars_t *t, size_t *i)
 }
 
 
-static int
+static bool
 copy_non_separators(IOSTREAM *out, PL_chars_t *t, size_t *i)
 { for(;;)
   { size_t at = *i;
@@ -756,7 +756,7 @@ copy_non_separators(IOSTREAM *out, PL_chars_t *t, size_t *i)
 }
 
 
-static int
+static bool
 write_normalize_space(IOSTREAM *out, term_t in)
 { GET_LD
   PL_chars_t tin;

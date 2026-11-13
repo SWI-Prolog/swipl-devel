@@ -102,7 +102,7 @@ nextTermAgenda(DECL_LD term_agenda *a)
 		 *	  PUSH VARIATIONS	*
 		 *******************************/
 
-static inline int
+static inline bool
 pushWorkAgenda(term_agenda *a, size_t amount, Word start)
 { if ( amount )
   { if ( a->work.size > 0 )
@@ -336,7 +336,7 @@ clearTermAgendaLR(term_agendaLR *a)
 }
 
 
-static int
+static bool
 nextTermAgendaLR(term_agendaLR *a, Word *lp, Word *rp)
 { if ( a->work.size > 0 )
   { ok:
@@ -354,7 +354,7 @@ nextTermAgendaLR(term_agendaLR *a, Word *lp, Word *rp)
 }
 
 
-static inline int
+static inline bool
 pushWorkAgendaLR(term_agendaLR *a, size_t amount, Word left, Word right)
 { if ( a->work.size > 0 )
   { if ( !pushSegStack(&a->stack, a->work, aNodeLR) )
@@ -414,7 +414,7 @@ clearTermAgendaLRD(term_agendaLRD *a)
 }
 
 
-static int
+static bool
 nextTermAgendaLRD(term_agendaLRD *a, Word *lp, Word *rp)
 { if ( a->work.size > 0 )
   { ok:
@@ -432,7 +432,7 @@ nextTermAgendaLRD(term_agendaLRD *a, Word *lp, Word *rp)
 }
 
 
-static inline int
+static inline bool
 pushWorkAgendaLRD(term_agendaLRD *a, size_t amount, Word left, Word right)
 { if ( a->work.size > 0 )
   { if ( !pushSegStack(&a->stack, a->work, aNodeLRD) )
@@ -498,7 +498,7 @@ clearTermAgendaLRS(term_agendaLRS *a)
 
 
 #define nextTermAgendaLRS(a, lp, rp) LDFUNC(nextTermAgendaLRS, a, lp, rp)
-static int
+static bool
 nextTermAgendaLRS(DECL_LD term_agendaLRS *a, Word *lp, Word *rp)
 { Word p;
 
@@ -517,7 +517,7 @@ nextTermAgendaLRS(DECL_LD term_agendaLRS *a, Word *lp, Word *rp)
 }
 
 
-static int
+static bool
 pushWorkAgendaLRS(term_agendaLRS *a, Functor left, Functor right, void *data)
 { if ( !pushSegStack(&a->stack, a->work, aNodeLRS) )
     return false;

@@ -476,7 +476,7 @@ Sread_win32_console(void *handle, char *buffer, size_t size)
 }
 
 
-static int
+static bool
 wrap_console(HANDLE h, IOSTREAM *s, IOFUNCTIONS *funcs)
 { ansi_stream *as;
   DWORD mode;

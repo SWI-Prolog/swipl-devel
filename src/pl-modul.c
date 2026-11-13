@@ -60,7 +60,7 @@ the  global  module  for  the  user  and imports from `system' all other
 modules import from `user' (and indirect from `system').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int	addSuperModule_no_lock(Module m, Module s, int where);
+static bool	addSuperModule_no_lock(Module m, Module s, int where);
 static void	unallocModule(Module m);
 static void	unlinkSourceFilesModule(Module m);
 
@@ -425,7 +425,7 @@ unlinkSourceFilesModule(Module m)
 }
 
 
-static int
+static bool
 destroyModule(Module m)
 { GET_LD
 
@@ -515,7 +515,7 @@ updateLevelModule(Module m)
 }
 
 
-static int
+static bool
 cannotSetSuperModule(Module m, Module s)
 { GET_LD
   term_t t = PL_new_term_ref();
@@ -531,7 +531,7 @@ cannotSetSuperModule(Module m, Module s)
 }
 
 
-static int
+static bool
 reachableModule(Module here, Module end)
 { if ( here != end )
   { ListCell c;
@@ -549,7 +549,7 @@ reachableModule(Module here, Module end)
 
 
 
-static int
+static bool
 addSuperModule_no_lock(Module m, Module s, int where)
 { ListCell c;
 
@@ -594,7 +594,7 @@ addSuperModule(Module m, Module s, int where)
 }
 
 
-static int
+static bool
 delSuperModule(Module m, Module s)
 { ListCell *p;
 
@@ -852,7 +852,7 @@ isPublicModule(Module module, Procedure proc)
 		*       PROLOG CONNECTION       *
 		*********************************/
 
-static int
+static bool
 get_module(term_t t, Module *m, int create)
 { GET_LD
   atom_t name;
@@ -950,7 +950,7 @@ PRED_IMPL("delete_import_module", 2, delete_import_module, 0)
 
 
 #define get_existing_source_file(file, sfp) LDFUNC(get_existing_source_file, file, sfp)
-static int
+static bool
 get_existing_source_file(DECL_LD term_t file, SourceFile *sfp)
 { SourceFile sf;
   atom_t a;
@@ -1163,7 +1163,7 @@ typedef struct defm_target
 
 
 #define find_modules_with_defs(m, count, targets, tmp, mlist, l) LDFUNC(find_modules_with_defs, m, count, targets, tmp, mlist, l)
-static int
+static bool
 find_modules_with_defs(DECL_LD Module m, int count, defm_target targets[],
 		       term_t tmp, term_t mlist,
 		       int l)
@@ -1401,7 +1401,7 @@ PRED_IMPL("$declare_module", 6, declare_module, 0)
 
 
 #define unify_export_list(public, module) LDFUNC(unify_export_list, public, module)
-static int
+static bool
 unify_export_list(DECL_LD term_t public, Module module)
 { term_t head = PL_new_term_ref();
   term_t list = PL_copy_term_ref(public);

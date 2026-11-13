@@ -643,7 +643,7 @@ PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
 
 #define unify_src_file_time(t, f) LDFUNC(unify_src_file_time, t, f)
 
-static int
+static bool
 unify_src_file_time(DECL_LD term_t t, const SourceFile f)
 { if ( f->isfile )
     return PL_unify_float(t, f->mtime);
@@ -1012,7 +1012,7 @@ keep_clause(DECL_LD p_reload *r, Clause clause)
 }
 
 
-static int
+static bool
 equal_clause(Clause cl1, Clause cl2)
 { if ( cl1->code_size == cl2->code_size )
   { size_t bytes = (size_t)cl1->code_size * sizeof(code);
@@ -1360,7 +1360,7 @@ setMetapredicateSource(DECL_LD SourceFile sf, Procedure proc,
 }
 
 
-static int
+static bool
 equal_meta(Definition def, const arg_info *args)
 { if ( def->impl.any.args && args )
   { size_t i, arity = def->functor->arity;
@@ -1658,7 +1658,7 @@ file sf.  This performs the following steps:
 against M in prolog_load_context(module, M).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 flush_procedure(SourceFile sf, Procedure proc)
 { GET_LD
   sf_reload *reload;

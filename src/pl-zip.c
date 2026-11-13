@@ -86,7 +86,7 @@ static void	unmap_file(mapped_file *mf);
 # define VERSIONMADEBY   (0x0) /* platform dependent */
 #endif
 
-static int  unify_zipper(term_t t, zipper *zipper);
+static bool  unify_zipper(term_t t, zipper *zipper);
 
 int rc_errno;
 
@@ -123,7 +123,7 @@ zdisown(zipper *z)
   }
 }
 
-static int
+static bool
 zlock(zipper *z)
 { int tid = PL_thread_self();
 
@@ -138,7 +138,7 @@ zlock(zipper *z)
   return true;
 }
 
-static int
+static bool
 zunlock(zipper *z)
 { int tid = PL_thread_self();
 
@@ -181,7 +181,7 @@ static const valid_transition valid_transitions[] =
   { ZIP_END,	    ZIP_END         }
 };
 
-static int
+static bool
 zacquire(zipper *z,
 	 zipper_state state, zipper_state *prev_state,
 	 const char *action)
@@ -213,7 +213,7 @@ ok:
   return true;
 }
 
-static int
+static bool
 zrelease(zipper *z)
 { z->state = ZIP_IDLE;
   zdisown(z);
@@ -554,7 +554,7 @@ static PL_blob_t zipper_blob =
   load_zipper
 };
 
-static int
+static bool
 unify_zipper(term_t t, zipper *zipper)
 { GET_LD
 
@@ -564,7 +564,7 @@ unify_zipper(term_t t, zipper *zipper)
     return PL_unify_blob(t, zipper, sizeof(*zipper), &zipper_blob);
 }
 
-static int
+static bool
 get_zipper(term_t t, zipper **zipper)
 { void *p;
   size_t len;

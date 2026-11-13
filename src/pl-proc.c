@@ -82,7 +82,7 @@ static void	gcClauseRefs(void);
 #undef LDFUNC_DECLARATIONS
 
 #ifdef O_DEBUG
-static int	isProtectedCRef(ClauseRef cref);
+static bool	isProtectedCRef(ClauseRef cref);
 #else
 #define unprotectCRef(cref) (void)0
 #define protectCRef(cref)   (void)0
@@ -595,7 +595,7 @@ internal functor represenation. It fails and  raises an exception on the
 various possible format or representation errors.  ISO compliant.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 get_arity(term_t t, int extra, int maxarity, int *arity)
 { int a;
 
@@ -1285,7 +1285,7 @@ lingerClauseRef(ClauseRef cref)
 }
 
 
-static int activePredicate(const Definition *defs, const Definition def);
+static bool activePredicate(const Definition *defs, const Definition def);
 
 static void
 gcClauseRefs(void)
@@ -1330,7 +1330,7 @@ gcClauseRefs(void)
   }
 }
 
-static int
+static bool
 activePredicate(const Definition *defs, const Definition def)
 { if ( defs )
   { for( ; *defs; defs++)
@@ -1364,7 +1364,7 @@ setLastModifiedPredicate(Definition def, gen_t gen, int flags)
 }
 
 
-static int
+static bool
 add_ssu_clause(Definition def, Clause clause)
 { if ( ison(clause, SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE) )
   { if ( isoff(def, P_SSU_DET) )
@@ -2156,7 +2156,7 @@ PRED_IMPL("mode", 1, mode, PL_FA_TRANSPARENT)
 }
 
 #define unify_meta_argument(head, def, i) LDFUNC(unify_meta_argument, head, def, i)
-static int
+static bool
 unify_meta_argument(DECL_LD term_t head, Definition def, size_t i)
 { term_t arg = PL_new_term_ref();
   int m = def->impl.any.args[i].meta;
@@ -2182,7 +2182,7 @@ unify_meta_argument(DECL_LD term_t head, Definition def, size_t i)
 }
 
 
-static int
+static bool
 unify_meta_pattern(Procedure proc, term_t head)
 { GET_LD
   Definition def = proc->definition;
@@ -2621,7 +2621,7 @@ unprotectCRef(ClauseRef cref)
   }
 }
 
-static int
+static bool
 isProtectedCRef(ClauseRef cref)
 { GET_LD
 
@@ -3152,7 +3152,7 @@ found:
 
 
 #define test_autoload_loop(def) LDFUNC(test_autoload_loop, def)
-static int
+static bool
 test_autoload_loop(DECL_LD Definition def)
 { DefinitionChain ch;
 
@@ -3968,7 +3968,7 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
 }
 
 
-static int
+static bool
 setDetDefinition(Definition def, bool isdet)
 { if ( ( isdet &&  ison(def, P_DET)) ||
        (!isdet && isoff(def, P_DET)) )
@@ -4106,7 +4106,7 @@ setAttrDefinition(Definition def, uint64_t attr, bool val)
 
 
 #define get_bool_or_int_ex(t, val) LDFUNC(get_bool_or_int_ex, t, val)
-static int
+static bool
 get_bool_or_int_ex(DECL_LD term_t t, int *val)
 { if ( PL_get_bool(t, val) )
     return true;

@@ -196,7 +196,7 @@ push_undo(DECL_LD Word p)
 
 
 #define put_scheduled_undo(list) LDFUNC(put_scheduled_undo, list)
-static int
+static bool
 put_scheduled_undo(DECL_LD term_t list)
 { PL_put_nil(list);
 

@@ -756,7 +756,7 @@ defaultSystemInitFile(const char *a0)
 }
 
 
-static int
+static bool
 is_hash_bang_file(const char *s)
 { char fb[PATH_MAX];
   char *fn;
@@ -808,7 +808,7 @@ memarea_limit(const char *s)
 }
 
 
-static int
+static bool
 on_error_style(const char *s)
 { return ( strcmp(s, "print") == 0 ||
 	   strcmp(s, "halt") == 0 ||
@@ -1015,7 +1015,7 @@ This  file  is  parsed,  and  the    values  are  interpreted.  See  the
 if-then-else below for the defined values.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 getVarFromStream(IOSTREAM *s, tmp_buffer *name, tmp_buffer *value)
 { int c;
 
@@ -1052,7 +1052,7 @@ do_value:
 }
 
 
-static int
+static bool
 loadStateOptions(IOSTREAM *opts)
 { int rc = false;
   tmp_buffer name;

@@ -80,7 +80,7 @@
 #define WIN_PATH_PREFIX _T("\\\\?\\")
 #define WIN_UNC_PREFIX  _T("\\\\?\\UNC")
 
-static int exists_file_or_dir(const TCHAR *path, int flags);
+static bool exists_file_or_dir(const TCHAR *path, int flags);
 
 extern int Sdprintf(const char *fmt, ...);
 
@@ -207,7 +207,7 @@ utf8_wcslen(const char *s, size_t len)
 		 *	       HOME		*
 		 *******************************/
 
-static int
+static bool
 existsAndWriteableDir(const TCHAR *name)
 { DWORD a = GetFileAttributes(name);
 
@@ -323,7 +323,7 @@ static const wchar_t* reserved_file_names[] =
   (const wchar_t*)0
 };
 
-static int
+static bool
 is_reserved_name(const wchar_t *name)
 { for(const wchar_t**r = reserved_file_names; *r; r++)
   { if ( _tcsicmp(name, *r) == 0 )
@@ -959,7 +959,7 @@ delete_trailing_slash(wchar_t *s)
 }
 
 
-static int
+static bool
 compare_file_identifiers(const wchar_t *p1, const wchar_t *p2)
 { HANDLE h1 = INVALID_HANDLE_VALUE, h2 = INVALID_HANDLE_VALUE;
   int rc = false;
@@ -1399,7 +1399,7 @@ _xos_get_file_time(const char *name, int which, double *tp)
 }
 
 
-static int
+static bool
 exists_file_or_dir(const TCHAR *path, int flags)
 { DWORD a;
 

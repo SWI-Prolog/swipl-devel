@@ -375,7 +375,7 @@ truePrologFlagNoLD(unsigned int flag)
 }
 
 
-static inline int
+static inline bool
 wr_is_symbol(int c, write_options *options)
 { return ( f_is_prolog_symbol(c) ||
 	   (c == '`' &&

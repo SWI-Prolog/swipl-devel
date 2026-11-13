@@ -233,7 +233,7 @@ static const PL_option_t open_shared_object_options[] =
 #define RTLD_DEEPBIND 0
 #endif
 
-static int
+static bool
 atom_domain_error(const char *domain, atom_t found)
 { term_t t;
 

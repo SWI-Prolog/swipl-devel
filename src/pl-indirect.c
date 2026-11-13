@@ -70,7 +70,7 @@ volatile areas and thus we can use purely reference count based GC.
 #define LDFUNC_DECLARATIONS
 
 static void	 rehash_indirect_table(indirect_table *tab);
-static int	 bump_ref(indirect *h, unsigned int refs);
+static bool	 bump_ref(indirect *h, unsigned int refs);
 static indirect *reserve_indirect(indirect_table *tab, word val);
 static indirect *create_indirect(indirect *h, size_t index, word val);
 
@@ -225,7 +225,7 @@ intern_indirect(DECL_LD indirect_table *tab, word val, bool create)
 }
 
 
-static int
+static bool
 bump_ref(indirect *h, unsigned int refs)
 { for(;;)
   { if ( COMPARE_AND_SWAP_UINT(&h->references, refs, refs+1) )

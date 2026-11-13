@@ -1239,7 +1239,7 @@ API_STUB(bool)
 #define UINTPTR_MAX ~(uintptr_t)0;
 #endif
 
-static int
+static bool
 fits_size(int64_t val, term_t t)
 { if ( (uintptr_t)val <= (uintptr_t)UINTPTR_MAX )
     return true;

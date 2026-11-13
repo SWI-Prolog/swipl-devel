@@ -284,7 +284,7 @@ PRED_IMPL("$cov_add", 3, cov_add, 0)
 }
 
 
-static int
+static bool
 unify_cov(term_t t, const cov_obj *cov)
 { switch( cov->type )
   { case COV_PC:
@@ -348,7 +348,7 @@ save_state(cov_data_state *state)
   return s;
 }
 
-static int
+static bool
 is_candidate(cov_data_state *state, cov_obj *cov)
 { if ( state->type != COV_ANY && cov->type != state->type )
     return false;

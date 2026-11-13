@@ -293,7 +293,7 @@ debug_high_code(void)
 }
 
 
-static int
+static bool
 prolog_debug_topic(const char *topic, int flag)
 { int level;
   char *end;
@@ -400,7 +400,7 @@ PL_prolog_nodebug(const char *topic)
 }
 
 
-static int
+static bool
 prolog_debug(term_t t, int flag)
 { char *topic;
 

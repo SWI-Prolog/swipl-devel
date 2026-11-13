@@ -251,7 +251,7 @@ typedef struct c_warning
 #define is_portable_constant(w) LDFUNC(is_portable_constant, w)
 
 /* Integer constant fits on (portable) code */
-static inline int
+static inline bool
 is_portable_smallint(DECL_LD word w)
 { if ( isTaggedInt(w) )
   { if ( truePrologFlag(PLFLAG_PORTABLE_VMI) )
@@ -265,7 +265,7 @@ is_portable_smallint(DECL_LD word w)
 }
 
 /* w doesn't change when put in code (anyway) or 32-bit code (portable) */
-static inline int
+static inline bool
 is_portable_constant(DECL_LD word w)
 { if ( isAtom(w) )
     return true;
@@ -2247,7 +2247,7 @@ True if p points to a first-var allocated at *i.  P is dereferenced.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define isFirstVarP(p, ci, i) LDFUNC(isFirstVarP, p, ci, i)
-static int
+static bool
 isFirstVarP(DECL_LD Word p, compileInfo *ci, int *i)
 { int idx;
 
@@ -2336,7 +2336,7 @@ getTargetModule(DECL_LD target_module *tm, Word t, CompileInfo ci)
 }
 
 
-static int
+static bool
 pushTargetModule(target_module *tm, CompileInfo ci)
 { if ( tm->type == TM_MODULE )
   { Output_1(ci, B_ATOM, tm->module->name);
@@ -4945,7 +4945,7 @@ trouble.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define skippedVar(arg, ci) LDFUNC(skippedVar, arg, ci)
-static int
+static bool
 skippedVar(DECL_LD Word arg, compileInfo *ci)
 { int i;
 
@@ -5857,7 +5857,7 @@ PRED_IMPL("asserta", 1, asserta1, PL_FA_TRANSPARENT)
 
 
 #define mustBeVar(t) LDFUNC(mustBeVar, t)
-static int
+static bool
 mustBeVar(DECL_LD term_t t)
 { if ( !PL_is_variable(t) )
     return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 2, t);
@@ -6500,7 +6500,7 @@ add_bvar_access(DECL_LD decompileInfo *di, int index, int *max)
 }
 
 #define mark_bvar_access(cl, di) LDFUNC(mark_bvar_access, cl, di)
-static int
+static bool
 mark_bvar_access(DECL_LD Clause cl, decompileInfo *di)
 { Code pc, ep;
   int max = -1;
@@ -7002,7 +7002,7 @@ clause_functor(unsigned int flags)
 
 
 #define moved_unification(i, eq, a, di) LDFUNC(moved_unification, i, eq, a, di)
-static int
+static bool
 moved_unification(DECL_LD int i, term_t eq, term_t a, decompileInfo *di)
 { if ( PL_unify_functor(eq, FUNCTOR_equals2) )
   { _PL_get_arg(1, eq, a);
@@ -8613,7 +8613,7 @@ PRED_IMPL("nth_clause",  3, nth_clause, PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC
 
 #if O_DEBUGGER				/* to the end of the file */
 
-static int
+static bool
 wouldBindToDefinition(Definition from, Definition to)
 { Module m = from->module;
   Definition def = from;
@@ -9194,7 +9194,7 @@ lookup_vmi(atom_t name)
 
 
 
-static int
+static bool
 vm_compile_instruction(term_t t, CompileInfo ci)
 { GET_LD
   atom_t name;
@@ -9359,7 +9359,7 @@ vm_compile_instruction(term_t t, CompileInfo ci)
 }
 
 
-static int
+static bool
 vm_compile(term_t t, CompileInfo ci)
 { GET_LD
   term_t head = PL_new_term_ref();
@@ -9540,7 +9540,7 @@ the subterm that sets up the goal.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define add_node(tail, n) LDFUNC(add_node, tail, n)
-static int
+static bool
 add_node(DECL_LD term_t tail, int n)
 { term_t h = PL_new_term_ref();
   int rval;

@@ -338,7 +338,7 @@ typedef struct cycle_entry
 } cycle_entry;
 
 #define is_variant_frame(fr1, fr2) LDFUNC(is_variant_frame, fr1, fr2)
-static int
+static bool
 is_variant_frame(DECL_LD LocalFrame fr1, LocalFrame fr2)
 { if ( fr1->predicate == fr2->predicate )
   { size_t arity = fr1->predicate->functor->arity;

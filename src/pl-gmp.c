@@ -143,7 +143,7 @@ gmp_too_big(DECL_LD gmp_tb why)
 }
 
 
-static int
+static bool
 gmp_check_size(DECL_LD size_t bytes)
 { gmp_tb why = GMO_TB_OK;
 
@@ -345,7 +345,7 @@ mp_cleanup(ar_context *ctx)
 }
 
 #ifdef O_DEBUG
-static int
+static bool
 mp_test_alloc(void)
 { GET_LD
   AR_CTX;

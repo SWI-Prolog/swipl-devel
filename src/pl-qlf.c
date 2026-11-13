@@ -321,7 +321,7 @@ static bool	loadInModule(wic_state *state, int skip);
 static bool	loadInclude(wic_state *state, int skip);
 static bool	qlfVersion(wic_state *state, const char *magic, int *vp);
 static atom_t	qlfFixSourcePath(wic_state *state, const char *raw);
-static int	pushPathTranslation(wic_state *state, const char *loadname, int flags);
+static bool	pushPathTranslation(wic_state *state, const char *loadname, int flags);
 static void	popPathTranslation(wic_state *state);
 static bool	qlfIsCompatible(wic_state *state, const char *magic);
 static void	qlfPutInt64(int64_t len, IOSTREAM *fd);
@@ -1020,7 +1020,7 @@ loadWicFromStream(const char *rcpath, IOSTREAM *fd)
 }
 
 
-static int
+static bool
 loadWicFile(const char *file)
 { IOSTREAM *fd;
   int rval;
@@ -2473,7 +2473,7 @@ savedXRConstant() is or-ed with 0x1 to avoid conflict with pointers.
 
 #define savedXR(state, xr) LDFUNC(savedXR, state, xr)
 
-static int
+static bool
 savedXR(DECL_LD wic_state *state, void *xr)
 { uint32_t id;
 
@@ -2495,7 +2495,7 @@ savedXR(DECL_LD wic_state *state, void *xr)
 
 #define savedXRConstant(state, w) LDFUNC(savedXRConstant, state, w)
 
-static int
+static bool
 savedXRConstant(DECL_LD wic_state *state, word w)
 { word key = w|0x1;			/* Cannot conflict with pointers */
   uint32_t id;
@@ -2526,7 +2526,7 @@ static int XRNullPointer = 0;
 
 #define savedXRPointer(state, p) LDFUNC(savedXRPointer, state, p)
 
-static inline int
+static inline bool
 savedXRPointer(DECL_LD wic_state *state, void *p)
 { assert((ptr2word(p)&0x1) == 0);
 
@@ -3835,7 +3835,7 @@ qlfVersion(wic_state *state, const char *exp_magic, int *vp)
 }
 
 
-static int
+static bool
 pushPathTranslation(wic_state *state, const char *absloadname, int flags)
 { IOSTREAM *fd = state->wicFd;
   char *abssavename;
@@ -4406,7 +4406,7 @@ freeMapping(table_key_t name, table_value_t value)
   if ( isAtom(id_to) )   PL_unregister_atom(word2atom(id_to));
 }
 
-static int
+static bool
 get_id(term_t t, Word id)
 { GET_LD
   atom_t a;
@@ -4599,7 +4599,7 @@ directive in directive and succeed. If the   term has no explicit module
 tag, add one from the current source-module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 directiveClause(term_t directive, term_t clause, const char *functor)
 { GET_LD
   atom_t name;
@@ -4641,7 +4641,7 @@ typedef struct condc
   iftrue ctrue[MAX_IFDEF_NEST];
 } condc;
 
-static int
+static bool
 cond_true(const condc *cond)
 { return cond->ctrue[cond->depth] == IF_TRUE;
 }

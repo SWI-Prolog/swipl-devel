@@ -703,7 +703,7 @@ is_exception_finish(enum finished reason)
 }
 
 
-static int
+static bool
 unify_finished(term_t catcher, enum finished reason)
 { GET_LD
 
@@ -979,7 +979,7 @@ frameFailed(DECL_LD LocalFrame fr)
 }
 
 #define mustBeCallable(call) LDFUNC(mustBeCallable, call)
-static int
+static bool
 mustBeCallable(DECL_LD term_t call)
 { Word p = valTermRef(call);
   Word ap;
@@ -1108,7 +1108,7 @@ break applied.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define put_vm_call(t, frref, PC, op, has_firstvar, pop) LDFUNC(put_vm_call, t, frref, PC, op, has_firstvar, pop)
-static int
+static bool
 put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 	    int *pop)
 { atom_t simple_goal;

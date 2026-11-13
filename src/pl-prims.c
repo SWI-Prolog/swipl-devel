@@ -860,7 +860,7 @@ typedef enum
   ph_unmark
 } phase;
 
-static inline int
+static inline bool
 ph_visitedWord(Word p, phase ph)
 { switch(ph)
   { case ph_mark:
@@ -876,7 +876,7 @@ ph_visitedWord(Word p, phase ph)
   fail;
 }
 
-static inline int
+static inline bool
 ph_visited(Functor f, phase ph)
 { Word p = &f->definition;
 
@@ -2632,7 +2632,7 @@ PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
 /* functor(-Callable, +Name, +Arity, +Type) */
 
 #define match_functor_type(Type, atype, type) LDFUNC(match_functor_type, Type, atype, type)
-static int
+static bool
 match_functor_type(DECL_LD term_t Type, atom_t atype, atom_t type)
 { if ( !atype )
     return PL_unify_atom(Type, type);
@@ -3778,7 +3778,7 @@ term_variables_to_termv(DECL_LD term_t t, term_t *vp, size_t maxcount, int flags
 
 
 #define term_variables(t, vars, tail, flags) LDFUNC(term_variables, t, vars, tail, flags)
-static int
+static bool
 term_variables(DECL_LD term_t t, term_t vars, term_t tail, int flags)
 { term_t list = PL_copy_term_ref(vars);
   term_t head = PL_new_term_ref();
@@ -4009,7 +4009,7 @@ The latest version of the old algorithm is in the GIT commit
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define subsumes(general, specific) LDFUNC(subsumes, general, specific)
-static int
+static bool
 subsumes(DECL_LD term_t general, term_t specific)
 { term_t v0;
   size_t i, n;
@@ -4243,7 +4243,7 @@ there is no space we rewind and retry the whole process.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define unifiable_occurs_check(t1, t2) LDFUNC(unifiable_occurs_check, t1, t2)
-static int
+static bool
 unifiable_occurs_check(DECL_LD term_t t1, term_t t2)
 { switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
@@ -5013,7 +5013,7 @@ PRED_IMPL("atomic_concat", 3, atomic_concat, PL_FA_ISO)
 
 
 #define split_atom(list, st, atom) LDFUNC(split_atom, list, st, atom)
-static int
+static bool
 split_atom(DECL_LD term_t list, PL_chars_t *st, term_t atom)
 { PL_chars_t at;
   size_t i, last;
@@ -5757,7 +5757,7 @@ query.
 */
 
 #define unify_depth_LD(t, depth) LDFUNC(unify_depth_LD, t, depth)
-static int
+static bool
 unify_depth_LD(DECL_LD term_t t, size_t depth)
 { if ( depth == DEPTH_NO_LIMIT )
     return PL_unify_atom(t, ATOM_inf);
@@ -5766,7 +5766,7 @@ unify_depth_LD(DECL_LD term_t t, size_t depth)
 }
 
 #define get_depth_LD(t, depth) LDFUNC(get_depth_LD, t, depth)
-static int
+static bool
 get_depth_LD(DECL_LD term_t t, size_t *depth)
 { atom_t a;
 

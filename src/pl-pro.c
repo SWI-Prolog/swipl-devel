@@ -57,7 +57,7 @@
 		*    CALLING THE INTERPRETER    *
 		*********************************/
 
-static int
+static bool
 resetProlog(int clear_stacks)
 { GET_LD
   IOSTREAM *in = Suser_input;
@@ -94,7 +94,7 @@ resetProlog(int clear_stacks)
 }
 
 
-static int
+static bool
 restore_after_exception(term_t except)
 { GET_LD
   int rc = true;

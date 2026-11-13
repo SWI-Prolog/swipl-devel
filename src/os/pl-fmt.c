@@ -1325,7 +1325,7 @@ ths_to_utf8(char *u8, const wchar_t *s, size_t len)
 }
 
 
-static int
+static bool
 utf8_dp(PL_locale *l, char *s, int *len)
 { if ( l->decimal_point )
   { if ( !ths_to_utf8(s, l->decimal_point, 20) )
@@ -1378,7 +1378,7 @@ find_decimal_point(char *s, size_t *len)
    number printing code by the one in the specified locale.
 */
 
-static int
+static bool
 localizeDecimalPoint(PL_locale *locale, Buffer b)
 { char dp[20]; int dplen;
   size_t seplen;
@@ -1407,7 +1407,7 @@ localizeDecimalPoint(PL_locale *locale, Buffer b)
 }
 
 
-static int
+static bool
 groupDigits(PL_locale *locale, Buffer b)
 { if ( locale->thousands_sep && locale->thousands_sep[0] &&
        locale->grouping && locale->grouping[0] )

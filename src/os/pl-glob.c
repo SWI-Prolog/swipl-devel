@@ -143,7 +143,7 @@ discardPattern(compiled_pattern *cbuf)
   initBuffer(&cbuf->pattern);
 }
 
-static int
+static bool
 compilePattern(char *p, compiled_pattern *cbuf, int flags)
 { initPattern(cbuf);
 
@@ -297,7 +297,7 @@ compile_pattern(compiled_pattern *Out, const char *p, int curl, int mflags)
 }
 
 
-static int
+static bool
 matchPattern(const char *s, compiled_pattern *cbuf, int flags)
 { return match_pattern(baseBuffer(&cbuf->pattern, matchcode), s, flags);
 }
@@ -591,7 +591,7 @@ utf8_opendir(DECL_LD const char *name)
 #endif
 }
 
-static int
+static bool
 expand(const char *pattern, GlobInfo info)
 { GET_LD
   const char *pat = pattern;

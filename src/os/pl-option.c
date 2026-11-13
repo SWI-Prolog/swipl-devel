@@ -61,7 +61,7 @@ typedef union
 
 
 #define get_optval(valp, spec, val) LDFUNC(get_optval, valp, spec, val)
-static int
+static bool
 get_optval(DECL_LD optvalue valp, const PL_option_t *spec, term_t val)
 { switch((spec->type & OPT_TYPE_MASK))
   { case OPT_BOOL:

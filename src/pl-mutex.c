@@ -55,7 +55,7 @@ typedef struct mutexref
 { pl_mutex	*mutex;
 } mutexref;
 
-static int try_really_destroy_mutex(pl_mutex *m);
+static bool try_really_destroy_mutex(pl_mutex *m);
 
 static int
 write_mutexref(IOSTREAM *s, atom_t aref, int flags)
@@ -160,7 +160,7 @@ TryEnterCriticalSection() is only defined on NT 4, not on Windows 95 and
 friends.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 unify_mutex(term_t t, pl_mutex *m)
 { GET_LD
 
@@ -168,7 +168,7 @@ unify_mutex(term_t t, pl_mutex *m)
 }
 
 
-static int
+static bool
 unify_mutex_owner(term_t t, int owner)
 { GET_LD
 
@@ -411,7 +411,7 @@ PRED_IMPL("mutex_lock", 1, mutex_lock, 0)
 }
 
 
-static int
+static bool
 PL_mutex_trylock(struct pl_mutex *m)
 { int self = PL_thread_self();
   int rc;
@@ -527,7 +527,7 @@ PRED_IMPL("mutex_unlock_all", 0, mutex_unlock_all, 0)
 }
 
 
-static int
+static bool
 try_really_destroy_mutex(pl_mutex *m)	/* called with L_UMUTEX */
 { if ( m->destroyed || m->users > 0 )
     return false;			/* see put_mutex() */
@@ -662,7 +662,7 @@ next_enum_mutex(mprop_enum *state)
 }
 
 
-static int
+static bool
 advance_mstate(mprop_enum *state)
 { if ( state->enum_properties )
   { state->p++;
