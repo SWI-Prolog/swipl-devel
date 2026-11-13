@@ -705,6 +705,33 @@ PL_EXPORT(bool)		PL_get_wchars(term_t l,
 				      size_t *length, pl_wchar_t **s,
 				      unsigned flags) WUNUSED;
 PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len) WUNUSED;
+PL_EXPORT(int)		_PL_utf8_code_point(const char **in, const char *end,
+					    int *cp);
+
+/* PL_utf8_code_point() decodes the UTF-8 sequence at *in, not reading
+   from end (NULL: a 0-terminated string).  See the manual.  ASCII is
+   decoded inline.
+*/
+
+#ifndef PL_KERNEL			/* the kernel has its own (pl-utf8.h) */
+#if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || defined(_MSC_VER)
+static inline int
+PL_utf8_code_point(const char **in, const char *end, int *cp)
+{ unsigned char c = (unsigned char)**in;
+
+  if ( c < 0x80 )
+  { ++(*in);
+    *cp = c;
+    return 1;
+  }
+
+  return _PL_utf8_code_point(in, end, cp);
+}
+#else
+#define PL_utf8_code_point(in, end, cp) _PL_utf8_code_point(in, end, cp)
+#endif
+#endif /*PL_KERNEL*/
+
 PL_EXPORT(int)		PL_wcwidth(int chr);
 PL_EXPORT(bool)		PL_is_id_start(int chr);
 PL_EXPORT(bool)		PL_is_id_continue(int chr);

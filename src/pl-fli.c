@@ -1055,6 +1055,16 @@ PL_utf8_strlen(const char *s, size_t len)
 }
 
 
+/* Out-of-line part of PL_utf8_code_point() for foreign code.  The
+   kernel uses the inline version from pl-utf8.h.
+*/
+
+int
+_PL_utf8_code_point(const char **in, const char *end, int *cp)
+{ return _PL__utf8_code_point(in, end, cp);
+}
+
+
 /* PL_wcwidth() lives in pl-read.c so it can read the per-code-point
  * width slot directly out of uflags_map (see src/pl-umap.c). The
  * result is locale-independent and pinned to the Unicode version
