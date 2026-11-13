@@ -1774,6 +1774,24 @@ difference lists is often practical for further processing in Prolog.
 Examples can be found in \file{packages/clib/readutil.c} from the
 source distribution.
 
+    \cfunction{int}{PL_utf8_code_point}{const char **in, const char *end,
+				       int *cp}
+Decode the UTF-8 sequence at \arg{in} into the code point \arg{cp} and
+advance \arg{in} past it.  The sequence ends before \arg{end}.  If
+\arg{end} is \const{NULL}, the input is a 0-terminated string: the
+decoder never reads past the 0-byte.  Returns the number of bytes
+consumed, or -1 if the sequence is invalid.  Only the shortest
+encoding of a code point up to U+10FFFF is valid.  An invalid sequence
+consumes one byte and returns that byte in \arg{cp}, except for a
+surrogate (U+D800 \ldots{} U+DFFF), which consumes the sequence and
+returns U+FFFD.  This is the decoder Prolog uses for UTF-8 text, so
+foreign code using it agrees with Prolog on, e.g., the number of
+characters in invalid UTF-8.  ASCII is decoded inline.
+
+    \cfunction{size_t}{PL_utf8_strlen}{const char *s, size_t len}
+Number of characters in the \arg{len} bytes of UTF-8 at \arg{s},
+counted as PL_utf8_code_point() decodes them.
+
     \cfunction{int}{PL_wcwidth}{int chr}
 Display column width of a Unicode code point \arg{chr}.  Returns 0 for
 combining and other zero-width characters, 2 for East Asian Wide and
