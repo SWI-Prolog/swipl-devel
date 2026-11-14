@@ -421,6 +421,14 @@ MSB64(int64_t i)
 #define LOAD_SEQ_CST(var) (var)
 #endif
 
+/* STORE_RELEASE(lv, v): store `v` into `lv` after all earlier stores are
+   visible: for publishing a structure to threads that read it unlocked. */
+#ifdef __GNUC__
+#define STORE_RELEASE(lv, v) __atomic_store_n(&(lv), (v), __ATOMIC_RELEASE)
+#else
+#define STORE_RELEASE(lv, v) do { MEMORY_RELEASE(); (lv) = (v); } while(0)
+#endif
+
 #ifndef max
 #ifdef HAVE___AUTO_TYPE
 #define max(x,y) ( \

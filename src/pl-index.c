@@ -1031,18 +1031,19 @@ This linked list *headp *tailp is a sparse (filtered) list of the
 clauses.  Insert cref into this list.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static void
+static inline void
 insertIntoSparseList(ClauseRef cref,
 		     ClauseRef *headp, ClauseRef *tailp,
 		     ClauseRef where)
-{ if ( !(*headp) )
-  { *headp = *tailp = cref;
+{ if ( !(*headp) )			/* readers walk buckets unlocked */
+  { *tailp = cref;
+    STORE_RELEASE(*headp, cref);
   } else if ( where == CL_END )
-  { (*tailp)->next = cref;
+  { STORE_RELEASE((*tailp)->next, cref);
     *tailp = cref;
   } else if ( where == CL_START )
   { cref->next = *headp;
-    *headp = cref;
+    STORE_RELEASE(*headp, cref);
   } else
   { Clause clause = cref->value.clause;
     ClauseRef pred_cref = clause->predicate->impl.clauses.first_clause;
@@ -1053,13 +1054,13 @@ insertIntoSparseList(ClauseRef cref,
     { if ( pred_cref == where || ci_prev == *tailp )
       { if ( ci_cref == *headp )
 	{ cref->next = *headp;
-	  *headp = cref;
+	  STORE_RELEASE(*headp, cref);
 	} else if ( ci_prev == *tailp )
-	{ (*tailp)->next = cref;
+	{ STORE_RELEASE((*tailp)->next, cref);
 	  *tailp = cref;
 	} else
 	{ cref->next = ci_cref;
-	  ci_prev->next = cref;
+	  STORE_RELEASE(ci_prev->next, cref);
 	}
 
 	return;
