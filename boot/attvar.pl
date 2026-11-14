@@ -82,9 +82,30 @@ uhook(freeze, Goal, Y) :-
         )
     ;   unfreeze(Goal)
     ).
+uhook('$retract', State, _) :-
+    !,
+    erase_retracted(State).
 uhook(Module, AttVal, Value) :-
     Module:attr_unify_hook(AttVal, Value).
 
+
+%!  erase_retracted(+State)
+%
+%   Erase the clause that retract/1 unified with a pattern holding
+%   constrained variables, after the constraints accepted it.  State
+%   is '$retract'(ClauseRef, Erased).  The constraints may leave
+%   choicepoints.  If we backtrack into them, the clause is already
+%   erased by us and we succeed again.  If another thread erased the
+%   clause first, we fail and retract/1 tries the next clause.
+
+erase_retracted(State) :-
+    arg(2, State, Erased),
+    (   Erased == true
+    ->  true
+    ;   arg(1, State, Ref),
+        erase(Ref),
+        nb_setarg(2, State, true)
+    ).
 
 %!  unfreeze(+ConjunctionOrGoal)
 %

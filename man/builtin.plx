@@ -4176,7 +4176,14 @@ When \arg{Term} is an atom or a term it is unified with the first
 unifying fact or clause in the database. The fact or clause is removed
 from the database. The retract/1 predicate respects the \jargon{logical
 update view}. This implies that retract/1 succeeds for all clauses that
-match \arg{Term} when the predicate was \emph{called}. The example below
+match \arg{Term} when the predicate was \emph{called}. If \arg{Term}
+contains attributed variables (see \secref{attvar}), the constraints are
+part of the unification: retract/1 removes a clause only if they accept it,
+and skips a clause they reject. The constraint goals run as normal goals
+before the clause is removed. If they leave choicepoints, backtracking
+into them succeeds again with the same clause, which remains removed.
+This is compatible with SICStus Prolog. Goals that the constraints run
+may still change the database themselves. The example below
 illustrates that the first call to retract/1 succeeds on \const{bee} on
 backtracking despite the fact that \const{bee} is already
 retracted.\footnote{Example by Jan Burse}
@@ -4206,9 +4213,12 @@ logical update view.
 
     \predicate[ISO,det]{retractall}{1}{+Head}
 All facts or clauses in the database for which the \arg{head} unifies
-with \arg{Head} are removed.  If all arguments of \arg{Head} are
-non-sharing variables (see is_most_general_term/1), all clauses are
-removed without inspecting the clauses.  Cleaning all clauses of a
+with \arg{Head} are removed. If \arg{Head} contains attributed variables,
+retractall/1 removes a clause only if their constraints accept the
+unification.
+If all arguments of \arg{Head} are non-sharing variables without
+attributes (see is_most_general_term/1), all clauses are removed without
+inspecting the clauses.  Cleaning all clauses of a
 dynamic predicate must use retractall/1 rather than abolish/1 as the
 latter completely wipes the predicate, including its properties.  If
 \arg{Head} refers to a predicate that is not defined, it is implicitly

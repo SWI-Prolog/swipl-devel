@@ -174,6 +174,61 @@ collect(N0, N) :-
 	collect(N1, N).
 collect(N, N).
 
+% Unifying a clause with a pattern that carries constraints runs the
+% constraints before the clause is erased: a clause they reject is neither
+% returned nor erased.
+
+:- dynamic
+	rc_one/1, rc_none/1, rc_many/1, rc_error/1, rc_dif/1, rc_moved/2,
+	rc_nondet/1.
+
+test(constraint_rejects, [V-L == b-[a,c], cleanup(retractall(rc_one(_)))]) :-
+	forall(member(X, [a,b,c]), assertz(rc_one(X))),
+	freeze(V, V == b),
+	once(retract(rc_one(V))),
+	findall(X, rc_one(X), L).
+test(constraint_rejects_all, [L == [a,b,c], cleanup(retractall(rc_none(_)))]) :-
+	forall(member(X, [a,b,c]), assertz(rc_none(X))),
+	freeze(V, V == z),
+	\+ retract(rc_none(V)),
+	findall(X, rc_none(X), L).
+test(constraint_backtrack, [R-L == [a,c]-[b], cleanup(retractall(rc_many(_)))]) :-
+	forall(member(X, [a,b,c]), assertz(rc_many(X))),
+	findall(V, ( freeze(V, memberchk(V, [a,c])),
+		     retract(rc_many(V))
+		   ), R),
+	findall(X, rc_many(X), L).
+test(constraint_nondet,
+     [S-L == [a-1,a-2,b-1,b-2,c-1,c-2]-[], cleanup(retractall(rc_nondet(_)))]) :-
+	forall(member(X, [a,b,c]), assertz(rc_nondet(X))),
+	freeze(V, member(W, [1,2])),	% alternatives of the constraint
+	findall(V-W, retract(rc_nondet(V)), S),
+	findall(X, rc_nondet(X), L).
+test(constraint_nondet_once,
+     [V-W-L == a-1-[b,c], cleanup(retractall(rc_nondet(_)))]) :-
+	forall(member(X, [a,b,c]), assertz(rc_nondet(X))),
+	freeze(V, member(W, [1,2])),
+	once(retract(rc_nondet(V))),
+	findall(X, rc_nondet(X), L).
+test(constraint_error, [L == [a,b,c], cleanup(retractall(rc_error(_)))]) :-
+	forall(member(X, [a,b,c]), assertz(rc_error(X))),
+	freeze(V, throw(rc_error)),
+	catch(retract(rc_error(V)), rc_error, true),
+	findall(X, rc_error(X), L).
+test(constraint_dif, [V-L == a-[b,c], cleanup(retractall(rc_dif(_)))]) :-
+	forall(member(X, [b,a,c]), assertz(rc_dif(X))),
+	dif(V, b),
+	once(retract(rc_dif(V))),
+	findall(X, rc_dif(X), L).
+test(constraint_moves_stacks,
+     [V-L == c-[k-a,k-b,j-x], cleanup(retractall(rc_moved(_,_)))]) :-
+	forall(member(K-X, [k-a,k-b,j-x,k-c]), assertz(rc_moved(K, X))),
+	freeze(V, ( numlist(1, 500000, Big),
+		    length(Big, _),
+		    V == c
+		  )),
+	retract(rc_moved(k, V)),
+	findall(K-X, rc_moved(K, X), L).
 
 :- end_tests(retract).
 
@@ -201,6 +256,34 @@ test(type, error(type_error(callable, _))) :-
 	retractall(3).
 test(type, error(permission_error(modify, static_procedure, _))) :-
 	retractall(retractall(_)).
+
+:- dynamic
+	rca_one/1, rca_none/1, rca_error/1, rca_moved/2.
+
+test(constraint, [cleanup(retractall(rca_one(_))), L == [a,c]]) :-
+	forall(member(X, [a,b,c]), assertz(rca_one(X))),
+	freeze(V, V == b),
+	retractall(rca_one(V)),
+	findall(X, rca_one(X), L).
+test(constraint_none, [cleanup(retractall(rca_none(_))), L == [a,b,c]]) :-
+	forall(member(X, [a,b,c]), assertz(rca_none(X))),
+	freeze(V, V == z),
+	retractall(rca_none(V)),
+	findall(X, rca_none(X), L).
+test(constraint_error, [cleanup(retractall(rca_error(_))), L == [a,b,c]]) :-
+	forall(member(X, [a,b,c]), assertz(rca_error(X))),
+	freeze(V, throw(rca_error)),
+	catch(retractall(rca_error(V)), rca_error, true),
+	findall(X, rca_error(X), L).
+test(constraint_moves_stacks,
+     [cleanup(retractall(rca_moved(_,_))), L == [k-a,j-x,k-c]]) :-
+	forall(member(K-X, [k-a,k-b,j-x,k-c]), assertz(rca_moved(K, X))),
+	freeze(V, ( numlist(1, 500000, Big),
+		    length(Big, _),
+		    V == b
+		  )),
+	retractall(rca_moved(k, V)),
+	findall(K-X, rca_moved(K, X), L).
 
 :- end_tests(retractall).
 

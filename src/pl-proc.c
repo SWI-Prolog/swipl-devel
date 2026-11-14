@@ -52,6 +52,7 @@
 #include "pl-fli.h"
 #include "pl-gc.h"
 #include "pl-funct.h"
+#include "pl-attvar.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 General  handling  of  procedures:  creation;  adding/removing  clauses;
@@ -4650,6 +4651,63 @@ free_retract_context(DECL_LD retract_context *ctx)
   }
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unifying a clause with a pattern whose variables carry constraints only
+schedules the constraint goals.  A clause is removed only if it unifies
+with the pattern, constraints included.
+
+retract/1 does not run these goals itself:  they are normal goals that
+may leave choicepoints.   Instead, retract_after_wakeup() appends
+'$retract'(ClauseRef, false) to the scheduled goals.   The clause is
+erased by uhook/3 in boot/attvar.pl, after the constraint goals
+succeeded.  Backtracking into these goals finds the clause erased by us
+and succeeds again.  If they fail, the clause is not erased and
+retract/1 continues with the next clause.  This is compatible with
+SICStus Prolog.
+
+retractall/1 is deterministic and uses the constraints as a filter.
+CONSTRAINTS_HOLD() runs the goals with the implicit cut of foreignWakeup()
+before the clause is erased.  Without pending goals it is a single test.
+clause_constraints_run() fails if the goals fail or raise; an exception
+is left pending.  The goals may shift the stacks, as decompile() may
+already, so the head arguments are taken again afterwards
+(head_arguments()).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define WAKEUP_PENDING() \
+	( unlikely(LD->alerted & ALERT_WAKEUP) && *valTermRef(LD->attvar.head) )
+#define retract_after_wakeup(clause) LDFUNC(retract_after_wakeup, clause)
+
+static COLD bool
+retract_after_wakeup(DECL_LD Clause clause)
+{ term_t ref, state;
+
+  return ( (ref=PL_new_term_ref()) &&
+	   (state=PL_new_term_ref()) &&
+	   PL_unify_clref(ref, clause) &&
+	   PL_unify_term(state,
+			 PL_FUNCTOR, FUNCTOR_dretract2,
+			   PL_TERM, ref,
+			   PL_ATOM, ATOM_false) &&
+	   appendWakeupHook(ATOM_dretract, state) );
+}
+
+#define CONSTRAINTS_HOLD(_) \
+	( !WAKEUP_PENDING() || clause_constraints_run() )
+#define clause_constraints_run(_) LDFUNC(clause_constraints_run, _)
+
+static COLD bool
+clause_constraints_run(DECL_LD)
+{ term_t ex = PL_new_term_ref();
+  bool rc = ex && foreignWakeup(ex);
+
+  if ( !rc && ex && !PL_is_variable(ex) )
+    PL_raise_exception(ex);
+
+  return rc && !PL_exception(0);
+}
+
+
 /* head_arguments() returns a pointer to the arguments of the clause
    head `head` or NULL if the head is an atom.  The pointer is only
    valid until the stacks are shifted or garbage collected.
@@ -4901,8 +4959,17 @@ PRED_IMPL("retract", 1, retract,
 
       if ( (clause->flags&CLAUSE_SSU_FLAGS) == (flags&CLAUSE_SSU_FLAGS) &&
 	   decompile(clause, cl, 0) )
-      { if ( retractClauseDefinition(ctx->def, clause, true) ||
-	     CTX_CNTRL != FRG_FIRST_CALL )
+      { bool erased;
+
+	if ( WAKEUP_PENDING() )		/* erase after the constraints */
+	{ if ( !retract_after_wakeup(clause) )
+	    break;			/* exception */
+	  erased = true;
+	} else
+	{ erased = retractClauseDefinition(ctx->def, clause, true);
+	}
+
+	if ( erased || CTX_CNTRL != FRG_FIRST_CALL )
 	{ if ( !ctx->chp.cref )		/* deterministic last one */
 	  { free_retract_context(ctx);
 	    PL_close_foreign_frame(fid);
@@ -5055,7 +5122,8 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
     }
 
     while( cref )
-    { if ( decompileHead(cref->value.clause, thehead) )
+    { if ( decompileHead(cref->value.clause, thehead) &&
+	   CONSTRAINTS_HOLD() )
       { if ( !(rc=retractClauseDefinition(def, cref->value.clause, true)) )
 	{ if ( PL_exception(0) )
 	    break;

@@ -147,6 +147,35 @@ registerWakeup(DECL_LD Word name, Word value)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+appendWakeupHook() appends  an element to  the wakeup list  that calls
+uhook(Name, Value, []) in boot/attvar.pl after the goals that are already
+scheduled.  Name must be handled by a  clause of uhook/3.  This is used
+by retract/1  to erase a clause  only after the  constraints of the
+pattern accepted it, while these  constraints run as normal goals and
+may leave choicepoints.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+appendWakeupHook(DECL_LD atom_t name, term_t value)
+{ Word p;
+
+  if ( !ensureStackSpace(5+6, 4) )	/* 6+4: registerWakeup() */
+    return false;
+
+  p = gTop;
+  gTop += 5;
+  p[0] = FUNCTOR_att3;
+  p[1] = name;
+  p[2] = linkValI(valTermRef(value));
+  p[3] = ATOM_nil;			/* also the value: [] */
+  p[4] = consCompound(p);
+  registerWakeup(&p[4], &p[3]);
+
+  return true;
+}
+
+
 		 /*******************************
 		 *	     ASSIGNMENT		*
 		 *******************************/

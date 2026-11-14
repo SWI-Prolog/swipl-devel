@@ -54,6 +54,7 @@
 #define put_attr(av, name, value)	LDFUNC(put_attr, av, name, value)
 #define find_attr(av, name, vp)		LDFUNC(find_attr, av, name, vp)
 #define	alloc_attvar(_)			LDFUNC(alloc_attvar, _)
+#define	appendWakeupHook(name, value)	LDFUNC(appendWakeupHook, name, value)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -66,6 +67,7 @@ void		restoreWakeup(wakeup_state *state);
 bool		PL_get_attr(term_t t, term_t a);
 bool		on_attvar_chain(Word avp);
 Word		alloc_attvar(void);
+bool		appendWakeupHook(atom_t name, term_t value);
 bool		put_attr(Word av, atom_t name, Word value);
 bool		find_attr(Word av, atom_t name, Word *vp);
 

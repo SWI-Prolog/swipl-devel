@@ -278,6 +278,7 @@ A dquasi_quotation	"$quasi_quotation"
 A dquery_loop		"$query_loop"
 A drecover_and_rethrow	"$recover_and_rethrow"
 A dreset		"$reset"
+A dretract		"$retract"
 A dshift		"$shift"
 A dshift_for_copy	"$shift_for_copy"
 A dstream		"$stream"
@@ -1181,6 +1182,7 @@ F divide		2
 F dmessage_queue	1
 F dmeta_call		1
 F dmutex		1
+F dretract		2
 F domain_error		2
 F dollar		1
 F dot			2
