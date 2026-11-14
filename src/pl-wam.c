@@ -1863,7 +1863,10 @@ m_qualify_argument(DECL_LD LocalFrame fr, int arg)
 	  break;
 	p = ap;
 	if ( --depth == 0 && !is_acyclic(p) )
-	{ term_t t = pushWordAsTermRef(p);
+	{ term_t t;
+					/* PL_error() uses the local stack */
+	  lTop = (LocalFrame)argFrameP(fr, fr->predicate->functor->arity);
+	  t = pushWordAsTermRef(p);
 	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_acyclic_term, t);
 	  popTermRef();
 	  return false;

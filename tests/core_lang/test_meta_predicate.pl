@@ -128,5 +128,9 @@ test(i_departm, X == Me) :-
 	mdepart(X).
 test(backtrack) :-
 	tbacktrack.
+test(cyclic) :-				% error must not overwrite the frame
+	X = m:X,
+	forall(between(1, 3, _),
+	       catch(m(X, _), error(type_error(acyclic_term, _), _), true)).
 
 :- end_tests(meta_predicate).
