@@ -3589,6 +3589,11 @@ ddi_oldest_generation(DirtyDefInfo ddi)
 }
 
 #ifdef O_DEBUG
+/* Several threads may protect the same clause reference, so the count
+   is updated under a lock.  L_CGCGEN is only held for short updates
+   that call nothing else.
+*/
+
 static TablePW protectedCRefs = NULL;
 
 static void
@@ -3596,8 +3601,9 @@ protectCRef(ClauseRef cref)
 { GET_LD
   table_value_t k;
 
-  if ( !protectedCRefs )		/* may waste a table.  Only O_DEBUG */
-    COMPARE_AND_SWAP_PTR(&protectedCRefs, NULL, newHTablePW(64));
+  PL_LOCK(L_CGCGEN);
+  if ( !protectedCRefs )
+    protectedCRefs = newHTablePW(64);
 
   if ( (k=lookupHTablePW(protectedCRefs, cref)) )
   { k = k+1;
@@ -3607,6 +3613,7 @@ protectCRef(ClauseRef cref)
   { addNewHTablePW(protectedCRefs, cref, 1);
     // Sdprintf("Protect %p\n", cref);
   }
+  PL_UNLOCK(L_CGCGEN);
 }
 
 static void
@@ -3614,6 +3621,7 @@ unprotectCRef(ClauseRef cref)
 { GET_LD
   table_value_t k;
 
+  PL_LOCK(L_CGCGEN);
   if ( (k=lookupHTablePW(protectedCRefs, cref)) )
   { k = k-1;
     if ( k )
@@ -3626,14 +3634,20 @@ unprotectCRef(ClauseRef cref)
   } else
   { assert(0);
   }
+  PL_UNLOCK(L_CGCGEN);
 }
 
 static bool
 isProtectedCRef(ClauseRef cref)
 { GET_LD
+  int rc;
 
-  return ( protectedCRefs &&
-	   lookupHTablePW(protectedCRefs, cref) );
+  PL_LOCK(L_CGCGEN);
+  rc = ( protectedCRefs &&
+	 lookupHTablePW(protectedCRefs, cref) );
+  PL_UNLOCK(L_CGCGEN);
+
+  return rc;
 }
 #endif /*O_DEBUG*/
 
