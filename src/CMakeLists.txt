@@ -534,6 +534,18 @@ if(EMSCRIPTEN)
 			      "-O2")
 endif()
 
+# Using VMI functions, each VM instruction is a small function that
+# continues with a tail call.  Compilers that keep the frame pointer by
+# default (e.g., Clang on macOS) add a push/mov/pop of the frame pointer
+# to most of them.  The VM functions call each other using jumps and
+# thus never appear in a C backtrace, except for the current one.
+if(VMI_FUNCTIONS AND
+   CMAKE_C_COMPILER_ID MATCHES "GNU|Clang" AND
+   NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Sanitize)$")
+  set_property(SOURCE pl-wam.c APPEND PROPERTY
+	       COMPILE_OPTIONS -fomit-frame-pointer)
+endif()
+
 if(SWIPL_SHARED_LIB AND NOT EMSCRIPTEN AND NOT STATIC_EXTENSIONS)
   set(LIBSWIPL_TYPE SHARED)
 else()
