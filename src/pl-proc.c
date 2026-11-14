@@ -2389,14 +2389,15 @@ assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
     unvolatileProcedure(proc);
   acquire_def(def);
   if ( !def->impl.clauses.last_clause )
-  { def->impl.clauses.first_clause = def->impl.clauses.last_clause = cref;
+  { def->impl.clauses.last_clause = cref;
+    STORE_RELEASE(def->impl.clauses.first_clause, cref);
   } else if ( where == CL_START || where == def->impl.clauses.first_clause )
   { cref->next = def->impl.clauses.first_clause;
-    def->impl.clauses.first_clause = cref;
+    STORE_RELEASE(def->impl.clauses.first_clause, cref);
   } else if ( where == CL_END )
   { ClauseRef last = def->impl.clauses.last_clause;
 
-    last->next = cref;
+    STORE_RELEASE(last->next, cref);
     def->impl.clauses.last_clause = cref;
   } else				/* insert before */
   { ClauseRef cr;
@@ -2404,7 +2405,7 @@ assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
     for(cr = def->impl.clauses.first_clause; cr; cr = cr->next)
     { if ( cr->next == where )
       { cref->next = where;
-	cr->next = cref;
+	STORE_RELEASE(cr->next, cref);
 	break;
       }
     }
@@ -2435,10 +2436,13 @@ assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
       goto error;
     }
   } else
-  { PL_LOCK(L_GENERATION);
-    clause->generation.created = created = ++GD->_generation;
+  { PL_LOCK(L_GENERATION);		/* as retract_clause(): stamp, */
+    created = GD->_generation+1;	/* then publish the generation */
+    clause->generation.created = created;
     if ( isoff(clause, CL_ERASED) )	/* See (***) */
       clause->generation.erased  = max_generation(def);
+    STORE_RELEASE(GD->_generation, created);
+
     PL_UNLOCK(L_GENERATION);
   }
 					/* clause is visible; see (**) */
