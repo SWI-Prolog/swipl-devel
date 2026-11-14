@@ -4580,6 +4580,35 @@ free_retract_context(DECL_LD retract_context *ctx)
     freeForeignState(ctx, sizeof(*ctx));
 }
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Unifying a clause with a pattern whose variables carry constraints only
+schedules the constraint goals.  CONSTRAINTS_HOLD() runs them before the
+clause is erased, so a clause is removed only if it unifies with the
+pattern, constraints included.  Without pending goals it is a single
+test.
+
+clause_constraints_run() fails if the goals fail or raise; an exception
+is left pending.  The goals may shift the stacks, as decompile() may
+already, so the head arguments are taken again afterwards
+(head_arguments()).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define CONSTRAINTS_HOLD(_) \
+	( likely(!(LD->alerted & ALERT_WAKEUP)) || clause_constraints_run() )
+#define clause_constraints_run(_) LDFUNC(clause_constraints_run, _)
+
+static COLD bool
+clause_constraints_run(DECL_LD)
+{ term_t ex = PL_new_term_ref();
+  bool rc = ex && foreignWakeup(ex);
+
+  if ( !rc && ex && !PL_is_variable(ex) )
+    PL_raise_exception(ex);
+
+  return rc && !PL_exception(0);
+}
+
+
 /* head_arguments() returns a pointer to the arguments of the clause
    head `head` or NULL if the head is an atom.  The pointer is only
    valid until the stacks are shifted or garbage collected.
@@ -4715,7 +4744,8 @@ PRED_IMPL("retract", 1, retract,
     { Clause clause = cref->value.clause;
 
       if ( (clause->flags&CLAUSE_SSU_FLAGS) == (flags&CLAUSE_SSU_FLAGS) &&
-	   decompile(clause, cl, 0) )
+	   decompile(clause, cl, 0) &&
+	   CONSTRAINTS_HOLD() )
       { if ( retractClauseDefinition(ctx->def, clause, true) ||
 	     CTX_CNTRL != FRG_FIRST_CALL )
 	{ if ( !ctx->chp.cref )		/* deterministic last one */
@@ -4872,7 +4902,8 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
     }
 
     while( cref )
-    { if ( decompileHead(cref->value.clause, thehead) )
+    { if ( decompileHead(cref->value.clause, thehead) &&
+	   CONSTRAINTS_HOLD() )
       { if ( !(rc=retractClauseDefinition(def, cref->value.clause, true)) )
 	{ if ( PL_exception(0) )
 	    break;
