@@ -61,8 +61,12 @@ neg(A, \+ A).
 goal(N, F, G) :-
 	nest(N, F, true, G).
 
+%	The C stack must be at least PTHREAD_STACK_MIN, which is 128Kb on
+%	systems that may use 64Kb pages (e.g., Linux on aarch64 and
+%	ppc64el).  Smaller stacks make thread_create/3 raise EINVAL.
+
 small_stack(Goal) :-
-	thread_create(Goal, Id, [c_stack(65536)]),
+	thread_create(Goal, Id, [c_stack(262144)]),
 	thread_join(Id, Status),
 	assertion(Status == true).
 
@@ -79,14 +83,14 @@ test(negation) :-
 	assertz((p :- G)),
 	retract((p :- _)).
 test(disjunction_thread, [condition(current_prolog_flag(threads, true))]) :-
-	small_stack(( goal(10 000, disj, G),
+	small_stack(( goal(40 000, disj, G),
 		      assertz((p :- G)),
 		      retract((p :- _))
 		    )).
 % A clause with many variables used to allocate its variable table on
 % the C stack.
 test(many_vars_thread, [condition(current_prolog_flag(threads, true))]) :-
-	small_stack(( length(L, 1 000 000),
+	small_stack(( length(L, 4 000 000),
 		      assertz(fv(L, L)),
 		      retract(fv(_, _))
 		    )).
