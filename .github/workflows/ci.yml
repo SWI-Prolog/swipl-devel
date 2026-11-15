@@ -32,7 +32,7 @@ jobs:
           libpcre2-dev
           libyaml-dev
           libutf8proc-dev
-          default-jdk junit4
+          default-jdk junit5
 
       - name: Configure project
         run: cmake -B build -G Ninja
