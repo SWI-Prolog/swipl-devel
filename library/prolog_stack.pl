@@ -57,7 +57,7 @@
 
 :- predicate_options(print_prolog_backtrace/3, 3,
                      [ subgoal_positions(boolean),
-                       show_file(oneof([absolute, basename]))
+                       show_files(oneof([absolute, basename]))
                      ]).
 
 /** <module> Examine the Prolog stack
@@ -359,7 +359,7 @@ default_backtrace_options(Options) :-
 %       * subgoal_positions(+Boolean)
 %       If `true`. print subgoal line numbers.  The default depends
 %       on the Prolog flag `backtrace_show_lines`.
-%       * show_file(+How)
+%       * show_files(+How)
 %       How to display the file name.  How is one of `absolute` or
 %       `basename`.
 %
@@ -442,12 +442,12 @@ where_goal(clause(Clause, PC), Options) -->
       clause_where(false, Clause, PC, Where, Options)
     },
     where_goal(Where, Options).
-where_goal(clause(Clause, _PC), _) -->
+where_goal(clause(Clause, _PC), Options) -->
     { clause_property(Clause, file(File)),
       clause_property(Clause, line_count(Line))
     },
     !,
-    [ ' at ', url(File:Line) ].
+    [ ' at ', file_line(File:Line, Options) ].
 where_goal(clause(Clause, _PC), _) -->
     { clause_name(Clause, ClauseName)
     },

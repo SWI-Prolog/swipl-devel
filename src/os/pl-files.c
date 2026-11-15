@@ -297,7 +297,7 @@ DeRefLink(const	char *link, char *buf)
 }
 
 
-static int
+static bool
 SameFile(const char *f1, const char *f2)
 { GET_LD
 
@@ -378,7 +378,7 @@ RenameFile(const char *old, const char *new)
 }
 
 
-static int
+static bool
 MarkExecutable(const char *name)
 {
 #if ( (defined(HAVE_STAT) && defined(HAVE_CHMOD)) || \
@@ -493,8 +493,10 @@ get_file_name(term_t n, char **namep, char *tmp, size_t tmplen, int flags)
     return false;
   if ( strlen(name) != len )
   { code0:
-    return PL_error(NULL, 0, "file name contains a 0-code",
-		    ERR_DOMAIN, ATOM_file_name, n);
+    if ( (flags & PL_FILE_NOERRORS) )
+      return false;
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION_CULPRIT,
+		    ATOM_nul_terminated_string, n);
   }
   if ( len >= PATH_MAX )
     return PL_error(NULL, 0, NULL, ERR_REPRESENTATION,
@@ -842,6 +844,25 @@ PRED_IMPL("tmp_file", 2, tmp_file, 0)
 		    ATOM_create, ATOM_temporary_file, A1);
 }
 
+/** tmp_directory(+Base, -Dir)
+*/
+
+static
+PRED_IMPL("tmp_directory", 2, tmp_directory, 0)
+{ PRED_LD
+  char *n;
+  atom_t dn;
+
+  if ( !PL_get_chars(A1, &n, CVT_ALL|CVT_EXCEPTION) )
+    return false;
+
+  if ( (dn=TemporaryDirectory(n)) )
+    return PL_unify_atom(A2, dn);
+  else
+    return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
+		    ATOM_create, ATOM_temporary_directory, A1);
+}
+
 /** tmp_file_stream(+Ext, +Encoding, -File, -Stream)
 */
 
@@ -922,8 +943,12 @@ PRED_IMPL("delete_directory", 1, delete_directory, 0)
     return false;
 
   if ( rmdir(n) == 0 )
+  { atom_t aname;
+
+    if ( PL_get_atom(A1, &aname) )
+      ForgetTemporaryDirectory(aname);
     return true;
-  else
+  } else
     return PL_error(NULL, 0, MSG_ERRNO, ERR_FILE_OPERATION,
 		    ATOM_delete, ATOM_directory, A1);
 }
@@ -1021,7 +1046,7 @@ PRED_IMPL("$chdir", 1, chdir, 0)
 }
 
 
-static int
+static bool
 has_extension(const char *name, const char *ext)
 { GET_LD
   const char *s = name + strlen(name);
@@ -1044,7 +1069,7 @@ has_extension(const char *name, const char *ext)
 }
 
 
-static int
+static bool
 name_too_long(void)
 { return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_max_path_length);
 }
@@ -1137,7 +1162,7 @@ PRED_IMPL("prolog_to_os_filename", 2, prolog_to_os_filename, 0)
     char buf[PATH_MAX];
 
     _xos_long_file_nameW(wn, lbuf, PATH_MAX);
-    _xos_canonical_filenameW(lbuf, buf, PATH_MAX, 0);
+    _xos_canonical_filenameW(lbuf, buf, PATH_MAX);
 
     return PL_unify_chars(pl, PL_ATOM|REP_UTF8, -1, buf);
   }
@@ -1207,6 +1232,7 @@ BeginPredDefs(files)
   PRED_DEF("exists_file", 1, exists_file, 0)
   PRED_DEF("exists_directory", 1, exists_directory, 0)
   PRED_DEF("tmp_file", 2, tmp_file, 0)
+  PRED_DEF("tmp_directory", 2, tmp_directory, 0)
   PRED_DEF("$tmp_file_stream", 4, tmp_file_stream, 0)
   PRED_DEF("delete_file", 1, delete_file, 0)
   PRED_DEF("delete_directory", 1, delete_directory, 0)

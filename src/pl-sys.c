@@ -55,6 +55,9 @@ PRED_IMPL("shell", 2, shell, 0)
   if ( PL_get_chars(A1, &cmd, CVT_ALL|REP_FN|CVT_EXCEPTION) )
   { int rval = System(cmd);
 
+    if ( PL_exception(0) )		/* it could not run the command */
+      return false;
+
     return PL_unify_integer(A2, rval);
   }
 

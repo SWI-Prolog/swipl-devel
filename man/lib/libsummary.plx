@@ -1,0 +1,311 @@
+\pagebreak
+\section{Library predicates}		\label{sec:library}
+
+\libsummary{aggregate}
+\input{summaries.d/aggregate.tex}
+
+\libsummary{ansi_term}
+\input{summaries.d/ansiterm.tex}
+
+\libsummary{apply}
+\input{summaries.d/apply.tex}
+
+\libsummary{assoc}
+
+\begin{summarylist}{ll}
+\predicatesummary{assoc_to_list}{2}{Translate assoc into a pairs list}
+\predicatesummary{assoc_to_keys}{2}{Translate assoc into a key list}
+\predicatesummary{assoc_to_values}{2}{Translate assoc into a value list}
+\predicatesummary{empty_assoc}{1}{Test/create an empty assoc}
+\predicatesummary{gen_assoc}{3}{Non-deterministic enumeration of assoc}
+\predicatesummary{get_assoc}{3}{Get associated value}
+\predicatesummary{get_assoc}{5}{Get and replace associated value}
+\predicatesummary{list_to_assoc}{2}{Translate pair list to assoc}
+\predicatesummary{map_assoc}{2}{Test assoc values}
+\predicatesummary{map_assoc}{3}{Map assoc values}
+\predicatesummary{max_assoc}{3}{Max key-value of an assoc}
+\predicatesummary{min_assoc}{3}{Min key-value of an assoc}
+\predicatesummary{ord_list_to_assoc}{2}{Translate ordered list into an assoc}
+\predicatesummary{put_assoc}{4}{Add association to an assoc}
+\end{summarylist}
+
+
+\libsummary{broadcast}
+
+\begin{summarylist}{ll}
+\predicatesummary{broadcast}{1}{Send event notification}
+\predicatesummary{broadcast_request}{1}{Request all agents}
+\predicatesummary{listen}{2}{Listen to event notifications}
+\predicatesummary{listen}{3}{Listen to event notifications}
+\predicatesummary{unlisten}{1}{Stop listening to event notifications}
+\predicatesummary{unlisten}{2}{Stop listening to event notifications}
+\predicatesummary{unlisten}{3}{Stop listening to event notifications}
+\predicatesummary{listening}{3}{Who is listening to event notifications?}
+\end{summarylist}
+
+\libsummary{charsio}
+\input{summaries.d/charsio.tex}
+
+\libsummary{check}
+\input{summaries.d/check.tex}
+
+\libsummary{clpb}
+\input{summaries.d/clpblib.tex}
+
+\libsummary{clpfd}
+\input{summaries.d/clpfdlib.tex}
+
+\libsummary{clpqr}
+
+\begin{summarylist}{ll}
+\predicatesummary{entailed}{1}{Check if constraint is entailed}
+\predicatesummary{inf}{2}{Find the infimum of an expression}
+\predicatesummary{sup}{2}{Find the supremum of an expression}
+\predicatesummary{minimize}{1}{Minimizes an expression}
+\predicatesummary{maximize}{1}{Maximizes an expression}
+\predicatesummary{bb_inf}{3}{Infimum of expression for mixed-integer problems}
+\predicatesummary{bb_inf}{4}{Infimum of expression for mixed-integer problems}
+\predicatesummary{bb_inf}{5}{Infimum of expression for mixed-integer problems}
+\predicatesummary{dump}{3}{Dump constraints on variables}
+\end{summarylist}
+
+\libsummary{csv}
+\input{summaries.d/csv.tex}
+
+\libsummary{dcgbasics}
+\input{summaries.d/dcgbasics.tex}
+
+\libsummary{dcghighorder}
+\input{summaries.d/dcghighorder.tex}
+
+\libsummary{debug}
+\input{summaries.d/debug.tex}
+
+\libsummary{dicts}
+\input{summaries.d/dicts.tex}
+
+\IfFileExists{summaries.d/dom.tex}{
+\libsummary{dom}
+\input{summaries.d/dom.tex}}{}
+
+\libsummary{error}
+\input{summaries.d/error.tex}
+
+\libsummary{exceptions}
+\input{summaries.d/exceptions.tex}
+
+\libsummary{fastrw}
+\input{summaries.d/fastrw.tex}
+
+\libsummary{explain}
+\input{summaries.d/explain.tex}
+
+\libsummary{help}
+\input{summaries.d/help.tex}
+
+\libsummary{gensym}
+\input{summaries.d/gensym.tex}
+
+\libsummary{heaps}
+\input{summaries.d/heaps.tex}
+
+\libsummary{increval}
+\input{summaries.d/increval.tex}
+
+\libsummary{intercept}
+\input{summaries.d/intercept.tex}
+
+\libsummary{iostream}
+\input{summaries.d/iostream.tex}
+
+\libsummary{listing}
+\input{summaries.d/listing.tex}
+
+\libsummary{lists}
+\input{summaries.d/lists.tex}
+
+\libsummary{macros}
+\input{summaries.d/macros.tex}
+
+\libsummary{main}
+\input{summaries.d/main.tex}
+
+\libsummary{occurs}
+\input{summaries.d/occurs.tex}
+
+\libsummary{option}
+\input{summaries.d/option.tex}
+
+\libsummary{optparse}
+\input{summaries.d/optparse.tex}
+
+\libsummary{ordsets}
+\input{summaries.d/ordsets.tex}
+
+\libsummary{persistency}
+\input{summaries.d/persistency.tex}
+
+\libsummary{portraytext}
+\input{summaries.d/portraytext.tex}
+
+\libsummary{predicate_options}
+\input{summaries.d/predopts.tex}
+
+\libsummary{prologcoverage}
+\input{summaries.d/prologcoverage.tex}
+
+\libsummary{prologdebug}
+\input{summaries.d/prologdebug.tex}
+
+\libsummary{prologjiti}
+\input{summaries.d/prologjiti.tex}
+
+\libsummary{prologpack}
+\input{summaries.d/prologpack.tex}
+
+\libsummary{prologversions}
+\input{summaries.d/prologversions.tex}
+
+\libsummary{prologtrace}
+\input{summaries.d/prologtrace.tex}
+
+\libsummary{prologxref}
+
+\begin{summarylist}{ll}
+\predicatesummary{prolog:called_by}{2}{\hook{prolog} Extend cross-referencer}
+\predicatesummary{xref_built_in}{1}{Examine defined built-ins}
+\predicatesummary{xref_called}{3}{Examine called predicates}
+\predicatesummary{xref_clean}{1}{Remove analysis of source}
+\predicatesummary{xref_current_source}{1}{Examine cross-referenced sources}
+\predicatesummary{xref_defined}{3}{Examine defined predicates}
+\predicatesummary{xref_exported}{2}{Examine exported predicates}
+\predicatesummary{xref_module}{2}{Module defined by source}
+\predicatesummary{xref_source}{1}{Cross-reference analysis of source}
+\end{summarylist}
+
+\libsummary{pairs}
+\input{summaries.d/pairs.tex}
+
+\libsummary{pio}
+\subsubsection{library(pure_input)}
+\label{sec:summary-lib-pure-input}
+\input{summaries.d/pureinput.tex}
+
+\libsummary{random}
+\input{summaries.d/random.tex}
+
+\libsummary{rbtrees}
+\input{summaries.d/rbtrees.tex}
+
+\libsummary{readutil}
+\input{summaries.d/readutil.tex}
+
+\libsummary{record}
+
+\begin{summarylist}{ll}
+\predicatesummary{record}{1}{Define named fields in a term}
+\end{summarylist}
+
+\libsummary{registry}
+
+This library is only available on Windows systems.
+
+\begin{summarylist}{ll}
+\predicatesummary{registry_get_key}{2}{Get principal value of key}
+\predicatesummary{registry_get_key}{3}{Get associated value of key}
+\predicatesummary{registry_set_key}{2}{Set principal value of key}
+\predicatesummary{registry_set_key}{3}{Set associated value of key}
+\predicatesummary{registry_delete_key}{1}{Remove a key}
+\predicatesummary{shell_register_file_type}{4}{Register a file-type}
+\predicatesummary{shell_register_dde}{6}{Register DDE action}
+\predicatesummary{shell_register_prolog}{1}{Register Prolog}
+\end{summarylist}
+
+\IfFileExists{summaries.d/rwlocks.tex}{
+\libsummary{rwlocks}
+\input{summaries.d/rwlocks.tex}}{}
+
+\libsummary{settings}
+\input{summaries.d/settings.tex}
+
+\libsummary{shell}
+\input{summaries.d/shell.tex}
+
+\IfFileExists{summaries.d/simplexlib.tex}{
+\libsummary{simplex}
+
+\begin{summarylist}{ll}
+\predicatesummary{assignment}{2}{Solve assignment problem}
+\predicatesummary{constraint}{3}{Add linear constraint to state}
+\predicatesummary{constraint}{4}{Add named linear constraint to state}
+\predicatesummary{constraint_add}{4}{Extend a named constraint}
+\predicatesummary{gen_state}{1}{Create empty linear program}
+\predicatesummary{maximize}{3}{Maximize objective function in to linear constraints}
+\predicatesummary{minimize}{3}{Minimize objective function in to linear constraints}
+\predicatesummary{objective}{2}{Fetch value of objective function}
+\predicatesummary{shadow_price}{3}{Fetch shadow price in solved state}
+\predicatesummary{transportation}{4}{Solve transportation problem}
+\predicatesummary{variable_value}{3}{Fetch value of variable in solved state}
+\end{summarylist}}{}
+
+\libsummary{statistics}
+\input{summaries.d/statistics.tex}
+
+\libsummary{tableutils}
+\input{summaries.d/tableutil.tex}
+
+\libsummary{terms}
+\input{summaries.d/terms.tex}
+
+\libsummary{ugraphs}
+\input{summaries.d/ugraphs.tex}
+
+\begin{summarylist}{ll}
+\predicatesummary{vertices_edges_to_ugraph}{3}{Create unweighted graph}
+\predicatesummary{vertices}{2}{Find vertices in graph}
+\predicatesummary{edges}{2}{Find edges in graph}
+\predicatesummary{add_vertices}{3}{Add vertices to graph}
+\predicatesummary{del_vertices}{3}{Delete vertices from graph}
+\predicatesummary{add_edges}{3}{Add edges to graph}
+\predicatesummary{del_edges}{3}{Delete edges from graph}
+\predicatesummary{transpose_ugraph}{2}{Invert the direction of all edges}
+\predicatesummary{neighbors}{3}{Find neighbors of vertice}
+\predicatesummary{neighbours}{3}{Find neighbors of vertice}
+\predicatesummary{complement}{2}{Inverse presense of edges}
+\predicatesummary{compose}{3}{}
+\predicatesummary{top_sort}{2}{Sort graph topologically}
+\predicatesummary{top_sort}{3}{Sort graph topologically}
+\predicatesummary{transitive_closure}{2}{Create transitive closure of graph}
+\predicatesummary{reachable}{3}{Find all reachable vertices}
+\predicatesummary{ugraph_union}{3}{Union of two graphs}
+\end{summarylist}
+
+\libsummary{url}
+\input{summaries.d/url.tex}
+
+\IfFileExists{summaries.d/wasmlib.tex}{
+\libsummary{wasm}
+\input{summaries.d/wasmlib.tex}}{}
+
+\libsummary{writef}
+\input{summaries.d/writef.tex}
+
+\libsummary{www_browser}
+\input{summaries.d/wwwbrowser.tex}
+
+\libsummary{solution_sequences}
+\input{summaries.d/solutionsequences.tex}
+
+\IfFileExists{summaries.d/thread.tex}{
+\libsummary{thread}
+\input{summaries.d/thread.tex}}{}
+
+\IfFileExists{summaries.d/threadpool.tex}{
+\libsummary{thread_pool}
+\input{summaries.d/threadpool.tex}}{}
+
+\libsummary{varnumbers}
+\input{summaries.d/varnumbers.tex}
+
+\libsummary{yall}
+\input{summaries.d/yall.tex}

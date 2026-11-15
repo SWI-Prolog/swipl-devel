@@ -734,6 +734,8 @@ class Prolog
 	'PL_initialise', 'number', ['number', 'number']),
       PL_new_atom: this.module.cwrap(
 	'PL_new_atom', 'number', ['string']),
+      PL_new_atom_mbchars: this.module.cwrap(
+	'PL_new_atom_mbchars', 'number', ['number', 'number', 'string']),
       PL_register_atom: this.module.cwrap(
 	'PL_register_atom', null, ['number']),
       PL_unregister_atom: this.module.cwrap(
@@ -1953,7 +1955,7 @@ class Prolog
 
 // Return an atom handle for the given C-string.
   new_atom(string)
-  { return this.bindings.PL_new_atom(string);
+  { return this.bindings.PL_new_atom_mbchars(this.REP_UTF8, -1, string);
   }
 
 /**
@@ -2361,7 +2363,14 @@ class Query {
 		 *******************************/
 
 Module.onRuntimeInitialized = function()
-{ Module.prolog = new Prolog(Module, arguments_);
+{ // Emscripten 6.0.0 renamed its internal program-arguments variable from
+  // `arguments_` to `programArgs`.  Accept either so we keep working across
+  // Emscripten versions instead of throwing `ReferenceError: arguments_ is
+  // not defined` at startup.
+  const argv = typeof arguments_ !== "undefined" ? arguments_
+             : typeof programArgs !== "undefined" ? programArgs
+             : [];
+  Module.prolog = new Prolog(Module, argv);
 };
 
 		 /*******************************

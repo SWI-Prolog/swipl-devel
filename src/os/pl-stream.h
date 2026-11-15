@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2017-2024, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2017-2026, University of Amsterdam
                               VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -40,10 +40,14 @@
 
 #define SWIPL_WINDOWS_NATIVE_ACCESS 1
 #include "SWI-Stream.h"
+#include <stdbool.h>
 
 void		unallocStream(IOSTREAM *s);
 IOSTREAM       *Sacquire(IOSTREAM *s);
-int             Srelease(IOSTREAM *s);
+bool		Srelease(IOSTREAM *s);
+int		Sshare(IOSTREAM *s);
+bool		Supdatepos(IOPOS *p, int c);
+void		Sresetesc(IOPOS *p);
 
 #ifndef _PL_INCLUDE_H
 #ifdef O_PLMT
@@ -153,6 +157,17 @@ S__destroyed(IOSTREAM *s)
 #define S__destroyed(s)	  (void)0
 
 #endif /*O_DEBUG_STREAM_REFERENCES*/
+
+/* S__close() adds SIO_REF_CLOSED to the references of the stream when it
+   is done.  The stream is freed when it is closed and has no references.
+   Exactly one of S__close() and the last Sunreference() finds this state:
+   the one for which Sunreference_free() is true, which must call
+   unallocStream().
+*/
+
+#define SIO_REF_CLOSED	  0x40000000
+#define SIO_REF_COUNT(r)  ((r) & ~SIO_REF_CLOSED)
+#define Sunreference_free(s) (Sunreference(s) == SIO_REF_CLOSED)
 
 #ifdef O_DEBUG
 #ifndef Sdprintf

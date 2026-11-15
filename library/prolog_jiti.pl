@@ -37,6 +37,7 @@
 :- module(prolog_jiti,
           [ jiti_list/0,
             jiti_list/1,                % +Spec
+            jiti_index_columns/2,       % +Index, -Columns
             jiti_suggest_modes/1,       % :Spec
             jiti_suggest_modes/0
           ]).
@@ -124,14 +125,11 @@ print_index(PredColW, PI0, Dict, N, N1) :-
     pi_head(PI0, Head),
     head_pi(Head, PI),                  % Create DCG PI
     N1 is N+1,
-    _{arguments:Args, position:Pos,
-      buckets:Buckets, speedup:Speedup, list:List, realised:R,
-      collisions:Collisions0} :< Dict,
+    jiti_index_columns(Dict, Columns),
+    _{index:ArgsS, buckets:Buckets, speedup:Speedup,
+      collisions:Collisions, flags:Flags, realised:R} :< Columns,
     predicate_property(Head, number_of_clauses(CCount)),
-    phrase(iarg_spec(Pos, Args), ArgsS),
-    phrase(iflags(List, R), Flags),
     istyle(R, Style),
-    icoll(R, List, Collisions0, Collisions),
     CCountColZ is PredColW+8,
     (   N == 1
     ->  format_pi(PI),
@@ -140,6 +138,38 @@ print_index(PredColW, PI0, Dict, N, N1) :-
     ),
     ansi_format(Style, '~|~s ~t~D~14+ ~t~1f~9+ ~t~w~6+ ~s~n',
                 [ArgsS,Buckets,Speedup,Collisions,Flags]).
+
+%!  jiti_index_columns(+Index:dict, -Columns:dict) is det.
+%
+%   Columns holds what jiti_list/1 shows of Index, an element of the
+%   list of the predicate property indexed/1.  This allows other tools
+%   to present indexes the same way.  The keys are
+%
+%     - index
+%       String describing the indexed arguments, e.g., `"1/2:2+3"`.
+%     - buckets
+%       Number of buckets of the hash table.
+%     - speedup
+%       Selectivity of the index (float).
+%     - collisions
+%       Number of collisions or `-` if this is not applicable.
+%     - flags
+%       String holding the flags (`L`, `V`).
+%     - realised
+%       `true` if the index is materialized, `false` if it is virtual.
+
+:- det(jiti_index_columns/2).
+jiti_index_columns(Dict, Columns) :-
+    _{arguments:Args, position:Pos,
+      buckets:Buckets, speedup:Speedup, list:List, realised:R,
+      collisions:Collisions0} :< Dict,
+    phrase(iarg_spec(Pos, Args), ArgsCodes),
+    phrase(iflags(List, R), FlagCodes),
+    string_codes(ArgsS, ArgsCodes),
+    string_codes(Flags, FlagCodes),
+    icoll(R, List, Collisions0, Collisions),
+    Columns = _{index:ArgsS, buckets:Buckets, speedup:Speedup,
+                collisions:Collisions, flags:Flags, realised:R}.
 
 format_pi(PI) :-
     pi_head(PI, Head),

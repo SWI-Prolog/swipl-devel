@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2014-2025, VU University Amsterdam
+    Copyright (c)  2014-2026, VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -288,7 +288,7 @@ destroySourceFile(SourceFile sf)
 
 
 static SourceFile
-lookupSourceFile_unlocked(atom_t name, int create)
+lookupSourceFile_unlocked(atom_t name, bool create)
 { GET_LD
   SourceFile file;
 
@@ -304,6 +304,7 @@ lookupSourceFile_unlocked(atom_t name, int create)
     memset(file, 0, sizeof(*file));
 
     file->mtime	     = 0.0;
+    file->ltime	     = 0.0;
     file->name       = name;
     file->system     = GD->bootsession&1;
     file->from_state = GD->bootsession&1;
@@ -323,7 +324,7 @@ lookupSourceFile_unlocked(atom_t name, int create)
 
 
 SourceFile
-lookupSourceFile(atom_t name, int create)
+lookupSourceFile(atom_t name, bool create)
 { SourceFile sf;
 
   PL_LOCK(L_SRCFILE);
@@ -460,10 +461,10 @@ addProcedureSourceFile(SourceFile sf, Procedure proc)
    module is the primary module of the file.
 */
 
-int
+bool
 addModuleSourceFile(SourceFile sf, Module m)
 { ListCell *cp, c2;
-  int rc = true;
+  bool rc = true;
 
   LOCKSRCFILE(sf);
   for(cp=&sf->modules; *cp; cp = &(*cp)->next)
@@ -487,10 +488,10 @@ out:
 }
 
 
-static int
+static bool
 delModuleSourceFile(SourceFile sf, Module m)
 { ListCell *cp, c;
-  int rc = false;
+  bool rc = false;
 
   LOCKSRCFILE(sf);
   for(cp=&sf->modules; (c=*cp); cp=&c->next)
@@ -508,7 +509,7 @@ delModuleSourceFile(SourceFile sf, Module m)
 }
 
 
-static void					/* requires LOCKSRCFILE(sf) */
+static void				/* requires LOCKSRCFILE(sf) */
 delAllModulesSourceFile__unlocked(SourceFile sf)
 { ListCell c = sf->modules, n;
 
@@ -642,7 +643,7 @@ PRED_IMPL("$source_file_predicates", 2, source_file_predicates, 0)
 
 #define unify_src_file_time(t, f) LDFUNC(unify_src_file_time, t, f)
 
-static int
+static bool
 unify_src_file_time(DECL_LD term_t t, const SourceFile f)
 { if ( f->isfile )
     return PL_unify_float(t, f->mtime);
@@ -705,7 +706,7 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
   if ( PL_get_atom_ex(A1, &filename) &&
        PL_get_atom_ex(A2, &property) )
   { SourceFile sf = lookupSourceFile(filename, false);
-    int rc;
+    bool rc;
 
     if ( property == ATOM_load_count )
       rc = PL_unify_integer(A3, sf ? sf->count : 0);
@@ -717,6 +718,8 @@ PRED_IMPL("$source_file_property", 3, source_file_property, 0)
       rc = PL_unify_bool(A3, sf ? sf->resource : false);
     else if ( property == ATOM_from_state )
       rc = PL_unify_bool(A3, sf ? sf->from_state : false);
+    else if ( property == ATOM_loaded )
+      rc = sf && sf->ltime != 0.0 ? PL_unify_float(A3, sf->ltime) : false;
     else
       rc = PL_domain_error("source_file_property", A2);
 
@@ -793,11 +796,10 @@ PRED_IMPL("$set_source_files", 1, set_source_files, 0)
 unloadFile(SourceFile sf)
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 unloadFile(SourceFile sf)
 { ListCell cell;
   size_t deleted = 0;
-  int rc;
 
   delayEvents();
   LOCKSRCFILE(sf);
@@ -821,17 +823,16 @@ unloadFile(SourceFile sf)
       clear_meta_declaration(def);
     }
   }
-  DEBUG(MSG_UNLOAD, Sdprintf("Removed %ld clauses\n", (long)deleted));
-  (void)deleted;
+  sf->number_of_clauses -= deleted;
+
+  DEBUG(MSG_UNLOAD, Sdprintf("Removed %zd clauses\n", deleted));
 
   freeList(&sf->procedures);
   delAllModulesSourceFile__unlocked(sf);
+  sf->isfile = false;
   UNLOCKSRCFILE(sf);
 
-  rc = sendDelayedEvents(true) >= 0;
-  pl_garbage_collect_clauses();
-
-  return rc;
+  return sendDelayedEvents(true) >= 0;
 }
 
 
@@ -896,7 +897,7 @@ static void	fix_det(p_reload *r);
 #define GEN_RELOAD (GEN_MAX-1)
 #endif
 
-static int
+static bool
 startReconsultFile(SourceFile sf)
 { GET_LD
   sf_reload *r;
@@ -1011,7 +1012,7 @@ keep_clause(DECL_LD p_reload *r, Clause clause)
 }
 
 
-static int
+static bool
 equal_clause(Clause cl1, Clause cl2)
 { if ( cl1->code_size == cl2->code_size )
   { size_t bytes = (size_t)cl1->code_size * sizeof(code);
@@ -1023,7 +1024,7 @@ equal_clause(Clause cl1, Clause cl2)
 }
 
 
-int
+bool
 reloadHasClauses(DECL_LD SourceFile sf, Procedure proc)
 { p_reload *reload;
 
@@ -1359,7 +1360,7 @@ setMetapredicateSource(DECL_LD SourceFile sf, Procedure proc,
 }
 
 
-static int
+static bool
 equal_meta(Definition def, const arg_info *args)
 { if ( def->impl.any.args && args )
   { size_t i, arity = def->functor->arity;
@@ -1657,7 +1658,7 @@ file sf.  This performs the following steps:
 against M in prolog_load_context(module, M).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 flush_procedure(SourceFile sf, Procedure proc)
 { GET_LD
   sf_reload *reload;
@@ -1705,6 +1706,7 @@ There are two options.
 bool
 startConsult(SourceFile sf)
 { acquireSourceFile(sf);
+  sf->ltime = WallTime();
   if ( sf->count++ > 0 )		/* This is a re-consult */
   { if ( !startReconsultFile(sf) )
     { releaseSourceFile(sf);

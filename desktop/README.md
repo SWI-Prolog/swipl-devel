@@ -32,7 +32,21 @@ To announce the new MIME type, use
 
 ## MacOS
 
-To be done
+The macOS application icon is `swipl.icns`, a prebuilt asset committed to
+this directory.  It is derived from `swipl-256.png` and copied into the build
+tree by `src/CMakeLists.txt` (it is *not* generated during a normal build, so
+that builds work in restricted environments such as sandboxes or CI, where
+`iconutil` is unavailable).
+
+To refresh it after changing `swipl-256.png`, run on macOS (outside any
+sandbox, as `iconutil` needs the IconServices system service):
+
+    ninja regenerate_icns
+
+then commit the updated `swipl.icns`.  Equivalently, run the generator
+directly:
+
+    sh make_icns.sh swipl-256.png swipl.icns
 
 ## Windows
 

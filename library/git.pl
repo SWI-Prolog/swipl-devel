@@ -58,8 +58,8 @@
           ]).
 :- use_module(library(record),[(record)/1,current_record/2, op(_,_,record)]).
 
-:- autoload(library(apply),[maplist/3]).
-:- autoload(library(error),[must_be/2,existence_error/2]).
+:- autoload(library(apply),[maplist/3,maplist/2]).
+:- autoload(library(error),[must_be/2,existence_error/2,domain_error/2]).
 :- autoload(library(filesex),
 	    [directory_file_path/3,relative_file_name/3]).
 :- autoload(library(lists),[append/3,member/2,append/2]).
@@ -130,6 +130,19 @@ into the core Prolog library to support the Prolog package manager.
                      [ diff(oneof([patch,stat]))
                      ]).
 
+
+%   git_argument(+Arg) is det.
+%
+%   Arg is passed as a positional argument (commit, branch, remote,
+%   revision range, URL) to git.  Raise a domain error if it starts with
+%   a "-", as git would process it as an option.
+
+git_argument(Arg) :-
+    (   atomic(Arg),
+        sub_atom(Arg, 0, _, _, -)
+    ->  domain_error(git_argument, Arg)
+    ;   true
+    ).
 
 %!  git(+Argv, +Options) is det.
 %
@@ -291,6 +304,7 @@ git_wait(PID, Out, Status) :-
 %   @bug    We cannot tell whether opening failed for some reason.
 
 git_open_file(Dir, File, Branch, In) :-
+    git_argument(Branch),
     atomic_list_concat([Branch, :, File], Ref),
     process_create(path(git),
                    [ '-C', file(Dir), show, Ref ],
@@ -348,7 +362,8 @@ git_describe(Version, Options) :-
     ;   git_version_pattern(Pattern)
     ),
     (   option(commit(Commit), Options)
-    ->  Extra = [Commit]
+    ->  git_argument(Commit),
+        Extra = [Commit]
     ;   Extra = []
     ),
     option(directory(Dir), Options, .),
@@ -378,6 +393,7 @@ git_describe(Version, Options) :-
 git_describe(Version, Options) :-
     option(directory(Dir), Options, .),
     option(commit(Commit), Options, 'HEAD'),
+    git_argument(Commit),
     setup_call_cleanup(
         process_create(path(git),
                        [ 'rev-parse', '--short',
@@ -438,6 +454,7 @@ stream_char_count(Out, Count) :-
 
 git_hash(Hash, Options) :-
     option(commit(Commit), Options, 'HEAD'),
+    git_argument(Commit),
     git_process_output(['rev-parse', '--verify', Commit],
                        read_hash(Hash),
                        Options).
@@ -472,6 +489,7 @@ is_hex(Code) :-
 
 git_ls_tree(Entries, Options) :-
     option(commit(Commit), Options, 'HEAD'),
+    git_argument(Commit),
     git_process_output(['ls-tree', '-z', '-r', '-l', Commit],
                        read_tree(Entries),
                        Options).
@@ -509,6 +527,7 @@ ls_entry(object(Mode, Type, Hash, Size, Name)) -->
 %   URL is the remote (fetch) URL for the given Remote.
 
 git_remote_url(Remote, URL, Options) :-
+    git_argument(Remote),
     git_process_output([remote, show, Remote],
                        read_url("Fetch URL:", URL),
                        Options).
@@ -550,6 +569,7 @@ git_ls_remote(GitURL, Refs, Options) :-
     findall(O, ls_remote_option(Options, O), RemoteOptions),
     option(refs(LimitRefs), Options, []),
     must_be(list(atom), LimitRefs),
+    maplist(git_argument, [GitURL|LimitRefs]),
     append([ 'ls-remote' | RemoteOptions], [GitURL|LimitRefs], Argv),
     git_process_output(Argv, remote_refs(Refs), Options).
 
@@ -670,7 +690,8 @@ current_branch(Rest) -->
 
 git_branches(Branches, Options) :-
     (   select_option(commit(Commit), Options, GitOptions)
-    ->  Extra = ['--contains', Commit]
+    ->  git_argument(Commit),
+        Extra = ['--contains', Commit]
     ;   select_option(remote(true), Options, GitOptions)
     ->  Extra = ['-r']
     ;   Extra = [],
@@ -720,6 +741,7 @@ read_lines_to_atoms(Atoms, In) :-
 %   @see Git tricks at http://mislav.uniqpath.com/2010/07/git-tips/
 
 git_tags_on_branch(Dir, Branch, Tags) :-
+    git_argument(Branch),
     git_process_output([ log, '--oneline', '--decorate', Branch ],
                        log_to_tags(Tags),
                        [ directory(Dir) ]).
@@ -806,7 +828,8 @@ skip_rest(_,_).
 
 git_shortlog(Dir, ShortLog, Options) :-
     (   option(revisions(Range), Options)
-    ->  RangeSpec = [Range]
+    ->  git_argument(Range),
+        RangeSpec = [Range]
     ;   option(limit(Limit), Options, 10),
         RangeSpec = ['-n', Limit]
     ),
@@ -892,6 +915,7 @@ ref_name_list([H|T]) -->
                subject:atom).
 
 git_show(Dir, Hash, Commit, Options) :-
+    git_argument(Hash),
     git_format_string(git_commit, Fields, Format),
     option(diff(Diff), Options, patch),
     diff_arg(Diff, DiffArg),

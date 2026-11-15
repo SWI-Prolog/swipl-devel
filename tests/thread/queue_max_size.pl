@@ -39,7 +39,10 @@
 :- use_module(library(debug)).
 
 queue_max_size :-
-	queue_max_size(10000, 10).
+	queue_max_size(10000, 10),
+	change_max_size(0),
+	change_max_size(5),
+	no_initial_max_size.
 
 queue_max_size(Max, MaxSize) :-
 	thread_self(Me),
@@ -66,3 +69,34 @@ collect(end_of_data, _, []).
 collect(T, Q, [T|L]) :-
 	thread_get_message(Q, T1),
 	collect(T1, Q, L).
+
+
+%	change_max_size(+NewMax)
+%
+%	Changing max_size of a full queue to unlimited (0) or a larger
+%	value must release the blocked writer.
+
+change_max_size(New) :-
+	message_queue_create(Q, [max_size(1)]),
+	thread_send_message(Q, a),
+	thread_create(thread_send_message(Q, b), Id, []),
+	sleep(0.1),
+	message_queue_set(Q, max_size(New)),
+	thread_join(Id, Status),
+	assertion(Status == true),
+	message_queue_destroy(Q).
+
+%	no_initial_max_size
+%
+%	Set max_size on a queue that was created without one.
+
+no_initial_max_size :-
+	message_queue_create(Q, []),
+	message_queue_set(Q, max_size(1)),
+	thread_send_message(Q, a),
+	thread_create(thread_send_message(Q, b), Id, []),
+	sleep(0.1),
+	message_queue_set(Q, max_size(5)),
+	thread_join(Id, Status),
+	assertion(Status == true),
+	message_queue_destroy(Q).

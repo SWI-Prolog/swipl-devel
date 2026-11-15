@@ -45,6 +45,11 @@
 #ifdef O_LOCALE
 
 #include <locale.h>
+#ifdef HAVE_XLOCALE_H
+#include <xlocale.h>			/* newlocale()/uselocale() on macOS: on */
+					/* some SDKs <locale.h> hides these unless */
+					/* _USE_EXTENDED_LOCALES_ is set */
+#endif
 
 #undef LD				/* fetch LD once per function */
 #define LD LOCAL_LD
@@ -101,7 +106,7 @@ ls_to_wcs(const char *in, const wchar_t *on_error)
 }
 
 
-static int
+static bool
 init_locale_strings(PL_locale *l, struct lconv *conv)
 { if ( conv )
   { l->decimal_point = ls_to_wcs(conv->decimal_point, L".");
@@ -119,6 +124,58 @@ init_locale_strings(PL_locale *l, struct lconv *conv)
 }
 
 
+/* Fill L with the LC_NUMERIC conventions for LNAME ("" == environment)
+ * without mutating the process-wide locale.  Returns true on success.
+ *
+ * PL_initialise() historically called setlocale(LC_NUMERIC, "") to
+ * bootstrap the default PL_locale from localeconv().  That silently
+ * changed the embedder's process locale, breaking atof() and printf
+ * "%f" in locales that use "," as the decimal separator (issue #1093).
+ * The POSIX-2008 newlocale()/uselocale() pair changes only the
+ * calling thread's locale, so localeconv() reads the requested
+ * conventions without touching the process locale.  Where those are
+ * unavailable we fall back to a save/setlocale/restore dance under
+ * L_LOCALE, which is safe during initialisation (single-threaded) and
+ * during locale_create/3 (already serialised on L_LOCALE).
+ */
+
+static bool
+fill_locale_from_name(PL_locale *l, const char *lname)
+{ bool rc;
+
+#if defined(HAVE_NEWLOCALE) && defined(HAVE_USELOCALE)
+  /* LC_CTYPE is needed as well: localeconv() returns multibyte strings
+   * that ls_to_wcs() decodes using mbsrtowcs(), which uses the thread's
+   * LC_CTYPE.  Leaving that at "C" fails for non-ASCII separators such as
+   * U+202F (NARROW NO-BREAK SPACE) used by fi_FI.UTF-8 (issue #1544).
+   */
+  locale_t loc = newlocale(LC_NUMERIC_MASK|LC_CTYPE_MASK, lname, (locale_t)0);
+  if ( !loc )
+    return false;
+  locale_t old = uselocale(loc);
+  rc = init_locale_strings(l, localeconv());
+  uselocale(old);
+  freelocale(loc);
+#else
+  PL_LOCK(L_LOCALE);
+  const char *saved = setlocale(LC_NUMERIC, NULL);
+  char *old = saved ? strdup(saved) : NULL;
+  if ( !setlocale(LC_NUMERIC, lname) )
+  { free(old);
+    PL_UNLOCK(L_LOCALE);
+    return false;
+  }
+  rc = init_locale_strings(l, localeconv());
+  if ( old )
+    setlocale(LC_NUMERIC, old);
+  free(old);
+  PL_UNLOCK(L_LOCALE);
+#endif
+
+  return rc;
+}
+
+
 static PL_locale *
 new_locale(PL_locale *proto)
 { PL_locale *new = PL_malloc(sizeof(*new));
@@ -131,8 +188,8 @@ new_locale(PL_locale *proto)
     { new->decimal_point = wcsdup(proto->decimal_point);
       new->thousands_sep = wcsdup(proto->thousands_sep);
       new->grouping      = strdup(proto->grouping);
-    } else
-    { init_locale_strings(new, localeconv());
+    } else if ( !fill_locale_from_name(new, "") )
+    { init_locale_strings(new, NULL);
     }
   }
 
@@ -161,8 +218,14 @@ free_locale(PL_locale *l)
 
 static void
 update_locale(PL_locale *l, int category, const char *locale)
-{ free_locale_strings(l);
-  init_locale_strings(l, localeconv());
+{ /* Only numeric conventions live in a PL_locale.  Refreshing them for
+   * unrelated categories such as LC_MESSAGES would clobber the values
+   * picked up at init time from the environment's LC_NUMERIC.
+   */
+  if ( category == LC_NUMERIC || category == LC_ALL )
+  { free_locale_strings(l);
+    init_locale_strings(l, localeconv());
+  }
 }
 
 
@@ -178,7 +241,7 @@ free_locale_symbol(table_key_t name, table_value_t value)
 }
 
 
-static int
+static bool
 alias_locale(PL_locale *l, atom_t alias)
 { GET_LD
   int rc;
@@ -201,7 +264,7 @@ alias_locale(PL_locale *l, atom_t alias)
   { addNewHTableWP(GD->locale.localeTable, alias, l);
     l->alias = alias;
     PL_register_atom(alias);
-    l->references++;	/* acquireLocale(), but that will deadlock */
+    acquireLocale(l);
     rc = true;
   }
   PL_UNLOCK(L_LOCALE);
@@ -242,8 +305,8 @@ static int
 release_locale_ref(atom_t aref)
 { locale_ref *ref = PL_blob_data(aref, NULL, NULL);
 
-  PL_LOCK(L_LOCALE);
-  if ( --ref->data->references == 0 )
+  PL_LOCK(L_LOCALE);			/* see releaseLocale() */
+  if ( ATOMIC_DEC(&ref->data->references) == 0 )
     free_locale(ref->data);
   else
     ref->data->symbol = 0;
@@ -447,7 +510,7 @@ typedef struct
 } lprop_enum;
 
 
-static int
+static bool
 advance_lstate(lprop_enum *state)
 { if ( state->enum_properties )
   { state->p++;
@@ -483,7 +546,7 @@ free_lstate(lprop_enum *state)
 }
 
 
-static int
+static bool
 get_atom_arg(term_t t, atom_t *a)
 { GET_LD
   term_t t2 = PL_new_term_ref();
@@ -623,7 +686,7 @@ enumerate:
 }
 
 
-static int
+static bool
 set_chars(term_t t, wchar_t **valp)
 { wchar_t *s;
 
@@ -640,7 +703,7 @@ set_chars(term_t t, wchar_t **valp)
 
 #define MAX_GROUPING 10
 
-static int
+static bool
 get_group_size_ex(term_t t, int *s)
 { int i;
 
@@ -656,7 +719,7 @@ get_group_size_ex(term_t t, int *s)
 }
 
 
-static int
+static bool
 set_grouping(term_t t, char **valp)
 { GET_LD
   char s[MAX_GROUPING];
@@ -718,19 +781,17 @@ PRED_IMPL("locale_create", 3, locale_create, 0)
     { if ( strcmp(lname, "default") == 0 )
       { new = new_locale(NULL);
       } else
-      { const char *old;
-
-	PL_LOCK(L_LOCALE);
-	if ( (old=setlocale(LC_NUMERIC, lname)) )
-	{ new = new_locale(NULL);
-	  setlocale(LC_NUMERIC, old);
-	}
-	PL_UNLOCK(L_LOCALE);
-	if ( !old )
-	{ if ( errno == ENOENT )
-	    return PL_existence_error("locale", A2);
-	  else
-	    return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setlocale");
+      { if ( (new = PL_malloc(sizeof(*new))) )
+	{ memset(new, 0, sizeof(*new));
+	  new->magic = LOCALE_MAGIC;
+	  if ( !fill_locale_from_name(new, lname) )
+	  { PL_free(new);
+	    new = NULL;
+	    if ( errno == ENOENT )
+	      return PL_existence_error("locale", A2);
+	    else
+	      return PL_error(NULL, 0, MSG_ERRNO, ERR_SYSCALL, "setlocale");
+	  }
 	}
       }
     } else
@@ -798,7 +859,7 @@ PRED_IMPL("locale_destroy", 1, locale_destroy, 0)
 
       if ( deleteHTableWP(GD->locale.localeTable, alias) == l )
       { l->alias = 0;
-	l->references--;
+	ATOMIC_DEC(&l->references);
 	PL_unregister_atom(alias);
       }
     }
@@ -881,9 +942,12 @@ initLocale(void)
 { GET_LD
   PL_locale *def;
 
-  if ( !setlocale(LC_NUMERIC, "") )
-  { DEBUG(0, Sdprintf("Failed to set LC_NUMERIC locale\n"));
-  }
+  PL_register_blob_type(&locale_blob);
+
+  /* new_locale(NULL) queries the environment's LC_NUMERIC conventions
+   * via read_lconv() without touching the process locale, so an
+   * embedder's atof()/printf("%f") remain deterministic (issue #1093).
+   */
 
   if ( (def = new_locale(NULL)) )
   { alias_locale(def, ATOM_default);
@@ -918,11 +982,17 @@ initStreamLocale(IOSTREAM *s)
 }
 
 
+/* The reference count is updated atomically.  Every stream, the blob
+   and the alias of a locale hold a reference, so who drops the last
+   reference may free the locale.  Only that needs L_LOCALE, which also
+   serialises us with release_locale_ref() clearing `symbol`.  Every new
+   stream acquires the locale of its thread, so not taking L_LOCALE here
+   matters if threads create streams concurrently.
+*/
+
 PL_locale *
 acquireLocale(PL_locale *l)
-{ PL_LOCK(L_LOCALE);
-  l->references++;
-  PL_UNLOCK(L_LOCALE);
+{ ATOMIC_INC(&l->references);
 
   return l;
 }
@@ -930,11 +1000,15 @@ acquireLocale(PL_locale *l)
 
 void
 releaseLocale(PL_locale *l)
-{ PL_LOCK(L_LOCALE);
-  assert(l->references > 0);
-  if ( --l->references == 0 && l->symbol == 0 && l->alias == 0 )
-    free_locale(l);
-  PL_UNLOCK(L_LOCALE);
+{ int refs = ATOMIC_DEC(&l->references);
+
+  assert(refs >= 0);
+  if ( refs == 0 )
+  { PL_LOCK(L_LOCALE);
+    if ( l->symbol == 0 && l->alias == 0 )
+      free_locale(l);
+    PL_UNLOCK(L_LOCALE);
+  }
 }
 
 

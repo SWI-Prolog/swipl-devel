@@ -86,7 +86,7 @@ typedef struct find_data_tag
 Convert between integer frame reference and LocalFrame pointer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 PL_unify_frame(term_t t, LocalFrame fr)
 { GET_LD
 
@@ -324,14 +324,14 @@ static void		helpInterrupt(void);
 #endif
 static bool		hasAlternativesFrame(LocalFrame);
 static void		alternatives(Choice);
-static int		exceptionDetails(void);
-static int		listGoal(LocalFrame frame);
+static bool		exceptionDetails(void);
+static bool		listGoal(LocalFrame frame);
 static LocalFrame	frameAtLevel(LocalFrame frame, ssize_t at_depth,
 				     bool interactive);
-static int		saveGoal(LocalFrame frame, ssize_t at_depth,
+static bool		saveGoal(LocalFrame frame, ssize_t at_depth,
 				 bool interactive);
 static int		traceInterception(LocalFrame, Choice, int, Code);
-static int		traceAction(char *cmd,
+static int		traceAction(const char *cmd,
 				    int port,
 				    LocalFrame frame,
 				    Choice bfr,
@@ -364,26 +364,28 @@ canUnifyTermWithGoal(DECL_LD LocalFrame fr)
     case TRACE_FIND_TERM:
     { if ( find->goal.term.functor == fr->predicate->functor->functor )
       { fid_t cid;
+	term_t frref = consTermRef(fr);	/* before anything may shift */
+	size_t i, arity = fr->predicate->functor->arity;
 
 	if ( (cid=PL_open_foreign_frame()) )
 	{ term_t t = PL_new_term_ref();
-	  term_t frref = consTermRef(fr);
-	  size_t i, arity = fr->predicate->functor->arity;
 	  bool rval = true;
 
-	  if ( copyRecordToGlobal(t, find->goal.term.term,
-				  ALLOW_GC|ALLOW_SHIFT) < 0 )
+	  if ( !copyRecordToGlobal(t, find->goal.term.term,
+				   ALLOW_GC|ALLOW_SHIFT) )
+	  { PL_discard_foreign_frame(cid);
 	    return false;
+	  }
 	  for(i=0; i<arity; i++)
 	  { Word a, b;
 
-	    a = valTermRef(t);
-	    deRef(a);
-	    a = argFrameP(word2ptr(LocalFrame, *a), i);
+	    a = valTermRef(t);		/* can_unify() may GC or shift, so */
+	    deRef(a);			/* recompute both on each argument */
+	    a = argTermP(*a, i);
 	    fr = (LocalFrame)valTermRef(frref);
 	    b = argFrameP(fr, i);
 
-	    if ( !can_unify(a++, b++, 0) )
+	    if ( !can_unify(a, b, 0) )
 	    { rval = false;
 	      break;
 	    }
@@ -619,9 +621,10 @@ out:
 
 
 static bool
-setupFind(char *buf)
+setupFind(const char *buf)
 { GET_LD
-  char *s;
+  const char *s;
+  const char *anon = "_";
   int port = 0;
 
   for(s = buf; *s && isBlank(*s); s++)	/* Skip blanks */
@@ -651,10 +654,7 @@ setupFind(char *buf)
     ;
 
   if ( *s == EOS )			/* Nothing is a variable */
-  { s = buf;
-    buf[0] = '_',
-    buf[1] = EOS;
-  }
+    s = anon;
 
   { fid_t cid = PL_open_foreign_frame();
     term_t t = PL_new_term_ref();
@@ -721,12 +721,12 @@ setPrintOptions(word t)
 
 
 static int
-traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
+traceAction(const char *cmd, int port, LocalFrame frame, Choice bfr,
 	    bool interactive)
 { GET_LD
   ssize_t num_arg;			/* numeric argument */
   int def_arg = true;			/* arg is default */
-  char *s;
+  const char *s;
 
 #define FeedBack(msg)	{ if (interactive) { if (cmd[1] != EOS) \
 					       Sfprintf(Sdout, "\n"); \
@@ -738,16 +738,22 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 			    warning(msg); \
 			}
 
-  for(s=cmd; *s && isBlank(*s); s++)
-    ;
-  if ( isDigit(*s) || (*s == '-' && s[1] && isDigit(s[1])) )
-  { num_arg = strtol(s, &s, 10);
+  if ( cmd[0] && cmd[1] )			/* not a single key */
+  { for(s=cmd; *s && isBlank(*s); s++)
+      ;
+    if ( isDigit(*s) || (*s == '-' && s[1] && isDigit(s[1])) )
+    { char *e;
 
-    while(isBlank(*s))
-      s++;
-    def_arg = false;
+      num_arg = strtol(s, &e, 10);
+      s = e;
+      while(isBlank(*s))
+	s++;
+      def_arg = false;
+    } else
+      num_arg = 0;
   } else
-    num_arg = 0;
+  { s = cmd;
+  }
 
   switch( *s )
   { case 'a':	FeedBack("abort\n");
@@ -757,9 +763,13 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		return PL_TRACE_ACTION_AGAIN;
     case '/':	FeedBack("/");
 		Sflush(Sdout);
-		if ( setupFind(&s[1]) )
-		{ clear(frame, FR_SKIPPED);
-		  return PL_TRACE_ACTION_CONTINUE;
+		{ term_t fref = consTermRef(frame);
+
+		  if ( setupFind(&s[1]) )	/* may shift */
+		  { frame = (LocalFrame)valTermRef(fref);
+		    clear(frame, FR_SKIPPED);
+		    return PL_TRACE_ACTION_CONTINUE;
+		  }
 		}
 		return PL_TRACE_ACTION_AGAIN;
     case '.':   if ( LD->trace.find &&
@@ -819,7 +829,7 @@ traceAction(char *cmd, int port, LocalFrame frame, Choice bfr,
 		debugstatus.skiplevel = levelFrame(frame) - 1;
 		return PL_TRACE_ACTION_CONTINUE;
     case 'd':   FeedBack("depth\n");
-		setPrintOptions(def_arg ? 10 : consInt(num_arg));
+		setPrintOptions(consInt(def_arg ? 10 : num_arg));
 		return PL_TRACE_ACTION_AGAIN;
     case 'w':   FeedBack("write\n");
 		setPrintOptions(ATOM_write);
@@ -970,12 +980,8 @@ put_frame_goal(term_t goal, LocalFrame frame)
 
   if ( !PL_unify_functor(goal, def->functor->functor) )
     return false;
-  if ( tTop+argc > tMax )
-  { int rc;
-
-    if ( (rc=ensureTrailSpace(argc)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureTrailSpace(argc) )
+    return false;
 
   frame = (LocalFrame)valTermRef(fref);
   if ( argc > 0 )
@@ -997,8 +1003,8 @@ put_frame_goal(term_t goal, LocalFrame frame)
 	} else
 	{ Trail(&argp[i], makeRefG(a));
 	}
-      } else
-      { argp[i] = *a;
+      } else			/* ensureTrailSpace() may have GCed */
+      { gen_assign(&argp[i], *a);
       }
     }
   }
@@ -1241,7 +1247,7 @@ messageToString(term_t msg)
 }
 
 
-static int
+static bool
 exceptionDetails()
 { GET_LD
   term_t except = LD->exception.pending;
@@ -1263,7 +1269,7 @@ exceptionDetails()
 }
 
 
-static int
+static bool
 listGoal(LocalFrame frame)
 { GET_LD
   term_t fref = consTermRef((Word)frame);
@@ -1316,7 +1322,7 @@ frameAtLevel(LocalFrame frame, ssize_t at_depth, bool interactive)
 }
 
 
-static int
+static bool
 saveGoal(LocalFrame frame, ssize_t at_depth, bool interactive)
 { GET_LD
   fid_t fid;
@@ -1325,10 +1331,12 @@ saveGoal(LocalFrame frame, ssize_t at_depth, bool interactive)
   if ( !(frame = frameAtLevel(frame, at_depth, interactive)) )
     return false;
 
+  term_t fref = consTermRef(frame);
   if ( (fid = PL_open_foreign_frame()) )
   { term_t goal;
 
     if ( (goal = PL_new_term_ref()) &&
+	 (frame = (LocalFrame)valTermRef(fref)) &&	/* may be shifted */
 	 put_frame_goal(goal, frame) &&
 	 PL_record_az(ATOM_saved_goals, goal, 0, RECORDA) )
     { if ( interactive )
@@ -1362,6 +1370,44 @@ writeContextFrame(IOSTREAM *out, pl_context_t *ctx, int flags)
 
 #define SHOW_FRAME(fr) ( isDebugFrame(fr, 0) || !(flags&PL_BT_USER) )
 
+/* writeContextFrame() may call Prolog, which may shift the stacks.  The
+   contexts hold pointers into the local stack.  Save and restore them
+   as offsets.
+*/
+
+typedef struct context_refs
+{ term_t fr;
+  term_t qf;
+} context_refs;
+
+static void
+save_context(pl_context_t *c, context_refs *r)
+{ GET_LD
+
+  r->fr = c->fr ? consTermRef(c->fr) : 0;
+  r->qf = c->qf ? consTermRef(c->qf) : 0;
+}
+
+static void
+restore_context(pl_context_t *c, context_refs *r)
+{ GET_LD
+
+  c->fr = r->fr ? (LocalFrame)valTermRef(r->fr) : NULL;
+  c->qf = r->qf ? (QueryFrame)valTermRef(r->qf) : NULL;
+}
+
+static void
+writeContextFrameSafe(IOSTREAM *out, pl_context_t *ctx, pl_context_t *ctx2,
+		      int flags)
+{ context_refs r1, r2;
+
+  save_context(ctx, &r1);
+  save_context(ctx2, &r2);
+  writeContextFrame(out, ctx, flags);
+  restore_context(ctx, &r1);
+  restore_context(ctx2, &r2);
+}
+
 static void
 _PL_backtrace(IOSTREAM *out, int depth, int flags)
 { pl_context_t ctx;
@@ -1370,7 +1416,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
   { GET_LD
     Definition def = NULL;
     int same_proc = 0;
-    pl_context_t rctx;			/* recursive context */
+    pl_context_t rctx = {0};		/* recursive context */
 
     if ( gc_status.active )
     { flags |= PL_BT_SAFE;
@@ -1413,7 +1459,8 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
       } else
       { if ( same_proc >= 10 )
 	{ if ( isDebugFrame(rctx.fr, 0) || !(flags&PL_BT_USER) )
-	  { writeContextFrame(out, &rctx, flags);
+	  { writeContextFrameSafe(out, &rctx, &ctx, flags);
+	    frame = ctx.fr;
 	    depth--;
 	  }
 	  same_proc = 0;
@@ -1422,7 +1469,7 @@ _PL_backtrace(IOSTREAM *out, int depth, int flags)
       }
 
       if ( SHOW_FRAME(frame) )
-      { writeContextFrame(out, &ctx, flags);
+      { writeContextFrameSafe(out, &ctx, &rctx, flags);
 	depth--;
       }
     }
@@ -1901,6 +1948,15 @@ increment the top pointer to point above the furthest argument.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
+restoreStandardStreams(void)
+{ if ( PL_thread_self() == 1 && truePrologFlag(PLFLAG_EPILOG) )
+  { restoreStandardStream(SNO_USER_ERROR);
+    restoreStandardStream(SNO_USER_OUTPUT);
+  }
+}
+
+
+static void
 helpInterrupt(void)
 { GET_LD
 
@@ -1959,6 +2015,7 @@ interruptHandler(int sig)
   safe = !LD->critical;
 #endif					/* no async signals; always safe */
 
+  restoreStandardStreams();
   Sreset();
 again:
   if ( safe )
@@ -2519,10 +2576,8 @@ prolog_frame_attribute(term_t frame, term_t what, term_t value)
 #endif
 
     if ( !hasGlobalSpace(0) )
-    { bool rc;
-
-      if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
+    { if ( !ensureGlobalSpace(0, ALLOW_GC) )
+	return false;
       fr = (LocalFrame)valTermRef(fref);
     }
 

@@ -1,10 +1,11 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2013, University of Amsterdam
+    Copyright (c)  2011-2026, University of Amsterdam
                               VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -45,7 +46,7 @@ IOENC		initEncoding(void);
 void		initCharTypes(void);
 access_level_t	setAccessLevel(access_level_t new_level);
 
-extern const char _PL_char_types[];	/* array of character types */
+extern const char _PL_char_types[];	/* array of character types (0..127) */
 
 #define CT  0			/* control-character */
 #define SP  1			/* space */
@@ -59,16 +60,21 @@ extern const char _PL_char_types[];	/* array of character types */
 #define LC  9			/* Lowercase character */
 #define DI 10			/* Digit */
 
-#define isControl(c)	(_PL_char_types[(unsigned)(c) & 0xff] == CT)
-#define isBlank(c)	(_PL_char_types[(unsigned)(c) & 0xff] == SP)
-#define isGraph(c)	(_PL_char_types[(unsigned)(c) & 0xff]  > SP)
-#define isDigit(c)	(_PL_char_types[(unsigned)(c) & 0xff] == DI)
-#define isLower(c)	(_PL_char_types[(unsigned)(c) & 0xff] == LC)
-#define isUpper(c)	(_PL_char_types[(unsigned)(c) & 0xff] == UC)
-#define isSymbol(c)	(_PL_char_types[(unsigned)(c) & 0xff] == SY)
-#define isPunct(c)	(_PL_char_types[(unsigned)(c) & 0xff] == PU)
-#define isSolo(c)	(_PL_char_types[(unsigned)(c) & 0xff] == SO)
-#define isAlpha(c)	(_PL_char_types[(unsigned)(c) & 0xff] >= UC)
+/* The is* macros classify ASCII (0..127) only; they return false for any
+ * code point >= 0x80. Use the corresponding *W (wide) macros below or the
+ * PlBlankW / PlIdStartW / ... macros in pl-read.c (which dispatch on the
+ * u_category enum stored in src/pl-umap.c) for non-ASCII handling.
+ */
+#define isControl(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] == CT)
+#define isBlank(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] == SP)
+#define isGraph(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)]  > SP)
+#define isDigit(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] == DI)
+#define isLower(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] == LC)
+#define isUpper(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] == UC)
+#define isSymbol(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] == SY)
+#define isPunct(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] == PU)
+#define isSolo(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] == SO)
+#define isAlpha(c)	((unsigned)(c) < 0x80 && _PL_char_types[(unsigned)(c)] >= UC)
 #define isLetter(c)	(isLower(c) || isUpper(c))
 #define isSign(c)	((c) == '-' || (c) == '+')
 #define isDecimal(zero, c) ((c) >= (zero) && (c) <= (zero)+9)
@@ -90,25 +96,33 @@ extern const char _PL_char_types[];	/* array of character types */
 #include <wchar.h>
 
 #define PlCharType(c, t, w) \
-	((unsigned)(c) <= 0xff ? (_PL_char_types[(unsigned char)(c)] t) : w)
+	((unsigned)(c) < 0x80 ? (_PL_char_types[(unsigned)(c)] t) : w)
 
-#define isControlW(c)	PlCharType(c, == CT, iswcntrl((wint_t)c))
-#define isBlankW(c)	PlCharType(c, == SP, iswspace((wint_t)c))
+/* isBlankW() is the only class here that must answer for non-ASCII.  It
+ * gets that answer from the Unicode tables in src/pl-umap.c through
+ * PL_ctype_flags(), so it agrees with code_type/2 and does not depend
+ * on LC_CTYPE.  The other three are deliberately ASCII-only: they
+ * implement Prolog *syntax* decisions (number scanning, symbol atoms,
+ * format/2 column specifications, write/1 spacing) for which the
+ * non-ASCII cases are handled by the Pl*W macros in pl-read.c that
+ * dispatch on the u_category enum.
+ *
+ * isControlW(), isLowerW(), isUpperW(), isSoloW(), isAlphaW() and
+ * isLetterW() completed this set from <wctype.h>.  They had no users
+ * and were removed rather than converted.
+ */
+
+#define isBlankW(c)	PlCharType(c, == SP, \
+				   (PL_ctype_flags(c) & PL_CTYPE_SPACE))
 #define isDigitW(c)	PlCharType(c, == DI, false)
-#define isLowerW(c)	PlCharType(c, == LC, iswlower((wint_t)c))
-#define isUpperW(c)	PlCharType(c, == UC, iswupper((wint_t)c))
 #define isSymbolW(c)	PlCharType(c, == SY, false)
 #define isPunctW(c)	PlCharType(c, == PU, false)
-#define isSoloW(c)	PlCharType(c, == SO, false)
-#define isAlphaW(c)	PlCharType(c, >= UC, iswalnum((wint_t)c))
-#define isLetterW(c)	(PlCharType(c, == LC, iswalpha((wint_t)c)) || \
-			 PlCharType(c, == UC, false))
 
-#if SIZEOF_WINT_T == 2
-#define makeLowerW(c)	((c) >= 'A' && (c) <= 'Z' ? toLower(c) : \
-			 (c) <= 0xffff ? towlower(c) : c)
-#else
-#define makeLowerW(c)	((c) >= 'A' && (c) <= 'Z' ? toLower(c) : towlower(c))
-#endif
+/* Used for case insensitive file name matching (pl-glob.c, pl-os.c).
+ * PL_tolower() is the Unicode simple case mapping from src/pl-umap.c,
+ * so which files a pattern matches no longer depends on LC_CTYPE.
+ */
+
+#define makeLowerW(c)	((c) >= 'A' && (c) <= 'Z' ? toLower(c) : PL_tolower(c))
 
 #endif /*_PL_CTYPE_H*/

@@ -566,6 +566,8 @@ walk_called(Goal, Module, _, OTerm) :-
     !.
 walk_called(autoload_call(_), _, _, _) :-
     !.		% Should we continue, but just not report?
+walk_called(call(_), _, _, _) :-
+    !.		% Should we continue, but just not report?
 walk_called(Goal, M, TermPos, OTerm) :-
     (   (   predicate_property(M:Goal, imported_from(IM))
         ->  true

@@ -55,7 +55,7 @@ typedef struct mutexref
 { pl_mutex	*mutex;
 } mutexref;
 
-static int try_really_destroy_mutex(pl_mutex *m);
+static bool try_really_destroy_mutex(pl_mutex *m);
 
 static int
 write_mutexref(IOSTREAM *s, atom_t aref, int flags)
@@ -160,7 +160,7 @@ TryEnterCriticalSection() is only defined on NT 4, not on Windows 95 and
 friends.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 unify_mutex(term_t t, pl_mutex *m)
 { GET_LD
 
@@ -168,7 +168,7 @@ unify_mutex(term_t t, pl_mutex *m)
 }
 
 
-static int
+static bool
 unify_mutex_owner(term_t t, int owner)
 { GET_LD
 
@@ -200,7 +200,7 @@ mutexCreate(DECL_LD atom_t name)
 
     if ( name == NULL_ATOM )
     { mutexref ref;
-      int new;
+      bool new;
 
       ref.mutex = m;
       m->id = lookupBlob((void*)&ref, sizeof(ref), &mutex_blob, &new);
@@ -295,7 +295,7 @@ PRED_IMPL("mutex_create", 2, mutex_create2, 0)
 
 
 int
-get_mutex(term_t t, pl_mutex **mutex, int create)
+get_mutex(term_t t, pl_mutex **mutex, bool create)
 { GET_LD
   atom_t name;
   word id = 0;
@@ -306,7 +306,8 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
     mutexref *ref = PL_blob_data(name, NULL, &type);
 
     if ( type == &mutex_blob )
-    { m = ref->mutex;
+    { PL_LOCK(L_UMUTEX);
+      m = ref->mutex;
       goto out;
     } else if ( isTextAtom(name) )
     { id = name;
@@ -325,20 +326,37 @@ get_mutex(term_t t, pl_mutex **mutex, int create)
   } else if ( create )
   { m = unlocked_pl_mutex_create(t);
   } else
-  { PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_mutex, t);
+  { PL_UNLOCK(L_UMUTEX);
+    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_mutex, t);
+    return false;
   }
-  PL_UNLOCK(L_UMUTEX);
 
 out:
-  if ( m )
-  { if ( !m->destroyed )
-    { *mutex = m;
-      return true;
-    }
-    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_mutex, t);
+  if ( m && !m->destroyed )
+  { m->users++;				/* see put_mutex() */
+    PL_UNLOCK(L_UMUTEX);
+    *mutex = m;
+    return true;
   }
+  PL_UNLOCK(L_UMUTEX);
+  if ( m )
+    PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_mutex, t);
 
   return false;
+}
+
+
+/* put_mutex() must be called for each successful get_mutex().  A mutex
+   is only destroyed if no thread is using it.  mutex_destroy/1 on a
+   mutex in use sets auto_destroy and the last user destroys it.
+*/
+
+void
+put_mutex(pl_mutex *m)
+{ PL_LOCK(L_UMUTEX);
+  if ( --m->users == 0 && m->auto_destroy )
+    try_really_destroy_mutex(m);
+  PL_UNLOCK(L_UMUTEX);
 }
 
 
@@ -381,15 +399,19 @@ PL_mutex_lock(struct pl_mutex *m)
 static
 PRED_IMPL("mutex_lock", 1, mutex_lock, 0)
 { pl_mutex *m;
+  bool rc;
 
   if ( !get_mutex(A1, &m, true) )
     return false;
 
-  return  PL_mutex_lock(m);
+  rc = PL_mutex_lock(m);
+  put_mutex(m);
+
+  return rc;
 }
 
 
-static int
+static bool
 PL_mutex_trylock(struct pl_mutex *m)
 { int self = PL_thread_self();
   int rc;
@@ -411,11 +433,15 @@ PL_mutex_trylock(struct pl_mutex *m)
 static
 PRED_IMPL("mutex_trylock", 1, mutex_trylock, 0)
 { pl_mutex *m;
+  bool rc;
 
   if ( !get_mutex(A1, &m, true) )
     return false;
 
-  return  PL_mutex_trylock(m);
+  rc = PL_mutex_trylock(m);
+  put_mutex(m);
+
+  return rc;
 }
 
 
@@ -452,28 +478,34 @@ PRED_IMPL("mutex_unlock", 1, mutex_unlock, 0)
     return false;
 
   if ( PL_mutex_unlock(m) )
-  { if ( m->auto_destroy )
-    { PL_LOCK(L_UMUTEX);
-      try_really_destroy_mutex(m);
-      PL_UNLOCK(L_UMUTEX);
-    }
-
+  { put_mutex(m);			/* may destroy if auto_destroy */
     return true;
   } else
   { char *msg = m->owner ? "not owner" : "not locked";
 
+    put_mutex(m);
     return PL_error("mutex_unlock", 1, msg, ERR_PERMISSION,
 		    ATOM_unlock, ATOM_mutex, A1);
   }
 }
 
 
-static
-PRED_IMPL("mutex_unlock_all", 0, mutex_unlock_all, 0)
+/* unlock_mutexes_of_thread() unlocks all mutexes held by the calling
+   thread.  It is called on thread exit, such that a mutex held by a
+   terminated thread is not considered to be owned by a new thread
+   that reuses its id.
+*/
+
+void
+unlock_mutexes_of_thread(void)
 { TableEnum e;
   table_value_t tv;
   int tid = PL_thread_self();
 
+  if ( !GD->thread.mutexTable )
+    return;
+
+  PL_LOCK(L_UMUTEX);			/* mutexes cannot be destroyed */
   e = newTableEnumWP(GD->thread.mutexTable);
   while( advanceTableEnum(e, NULL, &tv) )
   { pl_mutex *m = val2ptr(tv);
@@ -485,13 +517,21 @@ PRED_IMPL("mutex_unlock_all", 0, mutex_unlock_all, 0)
     }
   }
   freeTableEnum(e);
+  PL_UNLOCK(L_UMUTEX);
+}
+
+static
+PRED_IMPL("mutex_unlock_all", 0, mutex_unlock_all, 0)
+{ unlock_mutexes_of_thread();
   return true;
 }
 
 
-static int
-try_really_destroy_mutex(pl_mutex *m)
-{ if ( PL_mutex_trylock(m) )
+static bool
+try_really_destroy_mutex(pl_mutex *m)	/* called with L_UMUTEX */
+{ if ( m->destroyed || m->users > 0 )
+    return false;			/* see put_mutex() */
+  if ( PL_mutex_trylock(m) )
   { if ( m->count == 1 )
     { GET_LD
 
@@ -520,6 +560,7 @@ PRED_IMPL("mutex_destroy", 1, mutex_destroy, 0)
     return false;
 
   PL_LOCK(L_UMUTEX);
+  m->users--;				/* our get_mutex() */
   if ( !try_really_destroy_mutex(m) )
     m->auto_destroy = true;
   PL_UNLOCK(L_UMUTEX);
@@ -585,7 +626,43 @@ typedef struct
 } mprop_enum;
 
 
-static int
+/* Get the next mutex from the table, claiming it as get_mutex() does,
+   such that it is not destroyed while we read its properties.
+*/
+
+static bool
+next_enum_mutex(mprop_enum *state)
+{ GET_LD
+  table_key_t k;
+  table_value_t tv;
+
+  if ( state->m )
+  { put_mutex(state->m);
+    state->m = NULL;
+  }
+
+  while ( advanceTableEnum(state->e, &k, &tv) )
+  { pl_mutex *m = val2ptr(tv);
+    bool found = false;
+
+    PL_LOCK(L_UMUTEX);
+    if ( lookupHTableWP(GD->thread.mutexTable, k) == m && !m->destroyed )
+    { m->users++;
+      found = true;
+    }
+    PL_UNLOCK(L_UMUTEX);
+
+    if ( found )
+    { state->m = m;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
+static bool
 advance_mstate(mprop_enum *state)
 { if ( state->enum_properties )
   { state->p++;
@@ -595,27 +672,24 @@ advance_mstate(mprop_enum *state)
     state->p = mprop_list;
   }
   if ( state->e )
-  { table_value_t tv;
-
-    if ( advanceTableEnum(state->e, NULL, &tv) )
-    { pl_mutex *m = val2ptr(tv);
-      state->m = m;
-
-      succeed;
-    }
-  }
+    return next_enum_mutex(state);
 
   fail;
 }
 
 
 static void
-free_mstate(mprop_enum *state)
-{ if ( state->e )
+done_mstate(mprop_enum *state, bool allocated)
+{ if ( state->m )
+    put_mutex(state->m);
+  if ( state->e )
     freeTableEnum(state->e);
 
-  freeForeignState(state, sizeof(*state));
+  if ( allocated )
+    freeForeignState(state, sizeof(*state));
 }
+
+#define free_mstate(state) done_mstate(state, true)
 
 
 static
@@ -675,15 +749,9 @@ PRED_IMPL("mutex_property", 2, mutex_property, PL_FA_NONDETERMINISTIC)
 
 enumerate:
   if ( !state->m )			/* first time, enumerating mutexes */
-  { table_value_t tv;
-
-    assert(state->e);
-    if ( advanceTableEnum(state->e, NULL, &tv) )
-    { pl_mutex *m = val2ptr(tv);
-      state->m = m;
-    } else
-    { freeTableEnum(state->e);
-      assert(state != &statebuf);
+  { assert(state->e);
+    if ( !next_enum_mutex(state) )
+    { done_mstate(state, state != &statebuf);
       fail;
     }
   }
@@ -718,15 +786,13 @@ enumerate:
 	  ForeignRedoPtr(state);
 	}
 
-	if ( state != &statebuf )
-	  free_mstate(state);
+	done_mstate(state, state != &statebuf);
 	succeed;
       }
 
       if ( !advance_mstate(state) )
       { error:
-	if ( state != &statebuf )
-	  free_mstate(state);
+	done_mstate(state, state != &statebuf);
 	fail;
       }
     }
@@ -765,9 +831,12 @@ pl_with_mutex(term_t mutex, term_t goal)
   if ( !get_mutex(mutex, &m, true) )
     return false;
   if ( !PL_mutex_lock(m) )
+  { put_mutex(m);
     return false;
+  }
   rval = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
   PL_mutex_unlock(m);
+  put_mutex(m);				/* may destroy if auto_destroy */
 #else
   rval = callProlog(NULL, goal, PL_Q_PASS_EXCEPTION, NULL);
 #endif

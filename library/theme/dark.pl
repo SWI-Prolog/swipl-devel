@@ -34,422 +34,340 @@
 */
 
 :- module(prolog_theme_dark, []).
-:- autoload(library(lists), [member/2]).
-:- autoload(library(pce), [send/2]).
 
 /** <module> SWI-Prolog theme file -- dark
 
-To enable the dark theme, use
+To enable the dark theme, start Prolog using `swipl -Dtheme=dark` or
+add the directive below to your init file.  Setting the flag loads
+this file.
 
-    :- use_module(library(theme/dark)).
+    :- set_prolog_flag(theme, dark).
 */
 
 :- multifile
     prolog:theme/1,
-    prolog:console_color/2,
-    pldoc_style:theme/3.
+    prolog:console_color/3,
+    pldoc_style:theme/4.
 
 prolog:theme(dark).                             % make ourselves known
 
-:- if(current_predicate(win_window_color/2)).
-set_window_colors :-
-    win_window_color(background, rgb(0,0,0)),
-    win_window_color(foreground, rgb(255,255,255)),
-    win_window_color(selection_background, rgb(0,255,255)),
-    win_window_color(selection_foreground, rgb(0,0,0)).
-
-:- initialization
-    set_window_colors.
-:- endif.
+prolog:console_color(dark, Class, Attributes) :-
+    console_color(Class, Attributes).
+pldoc_style:theme(dark, Element, Condition, Attributes) :-
+    pldoc_theme(Element, Condition, Attributes).
 
 		 /*******************************
 		 *       PROLOG MESSAGES	*
 		 *******************************/
 
 % code embedded in messages (not used much yet)
-prolog:console_color(var,                    [hfg(cyan)]).
-prolog:console_color(code,                   [hfg(yellow)]).
+console_color(var,                    [hfg(cyan)]).
+console_color(code,                   [hfg(yellow)]).
 % Alert level
-prolog:console_color(comment,                [hfg(green)]).
-prolog:console_color(warning,                [fg(yellow)]).
-prolog:console_color(error,                  [bold, fg(red)]).
+console_color(comment,                [hfg(green)]).
+console_color(warning,                [fg(yellow)]).
+console_color(error,                  [bold, fg(red)]).
 % toplevel truth value (undefined for well founded semantics)
-prolog:console_color(truth(false),           [bold, fg(red)]).
-prolog:console_color(truth(true),            [bold]).
-prolog:console_color(truth(undefined),       [bold, fg(cyan)]).
-prolog:console_color(wfs(residual_program),  [fg(cyan)]).
+console_color(truth(false),           [bold, fg(red)]).
+console_color(truth(true),            [bold]).
+console_color(truth(undefined),       [bold, fg(cyan)]).
+console_color(wfs(residual_program),  [fg(cyan)]).
 % trace output
-prolog:console_color(frame(level),           [bold]).
-prolog:console_color(port(call),             [bold, fg(green)]).
-prolog:console_color(port(exit),             [bold, fg(green)]).
-prolog:console_color(port(fail),             [bold, fg(red)]).
-prolog:console_color(port(redo),             [bold, fg(yellow)]).
-prolog:console_color(port(unify),            [bold, fg(blue)]).
-prolog:console_color(port(exception),        [bold, fg(magenta)]).
+console_color(frame(level),           [bold]).
+console_color(port(call),             [bold, fg(green)]).
+console_color(port(exit),             [bold, fg(green)]).
+console_color(port(fail),             [bold, fg(red)]).
+console_color(port(redo),             [bold, fg(yellow)]).
+console_color(port(unify),            [bold, fg(blue)]).
+console_color(port(exception),        [bold, fg(magenta)]).
+% the goal of successive steps alternates between two backgrounds, which
+% separates the steps of a trace.  The first argument is the port, which
+% allows for colouring the goal by port instead of (or in addition to)
+% striping.
+console_color(goal(_, odd),           [hfg(yellow), bg8(238)]).
+console_color(goal(_, even),          [hfg(yellow), bg8(240)]).
+% interactive toplevel.  The command line (prompt and the text typed by
+% the user) has its own background.  The answers to a single query
+% alternate between two backgrounds, which separates the answers of a
+% non-deterministic query.
+console_color(prompt,                 [bold, fg8(h(cyan)), bg8(21)]).
+console_color(input,                  [bg8(21)]).
+console_color(answer(odd),            [bg8(238)]).
+console_color(answer(even),           [bg8(240)]).
+console_color(binding(name),          [bold, fg8(h(yellow))]).
+% tag that indicates the kind of a predicate in a list of candidates.
+console_color(predicate(iso),         [italic, hfg(cyan)]).
+console_color(predicate(built_in),    [italic, hfg(cyan)]).
+console_color(predicate(foreign),     [italic, hfg(cyan)]).
+console_color(predicate(library(_)),  [italic, hfg(green)]).
+console_color(predicate(module(_)),   [italic, hfg(green)]).
+console_color(predicate(user),        [italic, fg(default)]).
+console_color(predicate(undefined),   [italic, fg(red)]).
 % print message. the argument for debug(_) is the debug channel.
-prolog:console_color(message(informational), [hfg(green)]).
-prolog:console_color(message(information),   [hfg(green)]).
-prolog:console_color(message(debug(_)),      [hfg(yellow)]).
-prolog:console_color(message(Level),         Attrs) :-
+console_color(message(informational), [hfg(green)]).
+console_color(message(information),   [hfg(green)]).
+console_color(message(debug(_)),      [hfg(yellow)]).
+console_color(message(Level),         Attrs) :-
     nonvar(Level),
-    prolog:console_color(Level, Attrs).
-
+    console_color(Level, Attrs).
 
 		 /*******************************
 		 *          ONLINE HELP		*
 		 *******************************/
 
-%!  pldoc_style:theme(+Element, +Condition, -CSSAttributes) is semidet.
+%!  pldoc_theme(+Element, +Condition, -CSSAttributes) is semidet.
 %
 %   Return a set of CSS properties to modify on the specified Element if
 %   Condition   holds.   color(Name)   is   mapped   to   fg(Name)   and
 %   color(bright_Name) to hfg(Name).
 
-pldoc_style:theme(var,  true,                  [color(bright_cyan)]).
-pldoc_style:theme(code, true,                  [color(bright_yellow)]).
-pldoc_style:theme(pre,  true,                  [color(bright_yellow)]).
-pldoc_style:theme(p,    class(warning),        [color(yellow)]).
-pldoc_style:theme(span, class('synopsis-hdr'), [color(bright_green)]).
-pldoc_style:theme(span, class(autoload),       [color(bright_green)]).
-
+pldoc_theme(var,  true,                  [color(bright_cyan)]).
+pldoc_theme(code, true,                  [color(bright_yellow)]).
+pldoc_theme(pre,  true,                  [color(bright_yellow)]).
+pldoc_theme(p,    class(warning),        [color(yellow)]).
+pldoc_theme(span, class('synopsis-hdr'), [color(bright_green)]).
+pldoc_theme(span, class(autoload),       [color(bright_green)]).
 
 		 /*******************************
 		 *           IDE TOOLS		*
 		 *******************************/
 
 :- multifile
-    pce:on_load/0,
-    prolog_colour:style/2.
+    pce_theme:colour/3.
 
-prolog_colour:style(Class, Style) :-
-    style(Class, Style).
+pce_theme:colour(dark, Name, Value) :-
+    colour(Name, Value).
 
-%!  style(+Class, -Style)
+%!  colour(?Name, ?Value)
 %
-%   Map style classes defined in   library(prolog_colour)  to xpce style
-%   objects. After making modifications the effect can be tested without
-%   restarting using this sequence:
-%
-%     1. Run ``?- make`` in Prolog
-%     2. In the editor, use ``M-x reload_styles``
+%   Values for the semantic colours of xpce in the dark theme.  See
+%   library(pce_theme).  The `syntax_*` colours are used by PceEmacs
+%   to highlight the syntax classes of library(prolog_colour).  For
+%   example, `syntax_goal_built_in` is the colour for goal(built_in,_).
+%   After making modifications, run ``?- make.`` and
+%   ``?- apply_theme(dark).`` to see the effect.  Use
+%   ``?- check_theme(dark).`` to verify the coverage.
 
-style(goal(built_in,_),          [colour(cyan)]).
-style(goal(imported(_),_),       [colour(cyan)]).
-style(goal(autoload(_),_),       [colour(dark_cyan)]).
-style(goal(global,_),            [colour(dark_cyan)]).
-style(goal(global(dynamic,_),_), [colour(magenta)]).
-style(goal(global(_,_),_),       [colour(dark_cyan)]).
-style(goal(undefined,_),         [colour(orange)]).
-style(goal(thread_local(_),_),   [colour(magenta), underline(true)]).
-style(goal(dynamic(_),_),        [colour(magenta)]).
-style(goal(multifile(_),_),      [colour(pale_green)]).
-style(goal(expanded,_),          [colour(cyan), underline(true)]).
-style(goal(extern(_),_),         [colour(cyan), underline(true)]).
-style(goal(extern(_,private),_), [colour(red)]).
-style(goal(extern(_,public),_),  [colour(cyan)]).
-style(goal(recursion,_),         [underline(true)]).
-style(goal(meta,_),              [colour(red4)]).
-style(goal(foreign(_),_),        [colour(darkturquoise)]).
-style(goal(local(_),_),          []).
-style(goal(constraint(_),_),     [colour(darkcyan)]).
-style(goal(not_callable,_),      [background(orange)]).
+% Basic colours.  These replace the system colours if the system
+% colours are light, i.e., for using the dark theme on a light desktop.
 
-style(function,                  [colour(cyan)]).
-style(no_function,               [colour(orange)]).
+colour(ui_window_background,            '#1e1e1e').
+colour(ui_window_foreground,            white).
+colour(ui_dialog_background,            '#2b2b2b').
+colour(ui_dialog_foreground,            white).
+colour(ui_button_background,            '#3c3c3c').
+colour(ui_button_foreground,            white).
+colour(ui_button_pressed,               '#505050').
+colour(ui_selection_background,         '#0078d4').
+colour(ui_selection_foreground,         white).
+colour(ui_tooltip_background,           '#2b2b2b').
+colour(ui_tooltip_foreground,           white).
+colour(ui_inactive,                     '#8a8a8a').
+colour(ui_link,                         '#60cdff').
+colour(ui_accent,                       '#0078d4').
+colour(ui_separator,                    '#454545').
+colour(ui_shadow,                       '#101010').
 
-style(option_name,               [colour(dodgerblue)]).
-style(no_option_name,            [colour(orange)]).
+% Derived colours
 
-style(head(exported,_),          [colour(cyan), bold(true)]).
-style(head(public(_),_),         [colour('#016300'), bold(true)]).
-style(head(extern(_),_),         [colour(cyan), bold(true)]).
-style(head(dynamic,_),           [colour(magenta), bold(true)]).
-style(head(multifile,_),         [colour(pale_green), bold(true)]).
-style(head(unreferenced,_),      [colour(red), bold(true)]).
-style(head(hook,_),              [colour(cyan), underline(true)]).
-style(head(meta,_),              []).
-style(head(constraint(_),_),     [colour(darkcyan), bold(true)]).
-style(head(imported(_),_),       [colour(darkgoldenrod4), bold(true)]).
-style(head(built_in,_),          [background(orange), bold(true)]).
-style(head(iso,_),               [background(orange), bold(true)]).
-style(head(def_iso,_),           [colour(cyan), bold(true)]).
-style(head(def_swi,_),           [colour(cyan), bold(true)]).
-style(head(_,_),                 [bold(true)]).
-style(rule_condition,            [background(darkgreen)]).
+colour(ui_margin_background,            ui_window_background).
+colour(ui_scrollbar_background,         ui_dialog_background).
+colour(ui_tile_gap,                     ui_dialog_background).
+colour(ui_tile_border,                  ui_dialog_background).
+colour(ui_tile_separator,               ui_window_foreground).
 
-style(module(_),                 [colour(light_slate_blue)]).
-style(comment(_),                [colour(green)]).
+% Text.  Selection and search backgrounds are dark, such that the
+% (syntax) colours of the text remain readable.
 
-style(directive,                 [background(grey20)]).
-style(method(_),                 [bold(true)]).
+colour(ui_text_selection_background,    '#264f78').
+colour(ui_isearch_background,           '#806000').
+colour(ui_isearch_other_background,     '#2f4f4f').
+colour(ui_isearch_failed_background,    '#8b1a1a').
+colour(ui_code_background,              '#6e768166').
+colour(ui_fold,                         grey60).
+colour(ui_cursor,                       firebrick1).
+colour(ui_cursor_inactive,              grey50).
 
-style(var,                       [colour(orangered1)]).
-style(singleton,                 [bold(true), colour(orangered1)]).
-style(unbound,                   [colour(red), bold(true)]).
-style(quoted_atom,               [colour(pale_green)]).
-style(string,                    [colour(pale_green)]).
-style(codes,                     [colour(pale_green)]).
-style(chars,                     [colour(pale_green)]).
-style(nofile,                    [colour(red)]).
-style(file(_),                   [colour(cyan), underline(true)]).
-style(file_no_depend(_),         [colour(cyan), underline(true),
-                                  background(dark_violet)]).
-style(directory(_),              [colour(cyan)]).
-style(class(built_in,_),         [colour(cyan), underline(true)]).
-style(class(library(_),_),       [colour(pale_green), underline(true)]).
-style(class(local(_,_,_),_),     [underline(true)]).
-style(class(user(_),_),          [underline(true)]).
-style(class(user,_),             [underline(true)]).
-style(class(undefined,_),        [colour(red), underline(true)]).
-style(prolog_data,               [colour(cyan), underline(true)]).
-style(flag_name(_),              [colour(cyan)]).
-style(no_flag_name(_),           [colour(red)]).
-style(unused_import,             [colour(cyan), background(maroon)]).
-style(undefined_import,          [colour(red)]).
+% Dialog items
 
-style(constraint(_),             [colour(darkcyan)]).
+colour(ui_placeholder,                  grey50).
+colour(ui_accelerator,                  grey70).
+colour(ui_danger,                       '#f14c4c').
+colour(ui_danger_foreground,            white).
+colour(ui_error,                        '#f14c4c').
+colour(ui_warning,                      '#cca700').
 
-style(keyword(_),                [colour(cyan)]).
-style(identifier,                [bold(true)]).
-style(delimiter,                 [bold(true)]).
-style(expanded,                  [colour(cyan), underline(true)]).
-style(hook(_),                   [colour(cyan), underline(true)]).
-style(op_type(_),                [colour(cyan)]).
+% Epilog terminal ANSI colours
 
-style(qq_type,                   [bold(true)]).
-style(qq(_),                     [colour(cyan), bold(true)]).
-style(qq_content(_),             [colour(coral2)]).
+colour(ansi_black,                      black).
+colour(ansi_red,                        firebrick1).
+colour(ansi_green,                      forestgreen).
+colour(ansi_yellow,                     goldenrod).
+colour(ansi_blue,                       steelblue).
+colour(ansi_magenta,                    mediumorchid).
+colour(ansi_cyan,                       darkturquoise).
+colour(ansi_white,                      lightgray).
+colour(ansi_bright_black,               gray40).
+colour(ansi_bright_red,                 orangered).
+colour(ansi_bright_green,               limegreen).
+colour(ansi_bright_yellow,              khaki).
+colour(ansi_bright_blue,                dodgerblue).
+colour(ansi_bright_magenta,             violet).
+colour(ansi_bright_cyan,                cyan).
+colour(ansi_bright_white,               snow).
 
-style(dict_tag,                  [bold(true)]).
-style(dict_key,                  [bold(true)]).
-style(dict_function(_),          [colour(pale_green)]).
-style(dict_return_op,            [colour(cyan)]).
+% Debugger.  The port colours are backgrounds for the current line in
+% the source view.
 
-style(hook,                      [colour(cyan), underline(true)]).
-style(dcg_right_hand_ctx,        [background('#609080')]).
-
-style(error,                     [background(orange)]).
-style(type_error(_),             [background(orange)]).
-style(syntax_error(_,_),         [background(orange)]).
-style(instantiation_error,       [background(orange)]).
-
-style(table_option(_),           [bold(true)]).
-style(table_mode(_),             [bold(true)]).
-
-
-		 /*******************************
-		 *         GUI DEFAULTS         *
-		 *******************************/
-
-:- op(200, fy,  @).
-:- op(800, xfx, :=).
-
-pce:on_load :-
-    pce_set_defaults(true).
-
-:- initialization
-    setup_if_loaded.
-
-setup_if_loaded :-
-    current_predicate(pce:send/2),
-    !,
-    pce_set_defaults(true).
-setup_if_loaded.
-
-
-%!  pce_set_defaults(+Loaded)
-%
-%   Adjust xpce defaults. This can either be   run before xpce is loaded
-%   or as part of the xpce initialization.
-
-pce_set_defaults(Loaded) :-
-    pce_style(Class, Properties),
-    member(Prop, Properties),
-    Prop =.. [Name,Value],
-    term_string(Value, String),
-    send(@default_table, append, Name, vector(Class, String)),
-    update_class_variable(Loaded, Class, Name, Value),
-    update_instances(Class, Prop),
-    fail ; true.
-
-update_class_variable(true, ClassName, Name, Value) :-
-    get(@(classes), member, ClassName, Class),
-    !,
-    get(Class, class_variable, Name, ClassVar),
-    (   get(ClassVar, context, ContextClass),
-        get(ContextClass, name, ClassName)
-    ->  send(ClassVar, value, Value)
-    ;   new(_, class_variable(ClassName, Name, Value))
-    ).
-update_class_variable(_, _, _, _).
-
-update_instances(display, Prop) :-
-    send(@display, Prop).
-
-%!  pce_style(+Class, -Attributes)
-%
-%   Set XPCE class variables for Class. This is normally done by loading
-%   a _resource file_, but doing it from   Prolog keeps the entire theme
-%   in a single file.
-
-% General
-
-pce_style(display,
-          [ foreground(white),
-            background(black)
-          ]).
-
-pce_style(window,
-          [ colour(white),
-            background(black)
-          ]).
-
-pce_style(dialog,
-          [ colour(black),
-            background(grey80)
-          ]).
-
-pce_style(graphical,
-          [ selected_foreground(black),
-            selected_background(white)
-          ]).
-
-pce_style(text,
-          [ selection_style(style(background := yellow3,
-                                  colour := black))
-          ]).
-
-% Epilog (next generation swipl-win)
-
-pce_style(terminal_image,
-          [ background(black),
-            colour(white),
-            selection_style(style(background := yellow, colour := black)),
-            ansi_colours(vector(colour(black),	   % black
-                                colour(firebrick1),    % red
-                                colour(forestgreen),   % green
-                                colour(goldenrod),     % yellow
-                                colour(steelblue),     % blue
-                                colour(mediumorchid),  % magenta
-                                colour(darkturquoise), % cyan
-                                colour(lightgray),     % white
-                                /* Bright versions */
-                                colour(gray40),	   % black
-                                colour(orangered),     % red
-                                colour(limegreen),     % green
-                                colour(khaki),         % yellow
-                                colour(dodgerblue),    % blue
-                                colour(violet),        % magenta
-                                colour(cyan),          % cyan
-                                colour(snow)           % white
-                               ))
-          ]).
-
-pce_style(text_cursor,
-          [ colour(firebrick1)
-          ]).
-
-% Dialog
-
-pce_style(text_item,
-          [ text_colour(white),
-            elevation(elevation('0,25mm', background := black))
-          ]).
-
-pce_style(menu,
-          [ text_colour(white)
-          ]).
-
-pce_style(list_browser,
-          [ selection_style(style(background := yellow, colour := black)),
-            isearch_style(style(background := green, colour := black))
-          ]).
-
-% PceEmacs
-
-pce_style(text_image,
-          [ background(black),
-            colour(white)
-          ]).
-pce_style(text_margin,
-          [ background(grey20)
-          ]).
-pce_style(editor,
-          [ selection_style(style(background := yellow, colour := black)),
-            isearch_style(style(background := green, colour := black)),
-            isearch_other_style(style(background := pale_turquoise,
-                                      colour := black))
-          ]).
-pce_style(emacs_toc_bookmark,
-          [ style_hit(style(background := yellow, colour := black))
-          ]).
-
-% Graphical debugger
-
-pce_style(prolog_stack_view,
-          [ background(black)
-          ]).
-pce_style(prolog_stack_frame,
-          [ background(black),
-            colour(white)
-          ]).
-pce_style(prolog_stack_link,
-          [ colour(white)
-          ]).
-pce_style(prolog_bindings_view,
-          [ background_active(black),
-            background_inactive(grey50)
-          ]).
-pce_style(prolog_source_structure,
-          [ background(black),
-            colour(white)
-          ]).
+colour(debug_port_call,                 '#1e4620').
+colour(debug_port_break,                '#1e4a4a').
+colour(debug_port_exit,                 '#1e4620').
+colour(debug_port_redo,                 '#5c5000').
+colour(debug_port_fail,                 '#6a2020').
+colour(debug_port_exception,            '#4a1e4a').
+colour(debug_port_unify,                '#1e3a5c').
+colour(debug_port_choice,               '#5c5000').
+colour(debug_port_frame,                '#4a4a1e').
+colour(debug_inactive_background,       grey50).
+colour(debug_enabled_background,        '#1e5a1e').
 
 % Profiler
 
-pce_style(prof_details,
-          [ header_background(khaki3)
-          ]).
-pce_style(prof_node_text,
-          [ colour('dodger_blue')
-          ]).
-
-% Debug messages
-
-pce_style(prolog_debug_browser,
-          [ enabled_style(style(colour := green))
-          ]).
+colour(prof_header_background,          khaki3).
+colour(prof_node,                       dodger_blue).
 
 % Cross referencer
 
-pce_style(xref_predicate_text,
-          [ colour(green),
-            colour_autoload(steel_blue),
-            colour_global(steel_blue)
-          ]).
-pce_style(xref_file_graph_node,
-          [ colour(white),
-            background(grey35)
-          ]).
+colour(xref_node_background,            grey35).
+colour(xref_node_foreground,            white).
+colour(xref_predicate,                  green).
+colour(xref_autoload,                   steel_blue).
+colour(xref_global,                     steel_blue).
+colour(xref_undefined,                  tomato).
+colour(xref_not_called,                 tomato).
+colour(xref_header_foreground,          black).
+colour(xref_header_background,          khaki3).
 
-% XPCE manual
+% Predicate info sheet and exception editor
 
-pce_style(man_editor,
-          [ jump_style(style(colour := green,
-                             underline := true))
-          ]).
+colour(predicate_info_header_foreground, black).
+colour(predicate_info_header_background, khaki3).
+colour(exception_header_foreground,     black).
+colour(exception_header_background,     khaki3).
 
-%!  prolog_source_view:port_style(+Port, -StyleAttributes)
-%
-%   Override style attributes for indicating  a   specific  port  in the
-%   source view. Ports are:  `call`,   `break`,  `exit`, `redo`, `fail`,
-%   `exception`, `unify`, `choice`, `frame and `breakpoint`.
+% Thread monitor
 
-:- multifile
-    prolog_source_view:port_style/2.
+colour(thread_graph_local,              dodger_blue).
+colour(thread_graph_global,             orange).
+colour(thread_graph_trail,              lime_green).
+colour(thread_graph_tables,             tomato).
+colour(thread_graph_cpu,                orchid).
+colour(thread_graph_incomplete,         deep_pink).
+colour(thread_graph_scc_ratio,          gold).
+colour(thread_cpu_idle,                 grey30).
+colour(thread_cpu_busy,                 lime_green).
 
-prolog_source_view:port_style(call, [background(forest_green), colour(black)]).
-prolog_source_view:port_style(fail, [background(indian_red),   colour(black)]).
-prolog_source_view:port_style(redo, [background(yellow3),      colour(black)]).
-prolog_source_view:port_style(Type, [colour(black)]) :-
-    Type \== breakpoint.
+% Symbol picker
+
+colour(symbol_picker_user,              light_green).
+colour(symbol_picker_prolog,            light_sky_blue).
+
+% PceEmacs bookmarks and the help viewer
+
+colour(emacs_bookmark_hit,              '#806000').
+colour(emacs_bookmark_filter,           '#1f4e79').
+colour(help_link,                       deep_sky_blue).
+
+% PceEmacs syntax highlighting
+
+colour(syntax_goal_built_in,            cyan).
+colour(syntax_goal_imported,            cyan).
+colour(syntax_goal_autoload,            dark_cyan).
+colour(syntax_goal_global,              dark_cyan).
+colour(syntax_goal_global_dynamic,      magenta).
+colour(syntax_goal_undefined,           orange).
+colour(syntax_goal_thread_local,        magenta).
+colour(syntax_goal_dynamic,             magenta).
+colour(syntax_goal_multifile,           pale_green).
+colour(syntax_goal_expanded,            cyan).
+colour(syntax_goal_extern,              cyan).
+colour(syntax_goal_extern_private,      red).
+colour(syntax_goal_extern_public,       cyan).
+colour(syntax_goal_meta,                red4).
+colour(syntax_goal_foreign,             darkturquoise).
+colour(syntax_goal_constraint,          darkcyan).
+colour(syntax_goal_not_callable_bg,     orange).
+
+colour(syntax_function,                 cyan).
+colour(syntax_no_function,              orange).
+
+colour(syntax_option_name,              dodgerblue).
+colour(syntax_no_option_name,           orange).
+
+colour(syntax_head_exported,            cyan).
+colour(syntax_head_public,              '#016300').
+colour(syntax_head_extern,              cyan).
+colour(syntax_head_dynamic,             magenta).
+colour(syntax_head_multifile,           pale_green).
+colour(syntax_head_unreferenced,        red).
+colour(syntax_head_hook,                cyan).
+colour(syntax_head_constraint,          darkcyan).
+colour(syntax_head_imported,            darkgoldenrod4).
+colour(syntax_head_built_in_bg,         orange).
+colour(syntax_head_iso_bg,              orange).
+colour(syntax_head_def_iso,             cyan).
+colour(syntax_head_def_swi,             cyan).
+colour(syntax_head_test,                '#01bdbd').
+colour(syntax_rule_condition_bg,        darkgreen).
+
+colour(syntax_module,                   light_slate_blue).
+colour(syntax_comment,                  green).
+
+colour(syntax_directive_bg,             grey20).
+
+colour(syntax_var,                      orangered1).
+colour(syntax_singleton,                orangered1).
+colour(syntax_unbound,                  red).
+colour(syntax_quoted_atom,              pale_green).
+colour(syntax_string,                   pale_green).
+colour(syntax_rational,                 light_steel_blue).
+colour(syntax_codes,                    pale_green).
+colour(syntax_chars,                    pale_green).
+colour(syntax_nofile,                   red).
+colour(syntax_file,                     cyan).
+colour(syntax_file_no_depend,           cyan).
+colour(syntax_file_no_depend_bg,        dark_violet).
+colour(syntax_directory,                cyan).
+colour(syntax_class_built_in,           cyan).
+colour(syntax_class_library,            pale_green).
+colour(syntax_class_undefined,          red).
+colour(syntax_prolog_data,              cyan).
+colour(syntax_flag_name,                cyan).
+colour(syntax_known_flag_name,          cyan).
+colour(syntax_known_flag_name_bg,       maroon).
+colour(syntax_no_flag_name,             red).
+colour(syntax_unused_import,            cyan).
+colour(syntax_unused_import_bg,         maroon).
+colour(syntax_undefined_import,         red).
+
+colour(syntax_constraint,               darkcyan).
+
+colour(syntax_keyword,                  cyan).
+colour(syntax_expanded,                 cyan).
+colour(syntax_hook,                     cyan).
+colour(syntax_macro,                    cyan).
+colour(syntax_op_type,                  cyan).
+
+colour(syntax_qq,                       cyan).
+colour(syntax_qq_content,               coral2).
+
+colour(syntax_dict_function,            pale_green).
+colour(syntax_dict_return_op,           cyan).
+
+colour(syntax_dcg_right_hand_ctx_bg,    '#609080').
+
+colour(syntax_error_bg,                 orange).
+colour(syntax_type_error_bg,            orange).
+colour(syntax_domain_error_bg,          orange).
+colour(syntax_syntax_error_bg,          orange).
+colour(syntax_instantiation_error_bg,   orange).

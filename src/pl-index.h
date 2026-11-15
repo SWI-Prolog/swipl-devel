@@ -55,9 +55,9 @@
 #define LDFUNC_DECLARATIONS
 
 word		getIndexOfTerm(term_t t);
-ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
+HOT ClauseRef	firstClause(Word argv, LocalFrame fr, Definition def,
 			    ClauseChoice next);
-ClauseRef	nextClause(const ClauseChoice chp, const Word argv,
+HOT ClauseRef	nextClause(const ClauseChoice chp, const Word argv,
 			   const LocalFrame fr, const Definition def);
 int		addClauseToIndexes(Definition def, Clause cl,
 				   ClauseRef where);
@@ -66,6 +66,7 @@ void		cleanClauseIndexes(Definition def, ClauseList cl,
 				   DirtyDefInfo ddi,
 				   gen_t start, Buffer tr_starts);
 void		clearTriedIndexes(Definition def);
+void		reconsiderIndexes(Definition def);
 void		unallocClauseIndexTable(ClauseIndex ci);
 void		deleteActiveClauseFromIndexes(Definition def, Clause cl);
 bool		unify_index_pattern(Procedure proc, term_t value);

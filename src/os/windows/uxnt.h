@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2022, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2011-2026, University of Amsterdam
                               VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -94,10 +94,14 @@ typedef intptr_t ssize_t;		/* signed version of size_t */
 #define rmdir(...)	_xos_rmdir(__VA_ARGS__)
 #define getcwd(...)	_xos_getcwd(__VA_ARGS__)
 #define setenv(...)	_xos_setenv(__VA_ARGS__)
+#define unsetenv(...)	_xos_unsetenv(__VA_ARGS__)
 #define fopen(p, m) _xos_fopen(p, m)
 
 #ifndef HAVE_SETENV
 #define HAVE_SETENV 1
+#endif
+#ifndef HAVE_UNSETENV
+#define HAVE_UNSETENV 1
 #endif
 
 #endif /*_UXNT_KERNEL*/
@@ -143,9 +147,9 @@ _export wchar_t*_xos_os_filenameW(const char *cname,
 _export char *	_xos_os_filename(const char *cname,
 				 char *osname, size_t len);
 _export char *	_xos_canonical_filenameW(const wchar_t *cname,
-					 char *osname, size_t len, int flags);
+					 char *osname, size_t len);
 _export char *	_xos_canonical_filename(const char *cname,
-					char *osname, size_t len, int flags);
+					char *osname, size_t len);
 _export int	_xos_is_absolute_filename(const char *spec);
 _export char *	_xos_absolute_filename(const char *local, char *absolute, size_t len);
 _export char *	_xos_limited_os_filename(const char *spec, char *limited, size_t len);
@@ -155,6 +159,8 @@ _export char*	_xos_long_file_name_toA(const wchar_t *n8and3,
 					char *name, size_t len);
 _export char *  _xos_long_file_name(const char *file, char *longname,
 				    size_t len);
+_export char *	_xos_case_canonical_filename(const char *in, char *out,
+					     size_t len);
 _export int	_xos_same_file(const char *p1, const char *p2);
 _export int	_xos_open(const char *path, int access, ...);
 _export FILE*	_xos_fopen(const char *path, const char *mode);
@@ -178,6 +184,7 @@ _export int	_xos_errno(void);
 _export int	_xos_exists(const char *path, int flags);
 _export size_t  _xos_getenv(const char *name, char *buf, size_t buflen);
 _export int	_xos_setenv(const char *name, char *value, int overwrite);
+_export int	_xos_unsetenv(const char *name);
 _export int	_xos_set_win_file_access_check(int new);
 _export int	_xos_get_win_file_access_check(void);
 
@@ -186,7 +193,5 @@ _export int	_xos_get_win_file_access_check(void);
 
 #define _XOS_FILE	0x0001		/* is a file */
 #define _XOS_DIR	0x0002		/* is a directory */
-
-#define XOS_DOWNCASE	0x01		/* _xos_canonical_filename() */
 
 #endif /*_XNT_H_INCLUDED*/

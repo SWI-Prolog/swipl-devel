@@ -54,8 +54,7 @@ char *		var_name_ptr(Word p, char *name);
 char *		varName(term_t var, char *buf);
 foreign_t	pl_write_canonical(term_t term);
 foreign_t	pl_write_canonical2(term_t stream, term_t term);
-foreign_t	pl_write_term(term_t term, term_t options);
-foreign_t	pl_write_term3(term_t stream,
+bool		pl_write_term3(term_t stream,
 			       term_t term, term_t options);
 foreign_t	pl_write(term_t term);
 foreign_t	pl_writeln(term_t term);
@@ -69,6 +68,8 @@ int		writeAttributeMask(atom_t name);
 bool		writeUCSAtom(atom_t atom, void *context);
 bool		writeReservedSymbol(IOSTREAM *fd, atom_t atom, int flags);
 bool		writeAtomToStream(IOSTREAM *s, atom_t atom);
+ssize_t		writeAtomText(IOSTREAM *s, const char *text,
+			      size_t len, IOENC enc);
 size_t		format_float(char *buf, size_t size, double f, int N, char E);
 bool		unquoted_atom(atom_t a);
 strnumstat	make_nan(double *f);

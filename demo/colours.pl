@@ -1,3 +1,6 @@
+/* Copyright: public domain
+*/
+
 :- module(colour_demo,                  % module name
           [ colour_demo/2,              % defined export
             no_colour_demo/2,           % undefined export

@@ -42,7 +42,7 @@
             test_installation/0,
             test_installation/1                 % +Options
           ]).
-:- autoload(library(apply), [maplist/2, maplist/3]).
+:- autoload(library(apply), [maplist/2, maplist/3, exclude/3]).
 :- autoload(library(archive), [archive_open/3, archive_close/1]).
 :- autoload(library(lists), [append/3, member/2]).
 :- autoload(library(occurs), [sub_term/2]).
@@ -51,6 +51,7 @@
 :- use_module(library(settings), [setting/2]).
 :- autoload(library(dcg/high_order), [sequence//2, sequence/4]).
 :- autoload(library(error), [must_be/2]).
+:- autoload(library(pce), [get/3, get/4]).
 
 
 /** <module> Check installation issues and features
@@ -105,6 +106,7 @@ component(library(filesex), #{}).
 component(library(http/http_stream), #{}).
 component(library(json), #{}).
 component(library(http/jquery), #{features:jquery_file}).
+component(library(graphviz), #{features:graphviz_engines}).
 component(library(isub), #{}).
 component(library(janus), #{features:python_version}).
 component(library(jpl), #{}).
@@ -112,7 +114,8 @@ component(library(memfile), #{}).
 component(library(odbc), #{}).
 component(library(pce),
           #{pre:use_foreign_library(pce_principal:foreign(pl2xpce)),
-            url:'xpce.html'}).
+            url:'xpce.html',
+            features:pce_features}).
 component(library(pcre), #{features:pcre_features}).
 component(library(pdt_console), #{}).
 component(library(porter_stem), #{}).
@@ -417,6 +420,32 @@ pcre_missing(X) :-
 
 pcre_must_have(unicode).
 
+%!  pce_features
+%
+%   Report the image formats xpce can save, the sound files it can load
+%   and the video codecs it can play and write.  These depend on how
+%   SDL_image, SDL3_sound and the video library were built.
+
+pce_features :-
+    forall(pce_formats(What, Getter),
+           (   pce_formats(Getter, Names)
+           ->  print_message(informational,
+                             installation(pce_formats(What, Names)))
+           ;   true
+           )).
+
+pce_formats(image, image_save_formats).
+pce_formats(sound, sound_file_extensions).
+pce_formats(video, video_decoders).
+pce_formats(video_writer, video_encoders).
+
+pce_formats(Getter, Names) :-
+    catch(get(@(display), Getter, Chain), _, fail),
+    get(Chain, size, N),
+    findall(Name, ( between(1, N, I),
+                    get(Chain, nth1, I, Name)
+                  ), Names).
+
 %!  ssl_version
 
 ssl_version :-
@@ -454,6 +483,24 @@ check_sweep_lib(Line) :-
 python_version :-
     py_call(sys:version, Version),
     print_message(informational, installation(janus(Version))).
+
+
+%!  graphviz_engines
+%
+%   Report the layout engines library(graphviz) provides.  This opens
+%   all the layout plugins it found when it was built.
+
+graphviz_engines :-
+    findall(Engine, graphviz:graphviz_engine(Engine), Engines),
+    (   memberchk(dot, Engines)
+    ->  print_message(informational, installation(graphviz(Engines)))
+    ;   print_message(warning, installation(graphviz(Engines)))
+    ).
+
+%   The nop engines only accept a graph that is laid out already.
+
+nop_engine(Engine) :-
+    sub_atom(Engine, 0, _, _, nop).
 
 
 %!  check_on_path
@@ -626,6 +673,27 @@ message(failed(Properties, true, Messages)) -->
 message(archive(What, Names)) -->
     [ '  Supported ~w: '-[What] ],
     list_names(Names).
+message(pce_formats(image, Formats)) -->
+    [ '  Images can be saved as: '-[] ],
+    list_names(Formats).
+message(pce_formats(sound, [wav])) -->
+    !,
+    [ '  Sound files that can be loaded: wav (no SDL3_sound)'-[] ].
+message(pce_formats(sound, Extensions)) -->
+    [ '  Sound files that can be loaded: '-[] ],
+    list_names(Extensions).
+message(pce_formats(video, [])) -->
+    !,
+    [ '  Videos cannot be played (xpce has no video support)'-[] ].
+message(pce_formats(video, Codecs)) -->
+    [ '  Video codecs that can be played: '-[] ],
+    list_names(Codecs).
+message(pce_formats(video_writer, [])) -->
+    !,
+    [ '  Videos cannot be written (no video encoders)'-[] ].
+message(pce_formats(video_writer, Codecs)) -->
+    [ '  Video codecs that can be written: '-[] ],
+    list_names(Codecs).
 message(pcre_missing(Features)) -->
     [ 'Missing libpcre features: '-[] ],
     list_names(Features).
@@ -662,6 +730,14 @@ message(testing(no_installed_tests)) -->
     [ '  Please recompile the system with INSTALL_TESTS enabled.' ].
 message(janus(Version)) -->
     [ '  Python version ~w'-[Version] ].
+message(graphviz(Engines)) -->
+    { exclude(nop_engine, Engines, Shown),
+      atomic_list_concat(Shown, ', ', Text)
+    },
+    (   { memberchk(dot, Engines) }
+    ->  [ '  Layout engines: ~w'-[Text] ]
+    ;   [ '  Layout engines: ~w (dot is missing)'-[Text] ]
+    ).
 message(ambiguous_autoload(PI, Paths)) -->
     [ 'The predicate ~p can be autoloaded from multiple libraries:'-[PI]],
     sequence(list_file, Paths).

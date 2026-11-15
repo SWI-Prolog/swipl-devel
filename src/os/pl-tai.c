@@ -190,7 +190,7 @@ unify_taia(term_t t, struct taia *taia)
 */
 
 
-static int
+static bool
 get_taia(term_t t, struct taia *taia, double *seconds)
 { double d;
 
@@ -219,7 +219,7 @@ get_taia(term_t t, struct taia *taia, double *seconds)
 }
 
 
-static int
+static bool
 get_tz_arg(int i, term_t t, term_t a, atom_t *tz)
 { GET_LD
   atom_t name;
@@ -236,7 +236,7 @@ get_tz_arg(int i, term_t t, term_t a, atom_t *tz)
 }
 
 
-static int
+static bool
 get_int_arg(int i, term_t t, term_t a, int *val)
 { GET_LD
 
@@ -246,7 +246,7 @@ get_int_arg(int i, term_t t, term_t a, int *val)
 }
 
 
-static int
+static bool
 get_voff_arg(int i, term_t t, term_t a, long *val)
 { GET_LD
 
@@ -261,7 +261,7 @@ get_voff_arg(int i, term_t t, term_t a, long *val)
 }
 
 
-static int
+static bool
 get_dst_arg(int i, term_t t, term_t a, int *val)
 { GET_LD
   atom_t name;
@@ -286,7 +286,7 @@ get_dst_arg(int i, term_t t, term_t a, int *val)
   return PL_get_bool_ex(a, val);	/* generate an error */
 }
 
-static int
+static bool
 get_v_float_arg(int i, term_t t, term_t a, double *val, bool *v, double def)
 { _PL_get_arg(i, t, a);
   if ( PL_is_variable(a) && *v )
@@ -298,7 +298,7 @@ get_v_float_arg(int i, term_t t, term_t a, double *val, bool *v, double def)
   }
 }
 
-static int
+static bool
 get_v_int_arg(int i, term_t t, term_t a, int *val, bool *v, int def)
 { _PL_get_arg(i, t, a);
   if ( PL_is_variable(a) && *v )
@@ -310,7 +310,7 @@ get_v_int_arg(int i, term_t t, term_t a, int *val, bool *v, int def)
   }
 }
 
-static int
+static bool
 get_ftm(term_t t, ftm *ftm)
 { GET_LD
   term_t tmp = PL_new_term_ref();
@@ -581,7 +581,7 @@ iso_week_days(int yday, int wday)
 		 *	       ERRORS		*
 		 *******************************/
 
-static int
+static bool
 fmt_domain_error(const char *key, int value)
 { GET_LD
   term_t t = PL_new_term_ref();
@@ -591,7 +591,7 @@ fmt_domain_error(const char *key, int value)
   return PL_error(NULL, 0, NULL, ERR_DOMAIN, PL_new_atom(key), t);
 }
 
-static int
+static bool
 fmt_not_implemented(int c)
 { GET_LD
   term_t t = PL_new_term_ref();
@@ -676,7 +676,7 @@ static const char *month[] =
 
 #define NOARG (-1)
 
-static int
+static bool
 format_time(IOSTREAM *fd, const wchar_t *format, ftm *ftm, int posix)
 { wint_t c;
 

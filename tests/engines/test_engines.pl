@@ -46,7 +46,13 @@ test(error, Ex == foo) :-
 	engine_create(_, throw(foo), E),
 	catch(engine_next(E, _), Ex, true),
 	engine_destroy(E).
-text(mixed, all(R) == [1,aap,2,3]) :-
+test(self_destroy, [ error(permission_error(destroy, engine, _)),
+		     cleanup(ignore(engine_destroy(E))) ]) :-
+	engine_create(_, ( engine_self(E),
+			   engine_destroy(E)
+			 ), E),
+	engine_next(E, _).
+test(mixed, all(R == [1,aap,2,3])) :-
 	mixed_yield_answers(R).
 test(no_data, error(existence_error(term, delivery, E))) :-
 	setup_call_cleanup(
@@ -71,6 +77,16 @@ test(gc4, [sto(rational_trees)]) :-
 		     assertion(V == 1),
 		     engine_destroy(E)
 		   ), 100).
+:- if(current_prolog_flag(threads, true)).
+% Test for issue #1517.  Destroying an engine that filled a fair amount
+% of private tables raced with the atom garbage collector, crashing in
+% PL_unregister_atom() while clearing the engine's variant table.
+test(agc_tabling) :-
+	forall(between(1, 20, _),
+	       ( engine_create(A, tbl_gen(A), E),
+		 tbl_hop(E, 5)
+	       )).
+:- endif.
 
 :- end_tests(engines).
 
@@ -216,3 +232,47 @@ mixed_yield_answers(R) :-
 p(1).
 p(2) :- engine_yield(aap).
 p(3).
+
+:- if(current_prolog_flag(threads, true)).
+
+% Enumerate a fair number of answers from a fair number of private
+% tables, suspending the engine in the middle of the enumeration and
+% resuming it from a new thread every 37 answers.  The final hop runs
+% the engine to completion, which destroys it and clears its tables.
+
+:- table tbl_p/2.
+
+tbl_p(N, A) :-
+	between(1, 200, I),
+	atom_concat(N, I, A).
+
+tbl_gen(A) :-
+	between(1, 100, K),
+	atom_concat(k, K, N),
+	tbl_p(N, A).
+
+tbl_hop(E, 0) :-
+	!,
+	tbl_exhaust(E).
+tbl_hop(E, Hops) :-
+	thread_create(tbl_pump(E, 37), T, []),
+	thread_join(T, Status),
+	assertion(Status == true),
+	H is Hops-1,
+	tbl_hop(E, H).
+
+tbl_pump(E, Depth) :-
+	(   Depth > 0,
+	    engine_next(E, _)
+	->  D is Depth-1,
+	    tbl_pump(E, D)
+	;   true
+	).
+
+tbl_exhaust(E) :-
+	(   engine_next(E, _)
+	->  tbl_exhaust(E)
+	;   true
+	).
+
+:- endif.

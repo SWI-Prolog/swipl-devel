@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1998-2025, University of Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1998-2026, University of Amsterdam
                               VU University Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -39,14 +39,16 @@
             edit/0
           ]).
 :- autoload(library(lists), [member/2, append/3, select/3, append/2]).
+:- autoload(library(error), [domain_error/2]).
 :- autoload(library(make), [make/0]).
 :- autoload(library(prolog_breakpoints), [breakpoint_property/2]).
 :- autoload(library(apply), [foldl/5, maplist/3, maplist/2]).
 :- use_module(library(dcg/high_order), [sequence/5]).
 :- autoload(library(readutil), [read_line_to_string/2]).
-:- autoload(library(dcg/basics), [string/3, integer/3, remainder/3]).
 :- autoload(library(solution_sequences), [distinct/2]).
-
+:- if(exists_source(library(editline))).
+:- autoload(library(editline), [el_history_events/2]).
+:- endif.
 
 % :- set_prolog_flag(generate_debug_info, false).
 
@@ -69,11 +71,18 @@ an editor.
     load/0.                         % provides load-hooks
 
 :- public
-    predicate_location/2.             % :Pred, -Location
+    locations/2,                    % +Spec, -Locations
+    predicate_location/2,           % :Pred, -Location
+    addr2location/3.                % +Address, -File, -Line
 
 %!  edit(+Spec)
 %
-%   Edit indicated object.
+%   Edit indicated object.  Spec  is  a   predicate  indicator,  a  file
+%   specification or a source location   `File:Line` or `File:Line:Col`.
+%   Both Line and Col count from 1,  as   in  the messages we print, the
+%   hyperlinks we emit (see ansi_hyperlink/2) and the messages of e.g.,
+%   the C compiler.  Note that  the   `line_position`  of a stream (see
+%   stream_position_data/3) counts from 0.
 
 edit(Spec) :-
     notrace(edit_no_trace(Spec)).
@@ -83,23 +92,21 @@ edit_no_trace(Spec) :-
     !,
     throw(error(instantiation_error, _)).
 edit_no_trace(Spec) :-
-    load_extensions,
-    findall(Location-FullSpec,
-            locate(Spec, FullSpec, Location),
-            Pairs0),
-    sort(Pairs0, Pairs1),
-    merge_locations(Pairs1, Pairs),
+    locations(Spec, Pairs),
     do_select_location(Pairs, Spec, Location),
     do_edit_source(Location).
 
 %!  edit
 %
-%   Edit associated or script file.  This is the Prolog file opened
-%   by double-clicking or the file loaded using
+%   Edit associated or script file. This is   the  Prolog file opened by
+%   double-clicking, the initial file loaded  from the commandline using
+%   e.g., the command below or the  last   file  loaded into the current
+%   session  using  ``?-  [file].``,  ``?-    consult(file).``  or  ``?-
+%   use_module(file).``
 %
-%     ==
+%     ```
 %     % swipl [-s] file.pl
-%     ==
+%     ```
 
 edit :-
     current_prolog_flag(associated_file, File),
@@ -111,8 +118,54 @@ edit :-
     !,
     prolog_to_os_filename(File, OsFile),
     edit(file(File)).
+:- if(exists_source(library(editline))).
+edit :-
+    session_loaded_file(File),
+    !,
+    edit(file(File)).
+:- endif.
 edit :-
     throw(error(context_error(edit, no_default_file), _)).
+
+:- if(exists_source(library(editline))).
+session_loaded_file(File) :-
+    catch(el_history_events(user_input, Events),
+          error(_,_), fail),
+    member(_-Event, Events),
+    catch(term_string(Command, Event), error(_,_), fail),
+    load_command(Command, File0),
+    (   is_list(File0)
+    ->  member(File1, File0)
+    ;   File1 = File0
+    ),
+    catch(absolute_file_name(File1, File,
+                             [ file_type(source),
+                               file_errors(fail)
+                             ]),
+          error(_,_), fail),
+    source_file(File),
+    !.
+
+load_command([File|T], [File|T]).
+load_command(consult(File), File).
+load_command(use_module(File), File).
+:- endif.
+
+%!  locations(+Spec, -Locations) is det.
+%
+%   Locate  entities  matching  Spec.  Locations  is  a  list  of  pairs
+%   `Location-FullSpec`, where `Location` is a   dict  holding a `file`,
+%   optional `line` and  optional  `linepos`   keys.  `FullSpec`  is the
+%   disambiguated specification, e.g., `member`   expands  to `member/2`
+%   for the predicate.
+
+locations(Spec, Locations) :-
+    load_extensions,
+    findall(Location-FullSpec,
+            locate(Spec, FullSpec, Location),
+            Pairs0),
+    sort(Pairs0, Pairs1),
+    merge_locations(Pairs1, Locations).
 
 
                  /*******************************
@@ -302,13 +355,7 @@ predicate_location(Pred, #{file:File, line:Line}) :-
     copy_term(Pred, Pred2),
     distinct(Primary, primary_predicate(Pred2, Primary)),
     ignore(Pred = Primary),
-    (   predicate_property(Primary, file(File)),
-        predicate_property(Primary, line_count(Line))
-    ->  true
-    ;   '$foreign_predicate_source'(Primary, Source),
-        string_codes(Source, Codes),
-        phrase(addr2line_output(File, Line), Codes)
-    ).
+    '$predicate_source_location'(Primary, File:Line).
 
 primary_predicate(Pred, Primary) :-
     (   predicate_property(Pred, imported_from(Source))
@@ -318,17 +365,13 @@ primary_predicate(Pred, Primary) :-
     ).
 
 
-%!  addr2line_output(-File, -Line)// is semidet.
+%!  addr2location(+Address, -File, -Line) is semidet.
 %
-%   Process the output of the   `addr2line` utility. This implementation
-%   works  for  Linux.  Additional  lines  may    be  needed  for  other
-%   environments.
+%   Get the File and Line for a C address.
 
-addr2line_output(File, Line) -->
-    string(_), " at ", string(FileCodes), ":", integer(Line),
-    !,
-    remainder(_),
-    { atom_codes(File, FileCodes) }.
+addr2location(Address, File, Line) :-
+    '$addr2line'(Address, Source),
+    '$addr2line_location'(Source, File, Line).
 
 
                  /*******************************
@@ -375,6 +418,7 @@ external_edit_command(Location, Command) :-
     file_name_extension(Base, _, EditorFile),
     edit_command(Base, Cmd),
     prolog_to_os_filename(File, OsFile),
+    shell_safe_file(File, OsFile),
     atom_codes(Cmd, S0),
     substitute('%e', Editor, S0, S1),
     substitute('%f', OsFile, S1, S2),
@@ -388,6 +432,7 @@ external_edit_command(Location, Command) :-
     file_name_extension(Base, _, EditorFile),
     edit_command(Base, Cmd),
     prolog_to_os_filename(File, OsFile),
+    shell_safe_file(File, OsFile),
     atom_codes(Cmd, S0),
     substitute('%e', Editor, S0, S1),
     substitute('%f', OsFile, S1, S),
@@ -397,7 +442,35 @@ external_edit_command(Location, Command) :-
 external_edit_command(Location, Command) :-
     #{file:File} :< Location,
     editor(Editor),
+    shell_safe_file(File, File),
     format(string(Command), '"~w" "~w"', [Editor, File]).
+
+%!  shell_safe_file(+File, +OsFile) is det.
+%
+%   The editor command is run using shell/1, where the file name
+%   appears inside quotes of the edit_command/2 template.  Refuse file
+%   names with characters that may end the quoted text or are expanded
+%   by the shell.
+%
+%   @error domain_error(shell_safe_file_name, File)
+
+shell_safe_file(File, OsFile) :-
+    atom_codes(OsFile, Codes),
+    (   member(C, Codes),
+        unsafe_file_char(C)
+    ->  domain_error(shell_safe_file_name, File)
+    ;   true
+    ).
+
+unsafe_file_char(C) :-
+    C < 0' .
+unsafe_file_char(C) :-
+    memberchk(C, `'"\`$`).
+unsafe_file_char(C) :-
+    current_prolog_flag(windows, true),
+    !,
+    memberchk(C, `%!^&|<>`).
+unsafe_file_char(0'\\).
 
 is_pceemacs(pce_emacs).
 is_pceemacs(built_in).
@@ -641,6 +714,11 @@ message(select(NPairs)) -->
 message(select(NPairs)) -->
     [ 'Please select item to edit:', nl ],
     sequence(target, [nl], NPairs).
+message(target(Location-Spec, N)) -->
+    ['~t~d~3| '-[N]],
+    edit_specifier(Spec),
+    [ '\t' ],
+    edit_location(Location, true).
 message(choose(_Max)) -->
     [ nl, 'Your choice? ', flush ].
 message(waiting_for_editor) -->

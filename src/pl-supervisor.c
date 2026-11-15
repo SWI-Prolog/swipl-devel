@@ -56,15 +56,26 @@ allocCodes(size_t n)
 }
 
 
-static void
-freeCodes(Code codes)
-{ unregisterWrappedSupervisor(codes); /* holds atom_t references */
+/* freeCodesMem() releases the memory of a supervisor code block without
+   touching atom_t refcounts.  Used when the codes are being moved into a
+   new buffer (e.g. by chainPredicateSupervisor()) so the atom references
+   remain valid at their new location.
+*/
 
-  codes--;
+static void
+freeCodesMem(Code codes)
+{ codes--;
   size_t size = (size_t)codes[0];
 
   if ( size > 0 )		/* 0: built-in, see initSupervisors() */
     freeHeap(codes, (size+1)*sizeof(code));
+}
+
+
+static void
+freeCodes(Code codes)
+{ unregisterWrappedSupervisor(codes); /* holds atom_t references */
+  freeCodesMem(codes);
 }
 
 
@@ -103,7 +114,7 @@ freeCodesDefinition(Definition def, bool do_linger)
 
   if ( (codes=def->codes) != SUPERVISOR(virgin) )
   { if ( (codes = def->codes) )
-    { if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
+    { if ( unlikely(isCallWrapper(skipWrapperPrefix(codes)[0])) )
       { resetWrappedSupervisor(def, do_linger);
 	if ( !do_linger )
 	{ codes = def->codes;
@@ -171,7 +182,7 @@ createForeignSupervisor(Definition def, Func f)
 }
 
 
-static int
+static bool
 equalSupervisors(const Code s1, const Code s2)
 { if ( s1 != s2 )
   { size_t sz1 = (size_t)s1[-1];
@@ -366,7 +377,7 @@ copyCodes(Code dest, Code src, size_t count)
 }
 
 
-static Code
+Code
 chainPredicateSupervisor(Definition def, Code post)
 { if ( (ison(def, P_META) && ison(def, P_TRANSPARENT)) ||
        ison(def, P_SSU_DET|P_DET) )
@@ -400,7 +411,7 @@ chainPredicateSupervisor(Definition def, Code post)
 
     if ( !isEmptyBuffer(&buf) )
     { copySuperVisorCode((Buffer)&buf, post);
-      freeCodes(post);
+      freeCodesMem(post);	/* atoms are copied into new buffer */
       codes = allocCodes(entriesBuffer(&buf, code));
       copyCodes(codes, baseBuffer(&buf, code), entriesBuffer(&buf, code));
 
@@ -459,7 +470,8 @@ setSupervisor(Definition def, Code codes)
   if ( equalSupervisors(old, codes) )
   { freeSupervisor(def, codes, false);
   } else
-  { MEMORY_BARRIER();
+  { reconsiderIndexes(def);
+    MEMORY_BARRIER();
     def->codes = codes;
     freeSupervisor(def, old, true);
   }
@@ -480,13 +492,15 @@ setDefaultSupervisor(Definition def)
   { Code codes, old;
 
     PL_LOCK(L_PREDICATE);
-    update_primary_index(def);
     old = def->codes;
     codes = createSupervisor(def);
     if ( equalSupervisors(old, codes) )
     { freeSupervisor(def, codes, false);
+      update_primary_index(def);
     } else
-    { MEMORY_BARRIER();
+    { reconsiderIndexes(def);		/* clause shape changed; re-decide */
+      update_primary_index(def);
+      MEMORY_BARRIER();
       def->codes = codes;
       freeSupervisor(def, old, true);
     }

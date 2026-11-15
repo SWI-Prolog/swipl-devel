@@ -603,6 +603,19 @@ notrace(Goal) :-
 reset(_Goal, _Ball, _Cont) :-
     '$reset'.
 
+%!  '$tbl_reset'(+Goal, ?Ball, -Continue, +WorkList, +Skeleton, +Delays)
+%
+%   As reset/3, but if Goal succeeds, add Skeleton as an answer to
+%   WorkList with Delays and fail.  If the answer completes the table,
+%   first prune the choice points of Goal.  Thus, this only succeeds if
+%   Goal suspends.  Used by delim/4 of the tabling library.  Goal is
+%   either a module-qualified goal or a continuation.  This is not a
+%   meta-predicate to avoid qualifying the continuation on every
+%   resumption.
+
+'$tbl_reset'(_Goal, _Ball, _Cont, _WorkList, _Skeleton, _Delays) :-
+    '$reset'.
+
 %!  shift(+Ball).
 %!  shift_for_copy(+Ball).
 %
@@ -1093,6 +1106,7 @@ user:file_search_path(app_preferences, user_app_config('.')).
 user:file_search_path(user_profile, app_preferences('.')).
 user:file_search_path(app, swi(app)).
 user:file_search_path(app, app_data(app)).
+user:file_search_path(demo, swi(demo)).
 user:file_search_path(working_directory, CWD) :-
     working_directory(CWD, CWD).
 
@@ -1429,7 +1443,7 @@ user:prolog_file_type(dylib,    executable) :-
     !,
     (   file_directory_name(ContextFile, Dir),
         '$chk_file_relative_to'(File, Exts, Cond, Dir, FullName)
-    ->  true
+    *-> true
     ;   current_prolog_flag(source_search_working_directory, true),
 	'$extend_file'(File, Exts, Extended),
 	'$file_conditions'(Cond, Extended),
@@ -2122,7 +2136,7 @@ compiling :-
     ).
 
 '$restore_load_stream'(In, _State, Options) :-
-    memberchk(close(true), Options),
+    '$option'(close(true), Options),
     !,
     close(In).
 '$restore_load_stream'(In, state(HasName, HasPos), _Options) :-
@@ -2373,10 +2387,14 @@ load_files(Module:Files, Options) :-
     file_name_extension(Base, QlfExt, QlfFile),
     (   access_file(QlfFile, read),
         (   '$qlf_out_of_date'(FullFile, QlfFile, Why)
-	->  (   access_file(QlfFile, write)
+	->  (   access_file(QlfFile, write),
+		'$qlf_may_write'
 	    ->  print_message(informational,
 			      qlf(recompile(Spec, FullFile, QlfFile, Why))),
 		Mode = qcompile,
+		LoadFile = FullFile
+	    ;   access_file(QlfFile, write)
+	    ->  Mode = compile,		% see '$qlf_may_write'/0
 		LoadFile = FullFile
 	    ;   Why == old,
 		(   current_prolog_flag(home, PlHome),
@@ -2396,30 +2414,101 @@ load_files(Module:Files, Options) :-
 	    LoadFile = QlfFile
 	)
     ->  !
-    ;   '$qlf_auto'(FullFile, QlfFile, Options)
+    ;   '$qlf_may_write',
+	'$qlf_auto'(FullFile, QlfFile, Options)
     ->  !, Mode = qcompile,
 	LoadFile = FullFile
     ).
 '$qlf_file'(_, FullFile, FullFile, compile, _).
 
+%!  '$qlf_may_write' is semidet.
+%
+%   True if we may (re)create a .qlf file while loading.  Not in system
+%   mode (flag `access_level`): the predicates would be compiled as
+%   system predicates, and the .qlf file records this.  Loading such a
+%   .qlf in user mode then still makes them system predicates.  This
+%   happened when the boot compilation, which runs in system mode, loads
+%   libraries with an outdated .qlf.  We load the source instead and
+%   leave the .qlf to be recompiled by a later load.
+
+'$qlf_may_write' :-
+    \+ current_prolog_flag(access_level, system).
+
 %!  '$qlf_out_of_date'(+PlFile, +QlfFile, -Why) is semidet.
 %
 %   True if the  QlfFile  file  is   out-of-date  because  of  Why. This
 %   predicate is the negation such that we can return the reason.
+%
+%   QlfFile is out of date if it is incompatible with this version or
+%   if one of the files it was compiled from changed. That is PlFile,
+%   but also the files PlFile consults or includes, which are compiled
+%   into QlfFile, and the files that prolog:qlf_dependency/2 declares.
+%   '$qlf_sources'/2 raises an exception if QlfFile is incompatible
+%   and otherwise lists these files, opening QlfFile only once.  If
+%   QlfFile is incompatible, that is reported, also if a source changed,
+%   as it is the more serious problem.
 
 '$qlf_out_of_date'(PlFile, QlfFile, Why) :-
     (   access_file(PlFile, read)
-    ->  time_file(PlFile, PlTime),
-	time_file(QlfFile, QlfTime),
-	(   PlTime > QlfTime
-	->  Why = old                   % PlFile is newer
-	;   Error = error(Formal,_),
-	    catch('$qlf_is_compatible'(QlfFile), Error, true),
-	    nonvar(Formal)              % QlfFile is incompatible
+    ->  Error = error(Formal,_),
+	catch('$qlf_sources'(QlfFile, Sources), Error, true),
+	(   nonvar(Formal)              % QlfFile is incompatible
 	->  Why = Error
+	;   time_file(QlfFile, QlfTime),
+	    '$qlf_sources_changed'(PlFile, Sources, QlfTime)
+	->  Why = old                   % a source changed
 	;   fail                        % QlfFile is up-to-date and ok
 	)
     ;   fail                            % can not read .pl; try .qlf
+    ).
+
+%!  '$qlf_sources_changed'(+PlFile, +Sources, +QlfTime) is semidet.
+%
+%   True when PlFile or one of the other Sources of a .qlf file
+%   written at QlfTime changed.  PlFile is asked explicitly as it
+%   may appear under another name in Sources.  Sources that no longer
+%   exist are ignored.
+
+'$qlf_sources_changed'(PlFile, Sources, QlfTime) :-
+    '$qlf_source_changed'(PlFile, Sources, QlfTime),
+    !.
+'$qlf_sources_changed'(PlFile, Sources, QlfTime) :-
+    '$member'(Source, Sources),
+    arg(1, Source, File),
+    File \== PlFile,
+    '$qlf_source_changed'(File, Sources, QlfTime),
+    !.
+
+%!  '$qlf_source_changed'(+File, +Sources, +QlfTime) is semidet.
+%
+%   True when the content of File differs from the copy that was
+%   compiled into the .qlf file.  The modification time is cheap to
+%   ask, but proves nothing: a tree that arrives by checkout, copy,
+%   unpack or install carries times of its own, in either direction and
+%   at the resolution of the file system it landed on.  So, if the time
+%   says File may be newer, the hash the .qlf file records for File in
+%   Sources settles it.
+%
+%   If Sources records no hash for File -- the .qlf file was written by
+%   an older version, or File could not be read when it was compiled --
+%   the times have the last word, as they had before.
+%
+%   Note that a file edited in the second its .qlf file was written has
+%   the time of that file, so the times do not say "may be newer" and the
+%   content is never asked. Loading every .pl file to find out would cost
+%   more than it is worth here; qlf_needs_rebuild/1 of
+%   library(prolog_qlfmake), which is what a build asks, does compare the
+%   content of every source.
+
+'$qlf_source_changed'(File, Sources, QlfTime) :-
+    catch(time_file(File, Time), error(_,_), fail),
+    Time > QlfTime,
+    (   '$member'(Source, Sources),
+	arg(1, Source, File),
+	arg(2, Source, Hash),
+	Hash =\= 0
+    ->  \+ '$file_hash'(File, Hash)
+    ;   true
     ).
 
 %!  '$qlf_auto'(+PlFile, +QlfFile, +Options) is semidet.
@@ -2431,7 +2520,7 @@ load_files(Module:Files, Options) :-
 :- create_prolog_flag(qcompile, false, [type(atom)]).
 
 '$qlf_auto'(PlFile, QlfFile, Options) :-
-    (   memberchk(qcompile(QlfMode), Options)
+    (   '$option'(qcompile(QlfMode), Options)
     ->  true
     ;   current_prolog_flag(qcompile, QlfMode),
 	\+ '$in_system_dir'(PlFile)
@@ -2496,11 +2585,11 @@ load_files(Module:Files, Options) :-
     statistics(warnings, Warnings).
 
 '$load_file_e'(File, Module, Options) :-
-    \+ memberchk(stream(_), Options),
+    \+ '$option'(stream(_), Options),
     user:prolog_load_file(Module:File, Options),
     !.
 '$load_file_e'(File, Module, Options) :-
-    memberchk(stream(_), Options),
+    '$option'(stream(_), Options),
     !,
     '$assert_load_context_module'(File, Module, Options),
     '$qdo_load_file'(File, File, Module, Options).
@@ -2663,11 +2752,22 @@ load_files(Module:Files, Options) :-
     '$already_loaded'(File, FullFile, Module, Options).
 :- if(current_prolog_flag(threads, true)).
 '$mt_load_file'(File, FullFile, Module, Options) :-
-    sig_atomic('$qdo_load_file'(File, FullFile, Module, Options)).
+    sig_atomic('$ctx_load_file'(File, FullFile, Module, Options)).
 :- else.
 '$mt_load_file'(File, FullFile, Module, Options) :-
-    '$qdo_load_file'(File, FullFile, Module, Options).
+    '$ctx_load_file'(File, FullFile, Module, Options).
 :- endif.
+
+%!  '$ctx_load_file'(+Spec, +FullFile, +ContextModule, +Options) is det.
+%
+%   Record the module FullFile is loaded from and load it.  The record
+%   is what source_file_property(FullFile, load_context(Module, ...))
+%   reports, which make/0 and the .qlf dependencies of
+%   prolog:qlf_dependency/2 rely on.
+
+'$ctx_load_file'(File, FullFile, Module, Options) :-
+    '$assert_load_context_module'(FullFile, Module, Options),
+    '$qdo_load_file'(File, FullFile, Module, Options).
 
 :- if(current_prolog_flag(threads, true)).
 '$mt_start_load'(FullFile, queue(Queue), _) :-
@@ -2691,8 +2791,7 @@ load_files(Module:Files, Options) :-
     !,
     '$already_loaded'(File, FullFile, Module, Options).
 '$mt_do_load'(_Ref, File, FullFile, Module, Options) :-
-    '$assert_load_context_module'(FullFile, Module, Options),
-    '$qdo_load_file'(File, FullFile, Module, Options).
+    '$ctx_load_file'(File, FullFile, Module, Options).
 
 '$mt_end_load'(queue(_)) :- !.
 '$mt_end_load'(already_loaded) :- !.
@@ -2713,7 +2812,7 @@ load_files(Module:Files, Options) :-
     '$run_initialization'(FullFile, Action, Options).
 
 '$qdo_load_file2'(File, FullFile, Module, Action, Options) :-
-    memberchk('$qlf'(QlfOut), Options),
+    '$option'('$qlf'(QlfOut), Options),
     '$stage_file'(QlfOut, StageQlf),
     !,
     setup_call_catcher_cleanup(
@@ -2745,15 +2844,35 @@ load_files(Module:Files, Options) :-
 %
 %   Add compilation dependencies. These are files   that are loaded into
 %   Module that define term or goal expansion rules.
+%
+%   This must be called with the .qlf file  open and the part written, as
+%   it is here: '$qlf_dependency'/1 writes into the stream and the record
+%   belongs after the part, in the trailer.
 
 '$qlf_add_dependencies'(File) :-
-    forall('$dependency'(File, DepFile),
+    findall(DepFile, '$dependency'(File, DepFile), DepFiles0),
+    sort(DepFiles0, DepFiles),          % a file need only be named once
+    forall('$member'(DepFile, DepFiles),
            '$qlf_dependency'(DepFile)).
+
+%!  prolog:qlf_dependency(+File, -DependsOn) is nondet.
+%
+%   Hook. True when compiling File to  a  .qlf   file  takes  a copy of
+%   something in DependsOn, so that the  .qlf   file  must be rebuilt if
+%   DependsOn changes. Expansion rules are found  without this hook; the
+%   hook is for a library that copies code of its own, as XPCE does with
+%   a class template: the  methods  of   the  template  are  put in each
+%   class that uses one, when that class is compiled.
+
+:- multifile
+    prolog:qlf_dependency/2.        % +File, -DependsOn
 
 '$dependency'(File, DepFile) :-
     '$current_module'(Module, File),
     '$load_context_module'(DepFile, Module, _Options),
     '$source_defines_expansion'(DepFile).
+'$dependency'(File, DepFile) :-
+    prolog:qlf_dependency(File, DepFile).
 
 % Also used by autoload.pl
 '$source_defines_expansion'(File) :-
@@ -2797,7 +2916,7 @@ load_files(Module:Files, Options) :-
 		     load_file(start(Level,
 				     file(File, Absolute)))),
 
-    (   memberchk(stream(FromStream), Options)
+    (   '$option'(stream(FromStream), Options)
     ->  Input = stream
     ;   Input = source
     ),
@@ -2908,7 +3027,7 @@ load_files(Module:Files, Options) :-
 
 '$set_verbose_load'(Options, Old) :-
     current_prolog_flag(verbose_load, Old),
-    (   memberchk(silent(Silent), Options)
+    (   '$option'(silent(Silent), Options)
     ->  (   '$negate'(Silent, Level0)
 	->  '$load_msg_compat'(Level0, Level)
 	;   Level = Silent
@@ -2929,7 +3048,7 @@ load_files(Module:Files, Options) :-
 
 '$set_sandboxed_load'(Options, Old) :-
     current_prolog_flag(sandboxed_load, Old),
-    (   memberchk(sandboxed(SandBoxed), Options),
+    (   '$option'(sandboxed(SandBoxed), Options),
 	'$enter_sandboxed'(Old, SandBoxed, New),
 	New \== Old
     ->  set_prolog_flag(sandboxed_load, New)
@@ -3054,7 +3173,7 @@ load_files(Module:Files, Options) :-
 %!  '$save_lex_state'(-LexState, +Options) is det.
 
 '$save_lex_state'(State, Options) :-
-    memberchk(scope_settings(false), Options),
+    '$option'(scope_settings(false), Options),
     !,
     State = (-).
 '$save_lex_state'(lexstate(Style, Dialect), _) :-
@@ -3067,7 +3186,7 @@ load_files(Module:Files, Options) :-
     set_prolog_flag(emulated_dialect, Dialect).
 
 '$set_dialect'(Options) :-
-    memberchk(dialect(Dialect), Options),
+    '$option'(dialect(Dialect), Options),
     !,
     '$expects_dialect'(Dialect).
 '$set_dialect'(_).
@@ -3115,7 +3234,7 @@ load_files(Module:Files, Options) :-
 :- '$notransact'('$load_context_module'/3).
 
 '$assert_load_context_module'(_, _, Options) :-
-    memberchk(register(false), Options),
+    '$option'(register(false), Options),
     !.
 '$assert_load_context_module'(File, Module, Options) :-
     source_location(FromFile, Line),
@@ -3920,7 +4039,7 @@ load_files(Module:Files, Options) :-
 '$load_goal'(consult(_), _).
 '$load_goal'(load_files(_), _).
 '$load_goal'(load_files(_,Options), _) :-
-    memberchk(qcompile(QlfMode), Options),
+    '$option'(qcompile(QlfMode), Options),
     '$qlf_part_mode'(QlfMode).
 '$load_goal'(ensure_loaded(_), _) :- '$compilation_mode'(wic).
 '$load_goal'(use_module(_), _)    :- '$compilation_mode'(wic).
@@ -4095,28 +4214,33 @@ load_files(Module:Files, Options) :-
 %     expand_term_aux(Goal, NewGoal, Clauses)
 %     ==
 %
+%   The clauses are owned by the file being   loaded and their source
+%   location is the current source  location.   These  differ  if the
+%   clauses are compiled from an included file.
+%
 %   @tbd    Deal with source code layout?
 
 compile_aux_clauses(_Clauses) :-
     current_prolog_flag(xref, true),
     !.
 compile_aux_clauses(Clauses) :-
-    source_location(File, _Line),
-    '$compile_aux_clauses'(Clauses, File).
+    source_location(File, Line),
+    prolog_load_context(source, Owner),
+    '$compile_aux_clauses'(Clauses, Owner, File:Line).
 
-'$compile_aux_clauses'(Clauses, File) :-
+'$compile_aux_clauses'(Clauses, Owner, SrcLoc) :-
     setup_call_cleanup(
-	'$start_aux'(File, Context),
-	'$store_aux_clauses'(Clauses, File),
-	'$end_aux'(File, Context)).
+	'$start_aux'(Owner, Context),
+	'$store_aux_clauses'(Clauses, Owner, SrcLoc),
+	'$end_aux'(Owner, Context)).
 
-'$store_aux_clauses'(Clauses, File) :-
+'$store_aux_clauses'(Clauses, Owner, SrcLoc) :-
     is_list(Clauses),
     !,
     forall('$member'(C,Clauses),
-	   '$compile_term'(C, _Layout, File, [])).
-'$store_aux_clauses'(Clause, File) :-
-    '$compile_term'(Clause, _Layout, File, []).
+	   '$compile_term'(C, _Layout, Owner, SrcLoc, [])).
+'$store_aux_clauses'(Clause, Owner, SrcLoc) :-
+    '$compile_term'(Clause, _Layout, Owner, SrcLoc, []).
 
 
 		 /*******************************
@@ -4180,7 +4304,7 @@ win_rename_file(From, To) :-
 		 *******************************/
 
 :- multifile
-    prolog:comment_hook/3.                  % hook for read_clause/3
+    prolog:comment_hook/4.                  % hook for read_clause/3
 
 
 		 /*******************************
@@ -4627,6 +4751,24 @@ cancel_halt(Reason) :-
 %   non-zero.
 
 :- multifile prolog:heartbeat/0.
+
+
+                /*******************************
+                *        UNICODE ATOMS         *
+                *******************************/
+
+%!  '$install_unicode_normalize_hook' is det.
+%
+%   Called from setPrologFlag() in pl-prologflag.c when the user
+%   sets the `unicode_normalize` flag and no kernel normalisation
+%   hook is registered.  Loading library(unicode) calls
+%   PL_atom_normalize_hook from its install_t entry point.  The
+%   call propagates an error if the library is unavailable.
+
+:- public '$install_unicode_normalize_hook'/0.
+
+'$install_unicode_normalize_hook' :-
+    use_module(library(unicode), []).
 
 
 		/********************************

@@ -42,7 +42,8 @@
 
 test_dbref :-
 	run_tests([ assert2,
-		    recorded
+		    recorded,
+		    dbref_blobs
 		  ]).
 
 :- begin_tests(assert2).
@@ -88,3 +89,123 @@ test(recorded_vt, [true([K1,K2] == [test_1,test_2]), nondet]) :-
 	erase(R2).
 
 :- end_tests(recorded).
+
+:- begin_tests(dbref_blobs).
+
+:- dynamic
+	fact/1.
+
+test(clause_unique, [R1 == R2, Type == clause]) :-
+	assertz(fact(u), R1),
+	clause(fact(u), true, R2),
+	blob(R1, Type),
+	erase(R1).
+test(record_unique, [R1 == R2, Type == record]) :-
+	recordz(dbref_test, a, R1),
+	recorded(dbref_test, a, R2),
+	blob(R1, Type),
+	erase(R1).
+test(order_stable, S1 == S2) :-
+	assertz(fact(o1), R1),
+	assertz(fact(o2), R2),
+	assertz(fact(o3), R3),
+	msort([R3,R1,R2], S1),
+	erase(R2),
+	msort([R3,R1,R2], S2),
+	erase(R1),
+	erase(R3).
+test(erased_ref, true) :-
+	assertz(fact(e), R),
+	erase(R),
+	garbage_collect_atoms,
+	\+ clause(_, _, R).
+test(trie_gen_compiled_clause, error(type_error(trie_or_clause, _))) :-
+	assertz(fact(t), R),
+	call_cleanup(trie_gen_compiled(R, _), erase(R)).
+test(local_clause, [L1-L2 == true-true, R1 == R2]) :-
+	assertz(fact(l), R1),
+	local_flag(R1, L1),
+	clause(fact(l), true, R2),
+	local_flag(R2, L2),
+	erase(R1).
+test(local_record, [L1-L2 == true-true, R1 == R2]) :-
+	recordz(dbref_test, l, R1),
+	local_flag(R1, L1),
+	recorded(dbref_test, l, R2),
+	local_flag(R2, L2),
+	erase(R1).
+test(shared_identity, [condition(threads), Same-Local == true-false]) :-
+	assertz(fact(s), R),
+	thread_self(Me),
+	thread_create(( clause(fact(s), true, R2),
+			thread_send_message(Me, ref(R2))
+		      ), Id),
+	thread_get_message(ref(R3)),
+	thread_join(Id),
+	same(R, R3, Same),
+	local_flag(R, Local),
+	erase(R).
+test(local_reclaimed, [ true(Collected > 15_000), true(Live < 5_000),
+			true(Grown < 100), Same == true ]) :-
+	retractall(fact(_)),
+	forall(between(1, 20_000, I), assertz(fact(I))),
+	'$local_atoms'(collected, C0),
+	statistics(atoms, A0),
+	forall(clause(fact(_), true, _), true),
+	garbage_collect_atoms,
+	'$local_atoms'(collected, C1),
+	'$local_atoms'(live, Live),
+	statistics(atoms, A1),
+	Collected is C1-C0,
+	Grown is A1-A0,
+	clause(fact(1), true, R1),		% a new reference
+	nth_clause(fact(_), 1, R2),
+	same(R1, R2, Same),
+	retractall(fact(_)).
+test(local_slots_reused, true(Grown < 5_000)) :-
+	retractall(fact(_)),
+	forall(between(1, 20_000, I), assertz(fact(I))),
+	enum_refs,
+	'$local_atoms'(highest, H0),
+	enum_refs,
+	enum_refs,
+	'$local_atoms'(highest, H1),
+	Grown is H1-H0,
+	retractall(fact(_)).
+test(promoted_kept, [Local == false, Same == true]) :-
+	retractall(saved(_)),
+	assertz(fact(p), R),
+	assertz(saved(R)),			% promotes
+	local_flag(R, Local),
+	forall(between(1, 20_000, I), assertz(fact(I))),
+	forall(clause(fact(_), true, _), true),
+	garbage_collect_atoms,
+	saved(R2),
+	clause(fact(p), true, R3),
+	same(R2, R3, Same),
+	retractall(saved(_)),
+	retractall(fact(_)).
+
+threads :-
+	current_prolog_flag(threads, true).
+
+enum_refs :-
+	forall(clause(fact(_), true, _), true),
+	garbage_collect_atoms.
+
+local_flag(Atom, Local) :-
+	(   '$local_atom'(Atom)
+	->  Local = true
+	;   Local = false
+	).
+
+same(X, Y, Same) :-
+	(   X == Y
+	->  Same = true
+	;   Same = false
+	).
+
+:- dynamic
+	saved/1.
+
+:- end_tests(dbref_blobs).

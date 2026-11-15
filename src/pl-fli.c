@@ -136,7 +136,7 @@ static bool	PL_get_uint(term_t t, unsigned int *i);
 #if O_VALIDATE_API
 
 #define in_foreign_argv(p)	LDFUNC(in_foreign_argv, p)
-static int
+static bool
 in_foreign_argv(DECL_LD Word p)
 { for(LocalFrame fr = environment_frame; fr; fr = parentFrame(fr))
   { if ( ison(fr->predicate, P_FOREIGN) )
@@ -181,7 +181,7 @@ in_query_arguments(DECL_LD Word p)
 }
 
 void
-valid_term_t(DECL_LD term_t t)
+check_term_t(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
   if ( !onStack(local, p) )
@@ -198,7 +198,7 @@ valid_term_t(DECL_LD term_t t)
 }
 
 void
-valid_user_term_t(DECL_LD term_t t)
+check_user_term_t(DECL_LD term_t t)
 { Word p = valTermRef(t);
 
   if ( !onStack(local, p) )
@@ -213,8 +213,8 @@ valid_user_term_t(DECL_LD term_t t)
 }
 
 void
-valid_functor_t(functor_t f)
-{ if ( tagex(f) != (TAG_ATOM|STG_GLOBAL) )
+check_functor_t(functor_t f)
+{ if ( !isFunctor(f) )
     PL_api_error("invalid functor_t %zd (bad tag)", (size_t)f);
   size_t index = indexFunctor(f);
   if ( index > GD->functors.highest )
@@ -226,7 +226,7 @@ valid_functor_t(functor_t f)
 }
 
 void
-valid_atom_t(atom_t a)
+check_atom_t(atom_t a)
 { if ( !isAtom(a) )
     PL_api_error("invalid atom_t %zd (bad tag)", (size_t)a);
   size_t index = indexAtom(a);
@@ -237,12 +237,21 @@ valid_atom_t(atom_t a)
        atm->references != ATOM_PRE_DESTROY_REFERENCE )
     PL_api_error("invalid atom_t %zd (no valid atom at this index)",
 		 (size_t)a);
+#if defined(O_ATOMGC) && defined(O_DEBUG) /* too slow for validate_api */
+  if ( ATOM_IS_LOCAL(atm->references) )
+  { GET_LD
+
+    if ( localAtomOwner(a) != LD )
+      PL_api_error("atom_t %zd is a local atom of another thread "
+		   "(missing promotion)", (size_t)a);
+  }
+#endif
 }
 
 void
-valid_dict_key(atom_t a)
+check_dict_key(atom_t a)
 { if ( isTaggedInt(a) )
-    valid_atom_t(a);
+    check_atom_t(a);
 }
 
 #endif /*O_VALIDATE_API*/
@@ -585,10 +594,8 @@ retry:
   { Word v;
 
     if ( !hasGlobalSpace(1) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(1, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
+    { if ( !ensureGlobalSpace(1, ALLOW_GC) )
+	return false;
       goto retry;
     }
     v = gTop++;
@@ -729,7 +736,7 @@ PL_new_blob(void *blob, size_t len, PL_blob_t *type)
 { if ( !GD->initialised )
     initAtoms();
 
-  int new;
+  bool new;
   return (atom_t)lookupBlob(blob, len, type, &new);
 }
 
@@ -752,19 +759,35 @@ PL_new_functor_sz(DECL_LD atom_t f, size_t arity)
 }
 
 
+/* The public PL_new_functor() adds a reference to the functor, which
+   foreign code may drop using PL_unregister_functor().  See pl-funct.c.
+*/
+
 API_STUB(functor_t)
 (PL_new_functor_sz)(atom_t f, size_t arity)
 ( if ( !GD->initialised )
     initFunctors();
-  return PL_new_functor_sz(f, arity); )
+  return lookupFunctorRef(f, arity); )
 
 functor_t
 (PL_new_functor)(atom_t f, int arity)
 { if ( arity >= 0 )
-    return PL_new_functor_sz(f, arity);
+    return (PL_new_functor_sz)(f, arity);
   fatalError("Arity out of range: %d", arity);
   return 0;
 }
+
+API_STUB(void)
+(PL_register_functor)(functor_t f)
+( valid_functor_t(f);
+  acquireFunctor(f);
+)
+
+API_STUB(void)
+(PL_unregister_functor)(functor_t f)
+( valid_functor_t(f);
+  releaseFunctor(f);
+)
 
 
 atom_t
@@ -844,10 +867,21 @@ isUCSAtom(Atom a)
 
 atom_t
 lookupUCSAtom(const pl_wchar_t *s, size_t len)
-{ int new;
+{ bool new;
 
   return lookupBlob((const char *)s, len*sizeof(pl_wchar_t),
 		    &ucs_atom, &new);
+}
+
+/* As lookupUCSAtom(), creating a local atom.  See lookupLocalAtom(). */
+
+atom_t
+lookupLocalUCSAtom(const pl_wchar_t *s, size_t len)
+{ GET_LD
+  bool new;
+
+  return lookupBlobEx((const char *)s, len*sizeof(pl_wchar_t),
+		      &ucs_atom, &new, true);
 }
 
 
@@ -925,16 +959,24 @@ compareUCSAtom(atom_t h1, atom_t h2)
   Atom a2 = atomValue(h2);
   const pl_wchar_t *s1 = (const pl_wchar_t*)a1->name;
   const pl_wchar_t *s2 = (const pl_wchar_t*)a2->name;
-  size_t len = a1->length < a2->length ? a1->length : a2->length;
+  const pl_wchar_t *e1 = s1 + a1->length/sizeof(pl_wchar_t);
+  const pl_wchar_t *e2 = s2 + a2->length/sizeof(pl_wchar_t);
 
-  len /= sizeof(pl_wchar_t);
+  /* Compare code points, not code units: on Windows wchar_t is 16-bit
+   * and supplementary characters are stored as surrogate pairs whose
+   * lead surrogate (U+D800..U+DBFF) sorts below BMP code points above
+   * U+DBFF — so a code-unit comparison would order e.g. U+1D11E below
+   * U+F900.  get_wchar() resolves the pair on 16-bit platforms and is
+   * a plain dereference on 32-bit ones.
+   */
 
-  for( ; len-- > 0; s1++, s2++)
-  { if ( *s1 != *s2 )
-    { int d = *s1 - *s2;
+  while ( s1 < e1 && s2 < e2 )
+  { int c1, c2;
 
-      return SCALAR_TO_CMP(d, 0);
-    }
+    s1 = get_wchar(s1, &c1);
+    s2 = get_wchar(s2, &c2);
+    if ( c1 != c2 )
+      return SCALAR_TO_CMP(c1, c2);
   }
 
   return SCALAR_TO_CMP(a1->length, a2->length);
@@ -1011,6 +1053,23 @@ size_t
 PL_utf8_strlen(const char *s, size_t len)
 { return utf8_strlen(s, len);
 }
+
+
+/* Out-of-line part of PL_utf8_code_point() for foreign code.  The
+   kernel uses the inline version from pl-utf8.h.
+*/
+
+int
+_PL_utf8_code_point(const char **in, const char *end, int *cp)
+{ return _PL__utf8_code_point(in, end, cp);
+}
+
+
+/* PL_wcwidth() lives in pl-read.c so it can read the per-code-point
+ * width slot directly out of uflags_map (see src/pl-umap.c). The
+ * result is locale-independent and pinned to the Unicode version
+ * reported by current_prolog_flag(unicode_syntax_version, _).
+ */
 
 
 		 /*******************************
@@ -1175,7 +1234,7 @@ _PL_cvt_i_char(term_t p, char *c, int mn, int mx)
   }
 
   if ( PL_is_integer(p) )
-    return PL_representation_error(mn < 0 ? "char" : "uchar");
+    return int_range_error(p, mn < 0 ? ATOM_char : ATOM_uchar, mn == 0);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, p);
 }
@@ -1211,7 +1270,7 @@ _PL_cvt_i_short(term_t p, short *s, int mn, int mx)
   }
 
   if ( PL_is_integer(p) )
-    return PL_representation_error(mn < 0 ? "short" : "ushort");
+    return int_range_error(p, mn < 0 ? ATOM_short : ATOM_ushort, mn == 0);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, p);
 }
@@ -1244,7 +1303,7 @@ PL_cvt_i_uint(term_t t, unsigned int *c)
     return true;
 
   if ( PL_is_integer(t) )
-    return PL_representation_error("uint");
+    return int_range_error(t, ATOM_uint, true);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
@@ -1407,7 +1466,7 @@ PL_cvt_o_address(void *address, term_t p)
 		 *	      COMPARE		*
 		 *******************************/
 
-int					/* TBD: how to report error? */
+int					/* -2: exception pending */
 PL_compare(term_t t1, term_t t2)
 { GET_LD
   valid_term_t(t1);
@@ -1415,7 +1474,7 @@ PL_compare(term_t t1, term_t t2)
   Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
 
-  return compareStandard(p1, p2, false);	/* -1, 0, 1 */
+  return compareStandard(p1, p2, false);	/* -1, 0, 1 or CMP_ERROR */
 }
 
 
@@ -1466,12 +1525,8 @@ cons_functorv(DECL_LD term_t h, functor_t fd, va_list args)
   } else
   { Word a, t;
 
-    if ( !hasGlobalSpace(1+arity) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
-    }
+    if ( !ensureGlobalSpace(1+arity, ALLOW_GC) )
+      return false;
 
     a = t = gTop;
     gTop += 1+arity;
@@ -1481,7 +1536,7 @@ cons_functorv(DECL_LD term_t h, functor_t fd, va_list args)
 
       bindConsVal(++a, valHandleP(r));
     }
-    setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(h, consCompound(t));
   }
 
   return true;
@@ -1525,12 +1580,8 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
   } else
   { Word t, a, ai;
 
-    if ( !hasGlobalSpace(1+arity) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(1+arity, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
-    }
+    if ( !ensureGlobalSpace(1+arity, ALLOW_GC) )
+      return false;
 
     a = t = gTop;
     gTop += 1+arity;
@@ -1540,7 +1591,7 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
     while( arity-- > 0 )
       bindConsVal(++a, ai++);
 
-    setHandle(h, consPtr(t, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(h, consCompound(t));
   }
 
   return true;
@@ -1551,12 +1602,8 @@ bool
 PL_cons_list(DECL_LD term_t l, term_t head, term_t tail)
 { Word a;
 
-  if ( !hasGlobalSpace(3) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(3, ALLOW_GC) )
+    return false;
 
   a = gTop;
   gTop += 3;
@@ -1564,7 +1611,7 @@ PL_cons_list(DECL_LD term_t l, term_t head, term_t tail)
   bindConsVal(&a[1], valHandleP(head));
   bindConsVal(&a[2], valHandleP(tail));
 
-  setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+  setHandle(l, consCompound(a));
 
   return true;
 }
@@ -1589,12 +1636,8 @@ PL_cons_list_v(term_t list, size_t count, term_t elems)
   if ( count > 0 )
   { Word p;
 
-    if ( !hasGlobalSpace(3*count) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(3*count, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
-    }
+    if ( !ensureGlobalSpace(3*count, ALLOW_GC) )
+      return false;
 
     p = gTop;
     for( ; count-- > 0; p += 3, elems++ )
@@ -1602,13 +1645,13 @@ PL_cons_list_v(term_t list, size_t count, term_t elems)
       p[0] = FUNCTOR_dot2;
       bindConsVal(&p[1], valHandleP(elems));
       if ( count > 0 )
-      { p[2] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+      { p[2] = consCompound(&p[3]);
       } else
       { p[2] = ATOM_nil;
       }
     }
 
-    setHandle(list, consPtr(gTop, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(list, consCompound(gTop));
     gTop = p;
   } else
   { setHandle(list, ATOM_nil);
@@ -1631,6 +1674,25 @@ static const int type_map[8] = { PL_VARIABLE,
 				 -1		/* TAG_REFERENCE */
 			       };
 
+/* PL_get_term_value() reports the coarse Prolog type of a term and
+   fills the appropriate slot of the term_value_t union.  Numeric terms
+   are classified as follows:
+
+     PL_INT64   -- fits in int64_t; val->i is set
+     PL_INTEGER -- integer (bignum) that does not fit int64_t; val->f
+		   holds the float promotion
+     PL_RATIONAL -- non-integer rational; val->f holds the float promotion
+     PL_FLOAT   -- floating point; val->f is set
+
+   Returns 0 with a pending exception when the numeric value cannot be
+   promoted to a float (e.g. huge bignums such as 1<<10000 that overflow
+   double).  Non-numeric terms return PL_ATOM, PL_STRING, PL_TERM,
+   PL_VARIABLE, PL_NIL, PL_BLOB or PL_LIST_PAIR as appropriate.
+
+   This API is deprecated; new code should call the specific PL_get_*
+   accessor and PL_is_* type test needed.
+*/
+
 int /* PL_* type */
 PL_get_term_value(term_t t, term_value_t *val)
 { GET_LD
@@ -1641,9 +1703,27 @@ PL_get_term_value(term_t t, term_value_t *val)
   switch(rval)
   { case PL_VARIABLE:
       break;
-    case PL_INTEGER:
-      get_int64(w, &val->i);		/* TBD: Handle MPZ integers? */
+    case PL_INTEGER:				/* == isRational() */
+    { number n;
+
+      get_number(w, &n);
+      switch( n.type )
+      { case V_INTEGER:
+	{ val->i = n.value.i;
+	  return PL_INT64;
+	}
+	default:
+	{ numtype t0 = n.type;
+
+	  if ( promoteToFloatNumber(&n) )
+	  { val->f = n.value.f;
+	    return t0 == V_MPZ ? PL_INTEGER : PL_RATIONAL;
+	  }
+	  return 0;
+	}
+      }
       break;
+    }
     case PL_FLOAT:
       val->f = valFloat(w);
       break;
@@ -1677,6 +1757,262 @@ PL_get_term_value(term_t t, term_value_t *val)
 }
 
 
+/* PL_get_arg_values() fills an array of pl_value_t from a range of
+   arguments of a compound.  It is designed for C code that reads many
+   small terms, avoiding a term_t, an API call and API validation per
+   argument.  Text is converted as PL_get_nchars() does.
+*/
+
+static bool
+is_text_value(const pl_value_t *v, unsigned int flags)
+{ switch(v->type)
+  { case PL_STRING:
+      return true;
+    case PL_ATOM:
+      return !!(flags&CVT_ATOM);
+    case PL_INTEGER:
+    case PL_RATIONAL:
+      return !(flags&CVT_FLOAT);
+    default:
+      return false;
+  }
+}
+
+#define get_value_text(tmp, v, cvt, flags) \
+	LDFUNC(get_value_text, tmp, v, cvt, flags)
+
+static bool
+get_value_text(DECL_LD term_t tmp, pl_value_t *v,
+	       unsigned int cvt, unsigned int flags)
+{ PL_chars_t text;
+
+  flags = (flags&~CVT_MASK)|cvt;
+  if ( PL_get_text(tmp, &text, flags) &&
+       PL_mb_text(&text, flags) &&
+       PL_save_text(&text, flags) )
+  { v->value.s = text.text.t;
+    v->length  = text.length;
+    return true;
+  }
+
+  return false;
+}
+
+bool
+PL_get_arg_values(term_t t, size_t from, size_t count,
+		  pl_value_t *values, unsigned int flags)
+{ GET_LD
+  size_t i;
+  bool rc = true;
+
+  valid_term_t(t);
+  word w = valHandle(t);
+  if ( !isTerm(w) )
+    return ( (flags&CVT_EXCEPTION) &&
+	     PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_compound, t) );
+  size_t arity = arityTerm(w);
+  if ( from < 1 || from > arity+1 || count > arity+1-from )
+    return false;
+
+  PL_STRINGS_MARK_IF_MALLOC(flags);
+  Word ap = argTermP(w, from-1);
+  for(i=0; i<count; i++, ap++)
+  { pl_value_t *v = &values[i];
+    unsigned int cvt = 0;
+    Word p;
+
+    deRef2(ap, p);
+    word a = *p;
+    v->length = 0;
+
+    switch(tag(a))
+    { case TAG_VAR:
+      case TAG_ATTVAR:
+	v->type = PL_VARIABLE;
+	break;
+      case TAG_FLOAT:
+	v->type = PL_FLOAT;
+	v->value.f = valFloat(a);
+	break;
+      case TAG_INTEGER:
+      { number n;
+
+	get_number(a, &n);
+	if ( n.type == V_INTEGER )
+	{ v->type = PL_INT64;
+	  if ( (flags&CVT_FLOAT) )
+	    v->value.f = (double)n.value.i;
+	  else
+	    v->value.i = n.value.i;
+	  break;
+	}
+	v->type = n.type == V_MPZ ? PL_INTEGER : PL_RATIONAL;
+	if ( (flags&CVT_FLOAT) )
+	{ if ( promoteToFloatNumber(&n) )
+	  { v->value.f = n.value.f;
+	  } else
+	  { if ( !(flags&CVT_EXCEPTION) )
+	      PL_clear_exception();
+	    goto error;
+	  }
+	} else if ( (flags&CVT_RATIONAL) ||
+		    (v->type == PL_INTEGER && (flags&CVT_INTEGER)) )
+	{ cvt = flags&(CVT_XINTEGER|CVT_RATIONAL);
+	} else
+	{ if ( (flags&CVT_EXCEPTION) )
+	  { if ( v->type == PL_INTEGER )
+	    { int_range_error(pushWordAsTermRef(p), ATOM_int64_t, false);
+	      popTermRef();
+	    } else
+	    { PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer,
+		       pushWordAsTermRef(p));
+	      popTermRef();
+	    }
+	  }
+	  goto error;
+	}
+	break;
+      }
+      case TAG_ATOM:
+	v->value.a = word2atom(a);
+	if ( !isTextAtom(a) )
+	  v->type = isNil(a) ? PL_NIL : PL_BLOB;
+	else
+	{ v->type = PL_ATOM;
+	  if ( (flags&CVT_ATOM) )
+	    cvt = CVT_ATOM;
+	}
+	break;
+      case TAG_STRING:
+	v->type = PL_STRING;
+	cvt = CVT_STRING;
+	break;
+      case TAG_COMPOUND:
+      { FunctorDef fd = valueFunctor(functorTerm(a));
+
+	v->value.t = fd->functor;
+	v->type = ( fd->functor == FUNCTOR_dot2 ? PL_LIST_PAIR :
+		    fd->name == ATOM_dict       ? PL_DICT :
+						  PL_TERM );
+	break;
+      }
+      default:
+	assert(0);
+    }
+
+    if ( cvt )
+    { bool ok = get_value_text(pushWordAsTermRef(p), v, cvt, flags);
+
+      popTermRef();
+      if ( !ok )
+	goto error;
+    }
+  }
+
+  goto out;
+
+error:
+  if ( (flags&BUF_MALLOC) )
+  { for(size_t j=0; j<i; j++)
+    { if ( is_text_value(&values[j], flags) )
+	PL_free(values[j].value.s);
+    }
+  }
+  rc = false;
+
+out:
+  PL_STRINGS_RELEASE_IF_MALLOC(flags);
+
+  return rc;
+}
+
+
+/* PL_get_list_slice() calls func for a slice of a list, reusing the same
+   term reference for the elements.  The tail and the cell saved for the
+   cycle test are kept in term references because func may cause GC or
+   a stack shift.  Cycle detection uses Brent's algorithm, as
+   skip_list(), but only after SLICE_CYCLE_CHECK cells as most lists
+   are short.
+*/
+
+#define SLICE_CYCLE_CHECK 1000
+
+bool
+PL_get_list_slice(term_t list, size_t start, size_t length,
+		  pl_list_slice_f func, void *closure,
+		  size_t *count, unsigned int flags)
+{ GET_LD
+  term_t tail, elem, saved;
+  size_t i = 0, n = 0, power = 1, lam = 0;
+  bool rc = true;
+  Word p;
+
+  valid_term_t(list);
+  if ( !(tail = PL_new_term_refs(3)) )
+    return false;
+  elem  = tail+1;
+  saved = tail+2;
+  if ( !PL_put_term(tail, list) )	/* may globalize a variable */
+    return false;
+
+  for(;;)
+  { p = valTermRef(tail);
+    deRef(p);
+
+    if ( length != (size_t)-1 && n == length )
+      goto out;
+    if ( !isList(*p) )
+      break;
+
+    if ( i >= SLICE_CYCLE_CHECK )
+    { if ( i == SLICE_CYCLE_CHECK )
+      { setHandle(saved, *p);
+      } else if ( valHandle(saved) == *p )
+      { if ( (flags&CVT_EXCEPTION) )
+	  PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
+	rc = false;
+	goto out;
+      } else if ( ++lam == power )
+      { setHandle(saved, *p);
+	power *= 2;
+	lam = 0;
+      }
+    }
+
+    if ( i >= start )
+    { setHandle(elem, linkValI(argTermP(*p, 0)));
+      if ( !(*func)(elem, n, closure) )
+      { rc = false;
+	goto out;
+      }
+      n++;
+      p = valTermRef(tail);		/* func may have moved the stacks */
+      deRef(p);
+    }
+    setHandle(tail, linkValI(argTermP(*p, 1)));
+    i++;
+  }
+
+  if ( isNil(*p) )
+  { rc = (length == (size_t)-1 && i >= start); /* else beyond the end */
+  } else
+  { if ( (flags&CVT_EXCEPTION) )
+    { if ( canBind(*p) )
+	PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
+      else
+	PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, list);
+    }
+    rc = false;
+  }
+
+out:
+  if ( count )
+    *count = n;
+  PL_reset_term_refs(tail);
+
+  return rc;
+}
+
 int
 atom_to_bool(atom_t a)
 { if ( a == ATOM_true || a == ATOM_on )
@@ -1688,11 +2024,21 @@ atom_to_bool(atom_t a)
 }
 
 
+API_STUB(bool)
+(PL_get_bool)(term_t t, int *b)
+( valid_term_t(t);
+  return PL_get_bool(t, b);
+)
+
+API_STUB(bool)
+(PL_get_stdbool)(term_t t, bool *b)
+( valid_term_t(t);
+  return PL_get_stdbool(t, b);
+)
+
 bool
-PL_get_bool(term_t t, int *b)
-{ GET_LD
-  valid_term_t(t);
-  word w = valHandle(t);
+PL_get_stdbool(DECL_LD term_t t, bool *b)
+{ word w = valHandle(t);
 
   if ( isAtom(w) )
   { int bv = atom_to_bool(word2atom(w));
@@ -1715,6 +2061,14 @@ PL_get_bool(term_t t, int *b)
   return false;
 }
 
+bool
+PL_get_bool(DECL_LD term_t t, int *b)
+{ bool stdb;
+  bool rc = PL_get_stdbool(t, &stdb);
+  if ( rc )
+    *b = stdb;
+  return rc;
+}
 
 /* PL_get_atom(DECL_LD term_t t, atom_t *a) moved to pl-fli.h */
 
@@ -1827,7 +2181,14 @@ PL_get_list_nchars(term_t l, size_t *length, char **s, unsigned int flags)
     size_t len = entriesBuffer(b, char);
 
     if ( length )
-      *length = len;
+    { *length = len;
+    } else if ( memchr(baseBuffer(b, char), 0, len) )
+    { unfindBuffer(b, flags);
+      if ( (flags&CVT_EXCEPTION) )
+	return PL_error(NULL, 0, NULL, ERR_REPRESENTATION_CULPRIT,
+			ATOM_nul_terminated_string, l);
+      return false;
+    }
     addBuffer(b, EOS, char);
     r = baseBuffer(b, char);
 
@@ -1851,6 +2212,37 @@ PL_get_list_chars(term_t l, char **s, unsigned flags)
 }
 
 
+/* If the caller does not ask for the length, the text is used as a
+   0-terminated string.  Text with an embedded 0-code cannot be passed
+   this way: the remainder would be silently ignored.
+*/
+
+static bool
+nul_terminated_text(term_t culprit, PL_chars_t *text, unsigned flags)
+{ bool nul;
+
+  if ( text->encoding == ENC_WCHAR )
+  { const pl_wchar_t *w = text->text.w;
+    const pl_wchar_t *e = &w[text->length];
+
+    while(w < e && *w)
+      w++;
+    nul = (w < e);
+  } else
+  { nul = (memchr(text->text.t, 0, text->length) != NULL);
+  }
+
+  if ( !nul )
+    return true;
+
+  PL_free_text(text);
+  if ( (flags&CVT_EXCEPTION) )
+    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION_CULPRIT,
+		    ATOM_nul_terminated_string, culprit);
+  return false;
+}
+
+
 bool
 PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
 { GET_LD
@@ -1861,6 +2253,7 @@ PL_get_wchars(term_t l, size_t *length, pl_wchar_t **s, unsigned flags)
   PL_STRINGS_MARK_IF_MALLOC(flags);
   rc = ( PL_get_text(l, &text, flags) &&
 	 PL_promote_text(&text) &&
+	 (length || nul_terminated_text(l, &text, flags)) &&
 	 PL_save_text(&text, flags) );
   PL_STRINGS_RELEASE_IF_MALLOC(flags);
 
@@ -1884,6 +2277,7 @@ PL_get_nchars(term_t l, size_t *length, char **s, unsigned flags)
   PL_STRINGS_MARK_IF_MALLOC(flags);
   rc = ( PL_get_text(l, &text, flags) &&
 	 PL_mb_text(&text, flags) &&
+	 (length || nul_terminated_text(l, &text, flags)) &&
 	 PL_save_text(&text, flags) );
   PL_STRINGS_RELEASE_IF_MALLOC(flags);
 
@@ -2151,21 +2545,29 @@ PL_get_float_ex(term_t t, double *f)
 #define ULL(x) x ## ULL
 #endif
 
+/* PL_get_pointer() only accepts pointer integers (see pl-data.h), so a
+ * plain integer typed or computed in Prolog is not taken for a C pointer.
+ * With O_BIG_ADDRESS, PL_put_pointer() and PL_unify_pointer() create a
+ * plain integer for a pointer that does not fit a small integer; these
+ * are accepted.
+ */
+
 bool
 PL_get_pointer(DECL_LD term_t t, void **ptr)
-{ int64_t p;
+{ word w = valHandle(t);
 
-  if ( PL_get_int64(t, &p) )
-  {
-#if SIZEOF_VOIDP == 4
-    if ( p & ULL(0xffffffff00000000) )
-      return false;
-#endif
-
-    *ptr = intToPointer((uintptr_t)p);
-
+  if ( likely(isPtrInt(w)) )
+  { *ptr = intToPointer((uintptr_t)valInt(w));
     return true;
   }
+#if O_BIG_ADDRESS
+  int64_t p;
+
+  if ( isIndirect(w) && PL_get_int64(t, &p) )
+  { *ptr = intToPointer((uintptr_t)p);
+    return true;
+  }
+#endif
 
   return false;
 }
@@ -2271,6 +2673,10 @@ PL_get_functor(DECL_LD term_t t, functor_t *f)
   return false;
 }
 
+
+/* The functor is valid as long as the term is.  Foreign code that keeps
+   it must use PL_register_functor().  See pl-funct.c.
+*/
 
 API_STUB(bool)
 (PL_get_functor)(term_t t, functor_t *f)
@@ -2868,12 +3274,12 @@ PL_put_list_ncodes(term_t t, size_t len, const char *chars)
     if ( !p )
       return false;
 
-    setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(t, consCompound(p));
 
     for( ; len-- != 0; chars++)
     { *p++ = FUNCTOR_dot2;
       *p++ = consInt((intptr_t)*chars & 0xff);
-      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+      *p = consCompound(p+1);
       p++;
     }
     p[-1] = ATOM_nil;
@@ -2902,12 +3308,12 @@ PL_put_list_nchars(term_t t, size_t len, const char *chars)
     if ( !p )
       return false;
 
-    setHandle(t, consPtr(p, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(t, consCompound(p));
 
     for( ; len-- != 0 ; chars++)
     { *p++ = FUNCTOR_dot2;
       *p++ = codeToAtom(*chars & 0xff);
-      *p = consPtr(p+1, TAG_COMPOUND|STG_GLOBAL);
+      *p = consCompound(p+1);
       p++;
     }
     p[-1] = ATOM_nil;
@@ -2938,18 +3344,12 @@ bool
 PL_put_uint64(term_t t, uint64_t i)
 { GET_LD
   word w;
-  int rc;
   valid_user_term_t(t);
 
-  switch ( (rc=put_uint64(&w, i, ALLOW_GC)) )
-  { case true:
-      setHandle(t, w);
-      return true;
-    case LOCAL_OVERFLOW:
-      return PL_representation_error("uint64_t");
-    default:
-      return raiseStackOverflow(rc);
-  }
+  if ( !put_uint64(&w, i) )
+    return false;
+  setHandle(t, w);
+  return true;
 }
 
 
@@ -2963,14 +3363,11 @@ API_STUB(bool)
 bool
 _PL_put_number(DECL_LD term_t t, Number n)
 { word w;
-  int rc;
 
-  if ( (rc=put_number(&w, n, ALLOW_GC)) == true )
-  { setHandle(t, w);
-    return true;
-  } else
-  { return raiseStackOverflow(rc);
-  }
+  if ( !put_number(&w, n) )
+    return false;
+  setHandle(t, w);
+  return true;
 }
 
 
@@ -2979,8 +3376,17 @@ PL_put_pointer(term_t t, void *ptr)
 { GET_LD
   valid_user_term_t(t);
   uint64_t i = pointerToInt(ptr);
+  word w = consPtrInt(i);
 
+  if ( likely((uint64_t)valInt(w) == i) )
+  { setHandle(t, w);
+    return true;
+  }
+#if O_BIG_ADDRESS
   return PL_put_int64(t, (int64_t)i);
+#else
+  return PL_representation_error("address");
+#endif
 }
 
 
@@ -2988,15 +3394,12 @@ bool
 PL_put_float(term_t t, double f)
 { GET_LD
   word w;
-  int rc;
 
   valid_user_term_t(t);
-  if ( (rc=put_double(&w, f, ALLOW_GC)) == true )
-  { setHandle(t, w);
-    return true;
-  }
-
-  return raiseStackOverflow(rc);
+  if ( !put_double(&w, f) )
+    return false;
+  setHandle(t, w);
+  return true;
 }
 
 
@@ -3014,7 +3417,7 @@ PL_put_functor(term_t t, functor_t f)
 
     if ( !(a = allocGlobal(1 + arity)) )
       return false;
-    setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(t, consCompound(a));
     *a++ = f;
     while(arity-- > 0)
       setVar(*a++);
@@ -3031,7 +3434,7 @@ PL_put_list(term_t l)
   Word a = allocGlobal(3);
 
   if ( a )
-  { setHandle(l, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+  { setHandle(l, consCompound(a));
     *a++ = FUNCTOR_dot2;
     setVar(*a++);
     setVar(*a);
@@ -3083,7 +3486,7 @@ _PL_put_xpce_reference_i(term_t t, uintptr_t i)
   { word w = consInt(i);
     assert(valInt(w) == i);
 
-    setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+    setHandle(t, consCompound(a));
     *a++ = FUNCTOR_at_sign1;
     *a++ = w;
     return true;
@@ -3099,7 +3502,7 @@ _PL_put_xpce_reference_a(term_t t, atom_t name)
   Word a = allocGlobal(2);
 
   if ( a )
-  { setHandle(t, consPtr(a, TAG_COMPOUND|STG_GLOBAL));
+  { setHandle(t, consCompound(a));
     *a++ = FUNCTOR_at_sign1;
     *a++ = name;
     return true;
@@ -3138,16 +3541,14 @@ PL_unify_compound(term_t t, functor_t f)
     word to;
 
     if ( !hasGlobalSpace(needed) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
+    { if ( !ensureGlobalSpace(needed, ALLOW_GC) )
+	return false;
       p = valHandleP(t);		/* reload: may have shifted */
       deRef(p);
     }
 
     a = gTop;
-    to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+    to = consCompound(a);
 
     gTop += 1+arity;
     *a = f;
@@ -3174,16 +3575,14 @@ PL_unify_functor(DECL_LD term_t t, functor_t f)
     { size_t needed = (1+arity);
 
       if ( !hasGlobalSpace(needed) )
-      { int rc;
-
-	if ( (rc=ensureGlobalSpace(needed, ALLOW_GC)) != true )
-	  return raiseStackOverflow(rc);
+      { if ( !ensureGlobalSpace(needed, ALLOW_GC) )
+	  return false;
 	p = valHandleP(t);		/* reload: may have shifted */
 	deRef(p);
       }
 
       Word a = gTop;
-      word to = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+      word to = consCompound(a);
 
       *a++ = f;
       for(size_t i=0; i<arity; i++)
@@ -3217,7 +3616,7 @@ PL_unify_atom_chars(term_t t, const char *chars)
 { GET_LD
   valid_term_t(t);
   atom_t a = lookupAtom(chars, strlen(chars));
-  int rval = PL_unify_atom(t, a);
+  bool rval = PL_unify_atom(t, a);
 
   PL_unregister_atom(a);
 
@@ -3230,7 +3629,7 @@ PL_unify_atom_nchars(term_t t, size_t len, const char *chars)
 { GET_LD
   valid_term_t(t);
   atom_t a = lookupAtom(chars, len);
-  int rval = PL_unify_atom(t, a);
+  bool rval = PL_unify_atom(t, a);
 
   PL_unregister_atom(a);
 
@@ -3248,7 +3647,7 @@ uncachedCodeToAtom(int chrcode)
   } else
   { wchar_t tmp[2];
     wchar_t *end;
-    int new;
+    bool new;
 
     end = put_wchar(tmp, chrcode);
 
@@ -3425,18 +3824,11 @@ unify_int64_ex(DECL_LD term_t t, int64_t i, int ex)
   { if ( valInt(w) == i )
       return bindConst(p, w);
 
-    int rc;
-    if ( (rc=put_int64(&w, i, 0)) == true )
-    { p = valHandleP(t);
-      deRef(p);
-      return bindConst(p, w);
-#ifndef O_BIGNUM
-    } else if ( rc == LOCAL_OVERFLOW ) /* no bignums and doesn't fit */
-    { return PL_representation_error("int64");
-#endif
-    } else
-    { return raiseStackOverflow(rc);
-    }
+    if ( !put_int64(&w, i) )
+      return false;
+    p = valHandleP(t);
+    deRef(p);
+    return bindConst(p, w);
   }
 
   if ( w == *p && valInt(w) == i )
@@ -3472,16 +3864,10 @@ PL_unify_uint64(term_t t, uint64_t i)
   { return unify_int64_ex(t, i, true);
   } else if ( PL_is_variable(t) )
   { word w;
-    int rc;
 
-    switch ( (rc=put_uint64(&w, i, ALLOW_GC)) )
-    { case true:
-	return PL_unify_atomic(t, w);
-      case LOCAL_OVERFLOW:
-	return PL_representation_error("uint64_t");
-      default:
-	return raiseStackOverflow(rc);
-    }
+    if ( !put_uint64(&w, i) )
+      return false;
+    return PL_unify_atomic(t, w);
   } else
   { number n;
 
@@ -3532,8 +3918,15 @@ API_STUB(bool)
 bool
 PL_unify_pointer(DECL_LD term_t t, void *ptr)
 { uint64_t i = pointerToInt(ptr);
+  word w = consPtrInt(i);
 
+  if ( likely((uint64_t)valInt(w) == i) )
+    return PL_unify_atomic(t, w);
+#if O_BIG_ADDRESS
   return unify_int64_ex(t, (int64_t)i, false);
+#else
+  return PL_representation_error("address");
+#endif
 }
 
 
@@ -3551,14 +3944,12 @@ PL_unify_float(DECL_LD term_t t, double f)
   deRef(p);
   if ( canBind(*p) )
   { word w;
-    int rc = put_double(&w, f, ALLOW_GC);
 
-    if ( rc == true )
-    { p = valHandleP(t);
-      deRef(p);
-      return bindConst(p, w);
-    } else
-      return raiseStackOverflow(rc);
+    if ( !put_double(&w, f) )
+      return false;
+    p = valHandleP(t);
+    deRef(p);
+    return bindConst(p, w);
   }
 
   return isFloat(*p) && valFloat(*p) == f;
@@ -3633,10 +4024,8 @@ PL_unify_list(DECL_LD term_t l, term_t h, term_t t)
     word c;
 
     if ( !hasGlobalSpace(3) )
-    { int rc;
-
-      if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
+    { if ( !ensureGlobalSpace(3, ALLOW_GC) )
+	return false;
       p = valHandleP(l);		/* reload: may have shifted */
       deRef(p);
     }
@@ -3644,7 +4033,7 @@ PL_unify_list(DECL_LD term_t l, term_t h, term_t t)
     a = gTop;
     gTop += 3;
 
-    c = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+    c = consCompound(a);
     *a++ = FUNCTOR_dot2;
     setVar(*a);
     setHandle(h, makeRefG(a));
@@ -4022,12 +4411,8 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
   Word p;
 
   valid_term_t(t);
-  if ( !hasGlobalSpace(2) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(2, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(2, ALLOW_GC) )
+    return false;
 
   p = valHandleP(t);
 
@@ -4038,7 +4423,7 @@ _PL_unify_xpce_reference(term_t t, xpceref_t *ref)
 
       a = gTop;
       gTop += 2;
-      c = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+      c = consCompound(a);
 
       *a++ = FUNCTOR_at_sign1;
       *a++ = put_xpce_ref_arg(ref);
@@ -4105,10 +4490,10 @@ _PL_put_atomic(term_t t, PL_atomic_t a)
 bool
 PL_unify_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 { GET_LD
-  int new;
+  bool new;
   valid_term_t(t);
   atom_t a = lookupBlob(blob, len, type, &new);
-  int rval = PL_unify_atom(t, a);
+  bool rval = PL_unify_atom(t, a);
 
   PL_unregister_atom(a);
 
@@ -4119,7 +4504,7 @@ PL_unify_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 bool
 PL_put_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 { GET_LD
-  int new;
+  bool new;
   valid_user_term_t(t);
   atom_t a = lookupBlob(blob, len, type, &new);
 
@@ -4131,10 +4516,8 @@ PL_put_blob(term_t t, void *blob, size_t len, PL_blob_t *type)
 
 
 bool
-PL_get_blob(term_t t, void **blob, size_t *len, PL_blob_t **type)
-{ GET_LD
-  valid_term_t(t);
-  word w = valHandle(t);
+PL_get_blob(DECL_LD term_t t, void **blob, size_t *len, PL_blob_t **type)
+{ word w = valHandle(t);
 
   if ( isAtom(w) )
   { Atom a = atomValue(w);
@@ -4152,6 +4535,12 @@ PL_get_blob(term_t t, void **blob, size_t *len, PL_blob_t **type)
   return false;
 }
 
+API_STUB(bool)
+(PL_get_blob)(term_t t, void **blob, size_t *len, PL_blob_t **type)
+( valid_term_t(t);
+  return PL_get_blob(t, blob, len, type);
+)
+
 
 void *
 PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
@@ -4160,7 +4549,7 @@ PL_blob_data(atom_t a, size_t *len, PL_blob_t **type)
 
   if ( len )
     *len = x->length;
-  if ( unlikely(x->type == ATOM_TYPE_INVALID) )
+  if ( unlikely(ATOM_TYPE_IS_INVALID(x->type)) )
   { if ( type )
       *type = NULL;
     return NULL;
@@ -4181,7 +4570,8 @@ PL_free_blob(atom_t a)
 
   if ( ison(type, PL_BLOB_NOCOPY) && type->release && x->name )
   { if ( (*type->release)(a) )
-    { x->length = 0;
+    { PL_blob_gc_released(x);		/* the resource is gone: stop */
+      x->length = 0;			/* counting it towards the margin */
       x->name = NULL;
       return true;
     }
@@ -4230,7 +4620,7 @@ PL_put_dict(term_t t, atom_t tag,
     word dupl = 0;
     _PL_dict_status_t rc = dict_order(p0, &dupl);
     if ( rc == PL_DICT_TRUE )
-    { setHandle(t, consPtr(p0, TAG_COMPOUND|STG_GLOBAL));
+    { setHandle(t, consCompound(p0));
       DEBUG(CHK_SECURE, checkStacks(NULL));
       return true;
     }
@@ -4477,14 +4867,22 @@ PL_predicate(const char *name, int arity, const char *module)
   if ( arity < 0 || arity > MAXARITY )
     PL_api_error("invalid arity %d (out of range)", arity);
 
-  atom_t a    = lookupAtom(name, strlen(name));
+  atom_t a = PL_new_atom_mbchars(ENC_UTF8, (size_t)-1, name);
+  if ( !a )
+  { PL_clear_exception();
+    PL_api_error("invalid predicate name %s (invalid UTF-8)", name);
+  }
   functor_t f = lookupFunctorDef(a, (size_t)arity);
 
   PL_unregister_atom(a);
 
   if ( module )
   { GET_LD
-    a = lookupAtom(module, strlen(module));
+    a = PL_new_atom_mbchars(ENC_UTF8, (size_t)-1, module);
+    if ( !a )
+    { PL_clear_exception();
+      PL_api_error("invalid module name %s (invalid UTF-8)", module);
+    }
     m = lookupModule(a);
     PL_unregister_atom(a);
   } else
@@ -4613,7 +5011,7 @@ has_emergency_space(void *sv, size_t needed)
 
 
 #define copy_exception(ex, bin) LDFUNC(copy_exception, ex, bin)
-static int
+static bool
 copy_exception(DECL_LD term_t ex, term_t bin)
 { fid_t fid;
 
@@ -4643,13 +5041,13 @@ copy_exception(DECL_LD term_t ex, term_t bin)
 
 	Sdprintf("WARNING: cannot raise exception; raising global overflow\n");
 	p[0] = FUNCTOR_error2;			/* see (*) above */
-	p[1] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+	p[1] = consCompound(&p[3]);
 	p[2] = ATOM_global;
 	p[3] = FUNCTOR_resource_error1;
 	p[4] = ATOM_stack;
 	gTop += 5;
 
-	*valTermRef(bin) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	*valTermRef(bin) = consCompound(p);
 	goto ok;
       }
     }
@@ -4674,10 +5072,8 @@ classify_exception_p(DECL_LD Word p)
   { p = argTermP(*p, 0);
     deRef(p);
 
-    if ( isAtom(*p) )
-    { if ( *p == ATOM_resource_error )
-	return EXCEPT_RESOURCE;
-    }
+    if ( hasFunctor(*p, FUNCTOR_resource_error1) )
+      return EXCEPT_RESOURCE;
 
     return EXCEPT_ERROR;
   } else if ( hasFunctor(*p, FUNCTOR_time_limit_exceeded1) )
@@ -5324,6 +5720,27 @@ PL_prompt_next(IOSTREAM *in)
 }
 
 
+/* Does the prompt that comes next continue an input that was started
+ * earlier?  prompt1/1 names the prompt of a first line and is called
+ * once per query by the toplevel; PrologPrompt() hands it out once and
+ * everything after it gets the prompt of prompt/2, which is what a
+ * continuation is.
+ *
+ * A commandline editor that marks its prompts says which kind each one
+ * is, so that a terminal reading the marks can tell a term typed over
+ * several lines from several commands.  See OSC 133 `k=s'.
+ */
+
+bool
+PL_prompt_is_continuation(IOSTREAM *in)
+{ GET_LD
+
+  return ( in == Suser_input &&
+	   LD->prompt.first &&
+	   LD->prompt.first_used );
+}
+
+
 char *
 PL_prompt_string(IOSTREAM *in)
 { GET_LD
@@ -5371,7 +5788,7 @@ PL_dispatch_hook(PL_dispatch_hook_t hook)
 
 
 #if defined(HAVE_SELECT) && !defined(__WINDOWS__)
-#if defined(HAVE_POLL_H) && defined(HAVE_POLL)
+#if defined(HAVE_POLL)
 #include <poll.h>
 #elif defined(HAVE_SYS_SELECT_H)
 #include <sys/select.h>
@@ -5425,6 +5842,15 @@ input_on_stream(IOSTREAM *in)
 #endif
 
 
+/* The event dispatcher runs Prolog callbacks (menu items, key bindings,
+   ...) and such a callback may leave an exception behind.  Notably the
+   "Halt Prolog" item of an Epilog window raises unwind(halt(Status)) in
+   this very thread: with the SDL backend the events of the main thread
+   are dispatched from here, while it is waiting for input on the
+   terminal.  We must stop waiting and let the exception through rather
+   than dispatch on until the user happens to type something.
+*/
+
 bool
 PL_dispatch(IOSTREAM *in, int wait)
 { if ( wait == PL_DISPATCH_INSTALLED )
@@ -5436,10 +5862,12 @@ PL_dispatch(IOSTREAM *in, int wait)
       { if ( PL_handle_signals() < 0 )
 	  return false;
 	(*GD->foreign.dispatch_events)(in);
+	if ( PL_exception(0) )
+	  return false;
       }
     } else
     { (*GD->foreign.dispatch_events)(in);
-      if ( PL_handle_signals() < 0 )
+      if ( PL_handle_signals() < 0 || PL_exception(0) )
 	  return false;
     }
   }
@@ -5466,7 +5894,7 @@ PL_recorded(record_t r, term_t t)
 { GET_LD
 
   valid_term_t(t);
-  return copyRecordToGlobal(t, r, ALLOW_GC) == true;
+  return copyRecordToGlobal(t, r, ALLOW_GC);
 }
 
 

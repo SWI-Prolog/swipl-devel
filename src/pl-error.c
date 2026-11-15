@@ -45,6 +45,7 @@ throw(error(<Formal>, <SWI-Prolog>))
 #include "pl-fli.h"
 #include "pl-attvar.h"
 #include "pl-proc.h"
+#include "pl-funct.h"
 #include "os/pl-cstack.h"
 /* BeOS has EACCES defined elsewhere, but errno is here */
 #if !defined(EACCES) || defined(__BEOS__)
@@ -135,6 +136,28 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
     msg_rep = REP_MB;
   }
 
+					/* Word arguments become invalid */
+  word ptrval[2] = {0};			/* if the stacks are shifted */
+  { va_list pargs;
+
+    va_start(pargs, id);
+    switch(id)
+    { case ERR_PTR_TYPE:
+      case ERR_PTR_DOMAIN:
+	(void)va_arg(pargs, atom_t);
+	ptrval[0] = linkValNoG(va_arg(pargs, Word));
+	break;
+      case ERR_OCCURS_CHECK:
+      case ERR_INCOMPARABLE:
+	ptrval[0] = linkValNoG(va_arg(pargs, Word));
+	ptrval[1] = linkValNoG(va_arg(pargs, Word));
+	break;
+      default:
+	break;
+    }
+    va_end(pargs);
+  }
+
   LD->exception.processing = true;	/* allow using spare stack */
 
   if ( !(fid = PL_open_foreign_frame()) )
@@ -182,13 +205,11 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
 			   PL_TERM, actual);
       break;
     case ERR_PTR_TYPE:			/* atom_t, Word */
-      { Word ptr;
-
-	expected = va_arg(args, atom_t);
-	ptr      = va_arg(args, Word);
+      { expected = va_arg(args, atom_t);
+	(void)va_arg(args, Word);	/* see ptrval */
 	actual   = PL_new_term_ref();
 
-	*valTermRef(actual) = *ptr;
+	*valTermRef(actual) = ptrval[0];
 	goto case_type_error;
       }
     }
@@ -272,13 +293,11 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
 			   PL_TERM, arg);
       break;
     case ERR_PTR_DOMAIN:		/* atom_t, Word */
-      { Word ptr;
-
-	domain = va_arg(args, atom_t);
-	ptr    = va_arg(args, Word);
+      { domain = va_arg(args, atom_t);
+	(void)va_arg(args, Word);	/* see ptrval */
 	arg    = PL_new_term_ref();
 
-	*valTermRef(arg) = *ptr;
+	*valTermRef(arg) = ptrval[0];
 	goto case_domain_error;
       }
     }
@@ -301,6 +320,16 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
       rc = PL_unify_term(formal,
 			 PL_FUNCTOR, FUNCTOR_representation_error1,
 			   PL_ATOM, what);
+      break;
+    }
+    case ERR_REPRESENTATION_CULPRIT:	/* representation_error(What(Culprit)) */
+    { atom_t what = va_arg(args, atom_t);
+      term_t culprit = va_arg(args, term_t);
+
+      rc = PL_unify_term(formal,
+			 PL_FUNCTOR, FUNCTOR_representation_error1,
+			   PL_FUNCTOR, lookupFunctorDef(what, 1),
+			     PL_TERM, culprit);
       break;
     }
   { Definition def;				/* shared variables */
@@ -515,16 +544,25 @@ PL_error(const char *pred, size_t arity, const char *msg, PL_error_code id, ...)
       break;
     }
     case ERR_OCCURS_CHECK:
-    { Word p1  = va_arg(args, Word);
-      Word p2  = va_arg(args, Word);
+    case ERR_INCOMPARABLE:
+    { term_t t1 = PL_new_term_ref();
+      term_t t2 = PL_new_term_ref();
 
-      rc = PL_unify_term(formal,
-			 PL_FUNCTOR, FUNCTOR_occurs_check2,
-			   PL_TERM, pushWordAsTermRef(p1),
-			   PL_TERM, pushWordAsTermRef(p2));
-      popTermRef();
-      popTermRef();
-
+      (void)va_arg(args, Word);		/* see ptrval */
+      (void)va_arg(args, Word);
+      *valTermRef(t1) = ptrval[0];
+      *valTermRef(t2) = ptrval[1];
+      if ( id == ERR_OCCURS_CHECK )
+	rc = PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_occurs_check2,
+			     PL_TERM, t1,
+			     PL_TERM, t2);
+      else
+	rc = PL_unify_term(formal,
+			   PL_FUNCTOR, FUNCTOR_representation_error1,
+			     PL_FUNCTOR, FUNCTOR_standard_order2,
+			       PL_TERM, t1,
+			       PL_TERM, t2);
       break;
     }
     case ERR_TIMEOUT:
@@ -851,7 +889,17 @@ PL_uninstantiation_error(term_t actual)
 bool
 PL_representation_error(const char *representation)
 { atom_t r = PL_new_atom(representation);
-  int rc = PL_error(NULL, 0, NULL, ERR_REPRESENTATION, r);
+  bool rc = PL_error(NULL, 0, NULL, ERR_REPRESENTATION, r);
+  PL_unregister_atom(r);
+
+  return rc;
+}
+
+
+bool
+PL_representation_error_culprit(const char *representation, term_t culprit)
+{ atom_t r = PL_new_atom(representation);
+  bool rc = PL_error(NULL, 0, NULL, ERR_REPRESENTATION_CULPRIT, r, culprit);
   PL_unregister_atom(r);
 
   return rc;
@@ -869,7 +917,7 @@ bool
 PL_domain_error(const char *expected, term_t actual)
 { valid_term_t(actual);
   atom_t a = PL_new_atom(expected);
-  int rc = PL_error(NULL, 0, NULL, ERR_DOMAIN, a, actual);
+  bool rc = PL_error(NULL, 0, NULL, ERR_DOMAIN, a, actual);
   PL_unregister_atom(a);
 
   return rc;
@@ -880,7 +928,7 @@ bool
 PL_existence_error(const char *type, term_t actual)
 { valid_term_t(actual);
   atom_t a = PL_new_atom(type);
-  int rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, a, actual);
+  bool rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, a, actual);
   PL_unregister_atom(a);
 
   return rc;
@@ -892,7 +940,7 @@ PL_permission_error(const char *op, const char *type, term_t obj)
 { valid_term_t(obj);
   atom_t t = PL_new_atom(type);
   atom_t o = PL_new_atom(op);
-  int rc = PL_error(NULL, 0, NULL, ERR_PERMISSION, o, t, obj);
+  bool rc = PL_error(NULL, 0, NULL, ERR_PERMISSION, o, t, obj);
 
   PL_unregister_atom(t);
   PL_unregister_atom(o);
@@ -903,7 +951,7 @@ PL_permission_error(const char *op, const char *type, term_t obj)
 bool
 PL_resource_error(const char *resource)
 { atom_t r = PL_new_atom(resource);
-  int rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, r);
+  bool rc = PL_error(NULL, 0, NULL, ERR_RESOURCE, r);
 
   PL_unregister_atom(r);
 
@@ -920,13 +968,28 @@ PL_no_memory(void)
 bool
 PL_syntax_error(const char *msg, IOSTREAM *in)
 { GET_LD
+  term_t culprit;
+
+  return ( (culprit = PL_new_term_ref()) &&
+	   PL_put_atom_chars(culprit, msg) &&
+	   PL_syntax_error_term(culprit, in) );
+}
+
+
+/** Raise error(syntax_error(Culprit), Location), where Location is the
+ * position in `in' if it is given.
+ */
+
+bool
+PL_syntax_error_term(term_t culprit, IOSTREAM *in)
+{ GET_LD
   term_t ex, loc;
 
   if ( (ex = PL_new_term_ref()) &&
        (loc = PL_new_term_ref()) &&
        PL_unify_term(ex, PL_FUNCTOR, FUNCTOR_error2,
 		       PL_FUNCTOR, FUNCTOR_syntax_error1,
-			 PL_CHARS, msg,
+			 PL_TERM, culprit,
 		       PL_TERM, loc) )
   { if ( in )
     { IOPOS *pos;
@@ -1069,6 +1132,44 @@ API_STUB(bool)
 )
 
 
+/* int_range_error() raises the error for an integer `t` that cannot be
+   represented as the C integer type `type`.  A negative integer for an
+   unsigned type is a domain error.
+*/
+
+static bool
+is_negative_integer(term_t t)
+{ GET_LD
+  number n;
+  bool neg = false;
+
+  if ( PL_get_number(t, &n) )
+  { switch(n.type)
+    { case V_INTEGER:
+	neg = n.value.i < 0;
+	break;
+#ifdef O_BIGNUM
+      case V_MPZ:
+	neg = mpz_sgn(n.value.mpz) < 0;
+	break;
+#endif
+      default:
+	break;
+    }
+    clearNumber(&n);
+  }
+
+  return neg;
+}
+
+bool
+int_range_error(term_t t, atom_t type, bool is_unsigned)
+{ if ( is_unsigned && is_negative_integer(t) )
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, t);
+
+  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION_CULPRIT, type, t);
+}
+
 bool
 PL_get_integer_ex(term_t t, int *i)
 { GET_LD
@@ -1078,7 +1179,7 @@ PL_get_integer_ex(term_t t, int *i)
     succeed;
 
   if ( PL_is_integer(t) )
-    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int);
+    return int_range_error(t, ATOM_int, false);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
@@ -1089,7 +1190,7 @@ PL_get_long_ex(DECL_LD term_t t, long *i)
     return true;
 
   if ( PL_is_integer(t) )
-    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_long);
+    return int_range_error(t, ATOM_long, false);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
@@ -1106,7 +1207,7 @@ PL_get_int64_ex(DECL_LD term_t t, int64_t *i)
     return true;
 
   if ( PL_is_integer(t) )
-    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_int64_t);
+    return int_range_error(t, ATOM_int64_t, false);
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
@@ -1138,14 +1239,14 @@ API_STUB(bool)
 #define UINTPTR_MAX ~(uintptr_t)0;
 #endif
 
-static int
-fits_size(int64_t val)
+static bool
+fits_size(int64_t val, term_t t)
 { if ( (uintptr_t)val <= (uintptr_t)UINTPTR_MAX )
     return true;
-  return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+  return int_range_error(t, ATOM_size_t, true);
 }
 #else
-#define fits_size(v) true
+#define fits_size(v, t) true
 #endif
 
 bool
@@ -1161,7 +1262,7 @@ PL_get_size_ex(DECL_LD term_t t, size_t *i)
     {
 #if SIZEOF_VOIDP < SIZEOF_WORD
       if ( v > SIZE_MAX )
-	return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+	return int_range_error(t, ATOM_size_t, true);
 #endif
       *i = (size_t)v;
       return true;
@@ -1174,7 +1275,7 @@ PL_get_size_ex(DECL_LD term_t t, size_t *i)
   { switch(n.type)
     { case V_INTEGER:
 	if ( n.value.i >= 0 )
-	{ if ( fits_size(n.value.i) )
+	{ if ( fits_size(n.value.i, t) )
 	  { *i = (size_t)n.value.i;
 	    return true;
 	  }
@@ -1195,14 +1296,18 @@ PL_get_size_ex(DECL_LD term_t t, size_t *i)
 	    return PL_error(NULL, 0, NULL, ERR_DOMAIN,
 			    ATOM_not_less_than_zero, t);
 	  case 1:
-	    return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+	    return int_range_error(t, ATOM_size_t, true);
 	  default:
 	    assert(0);
 	    return false;
 	}
       }
-#else
-      return PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_size_t);
+#elif defined(O_BIGNUM)
+      case V_MPZ:
+	if ( mpz_sgn(n.value.mpz) < 0 )
+	  return PL_error(NULL, 0, NULL, ERR_DOMAIN,
+			  ATOM_not_less_than_zero, t);
+	return int_range_error(t, ATOM_size_t, true);
 #endif
       default:
 	break;
@@ -1255,14 +1360,14 @@ pl_get_uint64(DECL_LD term_t t, uint64_t *i, int ex)
 				 ATOM_not_less_than_zero, t)
 		      : false;
 	  case 1:
-	    return ex ? PL_representation_error("uint64_t") : false;
+	    return ex ? int_range_error(t, ATOM_uint64_t, true) : false;
 	  default:
 	    assert(0);
 	    return false;
 	}
       }
 #else
-      return ex ? PL_representation_error("uint64_t") : false;
+      return ex ? int_range_error(t, ATOM_uint64_t, true) : false;
 #endif
       default:
 	break;
@@ -1283,11 +1388,25 @@ API_STUB(bool)
   return PL_get_size_ex(t, i);
 )
 
+API_STUB(bool)
+(PL_get_stdbool_ex)(term_t t, bool *i)
+( valid_term_t(t);
+  return PL_get_stdbool_ex(t, i);
+)
+
+bool
+PL_get_stdbool_ex(DECL_LD term_t t, bool *i)
+{ if ( PL_get_stdbool(t, i) )
+    return true;
+
+  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
+}
+
 bool
 PL_get_bool_ex(term_t t, int *i)
 { valid_term_t(t);
   if ( PL_get_bool(t, i) )
-    succeed;
+    return true;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
 }
@@ -1304,14 +1423,18 @@ PL_get_char_ex(term_t t, int *p, int eof)
 
 
 bool
-PL_get_pointer_ex(term_t t, void **addrp)
-{ GET_LD
-  valid_term_t(t);
-  if ( PL_get_pointer(t, addrp) )
+PL_get_pointer_ex(DECL_LD term_t t, void **addrp)
+{ if ( PL_get_pointer(t, addrp) )
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_address, t);
 }
+
+API_STUB(bool)
+(PL_get_pointer_ex)(term_t t, void **addrp)
+( valid_term_t(t);
+  return PL_get_pointer_ex(t, addrp);
+)
 
 
 bool

@@ -58,7 +58,7 @@
 #define LD LOCAL_LD
 
 #define unify_with_occurs_check(t1, t2, mode) LDFUNC(unify_with_occurs_check, t1, t2, mode)
-static int	unify_with_occurs_check(DECL_LD Word t1, Word t2,
+static boolex_t	unify_with_occurs_check(DECL_LD Word t1, Word t2,
 					occurs_check_t mode);
 
 
@@ -127,7 +127,7 @@ initvisited(DECL_LD)
 
 #ifdef O_DEBUG
 #define empty_visited(_) LDFUNC(empty_visited, _)
-static int
+static bool
 empty_visited(DECL_LD)
 { return emptySegStack(&LD->cycle.vstack);
 }
@@ -135,7 +135,7 @@ empty_visited(DECL_LD)
 
 
 #define visitedWord(p) LDFUNC(visitedWord, p)
-static inline int
+static inline bool
 visitedWord(DECL_LD Word p)
 { if ( is_marked(p) )
     succeed;
@@ -147,7 +147,7 @@ visitedWord(DECL_LD Word p)
 
 
 #define visited(f) LDFUNC(visited, f)
-static inline int
+static inline bool
 visited(DECL_LD Functor f)
 { Word p = &f->definition;
 
@@ -217,8 +217,8 @@ exitCyclic(DECL_LD)
 
 #else /*O_CYCLIC*/
 
-static inline visited(DECL_LD Functor f) { fail; }
-static inline unvisit(DECL_LD Word *base) { }
+static inline bool visited(DECL_LD Functor f) { fail; }
+static inline void unvisit(DECL_LD Word *base) { }
 static inline void initCyclic(DECL_LD) {}
 static inline void exitCyclic(DECL_LD) {}
 static inline void linkTermsCyclic(DECL_LD Functor f1, Functor f2) {}
@@ -263,9 +263,14 @@ Returns one of:
 
 #define SWAPW(p,q) do { Word _tmp = p; p=q; q=_tmp; } while(0)
 #define unify_simple_ptrs(t1, t2) LDFUNC(unify_simple_ptrs, t1, t2)
+#define unify_simple(t1, t2) LDFUNC(unify_simple, t1, t2)
 
-boolex_t
-unify_simple_ptrs(DECL_LD Word t1, Word t2)
+/* unify_simple() is unify_simple_ptrs() for do_unify(), inlined such
+ * that unifying two simple terms needs no stack frame.
+ */
+
+static inline boolex_t
+unify_simple(DECL_LD Word t1, Word t2)
 { word w1, w2;
 
   if ( t1 == t2 )
@@ -353,6 +358,20 @@ unify_simple_ptrs(DECL_LD Word t1, Word t2)
   return false;
 }
 
+boolex_t
+unify_simple_ptrs(DECL_LD Word t1, Word t2)
+{ return unify_simple(t1, t2);
+}
+
+
+#if defined(__GNUC__) || defined(__clang__)
+#define NOINLINE __attribute__((noinline))
+#else
+#define NOINLINE
+#endif
+
+#define do_unify_compound(t1, t2) LDFUNC(do_unify_compound, t1, t2)
+static NOINLINE boolex_t do_unify_compound(DECL_LD Word t1, Word t2);
 
 #define do_unify(t1, t2) LDFUNC(do_unify, t1, t2)
 boolex_t
@@ -360,12 +379,21 @@ do_unify(DECL_LD Word t1, Word t2)
 { deRef(t1);
   deRef(t2);
 
-  boolex_t rc = unify_simple_ptrs(t1, t2);
-  if ( rc >= 0 )
+  boolex_t rc = unify_simple(t1, t2);
+  if ( likely(rc != DO_COMPOUND) )
     return rc;
-  if ( rc != DO_COMPOUND )
-    return rc;
-  rc = true;
+
+  return do_unify_compound(t1, t2);
+}
+
+/* The compound case of do_unify(): t1 and t2 are dereferenced compound
+ * terms.  This uses a term agenda, which needs a large stack frame, so
+ * keep it out of do_unify().
+ */
+
+static NOINLINE boolex_t
+do_unify_compound(DECL_LD Word t1, Word t2)
+{ boolex_t rc = true;
 
   Functor f1 = valueTerm(*t1);
   Functor f2 = valueTerm(*t2);
@@ -381,7 +409,7 @@ do_unify(DECL_LD Word t1, Word t2)
   while( nextTermAgendaLR(&agenda, &t1, &t2) )
   { deRef(t1);
     deRef(t2);
-    rc = unify_simple_ptrs(t1, t2);
+    rc = unify_simple(t1, t2);
     if ( rc == true )
       continue;
     if ( rc == false )
@@ -423,7 +451,7 @@ do_unify(DECL_LD Word t1, Word t2)
 
 
 #define raw_unify_ptrs(t1, t2) LDFUNC(raw_unify_ptrs, t1, t2)
-static int
+static boolex_t
 raw_unify_ptrs(DECL_LD Word t1, Word t2)
 { switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
@@ -474,8 +502,8 @@ PRED_IMPL("\\=", 2, not_unify, 0)
   { case TAG_ATOM:
       return true;
     case TAG_INTEGER:
-      if ( storage(w1) == STG_INLINE ||
-	   storage(w2) == STG_INLINE )
+      if ( isInlineInt(w1) ||
+	   isInlineInt(w2) )
 	return true;
     case TAG_STRING:
     case TAG_FLOAT:
@@ -486,6 +514,8 @@ PRED_IMPL("\\=", 2, not_unify, 0)
 
 full_check:
   ex = PL_new_term_ref();
+  p1 = valTermRef(A1);			/* PL_new_term_ref() may shift */
+  p2 = p1+1;
 
   if ( can_unify(p1, p2, ex) )
     return false;
@@ -511,7 +541,7 @@ Return:
 boolex_t
 unify_ptrs(DECL_LD Word t1, Word t2, int flags)
 { for(;;)
-  { int rc;
+  { boolex_t rc;
 
     rc = raw_unify_ptrs(t1, t2);
     if ( rc >= 0 )
@@ -521,10 +551,8 @@ unify_ptrs(DECL_LD Word t1, Word t2, int flags)
     { if ( rc == MEMORY_OVERFLOW )
       { return PL_no_memory();
       } else				/* Stack overflow */
-      { int rc2;
-
-	PushPtr(t1); PushPtr(t2);
-	rc2 = makeMoreStackSpace(rc, flags);
+      { PushPtr(t1); PushPtr(t2);
+	bool rc2 = makeMoreStackSpace(rc, flags);
 	PopPtr(t2); PopPtr(t1);
 	if ( !rc2 )
 	  return false;
@@ -549,14 +577,16 @@ bool
 can_unify(Word t1, Word t2, term_t ex)
 { GET_LD
   fid_t fid;
+  int handle_exception = !ex;
 
-  if ( (fid = PL_open_foreign_frame()) )
-  { int handle_exception = !ex;
+  PushPtr(t1); PushPtr(t2);		/* creating the frame may shift */
+  fid = PL_open_foreign_frame();
+  if ( fid && !ex )
+    ex = PL_new_term_ref();
+  PopPtr(t2); PopPtr(t1);
 
-    if ( !ex )
-      ex = PL_new_term_ref();
-
-    if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT) &&
+  if ( fid )
+  { if ( unify_ptrs(t1, t2, ALLOW_GC|ALLOW_SHIFT) &&
 	 foreignWakeup(ex) )
     { PL_discard_foreign_frame(fid);
       return true;
@@ -663,13 +693,13 @@ PL_var_occurs_in(term_t var, term_t value)
 }
 
 
-#define failed_unify_with_occurs_check(t1, t2, mode) LDFUNC(failed_unify_with_occurs_check, t1, t2, mode)
-static int
-failed_unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
-{ int rc;
+#define failed_unify_with_occurs_check(t1, t2, mode) \
+	LDFUNC(failed_unify_with_occurs_check, t1, t2, mode)
 
-  if ( mode == OCCURS_CHECK_TRUE )
-    fail;
+static bool
+failed_unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
+{ if ( mode == OCCURS_CHECK_TRUE )
+    return false;
 
   deRef(t1);
   deRef(t2);
@@ -681,17 +711,17 @@ failed_unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
   }
 
   blockGC(0);
-  rc = PL_error(NULL, 0, NULL, ERR_OCCURS_CHECK, t1, t2);
+  PL_error(NULL, 0, NULL, ERR_OCCURS_CHECK, t1, t2);
   unblockGC(0);
 
-  return rc;
+  return false;
 }
 
 
-static int
+static boolex_t
 unify_with_occurs_check(DECL_LD Word t1, Word t2, occurs_check_t mode)
 { mark m;
-  int rc;
+  boolex_t rc;
 
   deRef(t1);
   deRef(t2);
@@ -753,7 +783,7 @@ static
 PRED_IMPL("unify_with_occurs_check", 2, unify_with_occurs_check, 0)
 { PRED_LD
   occurs_check_t old = LD->prolog_flag.occurs_check;
-  int rc;
+  bool rc;
 
   LD->prolog_flag.occurs_check = OCCURS_CHECK_TRUE;
   rc = PL_unify(A1, A2);
@@ -830,7 +860,7 @@ typedef enum
   ph_unmark
 } phase;
 
-static inline int
+static inline bool
 ph_visitedWord(Word p, phase ph)
 { switch(ph)
   { case ph_mark:
@@ -846,7 +876,7 @@ ph_visitedWord(Word p, phase ph)
   fail;
 }
 
-static inline int
+static inline bool
 ph_visited(Functor f, phase ph)
 { Word p = &f->definition;
 
@@ -909,6 +939,17 @@ PRED_IMPL("ground", 1, ground, PL_FA_ISO)
 { PRED_LD
 
   return ground(valTermRef(A1)) == NULL;
+}
+
+/** is_address(@Term)
+ * True if Term is a pointer integer, i.e., PL_get_pointer() accepts it.
+ */
+
+static
+PRED_IMPL("is_address", 1, is_address, 0)
+{ void *ptr;
+
+  return PL_get_pointer(A1, &ptr);
 }
 
 static
@@ -1241,7 +1282,7 @@ PRED_IMPL("acyclic_term", 1, acyclic_term, PL_FA_ISO)
 static
 PRED_IMPL("cyclic_term", 1, cyclic_term, 0)
 { PRED_LD
-  int rc;
+  boolex_t rc;
 
   if ( (rc=is_acyclic(valTermRef(A1))) == true )
     return false;
@@ -1298,13 +1339,13 @@ scan_shared(DECL_LD Word t, Word vart, size_t *count)
 	    return GLOBAL_OVERFLOW;
 
 	  v[0] = FUNCTOR_dot2;
-	  v[1] = consPtr(&v[3], TAG_COMPOUND|STG_GLOBAL);
+	  v[1] = consCompound(&v[3]);
 	  v[2] = ATOM_nil;
 	  v[3] = FUNCTOR_equals2;
 	  v[4] = 0;			/* For now */
-	  v[5] = consPtr(d, TAG_COMPOUND|STG_GLOBAL);
+	  v[5] = consCompound(d);
 
-	  *vart = consPtr(&v[0], TAG_COMPOUND|STG_GLOBAL);
+	  *vart = consCompound(&v[0]);
 	  vart = &v[2];
 
 	  set_first(d);
@@ -1379,7 +1420,7 @@ restore_shared_functors(DECL_LD Word vars)
     Word p = &v[4];
 
     deRef(p);
-    t->definition = *p;
+    restoreHiddenFunctor(&t->definition, *p);
     setVar(*p);
 
     vars = &v[2];
@@ -1472,9 +1513,11 @@ PL_factorize_term(term_t term, term_t template, term_t factors)
     break;
   }
 
+  startHideFunctors();			/* see restoreHiddenFunctor() */
   reverse_factor_pointers(valTermRef(vars));
   link_shared(t);
   restore_shared_functors(valTermRef(vars));
+  endHideFunctors();
   PL_close_foreign_frame(fid);
   DEBUG(CHK_SECURE, checkStacks(NULL));
 
@@ -1528,20 +1571,39 @@ PRED_IMPL("deterministic", 1, deterministic, 0)
 		 *	    TERM-HASH		*
 		 *******************************/
 
+/* termHashValue() computes the hash for term_hash/4.  It walks the term
+   depth-first, left-to-right using an explicit stack such that deeply
+   nested terms do not exhaust the C stack.  The order of hashing must
+   remain the same as the hash values may be stored.  Compounds are
+   marked while their arguments are hashed to detect cycles.
+*/
+
+typedef struct th_frame
+{ Word		args;			/* next argument to hash */
+  size_t	left;			/* # arguments left */
+  int64_t	depth;			/* depth for the arguments */
+} th_frame;
+
 #define termHashValue(term, depth, hval) \
 	LDFUNC(termHashValue, term, depth, hval)
 
 static bool
 termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
-{ for(;;)
+{ tmp_buffer stack;
+  bool rc = true;
+
+  initBuffer(&stack);
+
+  for(;;)
   { switch(tag(term))
     { case TAG_VAR:
       case TAG_ATTVAR:
-	fail;
+	rc = false;
+	goto out;
       case TAG_ATOM:
       { *hval = MurmurHashAligned2(&atomValue(term)->hash_value,
 				   sizeof(unsigned int), *hval);
-	succeed;
+	break;
       }
       case TAG_STRING:
       { size_t len;
@@ -1549,16 +1611,14 @@ termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
 
 	s = getCharsString(term, &len);
 	*hval = MurmurHashAligned2(s, len, *hval);
-
-	succeed;
+	break;
       }
       case TAG_INTEGER:
-	if ( storage(term) == STG_INLINE )
+	if ( isInlineInt(term) )
 	{ int64_t v = valInt(term);
 
 	  *hval = MurmurHashAligned2(&v, sizeof(v), *hval);
-
-	  succeed;
+	  break;
 	}
       /*FALLTHROUGH*/
       case TAG_FLOAT:
@@ -1566,19 +1626,17 @@ termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
 	  size_t n = wsizeofInd(*p);
 
 	  *hval = MurmurHashAligned2(p+1, n*sizeof(word), *hval);
-
-	  succeed;
+	  break;
 	}
       case TAG_COMPOUND:
       { Functor t = valueTerm(term);
 	FunctorDef fd;
 	size_t arity;
-	Word p;
 	size_t atom_hashvalue;
 
 	if ( visited(t) )
 	{ *hval = MurmurHashAligned2(hval, sizeof(*hval), *hval);
-	  succeed;
+	  break;
 	}
 
 	fd = valueFunctor(t->definition);
@@ -1590,16 +1648,13 @@ termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
 				   *hval);
 
 	if ( --depth != 0 )			/* -1 keeps on going */
-	{ for(p = t->arguments; arity-- > 0; p++)
-	  { if ( !termHashValue(*p, depth, hval) )
-	    { popVisited();
-	      fail;
-	    }
-	  }
-	}
+	{ th_frame f = { .args = t->arguments, .left = arity, .depth = depth };
 
-	popVisited();
-	succeed;
+	  addBuffer(&stack, f, th_frame);
+	} else
+	{ popVisited();
+	}
+	break;
       }
       case TAG_REFERENCE:
       { term = *unRef(term);
@@ -1608,7 +1663,35 @@ termHashValue(DECL_LD word term, int64_t depth, unsigned int *hval)
       default:
 	assert(0);
     }
+
+					/* find the next argument */
+    for(;;)
+    { th_frame *f;
+
+      if ( isEmptyBuffer(&stack) )
+	goto out;
+      f = topBuffer(&stack, th_frame) - 1;
+      if ( f->left > 0 )
+      { f->left--;
+	term  = *f->args++;
+	depth = f->depth;
+	break;
+      }
+      (void)popBuffer(&stack, th_frame);
+      popVisited();
+    }
   }
+
+out:
+  if ( !rc )				/* unmark compounds on the path */
+  { size_t n = entriesBuffer(&stack, th_frame);
+
+    while( n-- > 0 )
+      popVisited();
+  }
+  discardBuffer(&stack);
+
+  return rc;
 }
 
 
@@ -1669,8 +1752,14 @@ compareAtoms(atom_t w1, atom_t w2)
   Atom a2 = atomValue(w2);
 
   if ( a1->type == a2->type )
-  { if ( a1->type->compare )
-    { return (*a1->type->compare)(w1, w2);
+  { if ( !a1->name || !a2->name )	/* released by PL_free_blob(): */
+    { return SCALAR_TO_CMP(a1, a2);	/* compare() would dereference */
+    } else if ( a1->type->compare )	/* the object that is gone */
+    { int rc = (*a1->type->compare)(w1, w2);
+
+      /* Blob callbacks have memcmp() semantics.  Keep their result out
+         of the extended comparison codes used for errors, etc. */
+      return SCALAR_TO_CMP(rc, 0);
     } else
     { size_t l = (a1->length <= a2->length ? a1->length : a2->length);
       int v;
@@ -1781,7 +1870,7 @@ compare_mixed_float_rational(DECL_LD word w1, word w2)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-compareStandard(Word p1, Word p2, int eq)
+compare_std(Word p1, Word p2, cmp_mode mode, Word *c1, Word *c2)
 
     Rules:
 
@@ -1793,15 +1882,34 @@ compareStandard(Word p1, Word p2, int eq)
     number:	value
     Term:	arity / alphabetically / recursive
 
-If eq == true, only test for equality. In this case expensive inequality
-tests (alphabetical order) are skipped and the call returns NOTEQ.
+`mode` selects one of three comparisons:
+
+  - CMP_MODE_EQUAL only tests for equality.  In this case expensive
+    inequality tests (alphabetical order) are skipped and the call
+    returns CMP_NOTEQ.
+  - CMP_MODE_ORDER implements the full standard order of terms.
+  - CMP_MODE_PARTIAL implements the standard order, but refuses to
+    decide a comparison that involves a variable, as binding that
+    variable may invalidate the result.  It returns CMP_UNDECIDED and
+    fills *c1 and *c2 with the two subterms it could not compare.  As
+    the standard order is lexicographic, this first undecided pair
+    decides the entire comparison, unless the two subterms become
+    equal, in which case the walk continues after them.
+
+Only CMP_MODE_PARTIAL uses `c1` and `c2`; the other modes pass NULL.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define compare_primitives(p1, p2, eq) \
-	LDFUNC(compare_primitives, p1, p2, eq)
+typedef enum
+{ CMP_MODE_EQUAL = 0,			/* ==/2, \==/2 */
+  CMP_MODE_ORDER,			/* compare/3, @</2, ... */
+  CMP_MODE_PARTIAL			/* partial_compare/3 */
+} cmp_mode;
+
+#define compare_primitives(p1, p2, mode) \
+	LDFUNC(compare_primitives, p1, p2, mode)
 
 static cmpex_t
-compare_primitives(DECL_LD Word p1, Word p2, bool eq)
+compare_primitives(DECL_LD Word p1, Word p2, cmp_mode mode)
 { word t1, t2;
   word w1, w2;
 
@@ -1810,7 +1918,10 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
 
   if ( w1 == w2 )
   { if ( isVar(w1) )
+    { if ( mode == CMP_MODE_PARTIAL && p1 != p2 )
+	return CMP_UNDECIDED;
       return SCALAR_TO_CMP(p1, p2);
+    }
     return CMPEX_EQUAL;
   }
 
@@ -1818,7 +1929,7 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
   t2 = tag(w2);
 
   if ( t1 != t2 )
-  { if ( eq )
+  { if ( mode == CMP_MODE_EQUAL )
       return CMP_NOTEQ;
 
     if ( (t1|t2) == (TAG_INTEGER|TAG_FLOAT) && /* quick test first */
@@ -1831,6 +1942,9 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
 
     static_assert(TAG_VAR == 0 && TAG_ATTVAR==1,
 		  "Think twice before reordering the tags");
+    if ( mode == CMP_MODE_PARTIAL &&
+	 (t1 <= TAG_ATTVAR || t2 <= TAG_ATTVAR) )
+      return CMP_UNDECIDED;		/* binding the variable decides */
     if ( (t1|t2) > TAG_ATTVAR )			/* actually `t1 > TAG_ATTVAR || t2 > TAG_ATTVAR` */
       return t1 < t2 ? CMPEX_LESS : CMPEX_GREATER;
   }
@@ -1838,18 +1952,27 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
   switch(t1)
   { case TAG_VAR:
     case TAG_ATTVAR:
+      if ( mode == CMP_MODE_PARTIAL && p1 != p2 )
+	return CMP_UNDECIDED;
       return SCALAR_TO_CMP(p1, p2);
     case TAG_INTEGER:
     { number n1, n2;
       int rc;
 
-      if ( storage(w1) == STG_INLINE &&
-	   storage(w2) == STG_INLINE )
-	return SCALAR_TO_CMP(valInt(w1), valInt(w2));
+      if ( isInlineInt(w1) &&
+	   isInlineInt(w2) )
+      { sword v1 = valInt(w1), v2 = valInt(w2);
+
+	if ( likely(v1 != v2) )
+	  return SCALAR_TO_CMP(v1, v2);
+	if ( mode == CMP_MODE_EQUAL )	/* w1 != w2: one is a pointer */
+	  return CMP_NOTEQ;
+	return SCALAR_TO_CMP(isPtrInt(w1), isPtrInt(w2));
+      }
 
       get_rational(w1, &n1);
       get_rational(w2, &n2);
-      if ( eq && (n1.type != n2.type) )
+      if ( mode == CMP_MODE_EQUAL && (n1.type != n2.type) )
 	return CMP_NOTEQ;
       rc = cmpNumbers(&n1, &n2);
       clearNumber(&n1);
@@ -1860,15 +1983,17 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
     case TAG_FLOAT:
     { if ( equalIndirect(w1,w2) )
 	return CMPEX_EQUAL;
-      else if ( eq )
+      else if ( mode == CMP_MODE_EQUAL )
 	return CMP_NOTEQ;
       else
 	return compare_neq_floats(valFloat(w1), valFloat(w2));
     }
     case TAG_ATOM:
-      return eq ? CMP_NOTEQ : (cmpex_t)compareAtoms(word2atom(w1), word2atom(w2));
+      return mode == CMP_MODE_EQUAL ? CMP_NOTEQ
+				    : (cmpex_t)compareAtoms(word2atom(w1),
+							    word2atom(w2));
     case TAG_STRING:
-      return compareStrings(w1, w2, eq);
+      return compareStrings(w1, w2, mode == CMP_MODE_EQUAL);
     case TAG_COMPOUND:
       return CMP_COMPOUND;
     default:
@@ -1878,8 +2003,8 @@ compare_primitives(DECL_LD Word p1, Word p2, bool eq)
 }
 
 static cmpex_t
-compare_functors(word f1, word f2, bool eq)
-{ if ( eq )
+compare_functors(word f1, word f2, cmp_mode mode)
+{ if ( mode == CMP_MODE_EQUAL )
   { return CMP_NOTEQ;
   } else
   { FunctorDef fd1 = valueFunctor(f1);
@@ -1892,11 +2017,12 @@ compare_functors(word f1, word f2, bool eq)
   }
 }
 
-#define do_compare(agenda, f1, f2, eq) \
-	LDFUNC(do_compare, agenda, f1, f2, eq)
+#define do_compare(agenda, f1, f2, mode, c1, c2, linked) \
+	LDFUNC(do_compare, agenda, f1, f2, mode, c1, c2, linked)
 
 static cmpex_t
-do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2, bool eq)
+do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2,
+	   cmp_mode mode, Word *c1, Word *c2, bool *linked)
 { Word p1, p2;
 
   goto compound;
@@ -1907,25 +2033,32 @@ do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2, bool eq)
     deRef(p1);
     deRef(p2);
 
-    if ( (rc=compare_primitives(p1, p2, eq)) != CMP_COMPOUND )
+    if ( (rc=compare_primitives(p1, p2, mode)) != CMP_COMPOUND )
     { if ( rc == CMPEX_EQUAL )
 	continue;
+      if ( rc == CMP_UNDECIDED )
+      { *c1 = p1;
+	*c2 = p2;
+      }
       return rc;
     } else
     { f1 = (Functor)valPtr(*p1);
       f2 = (Functor)valPtr(*p2);
 
 #if O_CYCLIC
-      while ( isRef(f1->definition) )
-	f1 = (Functor)unRef(f1->definition);
-      while ( isRef(f2->definition) )
-	f2 = (Functor)unRef(f2->definition);
-      if ( f1 == f2 )
-	continue;
+      if ( isRef(f1->definition) || isRef(f2->definition) )
+      { *linked = true;
+	while ( isRef(f1->definition) )
+	  f1 = (Functor)unRef(f1->definition);
+	while ( isRef(f2->definition) )
+	  f2 = (Functor)unRef(f2->definition);
+	if ( f1 == f2 )
+	  continue;
+      }
 #endif
 
       if ( f1->definition != f2->definition )
-      { return compare_functors(f1->definition, f2->definition, eq);
+      { return compare_functors(f1->definition, f2->definition, mode);
       } else
       { size_t arity;
 
@@ -1946,32 +2079,203 @@ do_compare(DECL_LD term_agendaLR *agenda, Functor f1, Functor f2, bool eq)
 }
 
 
-cmpex_t
-compareStandard(DECL_LD Word p1, Word p2, bool eq)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compare_fast() compares two terms using  a single walk over both terms.
+The result is always correct for CMP_MODE_EQUAL and if both terms are
+acyclic.  Otherwise, if `*linked` is set, the order may be wrong.  See
+compare_descend().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define compare_fast(p1, p2, mode, c1, c2, linked) \
+	LDFUNC(compare_fast, p1, p2, mode, c1, c2, linked)
+
+static cmpex_t
+compare_fast(DECL_LD Word p1, Word p2, cmp_mode mode,
+	     Word *c1, Word *c2, bool *linked)
 { cmpex_t rc;
 
   deRef(p1);
   deRef(p2);
 
-  if ( (rc=compare_primitives(p1, p2, eq)) != CMP_COMPOUND )
-  { return rc;
+  if ( (rc=compare_primitives(p1, p2, mode)) != CMP_COMPOUND )
+  { if ( rc == CMP_UNDECIDED )
+    { *c1 = p1;
+      *c2 = p2;
+    }
+    return rc;
   } else
   { Functor f1 = (Functor)valPtr(*p1);
     Functor f2 = (Functor)valPtr(*p2);
 
     if ( f1->definition != f2->definition )
-    { return compare_functors(f1->definition, f2->definition, eq);
+    { return compare_functors(f1->definition, f2->definition, mode);
     } else
     { term_agendaLR agenda;
 
       initCyclic();
       initTermAgendaLR0(&agenda);
-      rc = do_compare(&agenda, f1, f2, eq);
+      rc = do_compare(&agenda, f1, f2, mode, c1, c2, linked);
       clearTermAgendaLR(&agenda);
       exitCyclic();
 
       return rc;
     }
+  }
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compare_descend() is the slow but sound ordering of two terms.  It is
+used if do_compare() found the terms different, but did so after
+following a link made by linkTermsCyclic().  Such a link assumes that
+two compounds whose comparison is still in progress are equal.  That
+is fine for ==/2, but if the two compounds turn out to differ, an order
+derived from the assumption may be wrong.  See #1529.  If both terms
+are acyclic, a link can only lead to a pair whose comparison completed,
+i.e., a pair that is equal.  In that case the fast result is correct
+and we do not get here.
+
+At each compound this skips the leading arguments that are equal
+(==/2, which is decidable for rational trees) and descends into the
+first argument pair that is not.  This either ends at a pair that is
+not a pair of compounds with the same functor, which decides the order,
+or it cycles forever.  In the latter case there is no order that is
+consistent with the definition of the standard order (see the manual)
+and we return CMP_INCOMPARABLE, filling *c1 and *c2 with the pair at
+which the descent cycles.  Cycles are detected using Brent's algorithm
+on the sequence of compound pairs.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define compare_descend(p1, p2, mode, c1, c2) \
+	LDFUNC(compare_descend, p1, p2, mode, c1, c2)
+
+static cmpex_t
+compare_descend(DECL_LD Word p1, Word p2, cmp_mode mode,
+		Word *c1, Word *c2)
+{ Functor s1 = NULL, s2 = NULL;
+  size_t power = 1, steps = 0;
+
+  for(;;)
+  { cmpex_t rc;
+    Functor f1, f2;
+    size_t i, arity;
+
+    deRef(p1);
+    deRef(p2);
+
+    if ( (rc=compare_primitives(p1, p2, mode)) != CMP_COMPOUND )
+    { if ( rc == CMP_UNDECIDED )
+      { *c1 = p1;
+	*c2 = p2;
+      }
+      return rc;
+    }
+
+    f1 = (Functor)valPtr(*p1);
+    f2 = (Functor)valPtr(*p2);
+    if ( f1->definition != f2->definition )
+      return compare_functors(f1->definition, f2->definition, mode);
+
+    if ( f1 == s1 && f2 == s2 )
+    { *c1 = p1;
+      *c2 = p2;
+      return CMP_INCOMPARABLE;
+    }
+    if ( ++steps == power )
+    { s1 = f1;
+      s2 = f2;
+      power *= 2;
+      steps = 0;
+    }
+
+    arity = arityFunctor(f1->definition);
+					/* the pair differs, so the last */
+    for(i=0; i+1 < arity; i++)		/* argument need not be tested */
+    { bool linked = false;
+
+      if ( (rc=compare_fast(&f1->arguments[i], &f2->arguments[i],
+			    CMP_MODE_EQUAL, NULL, NULL,
+			    &linked)) != CMPEX_EQUAL )
+      { if ( rc == CMP_ERROR )
+	  return rc;
+	break;
+      }
+    }
+
+    p1 = &f1->arguments[i];
+    p2 = &f2->arguments[i];
+  }
+}
+
+
+#define compare_std(p1, p2, mode, c1, c2) \
+	LDFUNC(compare_std, p1, p2, mode, c1, c2)
+
+static cmpex_t
+compare_std(DECL_LD Word p1, Word p2, cmp_mode mode, Word *c1, Word *c2)
+{ bool linked = false;
+  cmpex_t rc = compare_fast(p1, p2, mode, c1, c2, &linked);
+
+  if ( linked && mode != CMP_MODE_EQUAL &&
+       rc != CMPEX_EQUAL && rc != CMP_ERROR &&
+       !(is_acyclic(p1) == true && is_acyclic(p2) == true) )
+  { Word i1 = NULL, i2 = NULL;
+    cmpex_t rc2 = compare_descend(p1, p2, mode, &i1, &i2);
+
+    if ( rc2 == CMP_UNDECIDED || rc2 == CMP_INCOMPARABLE )
+    { if ( mode == CMP_MODE_PARTIAL ||
+	   (rc2 == CMP_INCOMPARABLE && LD->prolog_flag.incomparable_error) )
+      { *c1 = i1;
+	*c2 = i2;
+	rc = rc2;
+      }					/* else keep the fast result */
+    } else
+    { rc = rc2;
+    }
+  }
+
+  return rc;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+compareStandard() compares two terms in the standard order.  If `eq` is
+true, it only tests for equality.  If the terms are incomparable and the
+flag `incomparable` is `error`, it raises an exception and returns
+CMP_ERROR.
+
+compareStandardOrder() is the ordering part for callers that cannot
+raise an exception during the comparison, such as sorting.  In the case
+above it returns CMP_INCOMPARABLE, filling *c1 and *c2 with the pair of
+subterms to pass to raiseIncomparable().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+cmpex_t
+compareStandardOrder(DECL_LD Word p1, Word p2, Word *c1, Word *c2)
+{ return compare_std(p1, p2, CMP_MODE_ORDER, c1, c2);
+}
+
+
+cmpex_t
+raiseIncomparable(DECL_LD Word c1, Word c2)
+{ PL_error(NULL, 0, NULL, ERR_INCOMPARABLE, c1, c2);
+
+  return CMP_ERROR;
+}
+
+
+cmpex_t
+compareStandard(DECL_LD Word p1, Word p2, bool eq)
+{ if ( eq )
+  { return compare_std(p1, p2, CMP_MODE_EQUAL, NULL, NULL);
+  } else
+  { Word c1, c2;
+    cmpex_t rc = compare_std(p1, p2, CMP_MODE_ORDER, &c1, &c2);
+
+    if ( rc == CMP_INCOMPARABLE )
+      return raiseIncomparable(c1, c2);
+
+    return rc;
   }
 }
 
@@ -2018,6 +2322,71 @@ PRED_IMPL("compare", 3, compare, PL_FA_ISO)
 
     return PL_unify_atom(A1, a);
   }
+}
+
+
+/** partial_compare(?Order, @Term1, @Term2) is semidet.
+
+As compare/3, but only decides the  order   if  this  decision is stable
+under further instantiation. If the order   depends on a variable, unify
+\arg{Order} with undecided(Sub1,Sub2), where \arg{Sub1} and \arg{Sub2}
+are the first pair of subterms that  could  not be compared. As the
+standard order compares terms lexicographically,  this pair decides the
+entire comparison unless the two become equal (==/2).
+*/
+
+static
+PRED_IMPL("partial_compare", 3, partial_compare, 0)
+{ PRED_LD
+  term_t cv;
+  Word d, p1, p2;
+  Word c1 = NULL, c2 = NULL;
+  cmpex_t val;
+
+  if ( !(cv=PL_new_term_refs(2)) ||	/* Both may GC or shift, so they */
+       !ensureStackSpace(2, 2) )	/* run before we take Word pointers */
+    return false;
+
+  d  = valTermRef(A1);
+  p1 = valTermRef(A2);
+  p2 = p1+1;
+
+  deRef(d);
+  if ( !canBind(*d) )			/* Order is given: validate */
+  { if ( isAtom(*d) )
+    { atom_t a = word2atom(*d);
+
+      if ( a != ATOM_smaller && a != ATOM_equals && a != ATOM_larger )
+	return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_partial_order, A1);
+    } else if ( !(isTerm(*d) &&
+		  (functorTerm(*d) == FUNCTOR_undecided2 ||
+		   functorTerm(*d) == FUNCTOR_incomparable2)) )
+    { return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_partial_order, A1);
+    }
+  }
+
+  if ( (val=compare_std(p1, p2, CMP_MODE_PARTIAL, &c1, &c2)) == CMP_ERROR )
+    return false;
+
+  if ( val == CMP_UNDECIDED || val == CMP_INCOMPARABLE )
+  { /* compare_std() returns dereferenced pointers.  Either may be a
+       variable on the local stack, which linkValG() globalises.  The
+       space reserved above covers both, so neither call can GC or shift
+       the stacks and invalidate the other culprit.
+    */
+    *valTermRef(cv+0) = linkValG(c1);
+    *valTermRef(cv+1) = linkValG(c2);
+
+    return PL_unify_term(A1,
+			 PL_FUNCTOR, val == CMP_UNDECIDED ? FUNCTOR_undecided2
+							  : FUNCTOR_incomparable2,
+			   PL_TERM, cv+0,
+			   PL_TERM, cv+1);
+  }
+
+  return PL_unify_atom(A1, val < 0 ? ATOM_smaller :
+			   val > 0 ? ATOM_larger :
+				     ATOM_equals);
 }
 
 
@@ -2222,7 +2591,7 @@ PRED_IMPL("functor", 3, functor, 0)
   if ( arity == 0 )
     return PL_unify(A1, A2);
   if ( PL_get_atom_ex(A2, &name) )
-    return PL_unify_functor(A1, PL_new_functor(name, arity));
+    return PL_unify_functor(A1, lookupVolatileFunctor(name, arity));
 
   fail;
 }
@@ -2255,7 +2624,7 @@ PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
        !PL_get_size_ex(A3, &arity) )
     fail;
 
-  return PL_unify_compound(A1, PL_new_functor(name, arity));
+  return PL_unify_compound(A1, lookupVolatileFunctor(name, arity));
 }
 
 
@@ -2263,7 +2632,7 @@ PRED_IMPL("compound_name_arity", 3, compound_name_arity, 0)
 /* functor(-Callable, +Name, +Arity, +Type) */
 
 #define match_functor_type(Type, atype, type) LDFUNC(match_functor_type, Type, atype, type)
-static int
+static bool
 match_functor_type(DECL_LD term_t Type, atom_t atype, atom_t type)
 { if ( !atype )
     return PL_unify_atom(Type, type);
@@ -2316,10 +2685,10 @@ PRED_IMPL("functor", 4, functor, 0)
   if ( arity > 0 )
   { return ( PL_get_atom_ex(A2, &name) &&
 	     match_functor_type(A4, type, ATOM_compound) &&
-	     PL_unify_compound(A1, PL_new_functor(name, arity)) );
+	     PL_unify_compound(A1, lookupVolatileFunctor(name, arity)) );
   } else if ( PL_get_atom(A2, &name) )
   { if ( type == ATOM_compound )
-      return PL_unify_compound(A1, PL_new_functor(name, 0));
+      return PL_unify_compound(A1, lookupVolatileFunctor(name, 0));
     else if ( type == ATOM_callable || type == ATOM_atom )
       return PL_unify_atom(A1, name);
     else if ( type == ATOM_atomic )
@@ -2353,7 +2722,7 @@ PRED_IMPL("$filled_array", 4, filled_array, 0)
        !PL_get_size_ex(A3, &arity) )
     return false;
 
-  f = PL_new_functor(name, arity);
+  f = lookupVolatileFunctor(name, arity);
   if ( !(p = allocGlobal(arity+1)) )
     return false;
   v = valTermRef(A4);
@@ -2368,7 +2737,7 @@ PRED_IMPL("$filled_array", 4, filled_array, 0)
       p[i] = w;
   }
 
-  *valTermRef(compound) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+  *valTermRef(compound) = consCompound(p);
   return PL_unify(A1, compound);
 }
 
@@ -2534,14 +2903,24 @@ unify_vp(DECL_LD Word vp, Word val)
 }
 
 
-#define may_share_in_duplicate(p) LDFUNC(may_share_in_duplicate, p)
+/* may_share_in_duplicate() returns a term reference to the argn-th
+   argument of term if this is a compound term, so duplicate_term() can
+   share it with the new value.  Returns 0 otherwise.
+*/
+
+#define may_share_in_duplicate(term, argn) \
+	LDFUNC(may_share_in_duplicate, term, argn)
 
 static term_t
-may_share_in_duplicate(DECL_LD Word p)
-{ deRef(p);
+may_share_in_duplicate(DECL_LD term_t term, size_t argn)
+{ term_t share = PL_new_term_ref();	/* may shift: take pointers after */
+  Word p = valTermRef(term);
+
+  deRef(p);
+  p = argTermP(*p, argn-1);
+  deRef(p);
   if ( isTerm(*p) )
-  { term_t share = PL_new_term_ref();
-    *valTermRef(share) = *p;
+  { *valTermRef(share) = *p;
     return share;
   }
 
@@ -2574,10 +2953,8 @@ setarg(DECL_LD size_t argn, term_t term, term_t value, unsigned int flags)
     { return unify_ptrs(valTermRef(value), a, ALLOW_GC|ALLOW_SHIFT);
     } else
     { if ( !hasGlobalSpace(0) )
-      { int rc;
-
-	if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-	  return raiseStackOverflow(rc);
+      { if ( !ensureGlobalSpace(0, ALLOW_GC) )
+	  return false;
 	a = valTermRef(term);
 	deRef(a);
 	a = argTermP(*a, argn-1);
@@ -2589,10 +2966,10 @@ setarg(DECL_LD size_t argn, term_t term, term_t value, unsigned int flags)
   { v = valTermRef(value);
     deRef(v);
 
-    if ( storage(*v) == STG_GLOBAL )
+    if ( isGlobalPtr(*v) )
     { if ( isTerm(*v) && !(flags & SETARG_LINK) )
       { term_t copy = PL_new_term_ref();
-	term_t keep = may_share_in_duplicate(argTermP(*a, argn-1));
+	term_t keep = may_share_in_duplicate(term, argn);
 	size_t nshare = keep ? 1 : 0;
 
 	if ( !duplicate_term(value, copy, nshare, keep) )
@@ -2610,6 +2987,8 @@ setarg(DECL_LD size_t argn, term_t term, term_t value, unsigned int flags)
 					/* this is unify(), but the */
 					/* assignment must *not* be trailed */
   v = valTermRef(value);
+  if ( !(flags & SETARG_BACKTRACKABLE) && a < LD->gen_bar )
+    gen_remember(a);
   unify_vp(a, v);
 
   return true;
@@ -2735,8 +3114,10 @@ PRED_IMPL("$seek_list", 4, seek_list, 0)
 { PRED_LD
   int64_t size;
   Word tail;
+  term_t tref;
 
-  if ( !PL_get_int64_ex(A1, &size) )
+  if ( !PL_get_int64_ex(A1, &size) ||
+       !(tref = PL_new_term_ref()) )	/* before taking pointers */
     return false;
   tail = valTermRef(A2);
   while(size > 0)
@@ -2744,9 +3125,12 @@ PRED_IMPL("$seek_list", 4, seek_list, 0)
     if ( isList(*tail) )
     { tail = TailList(tail);
       size--;
-      if ( size%1024 == 0 &&
-	   PL_handle_signals() < 0 )
-	return false;
+      if ( size%1024 == 0 && is_signalled() )
+      { *valTermRef(tref) = makeRefG(tail); /* handler may GC or shift */
+	if ( PL_handle_signals() < 0 )
+	  return false;
+	tail = valTermRef(tref);
+      }
     } else
       break;
   }
@@ -2824,8 +3208,8 @@ PRED_IMPL("=..", 2, univ, PL_FA_ISO)
     if ( (p = allocGlobal(arity+1)) )
     { Word l = valTermRef(tail);
 
-      *valTermRef(head) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
-      *p++ = PL_new_functor(name, arity);
+      *valTermRef(head) = consCompound(p);
+      *p++ = lookupVolatileFunctor(name, arity);
       deRef(l);
       while(isList(*l))
       { Word h = HeadList(l);
@@ -2910,7 +3294,7 @@ PRED_IMPL("compound_name_arguments", 3, compound_name_arguments, 0)
 	return PL_error(NULL, 0, NULL, ERR_INSTANTIATION);
     }
 
-    if ( !PL_unify_compound(t, PL_new_functor(name, (size_t)len)) )
+    if ( !PL_unify_compound(t, lookupVolatileFunctor(name, (size_t)len)) )
       fail;
 
     for(n=1; PL_get_list(tail, head, tail); n++)
@@ -3010,7 +3394,7 @@ do_number_vars(DECL_LD Word p, nv_options *options, intptr_t n, mark *m)
       }
       gTop += 2;
 
-      v = consPtr(a, TAG_COMPOUND|STG_GLOBAL);
+      v = consCompound(a);
       bindConst(p, v);
     } else if ( isTerm(*p) )
     { Functor f = valueTerm(*p);
@@ -3394,7 +3778,7 @@ term_variables_to_termv(DECL_LD term_t t, term_t *vp, size_t maxcount, int flags
 
 
 #define term_variables(t, vars, tail, flags) LDFUNC(term_variables, t, vars, tail, flags)
-static int
+static bool
 term_variables(DECL_LD term_t t, term_t vars, term_t tail, int flags)
 { term_t list = PL_copy_term_ref(vars);
   term_t head = PL_new_term_ref();
@@ -3625,7 +4009,7 @@ The latest version of the old algorithm is in the GIT commit
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define subsumes(general, specific) LDFUNC(subsumes, general, specific)
-static int
+static bool
 subsumes(DECL_LD term_t general, term_t specific)
 { term_t v0;
   size_t i, n;
@@ -3762,6 +4146,7 @@ free_variables_loop(DECL_LD Word t, atom_t *mname, term_t goal)
 	  if ( isAtom(*a1) )
 	    *mname = word2atom(*a1);
 	  t = &f->arguments[1];
+	  deRef(t);
 	  goto again;
 	} else if ( !existential )
 	{ *valTermRef(goal) = *t;
@@ -3858,7 +4243,7 @@ there is no space we rewind and retry the whole process.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define unifiable_occurs_check(t1, t2) LDFUNC(unifiable_occurs_check, t1, t2)
-static int
+static bool
 unifiable_occurs_check(DECL_LD term_t t1, term_t t2)
 { switch(LD->prolog_flag.occurs_check)
   { case OCCURS_CHECK_FALSE:
@@ -3892,7 +4277,7 @@ also needs support in garbageCollect() and growStacks().
 static bool
 unify_all_trail_ptrs(DECL_LD term_t t1, term_t t2, mark *m)
 { for(;;)
-  { int rc;
+  { boolex_t rc;
 
     Mark(*m);
     LD->mark_bar = NO_MARK_BAR;
@@ -3905,12 +4290,9 @@ unify_all_trail_ptrs(DECL_LD term_t t1, term_t t2, mark *m)
       DiscardMark(*m);
       return rc;
     } else				/* Stack overflow */
-    { int rc2;
-
-      Undo(*m);
+    { Undo(*m);
       DiscardMark(*m);
-      rc2 = makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT);
-      if ( !rc2 )
+      if ( !makeMoreStackSpace(rc, ALLOW_GC|ALLOW_SHIFT) )
 	return false;
     }
   }
@@ -3924,8 +4306,10 @@ unifiable(DECL_LD term_t t1, term_t t2, term_t subst)
   int rc;
 
   if ( PL_is_variable(t1) )
-  { if ( PL_compare(t1, t2) == 0 )
+  { if ( (rc=PL_compare(t1, t2)) == CMP_EQUAL )
     { return PL_unify_atom(subst, ATOM_nil);
+    } else if ( rc == CMP_ERROR )
+    { return false;
     } else
     { if ( !unifiable_occurs_check(t1, t2) )
 	fail;
@@ -3978,9 +4362,9 @@ retry:
       while(--tt >= mt)
       { Word p = tt->address;
 
-	*tail = consPtr(&gp[0], TAG_COMPOUND|STG_GLOBAL);
+	*tail = consCompound(&gp[0]);
 	gp[0] = FUNCTOR_dot2;
-	gp[1] = consPtr(&gp[3], TAG_COMPOUND|STG_GLOBAL);
+	gp[1] = consCompound(&gp[3]);
 	gp[2] = ATOM_nil;
 	tail = &gp[2];
 	gp[3] = FUNCTOR_equals2;
@@ -4063,7 +4447,7 @@ text_length(DECL_LD term_t s, term_t len, int flags)
   flags |= CVT_EXCEPTION|BUF_ALLOW_STACK;
 
   if ( PL_get_text(s, &txt, flags) )
-  { int rc = PL_unify_int64_ex(len, PL_text_length(&txt));
+  { bool rc = PL_unify_int64_ex(len, PL_text_length(&txt));
 
     PL_free_text(&txt);
 
@@ -4099,7 +4483,7 @@ PRED_IMPL("atom_length", 2, atom_length, PL_FA_ISO)
 #define x_chars(pred, atom, string, how) \
 	LDFUNC(x_chars, pred, atom, string, how)
 
-static int
+static bool
 x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
 { PL_chars_t atext, stext;
   int arg1;
@@ -4109,7 +4493,7 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
 		     (how & X_NUMBER) ? CVT_NUMBER : CVT_ATOMIC);
 
   if ( arg1 )					/* +,? */
-  { int ok;
+  { bool ok;
     int out_type;
     fid_t fid = PL_open_foreign_frame();
 
@@ -4135,13 +4519,27 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
     return PL_error(pred, 2, NULL, ERR_TYPE, type, atom);
   }
 
-  if ( PL_get_text(string, &stext, flags2) != true )
-    return false;
+  /* A complicated way to get the proper error message :( */
+  if ( how & X_STRING )
+  { int noerr_flags = flags2 & (~CVT_EXCEPTION);
+    get_text_t rc = PL_get_text(string, &stext, noerr_flags);
+    switch(rc)
+    { case GT_TRUE:
+        break;
+      case GT_FALSE:
+	return PL_get_text(string, &stext, CVT_STRING|CVT_EXCEPTION);
+      case GT_ISVAR:
+	return false;
+    }
+  } else
+  { if ( PL_get_text(string, &stext, flags2) != GT_TRUE )
+      return false;
+  }
 
   switch(how&X_MASK)
   { case X_ATOM:
     case_atom:
-    { int rc = PL_unify_text(atom, 0, &stext, PL_ATOM);
+    { bool rc = PL_unify_text(atom, 0, &stext, PL_ATOM);
       PL_free_text(&stext);
       return rc;
     }
@@ -4164,7 +4562,7 @@ x_chars(DECL_LD const char *pred, term_t atom, term_t string, int how)
 
 	if ( (nrc=str_number((const unsigned char*)s, &q, &n, 0)) == NUM_OK )
 	{ if ( (char*)q == stext.text.t + stext.length )
-	  { int rc = PL_unify_number(atom, &n);
+	  { bool rc = PL_unify_number(atom, &n);
 	    clearNumber(&n);
 	    PL_free_text(&stext);
 	    return rc;
@@ -4307,7 +4705,7 @@ PRED_IMPL("char_code", 2, char_code, PL_FA_ISO)
 }
 
 
-static int
+static bool
 is_code(word w)
 { if ( isTaggedInt(w) )
   { sword code = valInt(w);
@@ -4318,7 +4716,7 @@ is_code(word w)
   return false;
 }
 
-static int
+static bool
 is_char(word w)
 { PL_chars_t text;
 
@@ -4350,8 +4748,8 @@ PRED_IMPL("$is_char", 1, is_char, 0)
 
 
 #define is_text_list(text, lent, test) LDFUNC(is_text_list, text, lent, test)
-static int
-is_text_list(DECL_LD term_t text, term_t lent, int (*test)(word))
+static bool
+is_text_list(DECL_LD term_t text, term_t lent, bool (*test)(word))
 { Word p = valTermRef(text);
   intptr_t len = 0;
 
@@ -4404,7 +4802,7 @@ PRED_IMPL("atom_number", 2, atom_number, 0)
 
     if ( (rc=str_number((unsigned char *)s, &q, &n, 0) == NUM_OK) )
     { if ( *q == EOS )
-      { int rc = PL_unify_number(A2, &n);
+      { bool rc = PL_unify_number(A2, &n);
 	clearNumber(&n);
 
 	return rc;
@@ -4456,7 +4854,7 @@ PRED_IMPL("collation_key", 2, collation_key, 0)
     fail;
   for(;;)
   { if ( (n=wcsxfrm(o, s, buflen)) < buflen )
-    { int rc = PL_unify_wchars(A2, PL_STRING, n, o);
+    { bool rc = PL_unify_wchars(A2, PL_STRING, n, o);
 
       if ( o != buf )
 	free(o);
@@ -4615,7 +5013,7 @@ PRED_IMPL("atomic_concat", 3, atomic_concat, PL_FA_ISO)
 
 
 #define split_atom(list, st, atom) LDFUNC(split_atom, list, st, atom)
-static int
+static bool
 split_atom(DECL_LD term_t list, PL_chars_t *st, term_t atom)
 { PL_chars_t at;
   size_t i, last;
@@ -4858,7 +5256,7 @@ PRED_IMPL("sub_atom_icasechk", 3, sub_atom_icasechk, 0)
 
     for (; s2<=es-l1; s2++)
     { for(q=needleW, s=s2; q<eq && s<es; q++, s++)
-      { if ( *q != *s && *q != (pl_wchar_t)towlower(*s) )
+      { if ( *q != *s && *q != (pl_wchar_t)PL_tolower(*s) )
 	  break;
       }
       if ( q == eq )
@@ -5359,7 +5757,7 @@ query.
 */
 
 #define unify_depth_LD(t, depth) LDFUNC(unify_depth_LD, t, depth)
-static int
+static bool
 unify_depth_LD(DECL_LD term_t t, size_t depth)
 { if ( depth == DEPTH_NO_LIMIT )
     return PL_unify_atom(t, ATOM_inf);
@@ -5368,7 +5766,7 @@ unify_depth_LD(DECL_LD term_t t, size_t depth)
 }
 
 #define get_depth_LD(t, depth) LDFUNC(get_depth_LD, t, depth)
-static int
+static bool
 get_depth_LD(DECL_LD term_t t, size_t *depth)
 { atom_t a;
 
@@ -5508,13 +5906,37 @@ PRED_IMPL("$depth_limit_except", 3, depth_limit_except, 0)
 
 #define INFERENCE_LIMIT_OVERHEAD 2
 
+#define get_inference_limit(t, l) LDFUNC(get_inference_limit, t, l)
+static bool
+get_inference_limit(DECL_LD term_t t, int64_t *limit)
+{ atom_t a;
+
+  if ( PL_get_atom(t, &a) )
+  { if ( a == ATOM_infinite )
+    { *limit = INFERENCE_NO_LIMIT;
+      return true;
+    }
+    return PL_domain_error("inference_limit", t);
+  }
+  return PL_get_int64_ex(t, limit);
+}
+
+#define unify_inference_limit(t, l) LDFUNC(unify_inference_limit, t, l)
+static bool
+unify_inference_limit(DECL_LD term_t t, int64_t limit)
+{ if ( limit == INFERENCE_NO_LIMIT )
+    return PL_unify_atom(t, ATOM_infinite);
+  return PL_unify_int64(t, limit);
+}
+
+
 static
 PRED_IMPL("$inference_limit", 2, pl_inference_limit, 0)
 { PRED_LD
   int64_t limit;
 
-  if ( PL_get_int64_ex(A1, &limit) &&
-       PL_unify_int64(A2, LD->inference_limit.limit) )
+  if ( get_inference_limit(A1, &limit) &&
+       unify_inference_limit(A2, LD->inference_limit.limit) )
   { int64_t nlimit = LD->statistics.inferences + limit + INFERENCE_LIMIT_OVERHEAD;
 
     if ( limit < 0 )
@@ -5561,7 +5983,7 @@ PRED_IMPL("$inference_limit_true", 3, pl_inference_limit_true,
       if ( !PL_is_variable(A3) )
 	return true;
 
-      if ( PL_get_int64_ex(A2, &olimit) )
+      if ( get_inference_limit(A2, &olimit) )
       { DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("true (det) --> %lld\n", olimit));
 	LD->inference_limit.limit = olimit;
 	updateAlerted(LD);
@@ -5574,7 +5996,7 @@ PRED_IMPL("$inference_limit_true", 3, pl_inference_limit_true,
     case FRG_REDO:
     { int64_t limit;
 
-      if ( PL_get_int64_ex(A1, &limit) )
+      if ( get_inference_limit(A1, &limit) )
       { LD->inference_limit.limit =
 		LD->statistics.inferences + limit + INFERENCE_LIMIT_OVERHEAD;
 	DEBUG(MSG_INFERENCE_LIMIT,
@@ -5600,7 +6022,7 @@ PRED_IMPL("$inference_limit_false", 1, inference_limit_false, 0)
 { PRED_LD
   int64_t olimit;
 
-  if ( PL_get_int64_ex(A1, &olimit) )
+  if ( get_inference_limit(A1, &olimit) )
   { LD->inference_limit.limit = olimit;
     DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("false --> %lld\n", olimit));
     updateAlerted(LD);
@@ -5621,7 +6043,7 @@ PRED_IMPL("$inference_limit_except", 3, inference_limit_except, 0)
 { PRED_LD
   int64_t olimit;
 
-  if ( PL_get_int64_ex(A1, &olimit) )
+  if ( get_inference_limit(A1, &olimit) )
   { atom_t a;
 
     DEBUG(MSG_INFERENCE_LIMIT, Sdprintf("except --> %lld\n", olimit));
@@ -5889,6 +6311,8 @@ swi_statistics(DECL_LD atom_t key, Number v)
     v->value.f = LD->gc.stats.totals.time;
   } else if (key == ATOM_collections)
     v->value.i = LD->gc.stats.totals.collections;
+  else if (key == ATOM_minor_collections)
+    v->value.i = LD->gc.stats.totals.minor_collections;
   else if (key == ATOM_collected)
     v->value.i = LD->gc.stats.totals.trail_gained +
 		 LD->gc.stats.totals.global_gained;
@@ -5950,7 +6374,20 @@ swi_statistics(DECL_LD atom_t key, Number v)
       v->value.i = pool->size;
     else
       v->value.i = 0;
-  } else if (key == ATOM_indexes_created)
+  } else if (key == ATOM_shared_table_space_used)
+  {
+#ifdef O_PLMT
+    alloc_pool *pool;
+    if ( (pool=GD->tabling.node_pool) )
+      v->value.i = pool->size;
+    else
+#endif
+      v->value.i = 0;
+  } else if (key == ATOM_erased_clauses)
+    v->value.i = GD->clauses.erased;
+  else if (key == ATOM_erased_clause_space)
+    v->value.i = GD->clauses.erased_size;
+  else if (key == ATOM_indexes_created)
     v->value.i = GD->statistics.indexes.created;
   else if (key == ATOM_indexes_destroyed)
     v->value.i = GD->statistics.indexes.destroyed;
@@ -6277,6 +6714,7 @@ BeginPredDefs(prims)
   PRED_DEF("atom", 1, atom, PL_FA_ISO)
   PRED_DEF("string", 1, string, 0)
   PRED_DEF("ground", 1, ground, PL_FA_ISO)
+  PRED_DEF("is_address", 1, is_address, 0)
   PRED_DEF("nonground", 2, nonground, 0)
   PRED_DEF("$term_size", 3, term_size, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, PL_FA_ISO)
@@ -6287,6 +6725,7 @@ BeginPredDefs(prims)
   PRED_DEF("==", 2, equal, PL_FA_ISO)
   PRED_DEF("\\==", 2, nonequal, PL_FA_ISO)
   PRED_DEF("compare", 3, compare, PL_FA_ISO)
+  PRED_DEF("partial_compare", 3, partial_compare, 0)
   PRED_DEF("@<", 2, std_lt, PL_FA_ISO)
   PRED_DEF("@=<", 2, std_leq, PL_FA_ISO)
   PRED_DEF("@>", 2, std_gt, PL_FA_ISO)

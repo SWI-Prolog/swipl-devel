@@ -55,6 +55,9 @@
 #define	trapUndefined(undef)			LDFUNC(trapUndefined, undef)
 #define isDefinedProcedure(def)			LDFUNC(isDefinedProcedure, def)
 #define hasClausesDefinition(def)		LDFUNC(hasClausesDefinition, def)
+#define localClauseGC(_)			LDFUNC(localClauseGC, _)
+#define localClauseGCDue(_)			LDFUNC(localClauseGCDue, _)
+#define postponeLocalClauseGC(_)		LDFUNC(postponeLocalClauseGC, _)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -95,6 +98,7 @@ bool		retractClauseDefinition(Definition def, Clause clause,
 void		unallocClause(Clause c);
 void		freeClause(Clause c);
 void		lingerClauseRef(ClauseRef c);
+void		freeClauseRef(ClauseRef cref);
 void		acquire_clause(Clause cl);
 void		release_clause(Clause cl);
 ClauseRef	newClauseRef(Clause cl, word key);
@@ -107,7 +111,7 @@ void		unallocDefinition(Definition def);
 void		initProcedures(void);
 void		cleanupProcedures(void);
 Procedure	resolveProcedure(functor_t f, Module module);
-Definition	trapUndefined(Definition undef);
+COLD Definition	trapUndefined(Definition undef);
 foreign_t	pl_abolish(term_t atom, term_t arity);
 foreign_t	pl_abolish1(term_t pred);
 bool		redefineProcedure(Procedure proc, SourceFile sf,
@@ -121,6 +125,9 @@ foreign_t	pl_check_procedure(term_t desc);
 void		checkDefinition(Definition def);
 Procedure	isStaticSystemProcedure(functor_t fd);
 foreign_t	pl_garbage_collect_clauses(void);
+size_t		localClauseGC(void);
+bool		localClauseGCDue(void);
+void		postponeLocalClauseGC(void);
 bool		setDynamicDefinition(Definition def, bool isdyn);
 bool		setThreadLocalDefinition(Definition def, bool isdyn);
 bool		setAttrDefinition(Definition def, uint64_t attr, bool val);

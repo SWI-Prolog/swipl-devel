@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  1997-2025, University of Amsterdam
+    Copyright (c)  1997-2026, University of Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -55,6 +55,7 @@ typedef enum
   ERR_PERMISSION,		/* atom_t type, atom_t op, term_t obj */
   ERR_RANGE,			/* term_t low, term_t high, term_t val */
   ERR_REPRESENTATION,		/* atom_t what */
+  ERR_REPRESENTATION_CULPRIT,	/* atom_t what, term_t culprit */
   ERR_RESOURCE,			/* atom_t resource */
   ERR_SHELL_FAILED,		/* term_t command */
   ERR_SHELL_SIGNALLED,		/* term_t command, int signal */
@@ -89,6 +90,7 @@ typedef enum
   ERR_NOT_IMPLEMENTED_PROC,	/* name, arity */
   ERR_IMPORT_PROC,		/* proc, dest, [already-from] */
   ERR_OCCURS_CHECK,		/* Word, Word */
+  ERR_INCOMPARABLE,		/* Word, Word */
   ERR_PERMISSION_PROC,		/* op, type, Definition */
   ERR_PERMISSION_VMI,		/* vmi */
   ERR_SHARED_OBJECT_OP,		/* op, error */
@@ -108,22 +110,28 @@ typedef enum
 #if USE_LD_MACROS
 #define	PL_get_atom_ex(t, a)		LDFUNC(PL_get_atom_ex, t, a)
 #define	PL_get_size_ex(t, i)		LDFUNC(PL_get_size_ex, t, i)
+#define	PL_get_stdbool_ex(t, a)		LDFUNC(PL_get_stdbool_ex, t, a)
 #define	pl_get_uint64(t, i, ex)		LDFUNC(pl_get_uint64, t, i, ex)
 #define	PL_get_int64_ex(t, i)		LDFUNC(PL_get_int64_ex, t, i)
 #define	PL_get_uint64_ex(t, i)		LDFUNC(PL_get_uint64_ex, t, i)
 #define PL_get_long_ex(t, i)		LDFUNC(PL_get_long_ex, t, i)
 #define PL_get_intptr_ex(t, i)		LDFUNC(PL_get_intptr_ex, t, i)
+#define PL_get_pointer_ex(t, p)		LDFUNC(PL_get_pointer_ex, t, p)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 
-bool		PL_error(const char *pred, size_t arity, const char *msg,
+COLD bool		PL_error(const char *pred, size_t arity, const char *msg,
 			 PL_error_code id, ...);
 bool		PL_no_memory(void);
-bool		printMessage(atom_t severity, ...) WUNUSED;
+bool		PL_syntax_error_term(term_t culprit, IOSTREAM *in);
+COLD bool		printMessage(atom_t severity, ...) WUNUSED;
 bool		printMessagev(atom_t severity, va_list args) WUNUSED;
 bool		PL_get_atom_ex(term_t t, atom_t *a) WUNUSED;
+bool		PL_get_stdbool_ex(term_t t, bool *b) WUNUSED;
 bool		PL_get_size_ex(term_t t, size_t *i) WUNUSED;
+bool		int_range_error(term_t t, atom_t type, bool is_unsigned);
+bool		PL_get_pointer_ex(term_t t, void **addrp);
 bool		pl_get_uint64(term_t t, uint64_t *i, int ex) WUNUSED;
 bool		PL_get_int64_ex(term_t t, int64_t *i) WUNUSED;
 bool		PL_get_uint64_ex(term_t t, uint64_t *i) WUNUSED;

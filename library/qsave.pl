@@ -574,12 +574,9 @@ copy_resource(FromRC, ToRC, Name) :-
     ->  true
     ;   existence_error(resource, Name)
     ),
-    zipper_file_info(FromRC, _Name, Attrs),
-    get_dict(time, Attrs, Time),
     setup_call_cleanup(
         zipper_open_current(FromRC, FdIn,
-                            [ type(binary),
-                              time(Time)
+                            [ type(binary)
                             ]),
         setup_call_cleanup(
             zipper_open_new_file_in_zip(ToRC, Name, FdOut, []),
@@ -979,6 +976,8 @@ no_save_flag(os_argv).
 no_save_flag(access_level).
 no_save_flag(tty_control).
 no_save_flag(readline).
+no_save_flag(color_term).              % depends on the terminal we run on
+no_save_flag(hyperlink_term).          % idem
 no_save_flag(associated_file).
 no_save_flag(cpu_count).
 no_save_flag(tmp_dir).

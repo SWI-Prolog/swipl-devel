@@ -534,8 +534,8 @@ prolog_colourise_term(Stream, SourceId, ColourItem, Options) :-
         Error = Pos:_Message
     ).
 
-xref_flag_option(TB, var_prefix(Bool)) :-
-    xref_prolog_flag(TB, var_prefix, Bool, _Line).
+xref_flag_option(TB, var_prefix(Prefix)) :-
+    xref_prolog_flag(TB, var_prefix, Prefix, _Line).
 
 show_syntax_error(TB, Pos:Message, Range) :-
     integer(Pos),
@@ -2599,6 +2599,8 @@ def_goal_colours(load_files(_),          built_in-[file]).
 def_goal_colours(load_files(_,_),        built_in-[file,options]).
 def_goal_colours(setof(_,_,_),           built_in-[classify,setof,classify]).
 def_goal_colours(bagof(_,_,_),           built_in-[classify,setof,classify]).
+def_goal_colours(aggregate(_,_,_),       built_in-[classify,setof,classify]).
+def_goal_colours(aggregate(_,_,_,_),     built_in-[classify,classify,setof,classify]).
 def_goal_colours(predicate_options(_,_,_), built_in-[predicate,classify,classify]).
 % Database access
 def_goal_colours(assert(_),              built_in-[db]).
@@ -2889,6 +2891,10 @@ term_colours((:- pce_end_class(_)),
                         ]).
 term_colours((:- use_class_template(_)),
              expanded - [ expanded - [ pce_new
+                                     ]
+                        ]).
+term_colours((:- pce_class_directive(_)),
+             expanded - [ expanded - [ body
                                      ]
                         ]).
 term_colours((:- emacs_begin_mode(_,_,_,_,_)),

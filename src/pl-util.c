@@ -164,7 +164,7 @@ functorName(functor_t f)
   char *e = tmp;
   FunctorDef fd;
 
-  if ( tagex(f) != (TAG_ATOM|STG_GLOBAL) )
+  if ( !isFunctor(f) )
     return "<not-a-functor>";
 
   fd = valueFunctor(f);
@@ -179,7 +179,7 @@ functorName(functor_t f)
 
 char *
 keyName(word key)
-{ if ( tagex(key) == (TAG_ATOM|STG_GLOBAL) )
+{ if ( isFunctor(key) )
   { return functorName(word2functor(key));
   } else
   { char tmp[650];
@@ -307,16 +307,6 @@ isUserSystemPredicate(Definition def)
 int
 notImplemented(char *name, int arity)
 { return PL_error(NULL, 0, NULL, ERR_NOT_IMPLEMENTED_PROC, name, arity);
-}
-
-
-foreign_t
-setBoolean(int *flag, term_t old, term_t new)
-{ if ( !PL_unify_bool_ex(old, *flag) ||
-       !PL_get_bool_ex(new, flag) )
-    fail;
-
-  succeed;
 }
 
 

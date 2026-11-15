@@ -98,7 +98,9 @@ char *		BaseName(const char *f, char *buf);
 char *		DirName(const char *f, char *buf);
 atom_t		TemporaryFile(const char *id,
 			      const char *ext, int *fdp);
-int		DeleteTemporaryFile(atom_t name);
+atom_t		TemporaryDirectory(const char *id);
+bool		DeleteTemporaryFile(atom_t name);
+void		ForgetTemporaryDirectory(atom_t name);
 char *		findExecutable(const char *module, char *buf, size_t len);
 
 
@@ -159,7 +161,7 @@ extern int	ttyfileno;		/* Main TTY file number */
 #define IsaTty(fd)	isatty(fd)
 
 bool		PushTty(IOSTREAM *s, ttybuf *buf, int mode);
-bool		PopTty(IOSTREAM *s, ttybuf *buf, int do_free);
+bool		PopTty(IOSTREAM *s, ttybuf *buf, bool do_free);
 void		ResetTty(void);
 int		Sttymode(IOSTREAM *s);
 int		hasConsole(void);

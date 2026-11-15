@@ -47,6 +47,10 @@
 #define GLOBAL extern
 #endif
 
+#define TRIE_STRIPES 256		/* Write locks for concurrent tries */
+#define TABLE_COMPILE_THRESHOLD 32	/* default for the Prolog flag */
+#define MODULE_CACHE_SIZE 8		/* Per thread cache of lookupModule() */
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This module packs SWI-Prolog global data-structures into two structures.
 The structure PL_global_data contains all global data that is related to
@@ -173,6 +177,7 @@ struct PL_global_data
   struct
   { Module	user;			/* user module */
     Module	system;			/* system predicate module */
+    unsigned int generation;		/* Incremented on destroying a module */
   } modules;
 
   struct
@@ -182,6 +187,7 @@ struct PL_global_data
 #if O_PLMT
   struct				/* Shared table data */
   { struct trie *variant_table;		/* Variant --> table */
+    struct node_array *start_nodes;	/* Predicate start nodes in it */
     alloc_pool *node_pool;		/* Node allocation pool for tries */
     counting_mutex  mutex;		/* Sync completion */
 #ifdef __WINDOWS__
@@ -190,8 +196,21 @@ struct PL_global_data
     pthread_cond_t cvar;
 #endif
     struct trie_array *waiting;		/* thread --> trie we are waiting for */
+    struct idg_registry *idg_registry;	/* IDG nodes of shared tables */
   } tabling;
+
+  struct
+  { simpleMutex	stripes[TRIE_STRIPES];	/* Write locks of concurrent tries */
+  } tries;
 #endif
+
+  struct
+  { struct trie_node_chunk *chunks;	/* All trie node chunks */
+    struct trie_node_chunk *zombies;	/* Freed while atom-GC is active */
+#ifdef O_PLMT
+    simpleMutex	mutex;			/* Guards the lists */
+#endif
+  } trie_chunks;
 
   struct
   { TableWP	record_lists;		/* Key -> record list */
@@ -221,11 +240,20 @@ struct PL_global_data
     size_t	unregistered;		/* # candidate GC atoms */
     double	gc_time;		/* Time spent on atom-gc */
     PL_agc_hook_t gc_hook;		/* Current hook */
+    local_chunk_array local_chunks;	/* See "Thread-local blobs" */
+    struct
+    { size_t *	chunks;			/* returned chunks, for reuse */
+      size_t	count;			/* entries in chunks[] */
+      size_t	size;			/* allocated entries of chunks[] */
+    } local_pool;
+    size_t	local_unique;		/* # local atoms in the table */
 #endif
     atom_t     *for_code[256];		/* code --> one-char-atom */
     PL_blob_t  *types;			/* registered atom types */
     int		text_rank;		/* next rank for text types */
     int		nontext_rank;		/* next rank for non-text types */
+    PL_atom_normalize_t normalize_hook;	/* UTF-8 normaliser, NULL if none */
+    bool	normalize_hook_load_attempted;	/* tried to install via boot pred */
   } atoms;
 
   struct
@@ -261,13 +289,19 @@ struct PL_global_data
 
   struct
   { TableWP	table;			/* global (read-only) features */
+#ifdef O_PLMT
+    simpleMutex	shared_mutex;		/* value of shared flags */
+#endif
   } prolog_flag;
 
   struct
   { size_t	highest;		/* Next index to handout */
+    size_t	builtin;		/* Builtin functors are below */
     functor_array array;		/* index --> functor */
     FunctorTable table;			/* hash-table */
-    int		 rehashing;		/* Table is being rehashed */
+    FunctorDef	free;			/* Free functors for reuse */
+    size_t	collectable;		/* Collectable created since GC */
+    int64_t	collected;		/* # collected functors */
   } functors;
 
   struct
@@ -309,6 +343,8 @@ struct PL_global_data
   { Procedure	dgarbage_collect1;
     Procedure	catch3;
     Procedure	reset3;
+    Procedure	dtbl_reset6;		/* $tbl_reset/6 */
+    Procedure	call_continuation1;	/* call_continuation/1 */
     Procedure	dmeta_call1;		/* $meta_call/1 */
     Procedure	true0;
     Procedure	fail0;
@@ -334,7 +370,7 @@ struct PL_global_data
     Procedure	dwakeup1;		/* system:$wakeup/1 */
     Procedure	portray_attvar1;	/* $attvar:portray_attvar/1 */
 #endif
-    Procedure   comment_hook3;		/* prolog:comment_hook/3 */
+    Procedure   comment_hook4;		/* prolog:comment_hook/4 */
     Procedure	tune_gc3;		/* prolog:tune_gc */
     Procedure	trie_gen_compiled2;
     Procedure	trie_gen_compiled3;
@@ -486,6 +522,7 @@ struct PL_local_data
   FliFrame      foreign_environment;	/* Current foreign context */
   QueryFrame    query;			/* Currently open query */
   Word		mark_bar;		/* Mark globals > this one */
+  Word		gen_bar;		/* Old generation is below this */
 #ifdef O_GVAR
   Word		frozen_bar;		/* Frozen part of the global stack */
 #endif
@@ -500,6 +537,7 @@ struct PL_local_data
   int		in_print_message;	/* Inside printMessage() */
   void *	glob_info;		/* pl-glob.c */
   IOENC		encoding;		/* default I/O encoding */
+  Sunicode_atoms_t unicode_atoms;	/* default atom-content policy */
   struct PL_local_data *next_free;	/* see maybe_free_local_data() */
 
   struct
@@ -513,10 +551,8 @@ struct PL_local_data
 #ifndef __unix__
     int		forced;			/* Forced signal */
 #endif
-#ifdef O_C_STACK_GUARDED
-    jmp_buf	context;		/* Guarded for C-stack overflows */
-    int		sig_critical;		/* context is valid */
-    void       *alt_stack;		/* The stack */
+#ifdef O_ALTSIGSTACK
+    void       *alt_stack;		/* Stack to handle SIGSEGV on */
 #endif
   } signal;
 
@@ -617,29 +653,82 @@ struct PL_local_data
   { int		accounting;		/* we are accounting */
     int		sum_ok;			/* siblings are counted */
     prof_status	active;			/* profiler is on */
+    prof_status	mode;			/* mode that collected the data */
     prof_control ports_control;		/* which port counts are generated? */
     unsigned int sample_period;		/* profile sample period (usecs.) */
     struct call_node *current;		/* `current' node */
     struct call_node *roots;		/* list of root-nodes */
     uint64_t	samples;		/* profile samples */
-    uint64_t	ticks;			/* profile ticks total */
+    uint64_t	ticks;			/* profile ticks total (nsec) */
     uint64_t	accounting_ticks;	/* Ticks in profCall() and friends */
     size_t	nodes;			/* #Recorded nodes */
-    double	time_at_last_tick;	/* Time at last statistics tick */
+    struct prof_index *index;		/* handle -> nodes, for summing */
+    int64_t	time_at_last_tick;	/* nsec since time_at_start */
     double	time_at_start;		/* Time at last start */
     double	time;			/* recorded CPU time */
+    struct				/* PROF_*_EXACT clock */
+    { uint64_t	last;			/* prof_clock() at last switch */
+      uint64_t	start;			/* prof_clock() at start */
+      int64_t	start_ns;		/* monotonic nsec at start */
+      uint64_t	raw;			/* unconverted ticks total */
+      uint64_t	accounting;		/* unconverted accounting ticks */
+					/* PROF_CPU_EXACT window */
+      uint64_t	win_start;		/* prof_clock() at window start */
+      uint64_t	win_length;		/* window length in prof_clock() units */
+      uint64_t	long_interval;		/* close window after this interval */
+      int64_t	win_cpu;		/* thread CPU nsec at window start */
+      uint64_t	win_accounting;		/* accounting in this window */
+      struct call_node *win_nodes;	/* nodes charged in this window */
+    } clock;
+    struct				/* global stack accounting */
+    { uint64_t	last;			/* prof_mem_clock() at last switch */
+      uint64_t	allocated;		/* total allocated (bytes) */
+      uint64_t	discarded;		/* total discarded by backtracking */
+      uint64_t	gc_reclaimed;		/* total reclaimed by GC */
+      int64_t	gc_start;		/* GC gained at activation */
+      uint64_t	gc_count;		/* # GCs while profiling */
+      int64_t	gc_count_start;		/* # GCs at activation */
+    } mem;
   } profile;
 #endif /* O_PROFILE */
 
   struct
   { Module	typein;			/* module for type in goals */
     Module	source;			/* module we are reading clauses in */
+    struct				/* See lookupModule() */
+    { atom_t	name[MODULE_CACHE_SIZE];
+      Module	module[MODULE_CACHE_SIZE];
+      unsigned int generation;		/* GD->modules.generation */
+    } cache;
   } modules;
 
   struct
   { intptr_t	generator;		/* See PL_atom_generator() */
     atom_t	unregistering;		/* See PL_unregister_atom() */
+    functor_t	volatile_functor;	/* See lookupVolatileFunctor() */
+    unsigned int functor_hide;		/* See startHideFunctors() */
     int		gc_active;		/* Thread is running atom-gc */
+    struct
+    { unsigned	next;			/* first unused slot */
+      unsigned	count;			/* slots in index[] */
+      size_t	index[ATOM_RESERVE_BATCH]; /* reserved atom slots */
+    } reserved;				/* See reserveAtom() */
+    struct
+    { size_t *	chunks;			/* numbers of the chunks we own */
+      size_t	count;			/* entries in chunks[] */
+      size_t	size;			/* allocated entries of chunks[] */
+      size_t	cursor;			/* chunks before this are full */
+      local_atom_chunk *current;	/* = chunks[cursor] or NULL */
+      size_t	live;			/* # live local atoms */
+      size_t	created;		/* # created since the last sweep */
+      size_t	threshold;		/* sweep when live reaches this */
+      size_t	units;			/* gc_margin units of live atoms */
+      size_t	units_kept;		/* units after the last sweep */
+      bool	units_due;		/* a gc_margin was reached */
+      bool	sweeping;		/* releasing our local atoms */
+      size_t	collected;		/* total reclaimed by the sweep */
+      unsigned	sweeps;			/* # sweeps done */
+    } local;				/* See "Thread-local blobs" */
   } atoms;
 
   struct
@@ -689,8 +778,15 @@ struct PL_local_data
 
   struct
   { struct tbl_component *component;    /* active component */
+    struct tbl_status *saved_status;	/* Hidden components (break, ...) */
+    size_t incomplete_tables;		/* # tables in created_worklists */
+    size_t active_components;		/* # components with SCC_ACTIVE */
     struct trie *variant_table;		/* Variant --> table */
+    struct node_array *start_nodes;	/* Predicate start nodes in it */
     alloc_pool *node_pool;		/* Node allocation pool for tries */
+    struct idg_registry *idg_registry;	/* IDG nodes of private tables */
+    size_t dyn_orphan_events;		/* Dynamic nodes that lost a dependent */
+    size_t concurrent_idg_nodes;	/* Private IDG nodes with shared children */
     int	has_scheduling_component;	/* A leader was created */
     int in_answer_completion;		/* Running answer completion */
     int in_assert_propagation;		/* Running propagate_assert/1 */
@@ -698,12 +794,29 @@ struct PL_local_data
     term_t delay_list;			/* Global delay list */
     term_t idg_current;			/* Current node in IDG (trie symbol) */
     struct
+    { void *list[4];			/* Freed objects (TBL_FREE_*) */
+      unsigned short count[4];		/* Length of list[] */
+      bool closed;			/* Thread is terminating */
+    } free_objects;
+    struct				/* Prolog handles (see pl-tabling.c) */
+    { struct tbl_handle_slot *slots;	/* Handle index --> object */
+      size_t size;			/* Allocated slots */
+      size_t top;			/* Slots in use or on the free list */
+      size_t free;			/* First free slot + 1, or 0 */
+      size_t live;			/* # slots in use */
+      size_t serial;			/* Serial of the last handle */
+    } handles;
+    struct
     { atom_t max_table_subgoal_size_action;
       size_t max_table_subgoal_size;
       atom_t max_table_answer_size_action;
       size_t max_table_answer_size;
       atom_t max_answers_for_subgoal_action;
       size_t max_answers_for_subgoal;
+      atom_t max_incomplete_subgoals_action;
+      size_t max_incomplete_subgoals;
+      atom_t max_scc_subgoals_action;
+      size_t max_scc_subgoals;
     } restraint;
   } tabling;
 
@@ -723,9 +836,15 @@ struct PL_local_data
     pl_features_t mask;			/* Masked access to booleans */
     int		  write_attributes;	/* how to write attvars? */
     occurs_check_t occurs_check;	/* Unify and occurs check */
+    bool	   incomparable_error;	/* Flag incomparable=error */
     access_level_t access_level;	/* Current access level */
     unsigned int   unknown_option;	/* OPT_UNKNOWN_* */
   } prolog_flag;
+
+  struct
+  { size_t	compile_threshold;	/* flag table_compile_threshold */
+    size_t	drop_intermediate;	/* flag table_drop_intermediate */
+  } table_flags;
 
   struct
   { FindData	find;			/* /<ports> <goal> in tracer */
@@ -838,6 +957,14 @@ struct PL_local_data
   struct
   { size_t	erased_skipped;		/* # erased clauses skipped */
     int64_t	cgc_inferences;		/* Inferences at last cgc consider */
+    struct
+    { size_t	erased;			/* Erased in thread-local predicates */
+      size_t	threshold;		/* Run local clause GC at erased */
+      bool	active;			/* Local clause GC is running */
+      ClauseRef	lingering;		/* Unlinked by local clause GC */
+      size_t	collections;		/* # local clause GCs */
+      size_t	reclaimed;		/* # clauses they reclaimed */
+    } local;
   } clauses;
 
 #ifdef O_COVERAGE
@@ -885,6 +1012,22 @@ struct PL_local_data
 #endif
     int active;				/* GC is running in this thread */
     gc_stats stats;			/* GC performance history */
+    Word   young_base;			/* During GC: bottom of collected area */
+    struct
+    { Word  *addrs;			/* Old cells written without trail */
+      size_t count;			/* #used */
+      size_t size;			/* #allocated */
+      bool   overflow;			/* Too many: next GC is major */
+    } remembered;
+    struct
+    { Word  *addrs;			/* Old cells that act as roots */
+      size_t count;			/* #used */
+      size_t size;			/* #allocated */
+    } gen_roots;
+    size_t major_live;			/* Cells alive after last major GC */
+    unsigned int minor_count;		/* #minor GCs since last major */
+    bool   force_major;			/* Next GC must be a major one */
+    gc_trace_queue trace;		/* Pending trace_gc messages */
 
 					/* These must be at the end to be */
 					/* able to define O_DEBUG in only */

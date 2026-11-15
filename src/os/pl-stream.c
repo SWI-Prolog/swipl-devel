@@ -3,7 +3,7 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2025, University of Amsterdam
+    Copyright (c)  2011-2026, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -47,6 +47,7 @@
 #include <config.h>
 #endif
 
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 This modules defines the  SWI-Prolog  I/O   streams.  These  streams are
 provided to gain common access to  any   type  of character data: files,
@@ -77,6 +78,7 @@ locking is required.
 #include "pl-stream.h"
 #include "pl-utf8.h"
 #include "../pl-mutex.h"
+#include "../pl-prims.h"
 #include "SWI-Prolog.h"
 #include <sys/types.h>
 #ifdef HAVE_SYS_TIME_H
@@ -100,7 +102,7 @@ locking is required.
 #include <stdarg.h>
 #include <ctype.h>
 #include <sys/stat.h>
-#if defined(HAVE_POLL_H)
+#if defined(HAVE_POLL)
 #include <poll.h>
 #elif defined(HAVE_SYS_SELECT_H)
 #include <sys/select.h>
@@ -133,7 +135,7 @@ int Slinesize = SIO_LINESIZE;		/* Sgets() buffer size */
 static ssize_t	S__flushbuf(IOSTREAM *s);
 static void	run_close_hooks(IOSTREAM *s);
 static int	S__removebuf(IOSTREAM *s);
-static int	S__seterror(IOSTREAM *s);
+static bool	S__seterror(IOSTREAM *s);
        void	unallocStream(IOSTREAM *s);
 static int	S__fileno(IOSTREAM *s);
 
@@ -143,7 +145,7 @@ static void		Sclose_buffer(IOSTREAM *s);
 #ifdef O_PLMT
 #define SLOCK(s)    if ( s->mutex ) recursiveMutexLock(s->mutex)
 #define SUNLOCK(s)  if ( s->mutex ) recursiveMutexUnlock(s->mutex)
-static inline int
+static inline bool
 STRYLOCK(IOSTREAM *s)
 { if ( s->mutex &&
        recursiveMutexTryLock(s->mutex) == EBUSY )
@@ -164,9 +166,12 @@ STRYLOCK(IOSTREAM *s)
 
 extern int			PL_handle_signals();
 extern IOENC			initEncoding(void);
+extern Sunicode_atoms_t		initUnicodeAtoms(void);
 extern bool			reportStreamError(IOSTREAM *s);
 extern record_t			PL_record(term_t t);
 extern int			PL_thread_self(void);
+extern ssize_t			writeAtomText(IOSTREAM *s, const char *text,
+					      size_t len, IOENC enc);
 
 
 		 /*******************************
@@ -356,7 +361,7 @@ StryLock(IOSTREAM *s)
 int
 Sunlock(IOSTREAM *s)
 { int rval = 0;
-  int unalloc;
+  bool unalloc;
 
 #ifdef DEBUG_IO_LOCKS
   if ( s->locks > 3 )
@@ -374,7 +379,7 @@ Sunlock(IOSTREAM *s)
   { assert(0);
   }
 
-  unalloc = (Sunreference(s) == 0 && s->erased);
+  unalloc = Sunreference_free(s);
 
   SUNLOCK(s);
   if ( unalloc )
@@ -384,15 +389,43 @@ Sunlock(IOSTREAM *s)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Sshare() prepares a stream that was  created without a mutex (SIO_NOMUTEX,
+e.g., the memory stream of with_output_to/2)   for access from multiple
+threads. It must be called by  the   thread  that owns the stream. Locks
+this thread holds on the stream are transferred to the new mutex.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+int
+Sshare(IOSTREAM *s)
+{
+#ifdef O_PLMT
+  if ( !s->mutex )
+  { IOLOCK *m;
+
+    if ( !(m = PL_malloc(sizeof(*m))) )
+      return -1;
+    recursiveMutexInit(m);
+    for(int i=0; i<s->locks; i++)
+      recursiveMutexLock(m);
+    s->mutex = m;
+    s->flags &= ~SIO_NOMUTEX;
+  }
+#endif
+
+  return 0;
+}
+
+
 IOSTREAM *
 Sacquire(IOSTREAM *s)
 { Sreference(s);
   return s;
 }
 
-int
+bool
 Srelease(IOSTREAM *s)
-{ if ( Sunreference(s) == 0 && s->erased )
+{ if ( Sunreference_free(s) )
   { unallocStream(s);
     return true;
   }
@@ -728,36 +761,149 @@ S__fillbuf(IOSTREAM *s)
 		 *******************************/
 
 
-static inline void
-update_linepos(IOSTREAM *s, int c)
-{ IOPOS *p = s->position;
+/* Supdatepos() maintains the *display* column of the position: `linepos`
+ * counts terminal columns, not characters.  `charno` and `byteno` are the
+ * faithful counters.  Non-printable characters therefore take 0 columns,
+ * a wide character takes 2 and an ANSI escape sequence takes none at all.
+ *
+ * The escape sequences recognised are
+ *
+ *   CSI	ESC [ <0x20..0x3f>* <0x40..0x7e>	e.g. ESC [ 1 m
+ *   OSC	ESC ] <any>* (BEL | ESC \)		e.g. hyperlinks
+ *   Other	ESC <0x20..0x2f>* <any>			e.g. ESC ( B
+ *
+ * The state lives in the low IOPOS_ESC_SHIFT bits of IOPOS.esc_state; the
+ * remaining bits count the characters consumed so far.  A control
+ * character that cannot appear in a sequence, or a run longer than
+ * IOPOS_ESC_MAX, aborts the sequence and the character is counted
+ * normally.  Without that a stray ESC would stop all column tracking.
+ */
 
-  if ( likely(c > '\r') )	/* speedup the 99% case a bit */
-  { p->linepos++;
-    return;
+#define ANSI_ESC	  0x1b		/* \e */
+#define ANSI_BEL	  0x07
+
+#define IOPOS_ESC_NONE	  0		/* not in a sequence */
+#define IOPOS_ESC_ESC	  1		/* seen ESC */
+#define IOPOS_ESC_CSI	  2		/* seen ESC [ */
+#define IOPOS_ESC_OSC	  3		/* seen ESC ] */
+#define IOPOS_ESC_OSC_ESC 4		/* seen ESC inside OSC; expect \ */
+#define IOPOS_ESC_SHIFT	  3
+#define IOPOS_ESC_MASK	  ((1<<IOPOS_ESC_SHIFT)-1)
+#define IOPOS_ESC_MAX	  256
+
+static bool
+Supdateesc(IOPOS *p, int c)
+{ int state = (int)(p->esc_state & IOPOS_ESC_MASK);
+  intptr_t len;
+
+  if ( likely(state == IOPOS_ESC_NONE) )
+  { if ( likely(c != ANSI_ESC) )
+      return false;
+    p->esc_state = IOPOS_ESC_ESC | ((intptr_t)1<<IOPOS_ESC_SHIFT);
+    return true;
   }
+
+  if ( (len=(p->esc_state>>IOPOS_ESC_SHIFT)) >= IOPOS_ESC_MAX )
+    goto abort;
+
+  switch(state)
+  { case IOPOS_ESC_ESC:
+      if ( c == '[' )
+	state = IOPOS_ESC_CSI;
+      else if ( c == ']' )
+	state = IOPOS_ESC_OSC;
+      else if ( c >= 0x20 && c <= 0x2f )
+	;				/* intermediate byte */
+      else if ( c >= 0x20 )
+	state = IOPOS_ESC_NONE;		/* final byte */
+      else
+	goto abort;
+      break;
+    case IOPOS_ESC_CSI:
+      if ( c >= 0x20 && c <= 0x3f )
+	;				/* parameter/intermediate byte */
+      else if ( c >= 0x40 && c <= 0x7e )
+	state = IOPOS_ESC_NONE;		/* final byte */
+      else
+	goto abort;
+      break;
+    case IOPOS_ESC_OSC:
+      if ( c == ANSI_BEL )
+	state = IOPOS_ESC_NONE;
+      else if ( c == ANSI_ESC )
+	state = IOPOS_ESC_OSC_ESC;
+      else if ( c < 0x20 )
+	goto abort;
+      break;
+    case IOPOS_ESC_OSC_ESC:
+      if ( c == '\\' )			/* ST */
+	state = IOPOS_ESC_NONE;
+      else
+	goto abort;
+      break;
+  }
+
+  p->esc_state = state ? (state | ((len+1)<<IOPOS_ESC_SHIFT)) : 0;
+  return true;
+
+abort:
+  p->esc_state = 0;
+  return Supdateesc(p, c);		/* c may start a new sequence */
+}
+
+
+bool
+Supdatepos(IOPOS *p, int c)
+{ if ( likely(c >= ' ' && c < 0x7f) && likely(p->esc_state == 0) )
+  { p->linepos++;			/* speedup the 99% case a bit */
+    return false;
+  }
+
+  if ( Supdateesc(p, c) )
+    return false;
 
   switch(c)
   { case '\n':
       p->lineno++;
       p->linepos = 0;
-      s->flags &= ~SIO_NOLINEPOS;
-      break;
+      return true;
     case '\r':
       p->linepos = 0;
-      s->flags &= ~SIO_NOLINEPOS;
-      break;
+      return true;			/* linepos is reliable again */
     case '\b':
       if ( p->linepos > 0 )
 	p->linepos--;
       break;
     case '\t':
-      p->linepos |= 7;
+      p->linepos = (p->linepos|7) + 1;	/* next multiple of 8 */
+      break;
     default:
-      p->linepos++;
+    { int w = PL_wcwidth(c);		/* -1 if not printable */
+
+      if ( w > 0 )
+	p->linepos += w;
+    }
   }
+
+  return false;
 }
 
+/* Sresetesc() discards a partially seen escape sequence.  Call this
+ * whenever the position is assigned from outside rather than derived from
+ * the characters that passed by.
+ */
+
+void
+Sresetesc(IOPOS *p)
+{ p->esc_state = 0;
+}
+
+
+static inline void
+update_linepos(IOSTREAM *s, int c)
+{ if ( Supdatepos(s->position, c) )
+    s->flags &= ~SIO_NOLINEPOS;
+}
 
 
 int
@@ -852,6 +998,7 @@ unget_byte(int c, IOSTREAM *s)
     p->byteno--;
     if ( c == '\n' )
       p->lineno--;
+    Sresetesc(p);
     s->flags |= SIO_NOLINEPOS;
   }
 }
@@ -868,6 +1015,8 @@ Sungetc(int c, IOSTREAM *s)
   return -1;
 }
 
+
+static int put_code(int c, IOSTREAM *s);
 
 static int
 reperror(int c, IOSTREAM *s)
@@ -886,9 +1035,9 @@ reperror(int c, IOSTREAM *s)
     { snprintf(buf, sizeof buf, "&#%d;", c);
     }
 
-    for(q = buf; *q; q++)
-    { if ( put_byte(*q, s) < 0 )
-	return -1;
+    for(q = buf; *q; q++)		/* The escape is ASCII, but we must */
+    { if ( put_code(*q, s) < 0 )	/* encode it: UTF-16 and wchar streams */
+	return -1;			/* do not write bytes. */
     }
 
     return c;
@@ -936,7 +1085,10 @@ put_utf16(int c, IOSTREAM *s, int be)
 
 static int
 put_code(int c, IOSTREAM *s)
-{ switch(s->encoding)
+{ if ( IS_UTF16_SURROGATE(c) )
+    return reperror(c, s);
+
+  switch(s->encoding)
   { case ENC_OCTET:
     case ENC_ISO_LATIN_1:
       if ( c >= 256 )
@@ -1145,6 +1297,9 @@ get_utf16(IOSTREAM *s, int be)
     } else
     { return utf16_decode(c, c2);
     }
+  } else if ( IS_UTF16_TRAIL(c) )
+  { Sseterr(s, SIO_WARN, "Lone UTF-16 trail surrogate");
+    return UTF8_MALFORMED_REPLACEMENT;
   } else
   { return c;
   }
@@ -1163,7 +1318,7 @@ retry:
       break;
     case ENC_ASCII:
     { c = get_byte(s);
-      if ( c > 128 )
+      if ( c >= 128 )
 	Sseterr(s, SIO_WARN, "non-ASCII character");
       break;
     }
@@ -1208,26 +1363,40 @@ retry:
 	break;
 
       if ( c & 0x80 )
-      { int extra = UTF8_FBN(c);
+      { static const int min_code[4] = { 0, 0x80, 0x800, 0x10000 };
+	int extra = UTF8_FBN(c);
+	int bytes;
 	int code;
 
-	if ( extra < 0 )
+	if ( extra < 1 || extra > 3 )	/* only up to UNICODE_MAX */
 	{ Sseterr(s, SIO_WARN, "Illegal UTF-8 start");
 	  c = UTF8_MALFORMED_REPLACEMENT;
 	  goto out;
 	}
 
+	bytes = extra;
 	code = UTF8_FBV(c,extra);
 	for( ; extra > 0; extra-- )
 	{ int c2 = get_byte(s);
 
-	  if ( !ISUTF8_CB(c2) )
+	  if ( c2 == EOF || !ISUTF8_CB(c2) )
 	  { Sseterr(s, SIO_WARN, "Illegal UTF-8 continuation");
 	    c = UTF8_MALFORMED_REPLACEMENT;
-	    Sungetc(c2, s);
+	    if ( c2 != EOF )
+	      Sungetc(c2, s);
 	    goto out;
 	  }
 	  code = (code<<6)+(c2&0x3f);
+	}
+	if ( code < min_code[bytes] || code > UNICODE_MAX )
+	{ Sseterr(s, SIO_WARN, "Illegal UTF-8 sequence");
+	  c = UTF8_MALFORMED_REPLACEMENT;
+	  goto out;
+	}
+	if ( IS_UTF16_SURROGATE(code) )
+	{ Sseterr(s, SIO_WARN, "UTF-8 surrogate code point");
+	  c = UTF8_MALFORMED_REPLACEMENT;
+	  goto out;
 	}
 	c = code;
       }
@@ -1269,7 +1438,11 @@ retry:
 	*p++ = (char)c1;
       }
 
-      c = chr;
+      if ( !VALID_CODE_POINT(chr) )
+      { Sseterr(s, SIO_WARN, "Illegal UCS character");
+	c = UTF8_MALFORMED_REPLACEMENT;
+      } else
+	c = chr;
       break;
     }
 #endif
@@ -1623,7 +1796,7 @@ Sfeof(IOSTREAM *s)
 }
 
 
-static int
+static bool
 S__seterror(IOSTREAM *s)
 { if ( (s->flags & SIO_FERR) )
     return 0;				/* error already set */
@@ -1731,11 +1904,18 @@ Sset_exception(IOSTREAM *s, term_t ex)
       /* If the current exception is associated with the
        * stream we should clear it.  It will be re-raised
        * by reportStreamError(), which clears the exception
-       * from the stream again.
+       * from the stream again.  We test for ==/2 rather than using
+       * PL_compare() as the latter may raise an exception, replacing
+       * the pending one.
        */
       term_t pending = PL_exception(0);
-      if ( pending && PL_compare(ex,pending) == CMP_EQUAL )
-	PL_clear_exception();
+      if ( pending )
+      { GET_LD
+
+	if ( compareStandard(valTermRef(ex), valTermRef(pending),
+			     true) == CMPEX_EQUAL )
+	  PL_clear_exception();
+      }
     }
 
     s->flags = nflags;
@@ -1953,6 +2133,7 @@ update:
 
   if ( s->position )
   { s->flags |= (SIO_NOLINENO|SIO_NOLINEPOS); /* no update this */
+    Sresetesc(s->position);
     s->position->byteno = pos;
     s->position->charno = pos/Sunit_size(s); /* compatibility */
   }
@@ -2086,6 +2267,25 @@ associated stream.
 
 #define SIO_CLOSE_GC	0x4
 
+/* Add SIO_REF_CLOSED to the references and return the old value.  See
+   Sunreference_free().
+*/
+
+static int
+S__mark_closed(IOSTREAM *s)
+{
+#if defined(O_PLMT) && defined(_MSC_VER)
+  return _InterlockedOr((long*)&s->references, SIO_REF_CLOSED);
+#elif defined(O_PLMT)
+  return __atomic_fetch_or(&s->references, SIO_REF_CLOSED, __ATOMIC_SEQ_CST);
+#else
+  int old = s->references;
+
+  s->references |= SIO_REF_CLOSED;
+  return old;
+#endif
+}
+
 static int
 S__close(IOSTREAM *s, int flags)
 { int rval = 0;
@@ -2154,10 +2354,9 @@ S__close(IOSTREAM *s, int flags)
     free(s->message);
   if ( s->locale )
     releaseLocale(s->locale);
-  if ( s->references == 0 )
+  s->erased = true;
+  if ( SIO_REF_COUNT(S__mark_closed(s)) == 0 )
     unallocStream(s);
-  else
-    s->erased = true;
 
   return rval;
 }
@@ -2290,34 +2489,6 @@ Svprintf(const char *fm, va_list args)
 { return Svfprintf(Soutput, fm, args);
 }
 
-static int
-next_chr(const char **s, IOENC enc)
-{ switch(enc)
-  { case ENC_ANSI:
-    case ENC_ISO_LATIN_1:
-    { unsigned char c = (unsigned char)**s;
-      ++(*s);
-      return c;
-    }
-    case ENC_UTF8:
-    { int c;
-      PL_utf8_code_point(s, NULL, &(c));
-      return c;
-    }
-    case ENC_WCHAR:
-    { const wchar_t *w = (const wchar_t*)*s;
-      int c;
-
-      w = get_wchar(w, &c);
-      *s = (const char*)w;
-      return c;
-    }
-    default:
-      assert(0);
-      return -1;
-  }
-}
-
 #define OUTCHR(s, c)	do { printed++; \
 			     if ( Sputcode((c), (s)) < 0 ) goto error; \
 			   } while(0)
@@ -2325,12 +2496,12 @@ next_chr(const char **s, IOENC enc)
 	do \
 	{ if ( fs == fbuf ) \
 	  { while(fs < fe) \
-	    { int c = next_chr((const char**)&fs, enc); \
+	    { int c = text_next_char((const char**)&fs, enc); \
 	      OUTCHR(s, c); \
 	    } \
 	  } else \
 	  { for(;;) \
-	    { int c = next_chr((const char**)&fs, enc); \
+	    { int c = text_next_char((const char**)&fs, enc); \
 	      if ( c ) \
 		OUTCHR(s, c); \
 	      else \
@@ -2433,6 +2604,7 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  fm++;
 	  if ( *fm == '*' )
 	  { arg2 = va_arg(args, int);
+	    fm++;
 	  } else
 	  { arg2 = 0;
 	    for( ; isdigit(char_to_int(*fm)); fm++)
@@ -2471,6 +2643,34 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	    break;
 	}
 
+	/* %As, %UAs, ...: write the string as a Prolog atom, i.e., quote
+	   and escape it if that is needed to read it back.  The precision
+	   gives the length in elements of the string; without it the string
+	   must be 0-terminated.  Writes to `s` directly, so the field width
+	   does not apply.  See writeAtomText() and section "BLOBS" in the
+	   manual.
+	*/
+
+	if ( *fm == 'A' && fm[1] == 's' )
+	{ const char *str = va_arg(args, char *);
+	  size_t len = (size_t)-1;
+	  ssize_t n;
+
+	  if ( !str )
+	  { str = "(null)";
+	    enc = ENC_ISO_LATIN_1;
+	  } else if ( has_arg2 && arg2 >= 0 )
+	  { len = (size_t)arg2;
+	    if ( enc == ENC_WCHAR )
+	      len *= sizeof(wchar_t);
+	  }
+	  if ( (n=writeAtomText(s, str, len, enc)) < 0 )
+	    goto error;
+	  printed += (int)n;
+	  fm += 2;
+	  continue;
+	}
+
 	switch(*fm)
 	{ case 'c':
 	  { int c = va_arg(args, int);
@@ -2480,13 +2680,15 @@ Svfprintf(IOSTREAM *s, const char *fm, va_list args)
 	  }
 	  case 'p':
 	  { void *ptr = va_arg(args, void*);
-	    char fmbuf[8], *fp=fmbuf;
-	    *fp++ = '%';
-	    if ( modified )
-	      *fp++ = '#';
-	    *fp++ = 'p';
-	    *fp   = '\0';
-	    SNPRINTF3(fmbuf, ptr);
+
+	    /* Do not use the platform %p: it is not portable and not
+	       readable as a Prolog number.  The MSVC runtime prints
+	       uppercase hex without the 0x prefix and glibc prints NULL
+	       as "(nil)".  Blob write() callbacks print their handle
+	       with %p and that output must be acceptable to read_term/2,3
+	       using blob(dead).  See section "BLOBS" in the manual.
+	    */
+	    SNPRINTF3("0x%llx", (unsigned long long)(uintptr_t)ptr);
 
 	    break;
 	  }
@@ -3145,9 +3347,9 @@ Sset_filter(IOSTREAM *parent, IOSTREAM *filter)
     { assert(filter->downstream == parent);
       filter->downstream = NULL;
       parent->upstream = NULL;
-      if ( Sunreference(filter) == 0 && filter->erased )
+      if ( Sunreference_free(filter) )
 	unallocStream(filter);
-      if ( Sunreference(parent) == 0 && parent->erased )
+      if ( Sunreference_free(parent) )
 	unallocStream(parent);
     }
   }
@@ -3370,9 +3572,10 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
   s->timeout       = -1;		/* infinite */
   s->posbuf.lineno = 1;
   if ( (flags&SIO_TEXT) )
-  { s->encoding    = initEncoding();
+  { s->encoding      = initEncoding();
+    s->unicode_atoms = (unsigned char)initUnicodeAtoms();
   } else
-  { s->encoding	   = ENC_OCTET;
+  { s->encoding	     = ENC_OCTET;
   }
 #if CRLF_MAPPING
   s->newline       = SIO_NL_DOS;
@@ -3420,7 +3623,7 @@ Snew(void *handle, int flags, IOFUNCTIONS *functions)
 #define O_BINARY 0
 #endif
 
-static int
+static bool
 get_mode(const char *s, int *mp)
 { int n, m = 0;
 
@@ -3745,6 +3948,27 @@ Swinhandle(IOSTREAM *s)
     return (HANDLE)_get_osfhandle(fd);
 
   return NULL;
+}
+
+HANDLE
+Swinpseudoconsole(IOSTREAM *s)
+{ HANDLE h = NULL;
+
+  if ( s && s->functions->control &&
+       (*s->functions->control)(s->handle,
+				SIO_GETWINPSEUDOCONSOLE,
+				(void *)&h) == 0 )
+    return h;
+
+  return NULL;
+}
+
+void
+Swinrelease_pseudoconsole(IOSTREAM *s)
+{ if ( s && s->functions->control )
+    (void)(*s->functions->control)(s->handle,
+				   SIO_RELWINPSEUDOCONSOLE,
+				   NULL);
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -4238,13 +4462,14 @@ Sopen_string(IOSTREAM *s, char *buf, size_t size, const char *mode)
     flags |= SIO_STATIC;
 
   memset((char *)s, 0, sizeof(IOSTREAM));
-  s->timeout   = -1;
-  s->buffer    = buf;
-  s->bufp      = buf;
-  s->unbuffer  = buf;
-  s->handle    = s;			/* for Sclose_string() */
-  s->functions = &Sstringfunctions;
-  s->encoding  = ENC_ISO_LATIN_1;
+  s->timeout       = -1;
+  s->buffer        = buf;
+  s->bufp          = buf;
+  s->unbuffer      = buf;
+  s->handle        = s;			/* for Sclose_string() */
+  s->functions     = &Sstringfunctions;
+  s->encoding      = ENC_ISO_LATIN_1;
+  s->unicode_atoms = (unsigned char)initUnicodeAtoms();
 
   switch(*mode)
   { case 'r':

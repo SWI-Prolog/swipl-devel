@@ -52,6 +52,7 @@ test_sandbox :-
 :- begin_tests(sandbox).
 :- use_module(library(sandbox)).
 :- use_module(library(aggregate)).
+:- use_module(library(settings)).
 
 my_call(G) :-
 	phrase({G},_).
@@ -86,5 +87,62 @@ test(flag, error(permission_error(call, sandboxed, _))) :-
 	safe_goal(set_prolog_flag(threads, false)).
 test(flag) :-
 	safe_goal(set_prolog_flag(double_quotes, chars)).
+test(portray_goal, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(write_term(a, [portray_goal(shell)])).
+test(portray_goal, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(term_string(a, _, [portray_goal(shell)])).
+test(portray_goal, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(format("~W", [a, [portray_goal(shell)]])).
+test(portray_goal, error(instantiation_error)) :-
+	safe_goal(write_term(a, _)).
+test(write_term) :-
+	safe_goal(write_term(a, [quoted(true)])),
+	safe_goal(term_string(a, _, [quoted(true)])),
+	safe_goal(format("~W", [a, [quoted(true)]])).
+test(message, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(print_message(error, format("~@", [shell(true)]))).
+test(message, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(print_message(error, error(format("~@", [shell(true)]), _))).
+test(message, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(message_to_string(debug("~@", [shell(true)]), _)).
+test(message, error(instantiation_error)) :-
+	safe_goal(print_message(error, _)).
+test(message, error(instantiation_error)) :-
+	safe_goal(print_message(error, error(_, _))).
+test(throw, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(throw(error(format("~@", [true]), _))).
+test(throw, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(throw(format("~w", [a]))).
+test(throw, error(instantiation_error)) :-
+	safe_goal(throw(_)).
+test(throw, error(instantiation_error)) :-
+	safe_goal(throw(error(_, _))).
+test(throw) :-
+	safe_goal(throw(error(type_error(integer, a), _))),
+	safe_goal(throw(my_ball)).
+test(catch_print) :-
+	safe_goal(catch(true, E, print_message(error, E))),
+	safe_goal(catch(true, E, throw(E))).
+test(catch_print, error(instantiation_error)) :-
+	safe_goal(catch(true, _, throw(_))).
+test(catch_print, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(catch(throw(format("~@", [true])), E, print_message(error, E))).
+test(message) :-
+	safe_goal(print_message(informational, format("~w", [a]))),
+	safe_goal(print_message(informational, format("~@", [writeln(a)]))).
+test(use_module, error(_)) :-
+	safe_goal(use_module(library('../library/lists'))).
+test(use_module, error(_)) :-
+	safe_goal(use_module(library('dialect/../lists'))).
+test(use_module) :-
+	safe_goal(use_module(library(lists))).
+% Settings of other modules may hold, e.g., passwords.
+test(setting, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(setting(app:password, _)).
+test(setting, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(setting(_:_, _)).
+test(setting) :-
+	safe_goal(setting(my_setting, _)),
+	safe_goal(setting(_, _)).
 
 :- end_tests(sandbox).

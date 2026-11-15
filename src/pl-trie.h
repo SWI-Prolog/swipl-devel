@@ -45,33 +45,47 @@
 #define TRIE_MAGIC  0x4bcbcf87
 #define TRIE_CMAGIC 0x4bcbcf88
 
-typedef enum
-{ TN_KEY,				/* Single key */
-  TN_HASHED				/* Hashed */
-} tn_node_type;
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The children of a trie node are represented by a tagged word:
 
-typedef struct try_children_any
-{ tn_node_type type;
-} try_children_any;
+  - 0
+    No children
+  - (trie_node*)|TRIE_SINGLE_CHILD
+    A single child.  Its key is child->key.
+  - trie_children_block*
+    Two or more children.  The entries are appended and never move while
+    adding children, so enumerating the entries by position is (weakly)
+    consistent with concurrent insertion.  Deleted entries have `child`
+    set to NULL and keep their key.  If `index_bits` is non-zero the block
+    is followed by an open addressing index of 1<<index_bits uint32_t
+    slots holding the entry position+1 (0: empty slot).
 
-typedef struct trie_children_key
-{ tn_node_type type;
-  word key;
-  struct trie_node *child;
-} trie_children_key;
+Readers are lock-free.  Writers are serialized by the trie code: either
+the trie has a single writer or the trie is TRIE_CONCURRENT and writers
+lock a stripe that is selected on the parent node.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-typedef struct trie_children_hashed
-{ tn_node_type	type;			/* TN_HASHED */
-  TableWP	table;			/* Key --> child map */
-  unsigned	var_mask;		/* Variables in this place */
-  trie_children_key *old_single;	/* Old single node */
-} trie_children_hashed;
+typedef uintptr_t trie_children;
 
-typedef union trie_children
-{ try_children_any     *any;
-  trie_children_key    *key;
-  trie_children_hashed *hash;
-} trie_children;
+#define TRIE_SINGLE_CHILD	0x1
+
+typedef struct trie_child
+{ word			key;		/* key of the child */
+  struct trie_node     *child;		/* the child or NULL if deleted */
+} trie_child;
+
+typedef struct trie_children_block
+{ unsigned		count;		/* entries in use (live and dead) */
+  unsigned		capacity;	/* allocated entries */
+  unsigned		dead;		/* entries with child == NULL */
+  unsigned		var_mask;	/* Variables in this place */
+  unsigned		attvar_mask;	/* Attributed variables in this place */
+  unsigned		index_bits;	/* 0: no index (linear search) */
+  struct trie_children_block *older;	/* Next lingering block */
+  trie_child		entries[];	/* [capacity], followed by the index */
+} trie_children_block;
+
+#define trie_has_children(n) ((n)->children != 0)
 
 
 #define TN_PRIMARY			0x0001	/* Primary value node */
@@ -81,6 +95,10 @@ typedef union trie_children
 #define TN_IDG_ADDED			0x0010	/* IDG recovery */
 #define TN_IDG_UNCONDITIONAL		0x0020	/* IDG: previous cond state */
 #define TN_IDG_AS_LAST			0x0040	/* IDG: answer subsumption node */
+#define TN_PINNED			0x0080	/* Never pruned (cached node) */
+#define TN_CHUNKED			0x0100	/* Allocated in a node chunk */
+#define TN_DELAYINFO			0x0200	/* Answer has delay info */
+#define TN_CHUNK_INDEX_SHIFT		16	/* Index in chunk: upper bits */
 #define TN_IDG_MASK \
 	(TN_IDG_DELETED|TN_IDG_ADDED| \
 	 TN_IDG_UNCONDITIONAL|TN_IDG_AS_LAST)
@@ -90,9 +108,6 @@ typedef struct trie_node
   word			key;
   struct trie_node     *parent;
   trie_children		children;
-  struct
-  { struct delay_info  *delayinfo;	/* can be unified with children */
-  } data;
   unsigned		flags;		/* TN_* */
 } trie_node;
 
@@ -103,6 +118,39 @@ typedef struct trie_node
 #define TRIE_ABOLISH_ON_COMPLETE 0x0010	/* Abolish the table when completed */
 #define TRIE_ISTRACKED  0x0020		/* Trie changes are tracked */
 #define TRIE_ISTABLE	0x0040		/* Trie is an answer table */
+#define TRIE_CONCURRENT	0x0080		/* Lock for concurrent writers */
+#define TRIE_DISCARDABLE 0x0100		/* Discard nodes after compilation */
+#define TRIE_DISCARDED	0x0200		/* Nodes discarded; clause has keys */
+#define TRIE_ISVARIANT	0x0400		/* Trie is a variant table */
+#define TRIE_LOCAL	0x0800		/* Private answer trie: local symbol */
+#define TRIE_ORPHANED	0x1000		/* TRIE_LOCAL: the symbol owns it */
+
+/* Nodes of tries without concurrent writers are allocated from chunks
+ * that are freed with the trie (see alloc_trie_node()).  The newest
+ * chunk is the first and holds the free list of deleted chunk nodes.
+ * All chunks are also in a global list that atom-GC scans for the
+ * atoms of the keys (see markAtomsInTries()).
+ */
+
+typedef struct trie_node_chunk
+{ struct trie_node_chunk *next;		/* Next (older) chunk of the trie */
+  trie_node	       *free;		/* Free nodes (newest chunk only) */
+  struct trie_node_chunk *gprev;	/* Global chunk list */
+  struct trie_node_chunk *gnext;
+  alloc_pool	       *pool;		/* Pool we are allocated from */
+  unsigned short	flags;		/* CHUNK_* */
+  unsigned short	scans;		/* # atom-GC scans that found it full */
+  unsigned		bytes;		/* Allocated bytes */
+  unsigned		size;		/* Allocated nodes */
+  unsigned		used;		/* Used nodes */
+  unsigned		live;		/* Nodes in use */
+  unsigned		nfree;		/* Free nodes (newest chunk only) */
+  unsigned		sweep_at;	/* Sweep at nfree (newest chunk only) */
+  trie_node		nodes[];
+} trie_node_chunk;
+
+#define CHUNK_ZOMBIE	 0x1		/* Freed during atom-GC */
+#define CHUNK_REGISTERED 0x2		/* The nodes registered their keys */
 
 typedef struct trie
 { atom_t		symbol;		/* The associated symbol */
@@ -116,13 +164,16 @@ typedef struct trie
 #endif
   trie_node		root;		/* the root node */
   indirect_table       *indirects;	/* indirect values */
-  void		      (*release_node)(struct trie *, trie_node *);
   alloc_pool	       *alloc_pool;	/* Node allocation pool */
   atom_t		clause;		/* Compiled representation */
+  union
+  { trie_children_block *lingering;	/* Replaced blocks (TRIE_CONCURRENT) */
+    trie_node_chunk     *chunks;	/* Node chunks (otherwise) */
+  } mem;
 #ifdef O_TRIE_STATS
   struct
-  { uint64_t		lookups;	/* trie_lookup */
-    uint64_t		gen_call;	/* trie_gen calls */
+  { unsigned int	lookups;	/* trie_lookup (wraps) */
+    unsigned int	gen_call;	/* trie_gen calls (wraps) */
 #ifdef O_PLMT
     unsigned int	deadlock;	/* times involved in a deadlock */
     unsigned int	wait;		/* times waited for */
@@ -142,16 +193,78 @@ typedef struct size_abstract
   size_t	size;			/* limit each term to size */
 } size_abstract;
 
+/* The value of a node in a private variant table is the answer trie,
+ * tagged such that it is neither an atom, a small integer nor a record.
+ * The trie gets its symbol (atom) only when Prolog needs a handle.  The
+ * node owns the symbol if there is one and else the trie itself (see
+ * release_trie_value() and value_trie()).
+ */
+
+#define TRIE_PTR_TAG	0x7
+
+static inline bool
+isTriePtrValue(word w)
+{ return (w&0x7) == TRIE_PTR_TAG;
+}
+
+static inline word
+triePtrValue(trie *t)
+{ return (word)t|TRIE_PTR_TAG;
+}
+
+static inline trie *
+valueTriePtr(word w)
+{ return (trie*)(w&~(word)0x7);
+}
+
+/* node_count and value_count only need atomic updates if there may be
+ * multiple writers.  Locked instructions are expensive when adding many
+ * new nodes as they wait for these stores to complete.
+ */
+#define TRIE_COUNT_INC(t, c) \
+	do { if ( ison(t, TRIE_CONCURRENT) ) ATOMIC_INC(&(t)->c); \
+	     else (t)->c++; \
+	   } while(0)
+#define TRIE_COUNT_DEC(t, c) \
+	do { if ( ison(t, TRIE_CONCURRENT) ) ATOMIC_DEC(&(t)->c); \
+	     else (t)->c--; \
+	   } while(0)
+
 #define acquire_trie(t) ATOMIC_INC(&(t)->references)
 #define release_trie(t) do { if ( ATOMIC_DEC(&(t)->references) == 0 ) \
 			       trie_clean(t); \
 			   } while(0)
 
+/* A compiled trie clause (see compile_trie()) is followed by a clause_ref
+ * that the VM uses as frame clause when running it from its clause
+ * reference (S_TRIE_GEN_COMPILED).
+ */
+
+static inline bool
+is_trie_clause(const struct clause *cl)
+{ return ( cl->predicate == GD->procedures.trie_gen_compiled3->definition ||
+	   cl->predicate == GD->procedures.trie_gen_compiled2->definition );
+}
+
+/* Offset of the clause_ref behind a clause with `code_bytes` bytes of
+ * code.  Rounded to a word, as the clause_ref holds a word.
+ */
+#define trieClauseCrefOffset(code_bytes) \
+	ROUND(offsetof(struct clause, codes) + (code_bytes), sizeof(word))
+
+static inline ClauseRef
+trie_clause_cref(struct clause *cl)
+{ return addPointer(cl, trieClauseCrefOffset(cl->code_size*sizeof(code)));
+}
+
 #define TRIE_ARGS	3
-#define TRIE_VAR_OFFSET (TRIE_ARGS+3)
+#define TRIE_VAR_OFFSET (TRIE_ARGS+4)
 
 #ifdef O_TRIE_STATS
-#define TRIE_STAT_INC(t, v) ATOMIC_INC(&t->stats.v)
+#define TRIE_STAT_INC(t, v) \
+	__atomic_store_n(&(t)->stats.v, \
+			 __atomic_load_n(&(t)->stats.v, __ATOMIC_RELAXED)+1, \
+			 __ATOMIC_RELAXED)
 #else
 #define TRIE_STAT_INC(t, v) ((void)0)
 #endif
@@ -160,10 +273,13 @@ typedef struct size_abstract
 #define TRIE_ABSTRACTED			  2
 #define TRIE_LOOKUP_CONTAINS_ATTVAR	-10
 #define TRIE_LOOKUP_CYCLIC		-11
+#define TRIE_LOOKUP_NOT_FLAT		-12	/* trie_lookup_flat() */
 
 #if USE_LD_MACROS
 #define	unify_trie_term(node, parent, term)					LDFUNC(unify_trie_term, node, parent, term)
 #define	trie_lookup_abstract(trie, root, nodep, k, add, abstract, vars)		LDFUNC(trie_lookup_abstract, trie, root, nodep, k, add, abstract, vars)
+#define	trie_lookup_flat(trie, startp, nodep, def, argv, vars)			LDFUNC(trie_lookup_flat, trie, startp, nodep, def, argv, vars)
+#define	trie_insert_flat(trie, nodep, k)					LDFUNC(trie_insert_flat, trie, nodep, k)
 #define	put_trie_value(t, node)							LDFUNC(put_trie_value, t, node)
 #define	set_trie_value(trie, node, value)					LDFUNC(set_trie_value, trie, node, value)
 #define	compile_trie(def, trie)							LDFUNC(compile_trie, def, trie)
@@ -173,8 +289,9 @@ typedef struct size_abstract
 
 void	initTries(void);
 trie *	trie_create(alloc_pool *pool);
-int	release_trie_ref(atom_t aref);
 void	trie_empty(trie *trie);
+bool	trie_empty_take(trie *trie,
+			void (*take)(word value, void *ctx), void *ctx);
 void	trie_clean(trie *trie);
 void	trie_delete(trie *trie, trie_node *node, int prune);
 void	prune_node(trie *trie, trie_node *n);
@@ -183,21 +300,30 @@ void	prune_trie(trie *trie, trie_node *root,
 trie *	get_trie_from_node(trie_node *node);
 bool	is_ground_trie_node(trie_node *node);
 bool	is_leaf_trie_node(trie_node *n);
+trie_node *trie_single_value_node(trie *trie);
 bool	get_trie(term_t t, trie **tp);
 bool	get_trie_noex(term_t t, trie **tp);
-bool	unify_trie_term(trie_node *node, trie_node **parent,
+bool	get_trie_nodes(term_t t, trie **tp);
+bool	trie_ensure_nodes(trie *trie);
+HOT bool	unify_trie_term(trie_node *node, trie_node **parent,
 			term_t term);
 int	trie_lookup_abstract(trie *trie,
 			     trie_node *root, trie_node **nodep, Word k,
 			     bool add, size_abstract *abstract,
 			     TmpBuffer vars);
+HOT int	trie_lookup_flat(trie *trie, trie_node **startp,
+			 trie_node **nodep,
+			 Definition def, Word argv, TmpBuffer vars);
+HOT int	trie_insert_flat(trie *trie, trie_node **nodep, Word k);
 bool	trie_error(int rc, term_t culprit);
 bool	trie_trie_error(int rc, trie *trie);
 atom_t	trie_symbol(trie *trie);
 trie *	symbol_trie(atom_t symbol);
+trie *	value_trie(word value);
+void	trie_release_value(word value);
 bool	put_trie_value(term_t t, trie_node *node);
 bool	set_trie_value(trie *trie, trie_node *node, term_t value);
-bool	set_trie_value_word(trie *trie, trie_node *node, word val);
+HOT bool	set_trie_value_word(trie *trie, trie_node *node, word val);
 foreign_t trie_gen_raw(
 	      trie *trie, trie_node *root,
 	      term_t Key, term_t Value,
@@ -212,7 +338,11 @@ foreign_t trie_gen(term_t Trie, term_t Root, term_t Key, term_t Value,
 void *	map_trie_node(trie_node *n,
 		      void* (*map)(trie_node *n, void *ctx), void *ctx);
 atom_t	compile_trie(Definition def, trie *trie);
+void	markAtomsInTries(void);
+size_t	trie_table_size(trie *atrie);
+void	freeZombieTrieChunks(void);
 void	trie_discard_clause(trie *trie);
+void	trie_discard_nodes(trie *trie);
 
 #undef LDFUNC_DECLARATIONS
 
@@ -225,6 +355,17 @@ void	trie_discard_clause(trie *trie);
 #define trie_gen(Trie, Root, Key, Value, Data, unify_func, ctx, PL__ctx) \
 	trie_gen(Trie, Root, Key, Value, Data, LDFUNC_REF(unify_func), ctx, PL__ctx)
 #endif
+
+/* Discard the nodes of a compiled trie if this is allowed.  See
+ * trie_discard_nodes().
+ */
+
+static inline void
+trie_maybe_discard_nodes(trie *trie)
+{ if ( unlikely(ison(trie, TRIE_DISCARDABLE)) &&
+       trie->clause && !trie->references )
+    trie_discard_nodes(trie);
+}
 
 #define trie_lookup(trie, node, nodep, k, add, vars) LDFUNC(trie_lookup, trie, node, nodep, k, add, vars)
 static inline int

@@ -88,6 +88,7 @@ typedef struct zipper
 
 extern int rc_errno;
 
+COMMON(void)		initZip(void);
 COMMON(zipper *)	zip_open_archive(const char *file, int flags);
 COMMON(zipper *)	zip_open_archive_mem(const unsigned char *mem,
 					     size_t mem_size, int flags);

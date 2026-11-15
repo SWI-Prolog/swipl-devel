@@ -2,8 +2,8 @@
 
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2025, University of Amsterdam
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2011-2026, University of Amsterdam
 			      VU University Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -41,6 +41,7 @@ source should also use format() to produce error messages, etc.
 
 #include "pl-ctype.h"
 #include "pl-utf8.h"
+#include "pl-stream.h"
 #include "../pl-arith.h"
 #include "../pl-proc.h"
 #include "../pl-fli.h"
@@ -63,12 +64,12 @@ typedef foreign_t (*Func1)(term_t a1);
 struct rubber
 { size_t where;				/* where is rubber in output */
   size_t size;				/* how big should it be */
-  pl_wchar_t pad;			/* padding character */
+  int pad;				/* padding character (code point) */
 };
 
 typedef struct
 { IOSTREAM *out;			/* our output stream */
-  int column;				/* current column */
+  IOPOS pos;				/* position; pos.linepos is the column */
   int tab_stop;				/* Last tab stop */
   tmp_buffer buffer;			/* bin for characters with tabs */
   size_t buffered;			/* characters in buffer */
@@ -79,19 +80,29 @@ typedef struct
 static char *	formatFloat(PL_locale *locale, int how, int arg,
 			    Number f, Buffer out);
 static void	distribute_rubber(struct rubber *, int, int);
-static WUNUSED int emit_rubber(format_state *state);
+static WUNUSED bool emit_rubber(format_state *state);
 
 #define BUFSIZE		1024
 #define DEFAULT		INT_MIN
+#define MAX_PRECISION	1000000	/* Max digits for ~Nd, ~Ne, ~Nf, ~Ng */
+#define MAX_COLUMN	1000000	/* Max for ~Nc, ~Nn, ~Ns, ~N| and ~N+ */
 #define SHIFT		{ argc--; argv++; }
 #define NEED_ARG	{ if ( argc <= 0 ) \
 			  { FMT_ERROR("not enough arguments"); \
 			  } \
 			}
-#define FMT_ERROR(fmt)	return PL_error(NULL, 0, NULL, ERR_FORMAT, fmt)
-#define FMT_ARG(s, a)	return PL_error(NULL, 0, NULL, ERR_FORMAT_ARG, s, a)
+/* Error exits for do_format().  These jump to `out` to clean up */
+#define FMT_ERROR(fmt) \
+	do { rc = PL_error(NULL, 0, NULL, ERR_FORMAT, fmt); \
+	     goto out; \
+	   } while(0)
+#define FMT_ARG(s, a) \
+	do { rc = PL_error(NULL, 0, NULL, ERR_FORMAT_ARG, s, a); \
+	     goto out; \
+	   } while(0)
 #define FMT_ARGC(c, a)  do { char f[2] = {(char)c}; FMT_ARG(f, a); } while(0)
-#define FMT_EXEPTION()	return false
+#define FMT_ARG_MAX(max, msg) \
+	do { if ( arg != DEFAULT && arg > (max) ) FMT_ERROR(msg); } while(0)
 
 
 static PL_locale prolog_locale =
@@ -100,26 +111,18 @@ static PL_locale prolog_locale =
 };
 
 
+/* The column is maintained by the stream layer's Supdatepos(), so that
+ * format/2 column stops agree with line_position/2 on tabs, wide
+ * characters and ANSI escape sequences.
+ */
+
+#define COLUMN(state) ((state)->pos.linepos)
+
 static inline void
 update_column(format_state *state, int c)
-{ if ( likely(c >= ' ') )
-  { state->column++;
-  } else
-  { switch(c)
-    { case '\n':
-	state->column = 0;
-	state->tab_stop = 0;
-	break;
-      case '\t':
-	state->column = (state->column+1)|0x7;
-      case '\b':
-	if ( likely(state->column>0) )
-	  state->column--;
-	break;
-      default:
-	state->column++;
-    }
-  }
+{ Supdatepos(&state->pos, c);
+  if ( c == '\n' )
+    state->tab_stop = 0;
 }
 
 
@@ -160,7 +163,7 @@ Emit ASCII 0-terminated strings resulting from sprintf() on numeric
 arguments.  No fuzz with wide characters here.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static WUNUSED int
+static WUNUSED bool
 outstring(format_state *state, const char *s, size_t len)
 { const char *q;
   const char *e = &s[len];
@@ -439,13 +442,13 @@ typedef struct sub_state
   IOSTREAM     *old_stream;
 } sub_state;
 
-static int
+static bool
 prepare_sub_format(sub_state *state, format_state *fstate, IOSTREAM *fd)
 { state->fstate = fstate;
 
   if ( !fstate->pending_rubber &&
        fd->position &&
-       fd->position->linepos == fstate->column )
+       fd->position->linepos == COLUMN(fstate) )
   { state->old_stream = Scurout;
 
     Scurout = fd;
@@ -462,21 +465,21 @@ prepare_sub_format(sub_state *state, format_state *fstate, IOSTREAM *fd)
   return true;
 }
 
-static int
-end_sub_format(sub_state *state, int rc)
-{ int lp = Scurout->position->linepos;
+static bool
+end_sub_format(sub_state *state, bool rc)
+{ IOPOS *sub = Scurout->position;
+  int lp = sub->linepos;
 
   if ( state->old_stream )
-  { Scurout = state->old_stream;
-
-    if ( rc )
-      state->fstate->column = lp;
+  { if ( rc )
+      state->fstate->pos = *sub;	/* also takes the escape state */
+    Scurout = state->old_stream;
   } else
   { toldString();
     if ( rc )
-    { int c0 = state->fstate->column;
+    { int c0 = COLUMN(state->fstate);
       rc = oututf8(state->fstate, state->str, state->bufsize);
-      state->fstate->column = c0 + lp;
+      COLUMN(state->fstate) = c0 + lp;
     }
     if ( state->str != state->buf )
       free(state->str);
@@ -516,7 +519,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 { GET_LD
   format_state state;			/* complete state */
   unsigned int here = 0;
-  int rc = true;
+  bool rc = true;
 
   state.out = fd;
   state.tab_stop = 0;
@@ -525,9 +528,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
   state.buffered = 0;
 
   if ( fd->position )
-    state.column = fd->position->linepos;
+    state.pos = *fd->position;		/* also takes the escape state */
   else
-    state.column = 0;
+    memset(&state.pos, 0, sizeof(state.pos));
 
   while(here < fmt->length)
   { int c = get_chr_from_text(fmt, here);
@@ -557,12 +560,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 	      if ( isDigitW(c) )
 	      { int dw = c - '0';
-		int arg2 = arg*10 + dw;
 
-		if ( (arg2 - dw)/10 != arg )	/* see mul64() in pl-arith.c */
+		if ( arg > (INT_MAX - dw)/10 )
 		{ FMT_ERROR("argument overflow");
 		}
-		arg = arg2;
+		arg = arg*10 + dw;
 		here++;
 	      } else
 	      { if ( neg )
@@ -588,8 +590,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	    AR_END();
 	    c = get_chr_from_text(fmt, ++here);
 	  } else if ( c == '`' && here < fmt->length )
-	  { arg = get_chr_from_text(fmt, ++here);
-	    c = get_chr_from_text(fmt, ++here);
+	  { size_t u = ++here;		/* may be a surrogate pair */
+
+	    arg = text_next_code(fmt, &u);
+	    here = (unsigned int)u;
+	    c = get_chr_from_text(fmt, here);
 	  }
 
 	  if ( c == ':' )
@@ -603,17 +608,16 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	  { size_t arity;
 	    term_t av;
 	    sub_state sstate;
-	    int i;
 
 	    PL_predicate_info(proc, NULL, &arity, NULL);
-	    av = PL_new_term_refs((int)arity);
+	    av = PL_new_term_refs(arity);
 
 	    if ( arg == DEFAULT )
 	      PL_put_atom(av+0, ATOM_default);
 	    else
 	      PL_put_integer(av+0, arg);
 
-	    for(i=1; i < arity; i++)
+	    for(size_t i=1; i < arity; i++)
 	    { NEED_ARG;
 	      PL_put_term(av+i, argv);
 	      SHIFT;
@@ -646,8 +650,9 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	      case 'c':			/* ~c: character code */
 		{ int chr;
 
+		  FMT_ARG_MAX(MAX_COLUMN, "repeat count too large");
 		  NEED_ARG;
-		  if ( PL_get_integer(argv, &chr) && chr >= 0 )
+		  if ( PL_get_integer(argv, &chr) && VALID_CODE_POINT(chr) )
 		  { int times = (arg == DEFAULT ? 1 : arg);
 
 		    SHIFT;
@@ -718,6 +723,11 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		  char *si;
 		  AR_CTX
 
+		  if ( c == 'd' || c == 'D' )
+		    FMT_ARG_MAX(MAX_PRECISION, "precision too large");
+		  else if ( c == 'I' && arg != DEFAULT &&
+			    (arg < 0 || arg >= CHAR_MAX) )
+		    FMT_ERROR("invalid digit group size"); /* CHAR_MAX: none */
 		  NEED_ARG;
 		  AR_BEGIN();
 		  if ( !get_int_expression(argv, &i) )
@@ -789,6 +799,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	      case 's':			/* string */
 		{ PL_chars_t txt;
 
+		  FMT_ARG_MAX(MAX_COLUMN, "column too large");
 		  NEED_ARG;
 		  if ( !PL_get_text(argv, &txt, CVT_ATOM|CVT_LIST|CVT_STRING) )
 		    FMT_ARG("s", argv);
@@ -855,7 +866,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 		 if ( !(rc=prepare_sub_format(&sstate, &state, fd)) )
 		   goto out;
-		 rc = (int)pl_write_term(argv, argv+1);
+		 rc = pl_write_term3(0, argv, argv+1);
 		 rc = end_sub_format(&sstate, rc);
 
 		 if ( !rc )
@@ -902,7 +913,8 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		  break;
 		}
 	      case 'n':			/* \n */
-		{ if ( arg == DEFAULT )
+		{ FMT_ARG_MAX(MAX_COLUMN, "repeat count too large");
+		  if ( arg == DEFAULT )
 		    arg = 1;
 		  while( arg-- > 0 )
 		  { rc = outchr(&state, '\n');
@@ -913,7 +925,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		  break;
 		}
 	      case 'N':			/* \n if not on newline */
-		if ( state.column != 0 )
+		if ( COLUMN(&state) != 0 )
 		{ rc = outchr(&state, '\n');
 		  if ( !rc )
 		    goto out;
@@ -926,8 +938,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 		  state.rub[state.pending_rubber].where = state.buffered;
 		  state.rub[state.pending_rubber].pad   =
-					(arg == DEFAULT ? (pl_wchar_t)' '
-							: (pl_wchar_t)arg);
+					(arg == DEFAULT ? ' ' : arg);
 		  state.rub[state.pending_rubber].size = 0;
 		  state.pending_rubber++;
 		  here++;
@@ -938,14 +949,18 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		  int nl_and_reindent;
 
 		  if ( arg == DEFAULT )
-		    arg = state.column;
+		    arg = COLUMN(&state);
 		  /*FALLTHROUGH*/
 	      case '+':			/* tab relative */
 		  if ( arg == DEFAULT )
 		    arg = 8;
+		  if ( arg > MAX_COLUMN )
+		    FMT_ERROR("column too large");
 		  stop = (c == '+' ? state.tab_stop + arg : arg);
+		  if ( stop > MAX_COLUMN )
+		    FMT_ERROR("column too large");
 
-		  if ( stop < state.column && mod_colon )
+		  if ( stop < COLUMN(&state) && mod_colon )
 		    nl_and_reindent = state.pending_rubber ?
 						state.rub[state.pending_rubber-1].pad : ' ';
 		  else
@@ -958,7 +973,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 		  }
 		  distribute_rubber(state.rub,
 				    state.pending_rubber,
-				    stop - state.column);
+				    stop - COLUMN(&state));
 		  if ( !(rc=emit_rubber(&state)) )
 		    goto out;
 
@@ -975,12 +990,12 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 
 		    distribute_rubber(state.rub,
 				      state.pending_rubber,
-				      stop - state.column);
+				      stop - COLUMN(&state));
 		    if ( !(rc=emit_rubber(&state)) )
 		      goto out;
 		  }
 
-		  state.column = state.tab_stop = stop;
+		  COLUMN(&state) = state.tab_stop = stop;
 		  here++;
 		  break;
 		}
@@ -988,19 +1003,22 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
 	      { term_t ex = PL_new_term_ref();
 
 		PL_put_atom(ex, codeToAtom(c));
-		return PL_error("format", 2, NULL, ERR_EXISTENCE,
-				PL_new_atom("format_character"),
-				ex);
+		rc = PL_error("format", 2, NULL, ERR_EXISTENCE,
+			      PL_new_atom("format_character"),
+			      ex);
+		goto out;
 	      }
 	    }
 	  }
 	  break;			/* the '~' switch */
 	}
       default:
-	{ rc = outchr(&state, c);
+	{ size_t u = here;		/* may be a surrogate pair */
+
+	  rc = outchr(&state, text_next_code(fmt, &u));
 	  if ( !rc )
 	    goto out;
-	  here++;
+	  here = (unsigned int)u;
 	  break;
 	}
     }
@@ -1014,6 +1032,7 @@ do_format(IOSTREAM *fd, PL_chars_t *fmt, size_t argc, term_t argv, Module m)
     FMT_ERROR("too many arguments");
 
 out:
+  discardBuffer(&state.buffer);		/* pending ~t output on error */
   return rc;
 }
 
@@ -1038,7 +1057,7 @@ distribute_rubber(struct rubber *r, int rn, int space)
 }
 
 
-static WUNUSED int
+static WUNUSED bool
 emit_rubber(format_state *state)
 { const char *s = baseBuffer(&state->buffer, char);
   const char *e = &s[entriesBuffer(&state->buffer, char)];
@@ -1306,19 +1325,7 @@ ths_to_utf8(char *u8, const wchar_t *s, size_t len)
 }
 
 
-static int
-same_decimal_point(PL_locale *l1, PL_locale *l2)
-{ if ( l1->decimal_point && l2->decimal_point &&
-       wcscmp(l1->decimal_point, l2->decimal_point) == 0 )
-    return true;
-  if ( !l1->decimal_point && !l2->decimal_point )
-    return true;
-
-  return false;
-}
-
-
-static int
+static bool
 utf8_dp(PL_locale *l, char *s, int *len)
 { if ( l->decimal_point )
   { if ( !ths_to_utf8(s, l->decimal_point, 20) )
@@ -1334,53 +1341,73 @@ utf8_dp(PL_locale *l, char *s, int *len)
 }
 
 
-/* localizeDecimalPoint() replaces the decimal point as entered by the
-   local sensitive print functions by the one in the specified locale.
-   This is overly complicated. Needs more testing, in particular for
-   locales with (in UTF-8) multibyte decimal points.
+/* find_decimal_point() returns a pointer to the decimal separator in
+   the number held in `s', filling *len with its length in bytes, or
+   NULL if the number has no fractional part.
+
+   We must not assume _which_ separator the number was printed with:
+   the C library uses the process LC_NUMERIC locale, which SWI-Prolog
+   deliberately leaves alone (issue #1093), while the bignum paths
+   above insert a separator of their own.  So we simply locate it: the
+   buffer holds [-]<digits>[SEP<digits>][(e|E)[+|-]<digits>] and SEP is
+   whatever non-digit run sits between the two digit sequences.  This
+   also deals with "inf" and "nan", which have no leading digits.
 */
 
-static int
+static char *
+find_decimal_point(char *s, size_t *len)
+{ char *e, *p;
+
+  if ( *s == '-' || *s == '+' )
+    s++;
+  for(e=s; isDigit(*e); e++)
+    ;
+  if ( e == s )				/* inf, nan, ... */
+    return NULL;
+  for(p=e; *p && !isDigit(*p) && *p != 'e' && *p != 'E'; p++)
+    ;
+  if ( p == e || !isDigit(*p) )		/* no separator or no fraction */
+    return NULL;
+
+  *len = (size_t)(p-e);
+  return e;
+}
+
+
+/* localizeDecimalPoint() replaces the decimal point as entered by the
+   number printing code by the one in the specified locale.
+*/
+
+static bool
 localizeDecimalPoint(PL_locale *locale, Buffer b)
-{ if ( locale == GD->locale.default_locale ||
-       same_decimal_point(GD->locale.default_locale, locale) )
+{ char dp[20]; int dplen;
+  size_t seplen;
+  char *sep;
+
+  if ( !(sep=find_decimal_point(baseBuffer(b, char), &seplen)) )
     return true;
 
-  if ( locale->decimal_point && locale->decimal_point[0] )
-  { char *s = baseBuffer(b, char);
-    char *e;
-    char dp[20];  int dplen;
-    char ddp[20]; int ddplen;
+  if ( !utf8_dp(locale, dp, &dplen) )
+    return false;
 
-    if ( !utf8_dp(locale, dp, &dplen) ||
-	 !utf8_dp(GD->locale.default_locale, ddp, &ddplen) )
-      return false;
+  if ( (size_t)dplen == seplen )
+  { memcpy(sep, dp, seplen);
+  } else
+  { char *ob = baseBuffer(b, char);
 
-    if ( *s == '-' )
-      s++;
-    for(e=s; *e && isDigit(*e); e++)
-      ;
+    if ( (size_t)dplen > seplen && !growBuffer(b, (size_t)dplen-seplen) )
+      return PL_no_memory();
+    sep += baseBuffer(b, char) - ob;
 
-    if ( strncmp(e, ddp, ddplen) == 0 )
-    { if ( dplen == ddplen )
-      { memcpy(e, dp, dplen);
-      } else
-      { char *ob = baseBuffer(b, char);
-	if ( dplen > ddplen && !growBuffer(b, dplen-ddplen) )
-	  return PL_no_memory();
-	e += baseBuffer(b, char) - ob;
-
-	memmove(&e[dplen-ddplen], e, strlen(e)+1);
-	memcpy(e, dp, dplen);
-      }
-    }
+    memmove(&sep[dplen], &sep[seplen], strlen(&sep[seplen])+1);
+    memcpy(sep, dp, dplen);
   }
 
   return true;
 }
 
 
-static int
+static bool
 groupDigits(PL_locale *locale, Buffer b)
 { if ( locale->thousands_sep && locale->thousands_sep[0] &&
        locale->grouping && locale->grouping[0] )
@@ -1459,6 +1486,9 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     PL_put_integer(a, arg);
     PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_not_less_than_zero, a);
     return NULL;
+  } else if ( arg > MAX_PRECISION )
+  { PL_error(NULL, 0, NULL, ERR_FORMAT, "precision too large");
+    return NULL;
   }
 
   if ( use_h && !promoteToFloatNumber(f) )
@@ -1525,7 +1555,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     { char tmp[12];
       size_t size;
       size_t written;
-      int fbits;
+      mp_bitcnt_t fbits;
       size_t digits;
       size_t padding;
 
@@ -1588,10 +1618,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 
 	  if (arg)
 	  { memmove(out->base+written-(arg-1), out->base+written-arg, arg+1);
-	    if ( locale->decimal_point && locale->decimal_point[0] )
-	      *(out->base+written-arg) = (char)locale->decimal_point[0];
-	    else
-	      *(out->base+written-arg) = '.';
+	    *(out->base+written-arg) = '.';	/* localizeDecimalPoint() */
 	    written++;
 	  }
 
@@ -1702,14 +1729,21 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  { case 'g':
 	    case 'G':
 	    { mpz_t iv;
+	      size_t ibits;
+
 	      mpz_init(iv);
 	      mpz_set_q(iv, f->value.mpq);
-	      fbits = (int)mpz_sizeinbase(iv, 2) + 4*arg;
+	      ibits = mpz_sizeinbase(iv, 2);
 	      mpz_clear(iv);
+	      if ( ibits > (mp_bitcnt_t)-1 - arg*4 )
+	      { PL_error(NULL, 0, NULL, ERR_FORMAT, "precision too large");
+		return NULL;
+	      }
+	      fbits = ibits + arg*4;
 	      break;
 	    }
 	    default:
-	      fbits = 4*arg;
+	      fbits = arg*4;
 	  }
 	  mpf_init2(mpf, fbits);
 	  mpf_set_q(mpf, f->value.mpq);
@@ -1745,18 +1779,27 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
     case V_MPQ:
     { bf_flags_t flags;
       int upcase;
+      limb_t digits;
       limb_t prec = ((double)(arg+2) * log(10)/log(2));
 
       if ( how == 'f' || how == 'F' ) /* we must compensate for the integer */
       { mpz_t i;
+	size_t ibits;
+
 	mpz_init(i);
 	mpz_set_q(i, f->value.mpq);
-	prec += mpz_sizeinbase(i, 2);
+	ibits = mpz_sizeinbase(i, 2);
 	mpz_clear(i);
+	if ( ibits > BF_PREC_MAX - prec )
+	{ PL_error(NULL, 0, NULL, ERR_FORMAT, "precision too large");
+	  return NULL;
+	}
+	prec += ibits;
       }
       mpz_init(n);
       bf_div(n, mpq_numref(f->value.mpq), mpq_denref(f->value.mpq), prec, BF_RNDN);
     bf_print:
+      digits = arg;
       upcase = false;
       switch(how)
       { case 'f':
@@ -1766,7 +1809,7 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	case 'E':
 	  upcase = true;
 	case 'e':
-	  arg++;		/* LibBF counts total, we after . */
+	  digits++;		/* LibBF counts total, we after . */
 	  flags = BF_FTOA_FORCE_EXP|BF_FTOA_FORMAT_FIXED;
 	  break;
 	case 'G':
@@ -1779,9 +1822,12 @@ formatFloat(PL_locale *locale, int how, int arg, Number f, Buffer out)
 	  assert(0);
       }
       size_t size;
-      char *s = bf_ftoa(&size, n, 10, arg, BF_RNDN|BF_FTOA_PL_QUIRKS|flags);
-      if ( !growBuffer(out, size+1) )
-      { PL_no_memory();
+      char *s = bf_ftoa(&size, n, 10, digits, BF_RNDN|BF_FTOA_PL_QUIRKS|flags);
+      if ( !s || !growBuffer(out, size+1) )
+      { if ( s )
+	  bf_free(n->ctx, s);
+	mpz_clear(n);
+	PL_no_memory();
 	return NULL;
       }
       strcpy(baseBuffer(out, char), s);

@@ -56,7 +56,8 @@
 
 bool		considerGarbageCollect(Stack s);
 void		call_tune_gc_hook(void);
-boolex_t	garbageCollect(gc_reason_t reason);
+bool		print_gc_trace(void);
+COLD boolex_t	garbageCollect(gc_reason_t reason);
 foreign_t	pl_garbage_collect(term_t d);
 gc_stat *	last_gc_stats(gc_stats *stats);
 Word		findGRef(int n);
@@ -65,13 +66,22 @@ boolex_t	shiftTightStacks(void);
 boolex_t	growStacks(size_t l, size_t g, size_t t);
 size_t		nextStackSize(Stack s, size_t minfree);
 bool		makeMoreStackSpace(boolex_t overflow, int flags);
-boolex_t	f_ensureStackSpace(size_t gcells, size_t tcells,
+COLD boolex_t	f_ensureStackSpace(size_t gcells, size_t tcells,
 				   int flags);
-boolex_t	growLocalSpace(size_t bytes, int flags);
+COLD boolex_t	growLocalSpace(size_t bytes, int flags);
 void		clearUninitialisedVarsFrame(LocalFrame, Code);
 void		clearLocalVariablesFrame(LocalFrame fr);
 void		setLTopInBody(void);
+#ifdef O_DEBUG
+void		checkGCWalk(void);
+#endif
 word		check_foreign(void);	/* DEBUG(CHK_SECURE...) stuff */
+/* Context for markAtomsOnStacks().  NULL is markAtom(), not safe. */
+typedef struct atom_mark_ctx
+{ atom_mark_func mark;			/* markAtom() or markLocalAtom() */
+  bool		safe;			/* called by ld itself at a safe point */
+} atom_mark_ctx;
+
 void		markAtomsOnStacks(PL_local_data_t *ld, void *ctx);
 void		markPredicatesInEnvironments(PL_local_data_t *ld,
 					     void *ctx);
@@ -101,7 +111,7 @@ void		unblockGC(int flags);	/* re-allow garbage collect */
 #define ensureLocalSpace_ex(bytes) LDFUNC(ensureLocalSpace_ex, bytes)
 static inline bool
 ensureLocalSpace_ex(DECL_LD size_t bytes)
-{ int rc;
+{ boolex_t rc;
 
   if ( likely(hasLocalSpace(bytes)) )
     return true;
@@ -117,7 +127,7 @@ ensureLocalSpace_ex(DECL_LD size_t bytes)
 
 static inline bool
 ensureStackSpace_ex(DECL_LD size_t gcells, size_t tcells, int flags)
-{ int rc;
+{ boolex_t rc;
 
   if ( hasStackSpace(gcells, tcells) )
     return true;

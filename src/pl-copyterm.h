@@ -38,13 +38,15 @@
 #define _PL_COPYTERM_H
 
 typedef struct fastheap_term
-{ size_t data_len;
-  size_t *relocations;				/* Relocation points */
+{ size_t data_len;				/* total cells */
+  size_t term_len;				/* tagged cells; then indirects */
+  unsigned int flags;				/* FH_* */
   Word data;					/* the actual data */
 } fastheap_term;
 
 #if USE_LD_MACROS
 #define	term_to_fastheap(t)			LDFUNC(term_to_fastheap, t)
+#define	term_to_fastheap_ex(t, local)		LDFUNC(term_to_fastheap_ex, t, local)
 #define	put_fastheap(fht, t)			LDFUNC(put_fastheap, fht, t)
 #define	duplicate_term(in, copy, nshare, share) \
 	LDFUNC(duplicate_term, in, copy, nshare, share)
@@ -55,8 +57,9 @@ typedef struct fastheap_term
 #define LDFUNC_DECLARATIONS
 
 fastheap_term*	term_to_fastheap(term_t t);
+fastheap_term*	term_to_fastheap_ex(term_t t, bool local);
 void		free_fastheap(fastheap_term *fht);
-bool		put_fastheap(fastheap_term *fht, term_t t);
+HOT bool	put_fastheap(fastheap_term *fht, term_t t);
 bool		duplicate_term(term_t in, term_t copy,
 			       size_t nshare, term_t share);
 bool		size_abstract_term(term_t in, term_t copy,

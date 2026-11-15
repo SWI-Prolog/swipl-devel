@@ -96,7 +96,7 @@ dde_error_message(int errn)
 }
 
 
-static int
+static bool
 dde_warning(const char *cmd)
 { const char *err = dde_error_message(-1);
 
@@ -169,7 +169,7 @@ unify_hdata(term_t t, HDDEDATA data)
 }
 
 
-static int
+static bool
 get_hsz(DWORD ddeInst, term_t data, HSZ *rval)
 { wchar_t *s;
   size_t len;
@@ -496,7 +496,7 @@ out:
 }
 
 
-static int
+static bool
 get_conv_handle(term_t handle, int *theh)
 { GET_LD
   int h;

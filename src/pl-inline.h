@@ -110,7 +110,7 @@ __builtin_popcount(size_t sz)
 #endif
 }
 
-static inline int
+static inline bool
 __builtin_saddll_overflow(long long int a, long long int b, long long int *res)
 { long long int r = a + b;
   if ( (r > 0 && a < 0 && b < 0) ||
@@ -315,6 +315,48 @@ COMPARE_AND_SWAP_ATOM(atom_t *at, atom_t from, atom_t to)
 #define COMPARE_AND_SWAP_ATOM(ptr,o,n)	COMPARE_AND_SWAP(ptr,o,n)
 #endif
 
+/* POPCOUNT64(i) is the number of set bits in i */
+
+static inline unsigned int
+POPCOUNT64(uint64_t i)
+{
+#if defined(_MSC_VER)
+#if SIZEOF_VOIDP == 8
+  return (unsigned int)__popcnt64(i);
+#else
+  return (unsigned int)(__popcnt((unsigned int)i) +
+			__popcnt((unsigned int)(i>>32)));
+#endif
+#else
+  return (unsigned int)__builtin_popcountll(i);
+#endif
+}
+
+/* LSB64(i) is the index of the lowest set bit of i.  i must not be 0. */
+
+static inline unsigned int
+LSB64(uint64_t i)
+{
+#if defined(_MSC_VER) && SIZEOF_VOIDP == 8
+  unsigned long index;
+  _BitScanForward64(&index, i);
+  return (unsigned int)index;
+#elif defined(HAVE__BUILTIN_CLZ)	/* implies __builtin_ctzll() */
+  return (unsigned int)__builtin_ctzll(i);
+#else
+  unsigned int j = 0;
+
+  if ( !(i & 0xffffffff) ) { i >>= 32; j += 32; }
+  if ( !(i &     0xffff) ) { i >>= 16; j += 16; }
+  if ( !(i &       0xff) ) { i >>=  8; j +=  8; }
+  if ( !(i &        0xf) ) { i >>=  4; j +=  4; }
+  if ( !(i &        0x3) ) { i >>=  2; j +=  2; }
+  if ( !(i &        0x1) ) j++;
+
+  return j;
+#endif
+}
+
 #ifndef HAVE_MSB
 #define HAVE_MSB 1
 static inline int
@@ -357,6 +399,26 @@ MSB64(int64_t i)
 #define MEMORY_BARRIER() (void)0
 #define MEMORY_ACQUIRE() (void)0
 #define MEMORY_RELEASE() (void)0
+#endif
+
+/* Hazard pointers.  A thread announces it uses an object by storing it
+   in a hazard slot that is scanned by the thread that wants to free the
+   object.  The store must be visible before the announcing thread reads
+   the object, and the freeing thread must make the object unreachable
+   and execute MEMORY_BARRIER() before scanning the hazard slots.  The
+   announcing thread must re-check the object is still reachable after
+   publishing.
+*/
+
+#ifdef HAVE_GCC_ATOMIC
+#define PUBLISH_HAZARD(slot, val) \
+	__atomic_store_n(&(slot), (val), __ATOMIC_SEQ_CST)
+#define LOAD_SEQ_CST(var) \
+	__atomic_load_n(&(var), __ATOMIC_SEQ_CST)
+#else
+#define PUBLISH_HAZARD(slot, val) \
+	do { (slot) = (val); MEMORY_BARRIER(); } while(0)
+#define LOAD_SEQ_CST(var) (var)
 #endif
 
 #ifndef max
@@ -517,9 +579,9 @@ popcount_bitvector(const bit_vector *v)
 		 *	     MISC STUFF		*
 		 *******************************/
 
-static int	  same_type_numbers(Number n1, Number n2) WUNUSED;
+static bool	  same_type_numbers(Number n1, Number n2) WUNUSED;
 
-static inline int
+static inline bool
 same_type_numbers(Number n1, Number n2)
 { if ( n1->type == n2->type )
     return true;
@@ -533,6 +595,21 @@ value need not be trailed.
 Note that the local stack is always _above_ the global stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* gen_assign() writes w into p without trailing.  This is used to
+   fill cells of a term under construction.  If GC was called between
+   allocating the cell and filling it, the cell may have been promoted
+   to the old generation and we must tell the GC about the old-to-young
+   pointer we create.  See doc/gc-generational.md.
+*/
+
+#define gen_assign(p, w) LDFUNC(gen_assign, p, w)
+static inline void
+gen_assign(DECL_LD Word p, word w)
+{ if ( unlikely(p < LD->gen_bar) )
+    gen_remember(p);
+  *p = w;
+}
+
 #define Trail(p, v) LDFUNC(Trail, p, v)
 static inline void
 Trail(DECL_LD Word p, word v)
@@ -540,20 +617,20 @@ Trail(DECL_LD Word p, word v)
 
   if ( (void*)p >= (void*)lBase || p < LD->mark_bar )
     (tTop++)->address = p;
+  else if ( unlikely(p < LD->gen_bar) )	/* old generation */
+    gen_remember(p);
   *p = v;
 }
 
 
 static inline word
 consPtr(void *p, word ts)
-{ word v = ptr2word(p);
-
-  return (v<<LMASK_BITS)|ts;
+{ return consAddr(ptr2word(p), ts);
 }
 
 static inline Word
 valPtr(word w)
-{ return word2ptr(Word, w>>LMASK_BITS);
+{ return word2ptr(Word, valAddr(w));
 }
 
 #if ALIGNOF_DOUBLE == ALIGNOF_VOIDP
@@ -617,6 +694,22 @@ is_signalled(DECL_LD)
   }
 
   return !!msk;
+}
+
+/* True if there are pending signals that handleSignals() can process
+ * now.  Inside a critical region (sig_atomic/1, cleanup handlers)
+ * signals remain pending, so waiting must not be interrupted for them.
+ */
+
+#define is_signalled_unblocked(_) LDFUNC(is_signalled_unblocked, _)
+static inline bool
+is_signalled_unblocked(DECL_LD)
+{ return ( is_signalled() &&
+	   ( !LD->critical
+#ifndef __unix__
+	     || LD->signal.forced == SIGINT
+#endif
+	   ) );
 }
 
 #define register_attvar(gp) LDFUNC(register_attvar, gp)
@@ -759,15 +852,15 @@ clause indexing. ptr is the start of the  data. It is word aligned and n
 is the size in bytes, a multiple of sizeof(word). If the indirect is too
 long we has based on the start, end and length.
 
-The hash should not conflict  with   a  functor_t  (hence the STG_GLOBAL
-mask) and may never be 0.
+The hash should not conflict  with   a  functor_t  (hence
+nonFunctorKey()) and may never be 0.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define KEY_INDEX_MAX 4
 
 static inline word
 clean_index_key(word key)
-{ key &= ~((word)STG_GLOBAL);
+{ key = nonFunctorKey(key);
   if ( !key ) key = 1;
   return key;
 }
@@ -803,9 +896,18 @@ murmur_key(const void *ptr, size_t n)
 #define acquire_ldata(info) LDFUNC(acquire_ldata, info)
 static inline PL_local_data_t *
 acquire_ldata(DECL_LD PL_thread_info_t *info)
-{ PL_local_data_t *ld = info->thread_data;
-  LD->thread.info->access.ldata = ld;
-  if ( ld && ld->magic == LD_MAGIC )
+{ PL_local_data_t *ld;
+
+  /* Publish the hazard and verify info->thread_data still holds `ld`
+     before using it.  freePrologThread() clears info->thread_data
+     before maybe_free_local_data() scans the hazards.
+  */
+  do
+  { ld = LOAD_SEQ_CST(info->thread_data);
+    PUBLISH_HAZARD(LD->thread.info->access.ldata, ld);
+  } while ( ld != LOAD_SEQ_CST(info->thread_data) );
+
+  if ( ld && LOAD_SEQ_CST(ld->magic) == LD_MAGIC )
     return ld;
   LD->thread.info->access.ldata = NULL;
   return NULL;

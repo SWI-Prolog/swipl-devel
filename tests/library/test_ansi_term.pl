@@ -94,4 +94,71 @@ test(single_nonlist_argument, O = "\e[1m(foo)\e[0m") :-
 test(multi_arguments, O = "\e[1mfoo bar\e[0m") :-
     captured_tty_output(ansi_format([bold], '~w~4|~w', [foo, bar]), O).
 
+% Hyperlinks are OSC rather than SGR sequences and must not move the
+% column either.
+
+test(hyperlink_position, O == "\e]8;;http://x\e\\ab\e]8;;\e\\  y") :-
+    setup_call_cleanup(
+        push_prolog_flag(hyperlink_term, true),
+        captured_tty_output(
+            (   ansi_hyperlink(current_output, 'http://x', ab),
+                format('~t~4|y')
+            ),
+            O),
+        pop_prolog_flag(hyperlink_term)).
+
+% Hyperlinks are for terminal emulators.  A message captured with
+% with_output_to/2 must be plain text, as it is for colours.
+
+test(hyperlink_needs_a_terminal, O == "at /x/y.pl:42") :-
+    setup_call_cleanup(
+        push_prolog_flag(hyperlink_term, true),
+        with_output_to(string(Raw),
+                       print_message_lines(current_output, '',
+                                           ['at ', url('/x/y.pl':42)])),
+        pop_prolog_flag(hyperlink_term)),
+    split_string(Raw, "", "\n", [O]).
+
+% The column reported by line_position/2 ignores the escape sequences.
+
+test(line_position, Pos == 2) :-
+    captured_tty_output(
+        (   ansi_format([bold], 'ab', []),
+            line_position(current_output, Pos)
+        ), _).
+
+% The default for `hyperlink_term` is derived from the environment
+% variables a terminal sets.  We only test recognising the terminal,
+% as the rest of the default requires the standard streams to be a
+% terminal.
+
+test(osc8_terminal, Found == [true,true,true,false,true,true,false]) :-
+    maplist(recognised,
+            [ ['TERM_PROGRAM'='Epilog'],
+              ['TERM'='xterm-kitty'],
+              ['VTE_VERSION'='7600'],
+              ['VTE_VERSION'='4800'],
+              ['WT_SESSION'=x],
+              ['KITTY_WINDOW_ID'='1'],
+              ['TERM_PROGRAM'='Apple_Terminal']
+            ], Found).
+
+osc8_vars(['TERM_PROGRAM', 'TERM', 'VTE_VERSION',
+           'KITTY_WINDOW_ID', 'WT_SESSION']).
+
+recognised(Env, Found) :-
+    osc8_vars(Vars),
+    findall(Var-Value, (member(Var, Vars), getenv(Var, Value)), Saved),
+    setup_call_cleanup(
+        ( maplist(unsetenv, Vars),
+          forall(member(Var=Value, Env), setenv(Var, Value))
+        ),
+        (   ansi_term:osc8_terminal
+        ->  Found = true
+        ;   Found = false
+        ),
+        ( maplist(unsetenv, Vars),
+          forall(member(Var-Value, Saved), setenv(Var, Value))
+        )).
+
 :- end_tests(ansi_term).

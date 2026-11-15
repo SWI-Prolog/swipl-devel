@@ -164,11 +164,15 @@ uninstantiation_error(Culprit) :-
 
 %!  representation_error(+Flag).
 %
-%   A representation error indicates a limitation of the implementation.
-%   SWI-Prolog has no such limits that are  not covered by other errors,
-%   but  an  example  of  a  representation   error  in  another  Prolog
-%   implementation could be an attempt to create   a  term with an arity
-%   higher than supported by the system.
+%   A representation error indicates a limitation of the implementation:
+%   the value is logically valid, but cannot be handled.  Examples are an
+%   arity higher than supported by the system or a Prolog integer that
+%   is too large for the C integer type used by a foreign predicate.
+%
+%   Besides the atomic flags defined by ISO, SWI-Prolog uses flags of
+%   the form Id(Culprit), where Culprit is the value that cannot be
+%   represented, e.g., representation_error(uint(4294967296)) or
+%   representation_error(nul_terminated_string(Text)).
 
 representation_error(Flag) :-
     throw(error(representation_error(Flag), _)).
@@ -215,6 +219,7 @@ resource_error(Resource) :-
 %   types.
 %
 %   | acyclic | Acyclic term (tree); see acyclic_term/1 |
+%   | address | A C pointer; see is_address/1 |
 %   | any | any term |
 %   | between(FloatL,FloatU) | Number [FloatL..FloatU] |
 %   | between(IntL,IntU) | Integer [IntL..IntU] |
@@ -355,6 +360,7 @@ is_of_type(Type, _) :-
     element_types/2.
 
 has_type(any, _).
+has_type(address, X)      :- is_address(X).
 has_type(atom, X)         :- atom(X).
 has_type(atomic, X)       :- atomic(X).
 has_type(between(L,U), X) :-

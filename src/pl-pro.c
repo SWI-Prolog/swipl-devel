@@ -57,7 +57,7 @@
 		*    CALLING THE INTERPRETER    *
 		*********************************/
 
-static int
+static bool
 resetProlog(int clear_stacks)
 { GET_LD
   IOSTREAM *in = Suser_input;
@@ -94,7 +94,7 @@ resetProlog(int clear_stacks)
 }
 
 
-static int
+static bool
 restore_after_exception(term_t except)
 { GET_LD
   int rc = true;
@@ -180,19 +180,18 @@ query_loop(atom_t goal, bool loop)
     { except_class exclass = classify_exception(except);
 
       if ( exclass == EXCEPT_ABORT )
-	Sclearerr(Suser_input);
-      if ( exclass == EXCEPT_HALT )
-      { rc = true;
-	loop = false;
+      { Sclearerr(Suser_input);
+      } else if ( exclass == EXCEPT_HALT )
+      { loop = false;
 	int me = PL_thread_self();
 	if ( me < 0 || me == 1 )	/* no threads or main thread */
 	  halt_from_exception(except);
+      } else if ( exclass == EXCEPT_THREAD_EXIT )
+      { loop = false;
       }
 
       if ( !validUserStreams() )
-      { rc = true;
 	loop = false;
-      }
 
       restore_after_exception(except);
       rc = -1;
@@ -522,9 +521,24 @@ callProlog(Module module, term_t goal, int flags, term_t *ex)
     bool rval;
 
     if ( (args = PL_new_term_refs(arity)) )
-    { for(n=0; n<arity; n++)
+    { int rc;
+
+      for(n=0; n<arity; n++)
 	_PL_get_arg(n+1, g, args+n);
 
+      if ( (flags&PL_Q_PASS_EXCEPTION) &&
+	   call_internal_det_foreign(proc, args, &rc) )
+      { rval = rc && !exception_term;
+	if ( !rval && ex && exception_term )
+	{ PL_put_term(ex2, exception_term);
+	  *ex = ex2;
+	  reset = g;
+	}
+	if ( !reset )
+	  reset = (ex2 ? ex2 : g);
+	PL_reset_term_refs(reset);
+	return rval;
+      }
       if ( (qid = PL_open_query(module, flags, proc, args)) )
       { rval = PL_next_solution(qid);
       } else
@@ -792,7 +806,7 @@ last_arg:
   while(isRef(*p))
   { assert(!is_marked(p));
     p2 = unRef(*p);
-    if ( storage(*p) == STG_LOCAL ) /* PushPtr()/PopPtr() reference? */
+    if ( isLocalRef(*p) )		/* PushPtr()/PopPtr() reference? */
     { for(int i=0; i<LD->tmp.top; i++)
       { if ( valTermRef(LD->tmp.h[i]) == p )
 	  goto deref_ok;
@@ -857,7 +871,7 @@ last_arg:
       printk(context, "Indirect at %p is unaligned", a);
     if ( !onGlobal(a) )
       printk(context, "Indirect at %p not on global stack", a);
-    if ( storage(*p) != STG_GLOBAL )
+    if ( !isGlobalPtr(*p) )
       printk(context, "Indirect data not on global");
     if ( isFloat(*p) )
       return key+(word) valFloat(*p);
@@ -907,20 +921,16 @@ last_arg:
     size_t mx = GD->atoms.highest;
 
     assert(!is_marked(p));
-    if ( storage(*p) != STG_STATIC )
-      printk(context, "Atom doesn't have STG_STATIC");
-
     idx = indexAtom(*p);
     if ( idx >= mx )
       printk(context, "Atom index out of range (%ld > %ld)", idx, mx);
     return key + *p;
   }
-  if ( tagex(*p) == (TAG_VAR|STG_RESERVED) )
+  if ( tagex(*p) == TAGEX_VARINFO )
     return key + *p;			/* Used by read_term/2,3 and compiler */
 
 					/* now it should be a term */
-  if ( tag(*p) != TAG_COMPOUND ||
-       storage(*p) != STG_GLOBAL )
+  if ( tagex(*p) != TAGEX_COMPOUND )
     printk(context, "Illegal term at: %p: %p", p, *p);
 
   if ( is_marked(p) )
@@ -933,8 +943,7 @@ last_arg:
     if ( !onGlobal(f) )
       printk(context, "Term at %p not on global stack", f);
 
-    if ( tag(f->definition) != TAG_ATOM ||
-	 storage(f->definition) != STG_GLOBAL )
+    if ( !isFunctor(f->definition) )
       printk(context, "Illegal functor: %p", *p);
     if ( f->definition & MARK_MASK )
       printk(context, "functor with mark: %p", *p);

@@ -70,7 +70,9 @@ foreign_t	pl_with_mutex(term_t mutex, term_t goal);
 
 #ifdef O_PLMT
 
-int		get_mutex(term_t t, pl_mutex **mutex, int create);
+int		get_mutex(term_t t, pl_mutex **mutex, bool create);
+void		put_mutex(pl_mutex *mutex);
+void		unlock_mutexes_of_thread(void);
 
 #if defined(__WINDOWS__)
 #define USE_CRITICAL_SECTIONS 1

@@ -247,13 +247,13 @@ sleep(Seconds) :-
 %   Test whether a Prolog term is a JavaScript object.
 
 is_object(Term) :-
-    blob(Term, js_object).
+    blob(Term, js).
 
 is_object(Term, Class), atom(Class) =>
-    blob(Term, js_object),
+    blob(Term, js),
     true := Term.instanceof(Class).
 is_object(Term, Class), var(Class) =>
-    blob(Term, js_object),
+    blob(Term, js),
     Class := Term.instanceof().
 
 

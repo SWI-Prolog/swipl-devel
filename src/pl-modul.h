@@ -63,7 +63,7 @@ void		acquireModulePtr(Module m);
 void		releaseModule(Module m);
 void		initModules(void);
 void		cleanupModules(void);
-int		addModuleSourceFile(SourceFile sf, Module m);
+bool		addModuleSourceFile(SourceFile sf, Module m);
 int		setSuperModule(Module m, Module s);
 int		isSuperModule(Module s, Module m);
 void		clearSupersModule(Module m);
@@ -75,7 +75,7 @@ bool		isPublicModule(Module module, Procedure proc);
 bool		exportProcedure(const Module module, const Procedure proc);
 int		declareModule(atom_t name, atom_t class, atom_t super,
 			      SourceFile sf, int line,
-			      int rdef);
+			      bool rdef);
 foreign_t	pl_context_module(term_t module);
 int		atomToImportStrength(atom_t a);
 foreign_t	pl_import(term_t pred);

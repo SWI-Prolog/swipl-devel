@@ -243,9 +243,20 @@ list_element(dl).
 
 list_level_margins(State, 2-2) :-
     nonvar(State),
-    State.get(list) == [],
+    block_list_context(State.get(list)),
     !.
 list_level_margins(_, 0-0).
+
+%!  block_list_context(+OpenLists) is semidet.
+%
+%   True when a list opened while OpenLists   are open acts as a normal
+%   block element and thus  needs   surrounding  blank  lines. This is the
+%   case if the list is not nested in an item of an itemized list. As the
+%   body of a `dd` element is a  normal   block  context, a list inside a
+%   definition list is a block element as well.
+
+block_list_context([]).
+block_list_context([dl|_]).
 
 format_list([], _, _, _).
 format_list([H|T], Type, Nth, State) :-
@@ -626,12 +637,13 @@ format_table(Content, Attrs, BlockAttrs, State) :-
     option(margin_left(ML), BlockAttrs, 0),
     option(margin_right(MR), BlockAttrs, 0),
     MaxTableWidth is State.width - ML - MR,
-    table_cell_state(Attrs, State, CellState),
+    table_cell_state(Attrs, State, CellState0),
+    CellState = CellState0.put(tty, TTY),
     phrase(rows(Content), Rows),
     columns(Rows, Columns),
-    maplist(auto_column_width(CellState.put(tty,false)), Columns, Widths),
+    maplist(auto_column_width(CellState), Columns, Widths),
     column_widths(Widths, MaxTableWidth, ColWidths),
-    maplist(format_row(ColWidths, CellState.put(tty,TTY), ML), Rows).
+    maplist(format_row(ColWidths, CellState, ML), Rows).
 
 tty_state(TTY) :-
     stream_property(current_output, tty(true)),
@@ -717,9 +729,7 @@ auto_cell_width(State, Cell, Width) :-
     cell_colspan(Cell, 1),
     !,
     format_cell_to_string(Cell, 1_000, State, String),
-    split_string(String, "\n", "", Lines),
-    maplist(string_length, Lines, LineW),
-    max_list(LineW, Width0),
+    write_size(String, Width0, _Height, []),
     Width is Width0 + State.margin_right.
 auto_cell_width(_, _, 0).
 

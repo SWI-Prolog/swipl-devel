@@ -53,6 +53,7 @@
 #define	ar_func_n(findex, argc)		LDFUNC(ar_func_n, findex, argc)
 #define	valueExpression(p, n)		LDFUNC(valueExpression, p, n)
 #define evalExpression(expr, result)	LDFUNC(evalExpression, expr, result)
+#define compareNumbers(n1, n2, what)	LDFUNC(compareNumbers, n1, n2, what)
 #define	arithChar(p)			LDFUNC(arithChar, p)
 #define	getCharExpression(p, r)		LDFUNC(getCharExpression, p, r)
 #define	growArithStack(_)		LDFUNC(growArithStack, _)
@@ -62,7 +63,7 @@
 
 #define LDFUNC_DECLARATIONS
 
-int		ar_compare(Number n1, Number n2, int what);
+bool		ar_compare(Number n1, Number n2, int what);
 int		ar_compare_eq(Number n1, Number n2);
 bool		pl_ar_add(Number n1, Number n2, Number r);
 bool		ar_mul(Number n1, Number n2, Number r);
@@ -75,10 +76,11 @@ bool		ar_func_n(int findex, int argc);
 bool		ar_add_si(Number n, long add);
 bool		valueExpression(term_t p, Number n);
 bool		evalExpression(term_t p, Number n);
+bool		compareNumbers(term_t n1, term_t n2, int what);
 bool		toIntegerNumber(Number n, int flags);
 int		arithChar(Word p);
 int		getCharExpression(Word p, Number r);
-Number		growArithStack(void);
+COLD Number		growArithStack(void);
 void		freeArithLocalData(PL_local_data_t *ld);
 int		ar_sign_i(Number n1);
 int		ar_signbit(Number n1);
@@ -110,6 +112,30 @@ isIntegerNumber(const Number n)
 #endif
 }
 
+/* moveNumber() does a shallow copy of `from` to `to`, transferring the
+   ownership of GMP data.  For small integers and floats it only copies
+   the type and 8 bytes of value.  A structure copy loads the number in
+   16-byte chunks that overlap the separate stores of `type` and `value`
+   that just created it, which defeats store-to-load forwarding and
+   stalls the CPU.
+*/
+
+static inline void
+moveNumber(Number to, const Number from)
+{ switch(from->type)
+  { case V_INTEGER:
+      to->value.i = from->value.i;
+      break;
+    case V_FLOAT:
+      to->value.f = from->value.f;
+      break;
+    default:
+      *to = *from;			/* structure copy */
+      return;
+  }
+  to->type = from->type;
+}
+
 #define allocArithStack(_) LDFUNC(allocArithStack, _)
 static inline Number
 allocArithStack(DECL_LD)
@@ -124,7 +150,7 @@ static inline void
 pushArithStack(DECL_LD Number n)
 { Number np = allocArithStack();
 
-  *np = *n;				/* structure copy */
+  moveNumber(np, n);
 }
 
 #define resetArithStack(_) LDFUNC(resetArithStack, _)
@@ -160,27 +186,15 @@ popArgvArithStack(DECL_LD int n)
 		 *******************************/
 
 #define isMPQNum(w) LDFUNC(isMPQNum, w)
-static inline int
+static inline bool
 isMPQNum(DECL_LD word w)
-{ if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
-  { Word p = addressIndirect(w);
-
-    return p[1]&MP_RAT_MASK;
-  }
-
-  return false;
+{ return tagex(w) == TAGEX_INDIRECT_MPQ;
 }
 
 #define isMPZNum(w) LDFUNC(isMPZNum, w)
-static inline int
+static inline bool
 isMPZNum(DECL_LD word w)
-{ if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
-  { Word p = addressIndirect(w);
-
-    return !(p[1]&MP_RAT_MASK);
-  }
-
-  return false;
+{ return tagex(w) == TAGEX_INDIRECT_INT;
 }
 
 #endif /*PL_ARITH_H*/

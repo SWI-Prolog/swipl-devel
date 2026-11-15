@@ -61,7 +61,7 @@ the linked list of attributes:
   | refptr | <--- newer attvars <--- LD->attvar.attvars
   ----------
   | attvar | --\
-  ----------   | TAG_ATTVAR|STG_GLOBAL pointer
+  ----------   | consAttVar() pointer
   | att/3  | <-/
   ----------
   | name   |
@@ -123,7 +123,7 @@ registerWakeup(DECL_LD Word name, Word value)
 
     deRef2(tail, t);
     TrailAssignment(t);
-    *t = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
+    *t = consCompound(wake);
     TrailAssignment(tail);		/* on local stack! */
     *tail = makeRefG(wake+3);
     DEBUG(MSG_WAKEUP,
@@ -135,7 +135,7 @@ registerWakeup(DECL_LD Word name, Word value)
 
     assert(isVar(*head));
     TrailAssignment(head);		/* See (*) */
-    *head = consPtr(wake, TAG_COMPOUND|STG_GLOBAL);
+    *head = consCompound(wake);
     TrailAssignment(tail);
     *tail = makeRefG(wake+3);
     LD->alerted |= ALERT_WAKEUP;
@@ -209,7 +209,7 @@ bool
 bind_attvar_const(DECL_LD Word p, word c)
 { if ( !hasGlobalSpace(0) )
   { PushPtr(p); PushVal(c);
-    int rc = ensureGlobalSpace(0, ALLOW_GC);
+    bool rc = ensureGlobalSpace(0, ALLOW_GC);
     PopVal(c); PopPtr(p);
     if ( !rc )
       return false;
@@ -241,7 +241,7 @@ alloc_attvar(DECL_LD)
 
   if ( gp )
   { register_attvar(&gp[0]);
-    gp[1] = consPtr(&gp[2], TAG_ATTVAR|STG_GLOBAL);
+    gp[1] = consAttVar(&gp[2]);
     gp[2] = ATOM_nil;
     return &gp[1];
   }
@@ -301,7 +301,7 @@ make_new_attvar(DECL_LD Word p)
 
   gp = link_attvar();
   gp[1] = ATOM_nil;
-  gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
+  gp[0] = consAttVar(&gp[1]);
   gTop += 2;
 
   trail_new_attvar(gp);
@@ -324,13 +324,13 @@ put_new_attvar(DECL_LD Word p, atom_t name, Word value)
   gTop += 6;
   at = &gp[1];
   setVar(*at);
-  gp[0] = consPtr(&gp[1], TAG_ATTVAR|STG_GLOBAL);
+  gp[0] = consAttVar(&gp[1]);
 
   at[1] = FUNCTOR_att3;
   at[2] = name;
   at[3] = linkValI(value);
   at[4] = ATOM_nil;
-  at[0] = consPtr(&at[1], TAG_COMPOUND|STG_GLOBAL);
+  at[0] = consCompound(&at[1]);
 
   trail_new_attvar(gp);
   Trail(p, makeRefG(gp));
@@ -408,7 +408,7 @@ put_att_value(DECL_LD Word vp, atom_t name, Word value)
   at[3] = ATOM_nil;
 
   TrailAssignment(vp);
-  *vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
+  *vp = consCompound(at);
 }
 
 
@@ -459,7 +459,7 @@ get_attr(DECL_LD Word l, atom_t name, term_t value)
 
 
 #define del_attr(av, name) LDFUNC(del_attr, av, name)
-static int
+static bool
 del_attr(DECL_LD Word av, atom_t name)
 { Word l, prev;
 
@@ -553,9 +553,10 @@ saveWakeup(DECL_LD wakeup_state *state, bool forceframe)
       exception_term = 0;
     }
 
-    if ( *(h=valTermRef(LD->attvar.head)) )
+    if ( *valTermRef(LD->attvar.head) )
     { state->flags |= WAKEUP_STATE_WAKEUP;
       s = PL_new_term_refs(2);
+      h = valTermRef(LD->attvar.head);	/* may have been shifted */
 
       DEBUG(1, pl_writeln(LD->attvar.head));
 
@@ -699,12 +700,8 @@ PRED_IMPL("put_attr", 3, put_attr, 0)	/* +Var, +Name, +Value */
   Word av, vp;
   atom_t name;
 
-  if ( !hasGlobalSpace(1) )		/* 0 means enough for attvars */
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(1, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(1, ALLOW_GC) ) /* 0 means enough for attvars */
+    return false;
 
   if ( !PL_get_atom_ex(A2, &name) )
     fail;
@@ -744,12 +741,8 @@ PRED_IMPL("put_attrs", 2, put_attrs, 0)
 { PRED_LD
   Word av, vp;
 
-  if ( !hasGlobalSpace(0) )		/* 0 means enough for attvars */
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) ) /* 0 means enough for attvars */
+    return false;
 
   av = valTermRef(A1);
   deRef(av);
@@ -775,12 +768,8 @@ PRED_IMPL("del_attr", 2, del_attr2, 0)	/* +Var, +Name */
   Word av;
   atom_t name;
 
-  if ( !hasGlobalSpace(0) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) )
+    return false;
 
   if ( !PL_get_atom_ex(A2, &name) )
     return false;
@@ -809,12 +798,8 @@ PRED_IMPL("del_attrs", 1, del_attrs, 0)	/* +Var */
 { PRED_LD
   Word av;
 
-  if ( !hasGlobalSpace(0) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) )
+    return false;
 
   av = valTermRef(A1);
   deRef(av);
@@ -848,12 +833,8 @@ PRED_IMPL("$freeze", 2, freeze, 0)
 { PRED_LD
   Word v;
 
-  if ( !hasGlobalSpace(0) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) )
+    return false;
 
   v = valTermRef(A1);
   deRef(v);
@@ -877,7 +858,7 @@ PRED_IMPL("$freeze", 2, freeze, 0)
 	gc[2] = *goal;
 
 	TrailAssignment(vp);				/* SHIFT: 1+2 */
-	*vp = consPtr(gc, TAG_COMPOUND|STG_GLOBAL);
+	*vp = consCompound(gc);
       } else if ( vp )					/* vp points to [] */
       { Word at = gTop;
 
@@ -889,7 +870,7 @@ PRED_IMPL("$freeze", 2, freeze, 0)
 
 	assert(*vp == ATOM_nil);
 	TrailAssignment(vp);				/* SHIFT: 1+2 */
-	*vp = consPtr(at, TAG_COMPOUND|STG_GLOBAL);
+	*vp = consCompound(at);
       } else
 	assert(0);					/* bad attributes */
     }
@@ -920,7 +901,7 @@ typedef struct
 
 
 #define is_or(c) LDFUNC(is_or, c)
-static int
+static bool
 is_or(DECL_LD word c)
 { return isTerm(c) && functorTerm(c) == FUNCTOR_or1;
 }
@@ -948,7 +929,7 @@ add_or(DECL_LD word or, word c2)
     { n[0] = FUNCTOR_dot2;
       n[1] = c2;
       n[2] = ATOM_nil;
-      *tail = consPtr(n, TAG_COMPOUND|STG_GLOBAL);
+      *tail = consCompound(n);
     } else
       return E_NOSPACE;
   }
@@ -975,14 +956,14 @@ make_disj_list(DECL_LD word c1, word c2, Word result)
 
     if ( (t = allocGlobalNoShift(8)) )
     { t[0] = FUNCTOR_or1;
-      t[1] = consPtr(&t[2], TAG_COMPOUND|STG_GLOBAL);
+      t[1] = consCompound(&t[2]);
       t[2] = FUNCTOR_dot2;
       t[3] = c1;
-      t[4] = consPtr(&t[5], TAG_COMPOUND|STG_GLOBAL);
+      t[4] = consCompound(&t[5]);
       t[5] = FUNCTOR_dot2;
       t[6] = c2;
       t[7] = ATOM_nil;
-      *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+      *result = consCompound(t);
     } else
       return E_NOSPACE;
   }
@@ -997,7 +978,7 @@ when_condition(DECL_LD Word cond, Word result, when_state *state)
 { deRef(cond);
 
   if ( state->depth++ == 100 )
-  { int rc = PL_is_acyclic(pushWordAsTermRef(cond));
+  { bool rc = PL_is_acyclic(pushWordAsTermRef(cond));
 
     popTermRef();
     if ( !rc )
@@ -1047,7 +1028,7 @@ when_condition(DECL_LD Word cond, Word result, when_state *state)
 	  t[1] = c1;
 	  t[2] = c2;
 
-	  *result = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+	  *result = consCompound(t);
 	} else
 	  return E_NOSPACE;
       }
@@ -1143,27 +1124,23 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
   atom_t name;
   Word v, g;
 
-  if ( !hasGlobalSpace(6) )		/* 0 means enough for attvars */
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(6, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(6, ALLOW_GC) ) /* 0 means enough for attvars */
+    return false;
 
   if ( !PL_get_atom_ex(A2, &name) )
     return false;
 
+  term_t g2 = PL_new_term_ref();	/* before taking pointers */
   g = valTermRef(A3);
   if ( !isTerm(*g) || functorTerm(*g) != FUNCTOR_colon2 )
   { Word t = gTop;
-    term_t g2 = PL_new_term_ref();
 
     gTop += 3;
     t[0] = FUNCTOR_colon2;
     t[1] = contextModule(PL__ctx->engine->environment)->name;
     t[2] = linkValNoG(g);
     g = valTermRef(g2);
-    *g = consPtr(t, STG_GLOBAL|TAG_COMPOUND);
+    *g = consCompound(t);
   }
 
   v = valTermRef(A1); deRef(v);
@@ -1172,7 +1149,7 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
   { Word t = gTop;
 
     gTop += 3;
-    t[0] = consPtr(&t[1], STG_GLOBAL|TAG_COMPOUND);
+    t[0] = consCompound(&t[1]);
     t[1] = FUNCTOR_call1,
     t[2] = linkValI(g);
     put_new_attvar(v, name, t);
@@ -1193,7 +1170,7 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 	t[1] = linkValI(ap);
 	t[2] = linkValI(g);
 	TrailAssignment(ap);
-	*ap = consPtr(t, TAG_COMPOUND|STG_GLOBAL);
+	*ap = consCompound(t);
 
 	return true;
       }
@@ -1203,7 +1180,7 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
     { Word t = gTop;
 
       gTop += 3;
-      t[0] = consPtr(&t[1], STG_GLOBAL|TAG_COMPOUND);
+      t[0] = consCompound(&t[1]);
       t[1] = FUNCTOR_call1,
       t[2] = linkValI(g);
 
@@ -1227,19 +1204,26 @@ PRED_IMPL("$suspend", 3, suspend, PL_FA_TRANSPARENT)
 
 static
 PRED_IMPL("$attv_unify", 2, attv_unify, 0)
-{ if ( ensureStackSpace(0,0) )
-  { Word av = valTermRef(A1);
-    deRef(av);
+{ if ( !ensureStackSpace(0,0) )
+    return false;
 
-    if ( isAttVar(*av) )
-    { TrailAssignment(av);
-      *av = linkValG(valTermRef(A2));
+  Word av = valTermRef(A1);
+  deRef(av);
+
+  if ( isAttVar(*av) )
+  { Word v = valTermRef(A2);
+
+    deRef(v);
+    if ( v == av )			/* '$attv_unify'(X,X) */
       return true;
-    }
-    return PL_unify(A1, A2);
+    word w = linkValG(v);		/* may shift the stacks */
+    av = valTermRef(A1);
+    deRef(av);
+    TrailAssignment(av);
+    *av = w;
+    return true;
   }
-
-  return false;
+  return PL_unify(A1, A2);
 }
 
 #ifdef O_CALL_RESIDUE
@@ -1279,7 +1263,7 @@ deRefM(DECL_LD Word p, Word pv)
 
 
 #define has_attributes_after(av, ch) LDFUNC(has_attributes_after, av, ch)
-static int
+static bool
 has_attributes_after(DECL_LD Word av, Choice ch)
 { Word l;
   word w;
@@ -1412,7 +1396,7 @@ retry:
       { p[0] = FUNCTOR_dot2;
 	p[1] = makeRefG(pav);
 	setVar(p[2]);
-	*tailp = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	*tailp = consCompound(p);
 	tailp = &p[2];
       } else
       { gTop = gend;

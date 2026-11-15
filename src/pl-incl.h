@@ -319,8 +319,26 @@ The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
 #undef O_LABEL_ADDRESSES
 #endif
 
-/* clang as of version 11 performs about 30% worse with this option */
-#if O_LABEL_ADDRESSES && !defined(VMCODE_IS_ADDRESS) && !defined(__llvm__)
+/* VMI_TAILCALL: VMI functions continue with a guaranteed tail call to
+   the next instruction (musttail: Clang >= 13, GCC >= 15).  See pl-wam.c
+   WebAssembly needs the tail-call feature (-mtail-call).
+*/
+#if O_VMI_FUNCTIONS && !defined(VMI_TAILCALL) && defined(__has_attribute)
+#if __has_attribute(musttail) && \
+    (!defined(__wasm__) || defined(__wasm_tail_call__))
+#define VMI_TAILCALL 1
+#endif
+#endif
+#ifndef VMI_TAILCALL
+#define VMI_TAILCALL 0
+#endif
+
+/* clang as of version 11 performs about 30% worse with this option when
+   using a single function with label addresses.  Using tail-calling VMI
+   functions, the code holds the function addresses, which saves a load
+   per instruction for Clang as well. */
+#if !defined(VMCODE_IS_ADDRESS) && \
+    ( (O_LABEL_ADDRESSES && !defined(__llvm__)) || VMI_TAILCALL )
 #define VMCODE_IS_ADDRESS	1
 #endif
 
@@ -379,6 +397,11 @@ void *alloca ();
 #include <sys/types.h>
 #if __MINGW32__
 typedef _sigset_t sigset_t;
+/* With SEH, longjmp() unwinds the stack, which crashes when jumping
+ * out of VMI functions (engine_yield/1).  We only jump over C frames,
+ * so the plain non-SEH version suffices.
+ */
+#define __USE_MINGW_SETJMP_NON_SEH 1
 #endif
 #include <setjmp.h>
 #ifdef ASSERT_H_REQUIRES_STDIO_H
@@ -536,6 +559,28 @@ A common basis for C keywords.
 #define unlikely(x)	(x)
 #endif
 
+/* COLD marks functions that are only called on slow paths: errors,
+   stack overflows and growing stacks, the debugger, etc.  GCC optimizes
+   these for size and moves the blocks that call them out of the hot
+   code (the .cold part of the caller), which keeps the hot VM code
+   compact for the instruction cache.  See doc/tabling/cpu-stalls.md */
+#ifdef __GNUC__
+#define COLD __attribute__((cold))
+#else
+#define COLD
+#endif
+
+/* HOT marks the C functions that use most of the time when running the
+   VM.  GCC and Clang group these in .text.hot, next to the hot VMI
+   functions (pl-vmi-hot.h).  This keeps the hot code contiguous, so its
+   instruction cache behaviour does not depend on the placement of
+   unrelated code.  See doc/tabling/tailcall-vm.md */
+#ifdef __GNUC__
+#define HOT __attribute__((hot))
+#else
+#define HOT
+#endif
+
 #ifdef DMALLOC
 #include <dmalloc.h>			/* Use www.dmalloc.com debugger */
 
@@ -640,9 +685,11 @@ them.  Descriptions:
 #define WORDS_PER_BIGNUM64	(5)
 
 				/* Prolog's integer range */
-#define PLMINTAGGEDINT		(-(sword)((word)1<<(WORDBITSIZE-LMASK_BITS-1)))
+#define PLMINTAGGEDINT		(-(sword)((word)1<<(TAGGED_INT_BITS-1)))
 #define PLMAXTAGGEDINT		(-PLMINTAGGEDINT - 1)
-#define PLMINTAGGEDINT32	(-(sword)((word)1<<(32-LMASK_BITS-1)))
+				/* Tagged range of old 32-bit versions.  Fixed: */
+				/* term_hash/2 values depend on it */
+#define PLMINTAGGEDINT32	(-(sword)((word)1<<24))
 #define PLMAXTAGGEDINT32	(-PLMINTAGGEDINT32 - 1)
 #define inTaggedNumRange(n)	(valInt(consInt(n)) == (n))
 #define PLMININT		(-PLMAXINT - 1)
@@ -1040,6 +1087,11 @@ with one operation, it turns out to be faster as well.
 #define set(s, a)		ATOMIC_OR(&(s)->flags, (a))
 #define clear(s, a)		ATOMIC_AND(&(s)->flags, ~(a))
 #define clearFlags(s)		((s)->flags = 0)
+/* Non-atomic versions for structures only accessed by their own thread,
+ * notably local frames
+ */
+#define setLocal(s, a)		((s)->flags |= (a))
+#define clearLocal(s, a)	((s)->flags &= ~(a))
 
 /* Flags on predicates (packed in uint64_t) */
 
@@ -1102,6 +1154,7 @@ with one operation, it turns out to be faster as well.
 #define SSU_COMMIT_CLAUSE	(0x0100) /* Head => Body */
 #define SSU_CHOICE_CLAUSE	(0x0200) /* Head ?=> Body */
 #define CL_HEAD_TERMS		(0x0400) /* Head contains terms used in body */
+#define CL_SHARED_SLOTS		(0x0800) /* Branch-local variables share slots */
 
 #define CLAUSE_TYPE_MASK (UNIT_CLAUSE|SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
 #define CLAUSE_SSU_FLAGS (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
@@ -1138,7 +1191,6 @@ with one operation, it turns out to be faster as well.
 #define UNKNOWN_WARNING		(0x00002000) /* module */
 #define UNKNOWN_ERROR		(0x00004000) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
-#define M_VARPREFIX		(0x00008000) /* _var, Atom */
 #define M_DESTROYED		(0x00010000)
 #define M_WAITED_FOR		(0x00020000) /* thread_wait/2 on this module */
 #define M_RDSTRING_TERM		(0x00040000) /* read/1 and friends: demand a term */
@@ -1382,14 +1434,19 @@ typedef struct atom_table
   Atom *	table;
 } atom_table;
 
+#define ATOM_RESERVE_BATCH	64	/* atom slots a thread reserves at once */
 
 #ifdef O_ATOMGC
 
-#define ATOM_STATE_MASK		((unsigned int)0xF << (INTBITSIZE-4))
+#define ATOM_STATE_MASK		((unsigned int)0x3F << (INTBITSIZE-6))
 #define ATOM_RESERVED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-1))
 #define ATOM_VALID_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-2))
 #define ATOM_MARKED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-3))
 #define ATOM_DESTROY_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-4))
+					/* thread-local blob (see pl-atom.c) */
+#define ATOM_LOCAL_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-5))
+					/* local PL_BLOB_OWNED: object gone */
+#define ATOM_DISOWNED_REFERENCE	((unsigned int)0x1 << (INTBITSIZE-6))
 #define ATOM_PRE_DESTROY_REFERENCE \
 	(ATOM_DESTROY_REFERENCE|ATOM_RESERVED_REFERENCE)
 
@@ -1398,11 +1455,40 @@ typedef struct atom_table
 #define ATOM_IS_VALID(ref)	((ref) & ATOM_VALID_REFERENCE)
 #define ATOM_IS_MARKED(ref)	((ref) & ATOM_MARKED_REFERENCE)
 #define ATOM_IS_DESTROYED(ref)	((ref) & ATOM_DESTROY_REFERENCE)
+#define ATOM_IS_LOCAL(ref)	((ref) & ATOM_LOCAL_REFERENCE)
+
+/* Internal blob type flag, see "Thread-local blobs" in pl-atom.c.
+   PL_BLOB_LOCAL is in SWI-Prolog.h.
+*/
+#define PL_BLOB_OWNED		0x200	/* local blob owned by a C object */
+typedef void (*atom_mark_func)(atom_t a); /* markAtom(), markLocalAtom() */
+#define LOCAL_AGC_MIN		1024	/* sweep at least this many */
+#define LOCAL_AGC_SCAN_RATIO	16	/* stack words scanned per local atom */
+
+/* Local atoms live in aligned chunks of LOCAL_CHUNK_SIZE atom slots that
+   are owned by one thread.  GD->atoms.local_chunks maps a chunk number
+   (index>>LOCAL_CHUNK_BITS) to its descriptor.
+*/
+#define LOCAL_CHUNK_BITS	6
+#define LOCAL_CHUNK_SIZE	((size_t)1<<LOCAL_CHUNK_BITS) /* = bits in uint64_t */
+
+typedef struct local_atom_chunk
+{ struct PL_local_data *owner;		/* owning thread or engine, or NULL */
+  uint64_t	avail;			/* slots that belong to the chunk */
+  uint64_t	used;			/* slots holding a local atom */
+  uint64_t	marked;			/* marked by the owner's sweep */
+} local_atom_chunk;
+
+typedef struct local_chunk_array
+{ local_atom_chunk *blocks[8*sizeof(void*)]; /* indexed by MSB(chunk) */
+} local_chunk_array;
 
 #define ATOM_REF_COUNT_MASK	(~ATOM_STATE_MASK)
 #define ATOM_REF_COUNT(ref)	((ref) & ATOM_REF_COUNT_MASK)
 
 #define ATOM_TYPE_INVALID	((PL_blob_t*)0x007)
+					/* NULL: never used (zeroed) slot */
+#define ATOM_TYPE_IS_INVALID(t)	((t) == ATOM_TYPE_INVALID || !(t))
 
 #ifdef O_DEBUG_ATOMGC
 extern IOSTREAM *atomLogFd;
@@ -1425,7 +1511,15 @@ struct functorDef
 		  /* CONTROL_F	   Compiled control-structure */
 		  /* ARITH_F	   Arithmetic function */
 		  /* VALID_F	   Fully defined functor */
+  unsigned int	references;	/* count and FUNCTOR_*_REF (pl-funct.c) */
+  FunctorDef	next_free;	/* next in GD->functors.free */
 };
+
+#define FUNCTOR_PERMANENT_REF	((unsigned int)0x1 << (INTBITSIZE-1))
+#define FUNCTOR_MARKED_REF	((unsigned int)0x1 << (INTBITSIZE-2))
+#define FUNCTOR_DESTROY_REF	((unsigned int)0x1 << (INTBITSIZE-3))
+#define FUNCTOR_REF_COUNT(ref)	((ref) & (FUNCTOR_DESTROY_REF-1))
+#define FUNCTOR_REF_SATURATED	((FUNCTOR_DESTROY_REF-1)/2) /* -> permanent */
 
 
 typedef struct functor_array
@@ -1471,7 +1565,8 @@ struct clause
   srcindex_t		owner_no;	/* Index of owning source-file */
   unsigned int		references;	/* # ClauseRef pointing at me */
   unsigned int		tr_erased_no;	/* # transactions that erased me */
-  code			code_size;	/* size of ->codes */
+  clsize_t		code_size;	/* size of ->codes */
+  clsize_t		shared_base;	/* First shared slot (CL_SHARED_SLOTS) */
   code			codes[];	/* VM codes of clause */
 };
 
@@ -1531,8 +1626,10 @@ typedef struct clause_ref
   } value;
 } clause_ref;
 
-#define SIZEOF_CREF_CLAUSE	(offsetof(clause_ref, value.clause) + \
-				 sizeof(Clause))
+/* Rounded to a word, as a clause_ref may be followed by a local frame
+ * (see push_continuation()) */
+#define SIZEOF_CREF_CLAUSE	ROUND(offsetof(clause_ref, value.clause) + \
+				      sizeof(Clause), sizeof(word))
 #define SIZEOF_CREF_LIST	sizeof(clause_ref)
 
 typedef struct cgc_stats
@@ -1572,11 +1669,36 @@ typedef struct gc_stats
   gc_reason_t	request;		/* Requesting stack */
   struct
   { int64_t	collections;
+    int64_t	minor_collections;	/* of which generational */
     int64_t	global_gained;		/* global stack bytes collected */
     int64_t	trail_gained;		/* trail stack bytes collected */
     double	time;			/* time spent in collections */
   } totals;
 } gc_stats;
+
+/* With the flag trace_gc, stack GC and stack shifts queue an event that
+ * SIG_TRACE_GC prints at a safe point (see print_gc_trace()).
+ */
+
+#define GC_TRACE_QUEUE_SIZE 8
+
+typedef enum
+{ GC_TRACE_GC,				/* Stack garbage collection */
+  GC_TRACE_MINOR_GC,			/* Minor (generational) GC */
+  GC_TRACE_SHIFT			/* Stack shift */
+} gc_trace_type;
+
+typedef struct gc_trace_event
+{ gc_trace_type	type;
+  size_t	v[6];			/* see print_gc_trace() */
+  double	time;			/* CPU time used */
+} gc_trace_event;
+
+typedef struct gc_trace_queue
+{ gc_trace_event events[GC_TRACE_QUEUE_SIZE];
+  int		count;			/* # queued events */
+  int64_t	dropped;		/* # events that did not fit */
+} gc_trace_queue;
 
 
 #define VM_DYNARGC    255	/* compute argcount dynamically */
@@ -1833,9 +1955,62 @@ struct choice
   union
   { struct clause_choice clause;	/* Next candidate clause */
     Code	pc;			/* Next candidate program counter */
+    struct				/* CHP_JUMP */
+    { Code	pc;			/* Next candidate (same as .pc) */
+      word	trie_offset;		/* Restore TrieOffset if not 0 */
+    } jump;
     word        foreign;		/* foreign redo handle */
   } value;
 };
+
+/* Initialise a CHP_JUMP choice point.  `trie_offset` is set by the
+   T_TRY_* instructions of compiled tries: the alternative continues
+   with this argument offset, which avoids trailing it. */
+#define setJumpChoice(ch, p) \
+	do { (ch)->value.jump.pc = (p); \
+	     (ch)->value.jump.trie_offset = 0; \
+	   } while(0)
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Copy words using one 8-byte load and store per word.  Use these to copy
+small structures whose fields have just been written separately, such as
+a `struct clause_choice` filled by firstClause()/nextClause().  A struct
+assignment or memcpy() compiles to 16-byte (or wider) loads, which
+cannot be store-forwarded from the narrower stores that wrote the data
+and stall until these have retired.  The empty asm keeps GCC from
+merging the moves into vector moves.  copyWordsScalarUp() allows `to` <
+`from` to overlap and copyWordsScalarDown() `to` > `from`.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline void
+copyWordsScalarUp(void *to, const void *from, size_t n)
+{ word *t = to;
+  const word *f = from;
+
+  for(size_t i=0; i<n; i++)
+  { word w = f[i];
+    __asm__("" : "+r"(w));
+    t[i] = w;
+  }
+}
+
+static inline void
+copyWordsScalarDown(void *to, const void *from, size_t n)
+{ word *t = to;
+  const word *f = from;
+
+  for(size_t i=n; i-- > 0; )
+  { word w = f[i];
+    __asm__("" : "+r"(w));
+    t[i] = w;
+  }
+}
+
+static_assertion(sizeof(struct choice)%sizeof(word) == 0);
+static_assertion(sizeof(struct clause_choice)%sizeof(word) == 0);
+
+#define copyClauseChoice(to, from) \
+	copyWordsScalarUp(&(to), &(from), sizeof(struct clause_choice)/sizeof(word))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -2048,6 +2223,7 @@ typedef struct sf_reload
 struct sourceFile
 { atom_t	name;			/* name of source file */
   double	mtime;			/* modification time when loaded */
+  double	ltime;			/* load time */
   ListCell	procedures;		/* List of associated procedures */
   Procedure	current_procedure;	/* currently loading one */
   ListCell	modules;		/* Modules associated to this file */
@@ -2101,6 +2277,7 @@ struct module
   int		level;		/* Distance to root (root=0) */
   unsigned int	line_no;	/* Source line-number */
   unsigned int  flags;		/* booleans: */
+  int		var_prefix;	/* var_prefix flag char (0: none) */
   int		references;	/* see acquireModule() */
   gen_t		last_modified;	/* Generation I was last modified */
 };
@@ -2155,6 +2332,7 @@ typedef struct module_enum
 
 #define NO_MARK_BAR	(Word)(~(uintptr_t)0)
 
+
 #define Mark(b)		do { (b).trailtop.as_ptr  = tTop; \
 			     (b).saved_bar.as_ptr = LD->mark_bar; \
 			     DEBUG(CHK_SECURE, \
@@ -2191,9 +2369,19 @@ at least one free cell on the trail-stack.
 #define LTrail(p) \
   (void)((tTop++)->address = p)
 					/* trail global stack pointer */
+#if USE_LD_MACROS
+#define	gen_remember(p)		LDFUNC(gen_remember, p)
+#endif
+
+#define LDFUNC_DECLARATIONS
+void		gen_remember(Word p);	/* pl-gc.c */
+#undef LDFUNC_DECLARATIONS
+
 #define GTrail(p) \
   do { if ( p < LD->mark_bar ) \
 	 (tTop++)->address = p; \
+       else if ( unlikely(p < LD->gen_bar) ) \
+	 gen_remember(p); \
      } while(0)
 
 
@@ -2287,10 +2475,11 @@ typedef enum virtual_signum
   VSIG_PLABORT,
   VSIG_PLHALT,
   VSIG_TUNE_GC,
+  VSIG_TRACE_GC,
   VSIG_MAX
 } virtual_signum;
 
-#define NUM_VSIGS 7 /* Preprocessor can see this constant */
+#define NUM_VSIGS 8 /* Preprocessor can see this constant */
 static_assertion(NUM_VSIGS == VSIG_MAX); /* Make sure it matches the enum */
 static_assertion(NUM_SIGNALS >= VSIG_MAX && NUM_SIGNALS < 128); /* Sanity check, 128 is arbitrary */
 static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS <= MAXSIGNAL);
@@ -2307,6 +2496,7 @@ static_assertion(SIG_PROLOG_OFFSET >= MINSIGNAL && SIG_PROLOG_OFFSET + NUM_VSIGS
 #define SIG_PLABORT	  (SIG_PROLOG_OFFSET+VSIG_PLABORT)
 #define SIG_PLHALT	  (SIG_PROLOG_OFFSET+VSIG_PLHALT)
 #define SIG_TUNE_GC	  (SIG_PROLOG_OFFSET+VSIG_TUNE_GC)
+#define SIG_TRACE_GC	  (SIG_PROLOG_OFFSET+VSIG_TRACE_GC)
 
 /* The "search for a free signal" functionality of PL_sigaction starts after
  * the predefined VSIG numbers */
@@ -2354,38 +2544,21 @@ typedef sigmask_t		wsigmask_t[SIGMASK_WORDS];
 #define WSIGMASK_CLEAR(wm, sig)	ATOMIC_AND(&(wm)[SIGMASK_WORD(sig)], ~SIGMASK_MASK(sig))
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Guard against C-stack overflows. This is   done  for POSIX systems using
-the  alternative  signal  stack.  The  signal    handling   is  done  by
-alt_segv_handler().
+Report C-stack overflows. An overflow  raises SIGSEGV, but there is no C
+stack left to run the handler  on. On   POSIX  systems we therefore run
+SIGSEGV on an alternative signal stack,  so   that  sigCrashHandler() can
+still print the crash report. See initAltSignalStack().
 
-Note that we  use  setjmp()  rather   than  sigsetjmp().  The  latter is
-simpler, but a lot slower as it  implies   a  system  call. We assume no
-other signals are involved and unblock SIGSEGV by hand.
+Code that may need more C stack than  is available asks for room using
+require_c_stack(), which raises resource_error(c_stack).
 
 Note that AddressSanitizer doesn't like these tricks, so we must disable
-stack guarding when compiling with the address sanitizer.
+this when compiling with the address sanitizer.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if O_SIGNALS && defined(HAVE_SIGALTSTACK) && \
     !defined(__SANITIZE_ADDRESS__)
-#define O_C_STACK_GUARDED 1
-#define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
-	do						\
-	{ LD->signal.sig_critical = true;		\
-	  if ( setjmp(LD->signal.context) )		\
-	  { cleanup;					\
-	    unblockSignal(SIGSEGV);			\
-	    rc = PL_resource_error("c_stack");		\
-	  } else					\
-	  { rc = code;					\
-	  }						\
-	  LD->signal.sig_critical = false;		\
-	} while(0)
-#else
-#define C_STACK_OVERFLOW_GUARDED(rc, code, cleanup) \
-	do						\
-	{ rc = code;						\
-	} while(0)
+#define O_ALTSIGSTACK 1
 #endif
 
 
@@ -2407,7 +2580,9 @@ typedef enum
   CMPEX_LESS     = -1,
   CMPEX_EQUAL    = 0,
   CMPEX_GREATER  = 1,
-  CMP_NOTEQ      = 2			/* undefined non-equal */
+  CMP_NOTEQ      = 2,			/* undefined non-equal */
+  CMP_UNDECIDED  = 3,			/* CMP_MODE_PARTIAL: hit a variable */
+  CMP_INCOMPARABLE = 4			/* no order exists (cyclic terms) */
 } cmpex_t;
 
 /* Convert <0, 0, >0 to -1, 0, 1 (or CMP*) */
@@ -2443,7 +2618,8 @@ typedef enum
   CHECK_INTERRUPT    = -7,	/* Procedure was signalled */
   DO_COMPOUND        = -8,	/* Need more general algorithm */
   NOT_CALLABLE	     = -9,	/* pl-comp.c */
-  MAX_ARITY_OVERFLOW = -10	/* pl-comp.c */
+  MAX_ARITY_OVERFLOW = -10,	/* pl-comp.c */
+  GRAPH_OVERFLOW     = -11	/* pl-bisim.c */
 } boolex_t;
 
 #ifdef small				/* defined by MSVC++ 2.0 windows.h */
@@ -2533,7 +2709,6 @@ typedef struct
 #define ALLOW_NOTHING	0x0
 #define ALLOW_GC	0x1		/* allow GC on stack overflow */
 #define ALLOW_SHIFT	0x2		/* allow shift on stack overflow */
-#define ALLOW_CHECKED	0x4		/* we already verified space */
 #define ALLOW_RETCODE	0x8		/* do not allow anything; return status */
 
 typedef enum
@@ -2632,8 +2807,8 @@ typedef struct
 typedef struct redir_context
 { int		magic;			/* REDIR_MAGIC */
   IOSTREAM     *stream;			/* temporary output */
-  int		is_stream;		/* redirect to stream */
-  int		redirected;		/* output is redirected */
+  bool		is_stream;		/* redirect to stream */
+  bool		redirected;		/* output is redirected */
   term_t	term;			/* redirect target */
   int		out_format;		/* output type */
   int		out_arity;		/* 2 for difference-list versions */
@@ -2701,6 +2876,8 @@ typedef struct
 
 #define PROCEDURE_catch3		(GD->procedures.catch3)
 #define PROCEDURE_reset3		(GD->procedures.reset3)
+#define PROCEDURE_dtbl_reset6		(GD->procedures.dtbl_reset6)
+#define PROCEDURE_call_continuation1	(GD->procedures.call_continuation1)
 #define PROCEDURE_true0			(GD->procedures.true0)
 #define PROCEDURE_fail0			(GD->procedures.fail0)
 #define PROCEDURE_print_message2	(GD->procedures.print_message2)
@@ -2834,7 +3011,6 @@ typedef enum plflag
   PLFLAG_WARN_OVERRIDE_IMPLICIT_IMPORT, /* Warn overriding weak symbols */
   PLFLAG_QUASI_QUOTES,			/* Support quasi quotes */
   PLFLAG_DOT_IN_ATOM,			/* Allow atoms a.b.c */
-  PLFLAG_VARPREFIX,			/* Variable must start with _ */
   PLFLAG_PROTECT_STATIC_CODE,		/* Deny clause/2 on static code */
   PLFLAG_MITIGATE_SPECTRE,		/* Mitigate spectre attacks */
   PLFLAG_TABLE_INCREMENTAL,		/* By default incremental tabling */
@@ -2844,7 +3020,9 @@ typedef enum plflag
   PLFLAG_OPTIMISE_UNIFY,		/* Move unifications in clauses */
   PLFLAG_SHIFT_CHECK,			/* Check suspicious shifts */
   PLFLAG_AGC_CLOSE_STREAMS,		/* AGC may close open streams */
-  PLFLAG_EPILOG				/* swipl-win */
+  PLFLAG_EPILOG,			/* swipl-win */
+  PLFLAG_VALIDATE_API,			/* Validate PL_*() arguments */
+  PLFLAG_GC_GENERATIONAL		/* Use minor GCs */
 } plflag;
 
 typedef struct
@@ -2964,7 +3142,7 @@ int		trap_gdb(void);
 #endif
 
 #define NULL_ATOM ((atom_t)0)
-#define MK_ATOM(n)		((atom_t)((n)<<7|TAG_ATOM|STG_STATIC))
+#define MK_ATOM(n)		((atom_t)consTagged(n, TAGEX_ATOM))
 #include "pl-atom.ih"
 #include "pl-funct.ih"
 
@@ -2995,7 +3173,7 @@ weak function, you should (e.g. for weak-importing malloc):
 4b. WEAK_TRY_CALL(malloc, sizeof(x)) to combine check and call.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline int __ptr_to_bool(const intptr_t ptr) { return ptr != 0; }
+static inline bool __ptr_to_bool(const intptr_t ptr) { return ptr != 0; }
 #if HAVE_WEAK_ATTRIBUTE
 # define WEAK_DECLARE(RType, Name, Params) \
 	extern RType __attribute__((weak)) Name Params

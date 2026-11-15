@@ -93,6 +93,15 @@ test(cut_cond, Body = (! -> fail)) :-
 	assert(f :- (! -> fail)),
 	clause(f, Body),
 	retractall(f).
+test(last_arg_compound, Clauses =@= Expected) :-
+	Expected = [ (lac(a, f(g(X), [X|_])) :- true),
+		     (lac(b, f(_, _)) :- true),
+		     (lac(c, [Y|T]) :- lac(Y, T)),
+		     (lac(d, s(Z)) :- Z = d)
+		   ],
+	forall(member(C, Expected), assertz(C)),
+	findall((lac(A,B):-Body), clause(lac(A,B), Body), Clauses),
+	retractall(lac(_,_)).
 
 :- end_tests(assert).
 
@@ -118,6 +127,16 @@ test(qhead, [X-A == 1-a, cleanup(retractall(foo(_)))]) :-
 	assert((foo(1) :- bar(a))),
 	context_module(M),
 	retract((M:foo(X) :- bar(A))).
+test(ssu_commit, [B-N == (X=1)-0, cleanup(retractall(foo(_)))]) :-
+	assertz((foo(X) => X = 1)),
+	retract((foo(X) => B)),
+	predicate_property(foo(_), number_of_clauses(N)).
+test(ssu_true, [X == 1, cleanup(retractall(foo(_)))]) :-
+	assertz((foo(1) => true)),
+	retract((foo(X) => true)).
+test(ssu_neck, [fail, cleanup(retractall(foo(_)))]) :-
+	assertz((foo(X) => X = 1)),
+	retract((foo(_) :- _)).
 test(update_view, L == [ant,bee]) :-
 	retractall(insect(_)),
 	retractall(icopy(_)),

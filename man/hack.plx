@@ -1,0 +1,763 @@
+\chapter{Hackers corner}			\label{sec:hack}
+
+This appendix describes a number of predicates which enable the Prolog
+user to inspect the Prolog environment and manipulate (or even redefine)
+the debugger.  They can be used as entry points for experiments with
+debugging tools for Prolog. The predicates described here should be
+handled with some care as it is easy to corrupt the consistency of the
+Prolog system by misusing them.
+
+\section{Examining the Environment Stack}	\label{sec:manipstack}
+
+\begin{description}
+    \predicate[det]{prolog_current_frame}{1}{-Frame}
+Unify \arg{Frame} with an integer providing a reference to the parent of
+the current local stack frame.  A pointer to the current local frame
+cannot be provided as the predicate succeeds deterministically and
+therefore its frame is destroyed immediately after succeeding.
+
+    \predicate[semidet]{prolog_current_choice}{1}{-Choice}
+Unify \arg{Choice} with an integer provided a reference to the last
+choice point.  Fails if the current environment has no choice points.
+See also prolog_choice_attribute/3.
+
+    \predicate{prolog_frame_attribute}{3}{+Frame, +Key, :Value}
+Obtain information about the local stack frame \arg{Frame}.  \arg{Frame}
+is a frame reference as obtained through prolog_current_frame/1,
+prolog_trace_interception/4 or this predicate.  The key values are
+described below.
+
+\begin{description}
+    \termitem{alternative}{}
+\arg{Value} is unified with an integer reference to the local stack
+frame in which execution is resumed if the goal associated with
+\arg{Frame} fails. Fails if the frame has no alternative frame.
+
+    \termitem{has_alternatives}{}
+\arg{Value} is unified with \const{true} if \arg{Frame} still is a
+candidate for backtracking; \const{false} otherwise.
+
+    \termitem{goal}{}
+\arg{Value} is unified with the goal associated with \arg{Frame}. If the
+definition module of the active predicate is not the calling context,
+the goal is represented as \mbox{\tt <module>:<goal>}. Do not instantiate
+variables in this goal unless you {\bf know} what you are doing!
+Note that the returned term may contain references to the frame and
+should be discarded before the frame terminates.%
+	\footnote{The returned term is actually an illegal Prolog term
+		  that may hold references from the global to the local
+		  stack to preserve the variable names.}
+
+    \termitem{parent_goal}{}
+    \nodescription
+    \termitem{parent_goal}{-Parent}
+If \arg{Value} is instantiated to a callable term, find a frame
+executing the predicate described by \arg{Value} and unify the arguments
+of \arg{Value} to the goal arguments associated with the frame. This is
+intended to check the current execution context. The user must ensure
+the checked parent goal is not removed from the stack due to last-call
+optimisation and be aware of the slow operation on deeply nested calls.
+
+The variant \term{parent_goal}{-Parent} unifies the frame reference
+of the parent of the found frame with \arg{Parent}.  That allows for
+finding frames higher up in the stack running the same goal.
+
+    \termitem{predicate_indicator}{}
+Similar to \const{goal}, but only returning the
+[<module>:]<name>/<arity> term describing the term, not the actual
+arguments.  It avoids creating an illegal term as \const{goal} and
+is used by the library \pllib{prolog_stack}.
+
+    \termitem{clause}{}
+\arg{Value} is unified with a reference to the currently running clause.
+Fails if the current goal is associated with a foreign (C) defined
+predicate. See also nth_clause/3 and clause_property/2.
+
+    \termitem{level}{}
+\arg{Value} is unified with the recursion level of \arg{Frame}. The top
+level frame is at level `0'.
+
+    \termitem{parent}{}
+\arg{Value} is unified with an integer reference to the parent local
+stack frame of \arg{Frame}. Fails if \arg{Frame} is the top frame.
+
+    \termitem{context_module}{}
+\arg{Value} is unified with the name of the context module of the
+environment.
+
+    \termitem{top}{}
+\arg{Value} is unified with \const{true} if \arg{Frame} is the top Prolog
+goal from a recursive call back from the foreign language; \const{false}
+otherwise.
+
+    \termitem{hidden}{}
+\arg{Value} is unified with \const{true} if the frame is hidden from the
+user, either because a parent has the hide-childs attribute (all system
+predicates), or the system has no trace-me attribute.
+
+    \termitem{skipped}{}
+\arg{Value} is \const{true} if this frame was skipped in the debugger.
+
+    \termitem{pc}{}
+\arg{Value} is unified with the program pointer saved on behalf of the
+parent goal if the parent goal is not owned by a foreign predicate or
+belongs to a compound meta-call (e.g., call((a,b))).
+
+    \termitem{argument}{N}
+\arg{Value} is unified with the \arg{N}-th slot of the frame. Argument
+1 is the first argument of the goal. Arguments above the arity
+refer to local variables. Fails silently if \arg{N} is out of range.
+\end{description}
+
+    \predicate{prolog_choice_attribute}{3}{+ChoicePoint, +Key, -Value}
+Extract attributes of a choice point.  \arg{ChoicePoint} is a reference
+to a choice point as passed to prolog_trace_interception/4 on the 3rd
+argument or obtained using prolog_current_choice/1. \arg{Key} specifies
+the requested information:
+
+\begin{description}
+    \termitem{parent}{}
+Requests a reference to the first older choice point.
+    \termitem{frame}{}
+Requests a reference to the frame to which the choice point refers.
+    \termitem{type}{}
+Requests the type.  Defined values are \const{clause} (the goal has
+alternative clauses), \const{foreign} (non-deterministic foreign
+predicate), \const{jump} (clause internal choice point), \const{top}
+(first dummy choice point), \const{catch} (catch/3 to allow for undo),
+\const{debug} (help the debugger), or \const{none} (has been deleted).
+    \termitem{pc}{}
+Requests the program counter to which the choice point refers. Only
+applicable for in-clause choice points.
+    \termitem{clause}{}
+Request the clause that will be tried if this choice point is activated.
+Only applicable for choice points of type \const{clause}.
+\end{description}
+
+This predicate is used for the graphical debugger to show the
+choice point stack.
+
+    \predicate{deterministic}{1}{-Boolean}
+Unifies its argument with \const{true} if no choice point exists that is
+more recent than the entry of the clause in which it appears. There are
+few realistic situations for using this predicate. It is used by the
+prolog/0 top level to check whether Prolog should prompt the user for
+alternatives. Similar results can be achieved in a more portable fashion
+using call_cleanup/2.
+\end{description}
+
+\section{Ancestral cuts}		\label{sec:ancestral-cut}
+
+\begin{description}
+    \predicate{prolog_cut_to}{1}{+Choice}
+Prunes all choice points created since \arg{Choice}. Can be used
+together with prolog_current_choice/1 to implement \jargon{ancestral} cuts.
+This predicate is in the hackers corner because it should not be used
+in normal Prolog code. It may be used to create new high level control
+structures, particularly for compatibility purposes.
+
+Note that in the current implementation, the pruned choice points and
+environment frames are \emph{not} reclaimed. As a consequence, where
+predicates that are deterministic due to clause indexing, normal cuts or
+\verb$(if->then;else)$ and and tail recursive run in bounded local
+stack space, predicates using prolog_cut_to/1 will run out of stack.
+\end{description}
+
+
+\section{Intercepting the Tracer}		\label{sec:tracehook}
+
+\begin{description}
+    \predicate{prolog_trace_interception}{4}{+Port, +Frame, +Choice, -Action}
+Dynamic predicate, normally not defined. This predicate is called from
+the SWI-Prolog debugger just before it would show a port. If this
+predicate succeeds, the debugger assumes that the trace action has been taken
+care of and continues execution as described by \arg{Action}. Otherwise
+the normal Prolog debugger actions are performed.
+
+\arg{Port} denotes the reason to activate the tracer (`port' in the
+4/5-port, but with some additions):
+
+\begin{description}
+    \termitem{call}{}
+Normal entry through the call port of the 4-port debugger.
+
+    \termitem{redo}{PC}
+Normal entry through the redo port of the 4-port debugger. The
+\const{redo} port signals resuming a predicate to generate alternative
+solutions. If \arg{PC} is 0 (zero), clause indexing has found another
+clause that will be tried next. Otherwise, \arg{PC} is the program
+counter in the current clause where execution continues. This implies we
+are dealing with an in-clause choice point left by, e.g., \predref{;}{2}.
+Note that non-determinism in foreign predicates are also handled using
+an in-clause choice point.
+
+    \termitem{unify}{}
+The unify port represents the \jargon{neck} instruction, signalling the
+end of the head-matching process.  This port is normally invisible.  See
+leash/1 and visible/1.
+
+    \termitem{exit}{}
+The exit port signals the goal is proved.  It is possible for the goal
+to have alternatives. See prolog_frame_attribute/3 to examine the
+goal stack.
+
+    \termitem{fail}{}
+The fail port signals final failure of the goal.
+
+    \termitem{exception}{Except}
+An exception is raised and still pending.  This port is activated on
+each parent frame of the frame generating the exception until the
+exception is caught or the user restarts normal computation using
+\const{retry}.  \arg{Except} is the pending exception term.
+
+    \termitem{cut_call}{PC}
+A cut is encountered at \arg{PC}. This port is used by the graphical
+debugger to visualise the effect of the cut.
+
+    \termitem{cut_exit}{PC}
+A cut has been executed.  See \term{cut_call}{PC} for more information.
+\end{description}
+
+\arg{Frame} is a reference to the current local stack frame, which can
+be examined using prolog_frame_attribute/3. \arg{Choice} is a reference
+to the last choice point and can be examined using
+prolog_choice_attribute/3. \arg{Action} must be unified with a term that
+specifies how execution must continue. The following actions are
+defined:
+
+\begin{description}
+    \termitem{abort}{}
+Abort execution.  See abort/0.
+    \termitem{halt}{}
+Terminate execution.  See halt/0.
+    \termitem{continue}{}
+Continue (i.e., \jargon{creep} in the command line debugger).
+    \termitem{fail}{}
+Make the current goal fail.
+    \termitem{ignore}{}
+Step over the current goal without executing it.
+    \termitem{nodebug}{}
+Continue execution in normal nodebug mode.  See nodebug/0.
+    \termitem{leap}{}
+Continue execution in normal debug mode.  See debug/0.
+    \termitem{retry}{}
+Retry the current frame.
+    \termitem{retry}{Frame}
+Retry the given frame.  This must be a parent of the current
+frame.
+    \termitem{skip}{}
+Skip over the current goal (i.e., \jargon{skip} in the command line debugger).
+    \termitem{skip}{Frame}
+Skip to the end the execution of \arg{Frame}.  This is used to implement
+\jargon{finish} on an arbitrary frame in the GUI debugger.
+    \termitem{up}{}
+Skip to the parent goal (i.e., \jargon{up} in the command line debugger).
+This is the same as \term{skip}{Frame} using the parent frame of the
+current frame.
+\end{description}
+
+Together with the predicates described in \secref{debugger}
+and the other predicates of this chapter, this predicate enables the
+Prolog user to define a complete new debugger in Prolog. Besides this, it
+enables the Prolog programmer to monitor the execution of a program. The
+example below records all goals trapped by the tracer in the database.
+
+\begin{code}
+prolog_trace_interception(Port, Frame, _PC, continue) :-
+        prolog_frame_attribute(Frame, goal, Goal),
+        prolog_frame_attribute(Frame, level, Level),
+        recordz(trace, trace(Port, Level, Goal)).
+\end{code}
+
+To trace the execution of `go' this way the following query should be
+given:
+
+\begin{code}
+?- trace, go, notrace.
+\end{code}
+
+As of version 9.1.12, unification against variables in the passed data
+as well as changes to backtrackable global variables persist. The hook
+should not unify variables in its arguments. One solution to this is to
+backtrace over the body of the interceptor. Note that the \arg{Action}
+needs to be preserved.
+
+\begin{code}
+user:prolog_trace_interception(Port, Frame, Choice, Action) :-
+    State = state(0),
+    (   my_trace_interception(Port, Frame, Choice, Action),
+	nb_setarg(1, State, Action),
+	fail
+    ;   arg(1, State, Action)
+    ).
+\end{code}
+
+    \predicate{prolog_skip_level}{2}{-Old, +New}
+Unify \arg{Old} with the old value of `skip level' and then set this
+level according to \arg{New}. \arg{New} is an integer, the atom
+\const{very_deep} (meaning don't skip) or the atom \const{skip_in_redo}
+(see prolog_skip_frame/1). The `skip level' is a setting of each
+Prolog thread that disables the debugger on all recursion levels deeper
+than the level of the variable.  See also prolog_skip_frame/1.
+\end{description}
+
+\section{Simulating a debugger interrupt}
+\label{sec:interrupt}
+
+\begin{description}
+    \predicate{prolog_interrupt}{0}{}
+Calls the functionality that allows for debugging after receiving
+(normally) \const{SIGINT}.  This may be used in IDE environments
+to start debugging a toplevel thread by injecting this into the
+target thread using thread_signal/2.
+\end{description}
+
+
+\section{Breakpoint and watchpoint handling}
+\label{sec:breakpoint}
+
+SWI-Prolog support \jargon{breakpoints}.  Breakpoints can be manipulated
+with the library \pllib{prolog_breakpoints}. Setting a breakpoint
+replaces a virtual machine instruction with the \const{D_BREAK}
+instruction.  If the virtual machine executes a \const{D_BREAK}, it
+performs a callback to decide on the action to perform.  This section
+describes this callback, called prolog:break_hook/7.
+
+\begin{description}
+    \predicate[hook,semidet]{prolog:break_hook}{7}{+Clause, +PC, +FR,
+						   +BFR, +Expression, +Debug, -Action}
+\emph{Experimental}
+This hook is called if the virtual machine executes a \const{D_BREAK},
+set using set_breakpoint/4. \arg{Clause} and \arg{PC} identify the
+breakpoint. \arg{FR} and \arg{BFR} provide the environment frame and
+current choicepoint. \arg{Debug} is \const{true} if the system was in
+debug mode when the breakpoint was reached, otherwise \arg{Debug} is
+\const{false}. \arg{Expression} identifies the action that is
+interrupted, and is one of the following:
+
+    \begin{description}
+	\termitem{call}{Goal}
+    The instruction will call \arg{Goal}.  This is generated for nearly
+    all instructions. Note that \arg{Goal} is semantically
+    equivalent to the compiled body term, but might differ
+    syntactically. This is notably the case when arithmetic expressions
+    are compiled in optimized mode (see \prologflag{optimise}).  In
+    particular, the arguments of arithmetic expressions have already
+    been evaluated.  Thus, \arg{A} is 3*\arg{B}, where \arg{B} equals
+    3 results in a term \exam{call(A is 9)} if the clause was compiled
+    with optimization enabled.
+
+        \termitem{!}{}
+    The instruction will call the cut. Because the semantics of
+    metacalling the cut differs from executing the cut in its
+    original context we do not wrap the cut in \functor{call}{1}.
+
+	\termitem{:-}{}
+    The breakpoint is on the \jargon{neck} instruction, i.e., after
+    performing the head unifications.
+
+	\termitem{exit}{}
+    The breakpoint is on the \jargon{exit} instruction, i.e., at the
+    end of the clause. Note that the exit instruction may not be reached
+    due to last-call optimisation.
+
+	\termitem{unify_exit}{}
+    The breakpoint is on the completion of an in-lined unification while
+    the system is not in debug mode.  If the system is in debug mode,
+    inlined unification is returned as call(Var=Term).\footnote{This
+    hack will disappear if we find a good solution for applying D_BREAK
+    to inlined unification.  Only option might be to place the break on
+    both the unification start and end instructions.}
+    \end{description}
+
+If prolog:break_hook/7 succeeds, it must unify \arg{Action} with a value
+that describes how execution must continue. Possible values for
+\arg{Action} are:
+
+    \begin{description}
+	\termitem{continue}{}
+    Just continue as if no breakpoint was present.
+
+	\termitem{debug}{}
+    Continue in \jargon{debug mode}.  See debug/0.
+
+	\termitem{trace}{}
+    Continue in \jargon{trace mode}.  See trace/0.
+
+	\termitem{call}{Goal}
+    Execute \arg{Goal} instead of the goal that would be executed.
+    \arg{Goal} is executed as call/1, preserving (non-)determinism
+    and exceptions.
+    \end{description}
+
+If this hook throws an exception, the exception is propagated normally.
+If this hook is not defined or fails, the default action is executed.
+This implies that, if the thread is in debug mode, the tracer will be
+enabled (\const{trace}) and otherwise the breakpoint is ignored
+(\const{continue}).
+
+This hook allows for injecting various debugging scenarios into the
+executable without recompiling. The hook can access variables of the
+calling context using the frame inspection predicates. Here are some
+examples.
+
+    \begin{itemize}
+	\item Create \jargon{conditional} breakpoints by imposing
+	conditions before deciding the return \const{trace}.
+	\item Watch variables at a specific point in the execution.
+	Note that binding of these variables can be monitored
+	using \jargon{attributed variables}, see \secref{attvar}.
+	\item Dynamically add \jargon{assertions} on variables
+	using assertion/1.
+	\item Wrap the \arg{Goal} into a meta-call that traces
+	progress of the \arg{Goal}.
+    \end{itemize}
+\end{description}
+
+
+\section{Adding context to errors: prolog_exception_hook}
+\label{sec:excepthook}
+
+The hook prolog:prolog_exception_hook/5 has been introduced to provide
+dedicated exception handling facilities for application frameworks,
+for example non-interactive server applications that wish to provide
+extensive context for exceptions for offline debugging.
+
+\begin{description}
+    \predicate{prolog:prolog_exception_hook}{5}%
+    {+ExceptionIn, -ExceptionOut, +Frame, +CatcherFrame, +DebugMode}
+This hook predicate, if defined in the module \const{prolog}, is between
+raising an exception and handling it. It is intended to allow a program
+adding additional context to an exception to simplify diagnosing the
+problem. \arg{ExceptionIn} is the exception term as raised by throw/1 or
+one of the built-in predicates. The output argument \arg{ExceptionOut}
+describes the exception that is actually raised. \arg{Frame} is the
+innermost frame. See prolog_frame_attribute/3 and the library
+\pllib{prolog_stack} for getting information from this.
+\arg{CatcherFrame} is a reference to the frame calling the matching
+catch/3, \const{none} if the exception is not caught or \const{'C'}
+if the exception is caught in C calling Prolog using the flag
+\const{PL_Q_CATCH_EXCEPTION}.  \arg{DebugMode} contains the setting
+of the Prolog flag \prologflag{debug} from the calling context.
+
+The hook is run in `nodebug' mode. If it succeeds, \arg{ExceptionOut} is
+considered the current exception. If it fails, \arg{ExceptionIn} is used
+for further processing. The hook is \emph{never} called recursively.
+The hook is \emph{not} allowed to modify \arg{ExceptionOut} in such
+a way that it no longer unifies with the catching frame.
+
+Typically, prolog:prolog_exception_hook/5 is used to fill the second
+argument of \term{error}{Formal, Context} exceptions. \arg{Formal} is
+defined by the ISO standard, while SWI-Prolog defines \arg{Context} as
+a term \term{context}{Location, Message}.  \arg{Location} is bound to
+a term <name>/<arity> by the kernel.  This hook can be used to add
+more information on the calling context, such as a full stack trace.
+
+Applications that use exceptions as part of normal processing must
+do a quick test of the environment before starting expensive gathering
+information on the state of the program.
+
+The hook can call trace/0 to enter trace mode immediately. For example,
+imagine an application performing an unwanted division by zero while all
+other errors are expected and handled.  We can force the debugger using
+the hook definition below.  Run the program in debug mode (see debug/0)
+to preserve as much as possible of the error context.
+
+\begin{code}
+user:prolog_exception_hook(
+	 error(evaluation_error(zero_divisor), _),
+	 _, _, _) :-
+	trace, fail.
+\end{code}
+
+This hook is used by \pllib{prolog_stack} to print stack traces on
+uncaught exceptions, trap/1 to debug after exceptions and the GUI
+exception editor that is part of the GUI debugger.
+\end{description}
+
+
+\section{Hooks using the exception predicate}	\label{sec:exception3}
+
+This section describes the predicate exception/3, which can be defined
+by the user in the module \module{user} as a multifile predicate. Unlike
+the name suggests, this is actually a \jargon{hook} predicate that has
+no relation to Prolog exceptions as defined by the ISO predicates
+catch/3 and throw/1.
+
+The predicate exception/3 is called by the kernel on a couple of events,
+allowing the user to `fix' errors just-in-time. The mechanism allows for
+\jargon{lazy} creation of objects such as predicates.
+
+\begin{description}
+    \predicate{exception}{3}{+Exception, +Context, -Action}
+Dynamic predicate, normally not defined. Called by the Prolog system on
+run-time exceptions that can be repaired `just-in-time'.  The values
+for \arg{Exception} are described below.  See also catch/3 and throw/1.
+
+If this hook predicate succeeds it must instantiate the \arg{Action}
+argument to the atom \const{fail} to make the operation fail silently,
+\const{retry} to tell Prolog to retry the operation or \const{error} to
+make the system generate an exception. The action \const{retry} only
+makes sense if this hook modified the environment such that the
+operation can now succeed without error.
+
+\begin{description}
+    \termitem{undefined_predicate}{}
+\arg{Context} is instantiated to a predicate indicator
+([module]:<name>/<arity>). If the predicate fails, Prolog will generate
+an \except{existence_error} exception. The hook is intended to implement
+alternatives to the built-in autoloader, such as autoloading code from
+a database.  Do \emph{not} use this hook to suppress existence errors on
+predicates.  See also \prologflag{unknown} and \secref{autoload}.
+
+    \termitem{undefined_global_variable}{}
+\arg{Context} is instantiated to the name of the missing global
+variable. The hook must call nb_setval/2 or b_setval/2 before returning
+with the action \const{retry}.  See also nb_current/2.
+\end{description}
+\end{description}
+
+
+\section{Prolog events}				\label{sec:prolog-event}
+
+Version 8.1.9 introduces a uniform mechanism to listen to events that
+happen in the Prolog engine. It replaces and generalises
+\nopredref{prolog_event_hook}{1}, a hook that was introduced to support
+the graphical debugger. The current implementation deals with debug,
+thread and dynamic database events. We expect this mechanism to deal
+with more hooks in the future.
+
+\begin{description}
+    \predicate{prolog_listen}{2}{+Channel, :Closure}
+\nodescription
+    \predicate{prolog_listen}{3}{+Channel, :Closure, +Options}
+Call \arg{Closure} if an event that matches \arg{Channel} happens inside
+Prolog. Possible choice points are pruned as by once/1. Possible failure
+is ignored, but exceptions are propagated into the environment. Multiple
+closures can be associated with the same channel.  Execution of the list
+of closures may be terminated by an exception. Options:
+
+    \begin{description}
+    \termitem{as}{+Location}
+\arg{Location} is one of \const{first} (default) or \const{last} and
+determines whether the new handler is expected as first or last.
+    \termitem{name}{+Atom}
+Give the handler a name.  A new registration using the same name
+replaces the existing handler rather than adding a new handler. Names
+are local to the \arg{Channel}, i.e., different channels can use the
+same name.
+    \end{description}
+
+Defined channels are described below. The \arg{Channel} argument is the
+name of the term listed below. The arguments are added as additional
+arguments to the given \arg{Closure}.
+
+    \begin{description}
+    \termitem{abort}{}
+Called by abort/0.
+
+    \termitem{erase}{DbRef}
+Called on an erased recorded database reference or clause. Note that a
+retracted clauses is not immediately removed. Clauses are reclaimed by
+garbage_collect_clauses/0, which is normally executed automatically in
+the \const{gc} thread. This specific channel is used by clause_info/5 to
+reclaim source layout of reclaimed clauses.  User applications should
+typically use the \arg{PredicateIndicator} channel.
+
+    \termitem{break}{Action, ClauseRef, PCOffset}
+Traps events related to Prolog break points. See library
+\pllib{prolog_breakpoints}
+
+    \termitem{frame_finished}{FrameRef}
+Indicates that a stack frame that has been examined using
+prolog_current_frame/1, prolog_frame_attribute/3 and friends has
+been deleted.  Used by the source level debugger to avoid that
+the stack view references non-existing frames.
+
+    \termitem{thread_exit}{Thread}
+Globally registered channel that is called by any thread just
+before the thread is terminated.
+
+    \termitem{thread_start}{Thread}
+Globally registered channel that is called by any thread after the
+thread initialization and before running the thread's goal.
+
+    \termitem{this_thread_exit}{}
+Thread local version of the \const{thread_exit} channel that
+is also used by the \term{at_exit}{Closure} option of
+thread_create/3.
+
+    \termitem{PredicateIndicator}{Action, Context}
+Track changes to a predicate. This notably allows tracking modifications
+to dynamic predicates.  The channel also allows tracking changes to
+\jargon{monotonic} tables (\secref{tabling-monotonic}).  Both monotonic
+and incremental tabling use this to track changes to \const{incremental}
+and \const{monotonic} dynamic predicates. Below is an example
+illustrating events from changing a dynamic predicate.
+
+\begin{code}
+:- dynamic p/1.
+:- prolog_listen(p/1, updated(p/1)).
+
+updated(Pred, Action, Context) :-
+    format('Updated ~p: ~p ~p~n', [Pred, Action, Context]).
+\end{code}
+
+\begin{code}
+?- assert(p(a)).
+Updated p/1: assertz <clause>(0x55db261709d0)
+?- retractall(p(_)).
+Updated p/1: retractall start(user:p(_12294))
+Updated p/1: retract <clause>(0x55db261719c0)
+Updated p/1: retractall end(user:p(_12294))
+\end{code}
+
+	\begin{description}
+	\termitem{asserta}{}
+	\termitem{assertz}{}
+    A new clauses has been added as first (last) for the given
+    predicate.  \arg{Context} is a clause reference.  The hook is
+    called after the clause has been added.  If the hook fails the
+    clause is removed.
+	\termitem{retract}{}
+    A clause was retracted from the given predicate using either
+    retract/1, erase/1 or retractall/1.  \arg{Context} is a clause reference.
+    The hook is called before the clause is removed.  If the hook
+    fails, the clause is not removed.
+	\termitem{retractall}{}
+    The beginning and end of retractall/1 is indicated with
+    the \arg{Action} \const{retractall}.  The context argument
+    is \term{start}{Head} or \term{end}{Head}.
+        \termitem{rollback}{Action}
+    Issued when rolling back (discarding) a transaction.  \arg{Action}
+    is the local action being reverted and is one of \const{asserta},
+    \const{assertz} or \const{retract}.  Context is the involved
+    clause.  See transaction/1 and snapshot/1.
+	\termitem{new_answer}{}
+    A new answer was added to a tabled predicate. The context
+    is the answer term.  Currently implemented for \jargon{monotonic}
+    tabling only.  Future versions may also implement this for normal
+    tabling.  See \secref{tabling-tracking}.
+	\end{description}
+    \end{description}
+
+    \predicate{prolog_unlisten}{2}{+Channel, :Closure}
+Remove matching closures registered with prolog_listen/3.
+\end{description}
+
+
+\section{Hooks for integrating libraries}	\label{sec:intlibs}
+
+Some libraries realise an entirely new programming paradigm on top of
+Prolog.  An example is XPCE which adds an object system to Prolog as
+well as an extensive set of graphical primitives.  SWI-Prolog provides
+several hooks to improve the integration of such libraries.  See also
+\secref{listing} for editing hooks and \secref{printmsg} for hooking
+into the message system.
+
+\begin{description}
+    \predicate{prolog_list_goal}{1}{:Goal}
+Hook, normally not defined. This hook is called by the 'L' command of
+the tracer in the module \module{user} to list the currently called
+predicate. This hook may be defined to list only relevant clauses of the
+indicated \arg{Goal} and/or show the actual source code in an editor.
+See also portray/1 and multifile/1.
+
+    \predicate{prolog:debug_control_hook}{1}{:Action}
+Hook for the debugger control predicates that allows the creator of
+more high-level programming languages to use the common front-end
+predicates to control the debugger.  For example, XPCE uses these hooks
+to allow for spying methods rather than predicates. \arg{Action} is one
+of:
+
+\begin{description}
+    \termitem{spy}{Spec}
+Hook in spy/1.  If the hook succeeds spy/1 takes no further action.
+    \termitem{nospy}{Spec}
+Hook in nospy/1.  If the hook succeeds nospy/1 takes no further action.
+If spy/1 is hooked, it is advised to place a complementary hook for
+nospy/1.
+    \termitem{nospyall}{}
+Hook in nospyall/0.  Should remove all spy points.  This hook is
+called in a failure-driven loop.
+    \termitem{debugging}{DebugMode}
+Hook in debugging/0. \arg{DebugMode} holds the current value of the
+\prologflag{debug} flag. The hook can be used in two ways. It can report
+the status of the additional debug points controlled by the above hooks
+and fail to let the system report the others, or it succeeds, overruling
+the entire behaviour of debugging/0.
+\end{description}
+
+    \predicate{prolog:help_hook}{1}{+Action}
+Hook into help/0 and help/1.  If the hook succeeds, the built-in actions
+are not executed. For example, \exam{?- help(picture).} is caught by the
+XPCE help hook to give help on the class {\em picture}.  Defined actions
+are:
+
+\begin{description}
+    \termitem{help}{}
+User entered plain help/0 to give default help.  The default performs
+\exam{help(help/1)}, giving help on help.
+    \termitem{help}{What}
+Hook in help/1 on the topic \arg{What}.
+    \termitem{apropos}{What}
+Hook in apropos/1 on the topic \arg{What}.
+\end{description}
+\end{description}
+
+
+\section{Hooks for loading files}	\label{sec:loadfilehook}
+
+All loading of source files is achieved by load_files/2.  The hook
+prolog_load_file/2 can be used to load Prolog code from non-files
+or even load entirely different information, such as foreign files.
+
+\begin{description}
+    \predicate{prolog_load_file}{2}{+Spec, +Options}
+Load a single object.  If this call succeeds, load_files/2 assumes the
+action has been taken care of. This hook is only called if \arg{Options}
+does not contain the \term{stream}{Input} option. The hook must be
+defined in the module \const{user}.
+
+This can be used to load from unusual places as well as dealing with
+Prolog code that is not represented as a Prolog source text (for example
+some binary representation). For example, library \pllib{http/http_load}
+loads Prolog directly from an HTTP server. See also
+prolog:open_source_hook/3, which merely allows for changing how a
+physical file is opened.
+
+    \predicate{prolog:open_source_hook}{3}{+Path, -Stream, +Options}
+This hooks is called by the compiler to overrule the default open/3 call
+\term{open}{Path, read, Stream}. \arg{Options} provide the options as
+provided to load_files/2. If the hook succeeds compilation continues by
+loading from the returned (input) stream. This hook is particularly
+suited to support running the code to a preprocessor. See also
+prolog_load_file/2.
+
+    \predicate{prolog:comment_hook}{4}{+Comments, +Pos, +Term, +VarNames}
+This hook allows for processing comments encountered by the compiler. If
+this hook is defined, the compiler calls read_term/2 with the option
+\term{comments}{Comments}.  If the list of comments returned by
+read_term/2 is not empty it calls this comment hook with the
+following arguments.
+
+\begin{itemize}
+    \item \arg{Comments} is the non-empty list of comments.  Each
+	  comment is a pair \arg{Position}-\arg{String}, where
+	  \arg{String} is a string object (see \secref{string})
+	  that contains the comment \emph{including} delimiters.
+	  Consecutive line comments are returned as a single
+	  comment.
+    \item \arg{Pos} is a stream-position term that describes the
+	  starting position of \arg{Term}
+    \item \arg{Term} is the term read.
+    \item \arg{VarNames} is a list \arg{Name}=\arg{Var} for the
+	  named variables of \arg{Term} if the variable names are
+	  requested using the option \term{variable_names}{Bindings}
+	  of read_clause/3 and \const{[]} otherwise.  This allows the
+	  hook to relate comments to the argument names of \arg{Term}.
+\end{itemize}
+
+This hook is exploited by the documentation system. See
+stream_position_data/3. See also read_term/3.
+\end{description}

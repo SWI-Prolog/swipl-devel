@@ -48,6 +48,7 @@
 #include "pl-funct.h"
 #include "pl-gc.h"
 #include "pl-proc.h"
+#include "os/pl-utf8.h"
 
 #define WORDS_PER_PLINT (sizeof(int64_t)/sizeof(word))
 
@@ -55,7 +56,8 @@ static RecordList lookupRecordList(word);
 static RecordList isCurrentRecordList(word, int must_be_non_empty);
 static void freeRecordRef(RecordRef r);
 static void unallocRecordList(RecordList rl);
-static bool is_external(const char *rec, size_t len);
+#define recorded_external(rec, len, t) LDFUNC(recorded_external, rec, len, t)
+static bool recorded_external(DECL_LD const char *rec, size_t len, term_t t);
 
 #undef LD
 #define LD LOCAL_LD
@@ -99,6 +101,8 @@ lookupRecordList(word key)
   } else
   { if ( isAtom(key) )			/* can also be functor_t */
       PL_register_atom(word2atom(key));
+    else if ( isFunctor(key) )
+      permanentFunctor((functor_t)key);
     l = allocHeapOrHalt(sizeof(*l));
     memset(l, 0, sizeof(*l));
     l->key = key;
@@ -256,6 +260,7 @@ typedef struct
 #define PL_REC_MPQ		(19)	/* GMP rational */
 
 #define PL_TYPE_EXT_COMPOUND_V2	(20)	/* Read V2 external records */
+#define PL_TYPE_PTRINT		(21)	/* pointer integer (not external) */
 
 static const int v2_map[] =
 { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,		/* variable..string */
@@ -408,7 +413,7 @@ addAtomValue(CompileInfo info, Atom a)
 }
 
 
-static int
+static bool
 addAtom(CompileInfo info, atom_t a)
 { if ( a == ATOM_nil )
   { addOpCode(info, PL_TYPE_NIL);
@@ -440,7 +445,7 @@ addAtom(CompileInfo info, atom_t a)
 }
 
 
-static int
+static bool
 addFunctor(CompileInfo info, functor_t f)
 { if ( f == FUNCTOR_dot2 )
   { addOpCode(info, PL_TYPE_CONS);
@@ -454,6 +459,8 @@ addFunctor(CompileInfo info, functor_t f)
     } else
     { addOpCode(info, PL_TYPE_COMPOUND);
       addWord(info, f);
+      if ( info->lock )
+	acquireFunctor(f);
     }
   }
 
@@ -480,7 +487,7 @@ back where it came.
 #define valAttVarP(p) ((Word)((uintptr_t)(p) & ~0x1L))
 
 #define compile_term_to_heap(agenda, info) LDFUNC(compile_term_to_heap, agenda, info)
-static int
+static bool
 compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 { Word p;
 
@@ -494,7 +501,7 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
     { case TAG_VAR:
       { intptr_t n = info->nvars++;
 
-	*p = (n<<7)|TAG_ATOM|STG_GLOBAL;
+	*p = consTagged(n, TAGEX_FUNCTOR); /* see (*) */
 	addBuffer(&info->vars, p, Word);
 	addOpCode(info, PL_TYPE_VARIABLE);
 	addSizeInt(info, n);
@@ -512,7 +519,7 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 	}
 
 	addBuffer(&info->vars, *p, word);		/* save value */
-	*p = (n<<7)|TAG_ATOM|STG_GLOBAL;
+	*p = consTagged(n, TAGEX_FUNCTOR); /* see (*) */
 	addBuffer(&info->vars, mkAttVarP(p), Word);
 	addOpCode(info, PL_TYPE_ATTVAR);
 	addSizeInt(info, n);
@@ -525,8 +532,8 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
       }
 #endif
       case TAG_ATOM:
-      { if ( storage(w) == STG_GLOBAL )	/* this is a variable */
-	{ intptr_t n = ((intptr_t)(w) >> 7);
+      { if ( isFunctor(w) )   /* (*) marked variable; functors are never values */
+	{ intptr_t n = (intptr_t)valTagged(w);
 
 	  addOpCode(info, PL_TYPE_VARIABLE);
 	  addSizeInt(info, n);
@@ -544,7 +551,8 @@ compile_term_to_heap(DECL_LD term_agenda *agenda, CompileInfo info)
 
 	if ( isTaggedInt(w) )
 	{ val = valInt(w);
-	  addOpCode(info, PL_TYPE_TAGGED_INTEGER);
+	  addOpCode(info, isPtrInt(w) && !info->external ? PL_TYPE_PTRINT
+							 : PL_TYPE_TAGGED_INTEGER);
 	  addInt64(info, val);
 	} else
 	{ number n;
@@ -659,7 +667,7 @@ unvisit(DECL_LD)
 { cycle_mark mark;
 
   while( popSegStack(&LD->cycle.lstack, &mark, cycle_mark) )
-  { mark.term->definition = mark.fdef;
+  { restoreHiddenFunctor(&mark.term->definition, mark.fdef);
   }
 }
 
@@ -720,11 +728,13 @@ compileTermToHeap_ex(DECL_LD term_t t,
   info.external = (flags & R_EXTERNAL);
   info.lock = !(info.external || (flags&R_NOLOCK));
 
+  startHideFunctors();			/* see unvisit() */
   initTermAgenda(&agenda, 1, valTermRef(t));
   rc = compile_term_to_heap(&agenda, &info);
   clearTermAgenda(&agenda);
   restoreVars(&info);
   unvisit();
+  endHideFunctors();
 
   if ( rc )
   { size = rsize + sizeOfBuffer(&info.code);
@@ -758,10 +768,21 @@ compileTermToHeap_ex(DECL_LD term_t t,
 }
 
 
+/* True if r1 and r2 hold variant terms.  A record compiles its term to
+   a canonical code sequence, numbering variables by first occurrence,
+   so the terms are variants if the codes are equal.  The flags and
+   the reference count of a PL_record()ed term describe the record,
+   not the term, and are not compared.
+*/
+
 int
 variantRecords(const Record r1, const Record r2)
 { return ( r1->size == r2->size &&
-	   memcpy(r1, r2, r1->size) == 0
+	   SIZERECORD(r1->flags) == SIZERECORD(r2->flags) &&
+	   r1->gsize == r2->gsize &&
+	   r1->nvars == r2->nvars &&
+	   memcmp(dataRecord(r1), dataRecord(r2),
+		  r1->size - SIZERECORD(r1->flags)) == 0
 	 );
 }
 
@@ -803,7 +824,7 @@ discard_record_data(record_data *data)
     discardBuffer(&data->hdr);
 }
 
-static int
+static bool
 rec_error(CompileInfo info)
 { switch(info->error)
   { case EFAST_SERIALIZE:
@@ -822,7 +843,7 @@ rec_error(CompileInfo info)
 
 
 #define compile_external_record(t, data) LDFUNC(compile_external_record, t, data)
-static int
+static bool
 compile_external_record(DECL_LD term_t t, record_data *data)
 { Word p;
   int first = REC_HDR;
@@ -861,6 +882,7 @@ compile_external_record(DECL_LD term_t t, record_data *data)
   data->info.size = 0;
   data->info.nvars = 0;
 
+  startHideFunctors();			/* see unvisit() */
   initTermAgenda(&agenda, 1, p);
   rc = compile_term_to_heap(&agenda, &data->info);
   clearTermAgenda(&agenda);
@@ -868,6 +890,7 @@ compile_external_record(DECL_LD term_t t, record_data *data)
     first |= REC_GROUND;
   restoreVars(&data->info);
   unvisit();
+  endHideFunctors();
   if ( !rc )
     return rec_error(&data->info);
   scode = (int)sizeOfBuffer(&data->info.code);
@@ -962,7 +985,7 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 
 	if ( (p=globalBlob(shdr+scode+1, TAG_STRING)) )
 	{ char *q = (char *)&p[1];
-	  word w  = consPtr(p, TAG_STRING|STG_GLOBAL);
+	  word w  = consIndirect(p, TAG_STRING);
 
 	  *q++ = 'B';
 	  memcpy(q,      data.hdr.base,       shdr);
@@ -984,9 +1007,9 @@ PRED_IMPL("fast_term_serialized", 2, fast_term_serialized, 0)
 			    CVT_STRING|BUF_STACK|REP_ISO_LATIN_1|CVT_EXCEPTION) )
   { term_t tmp;
 
-    return ( (tmp = PL_new_term_ref()) &&
-	     is_external(rec, len) &&
-	     PL_recorded_external(rec, tmp) &&
+    return ( len > 0 &&
+	     (tmp = PL_new_term_ref()) &&
+	     recorded_external(rec, len, tmp) &&
 	     PL_unify(term, tmp) );
   } else
   { return false;
@@ -1050,8 +1073,10 @@ readSizeInt(IOSTREAM *in, char *to, size_t *sz)
     }
 
     *t++ = (char)d;
-    if ( t-to > 10 )
+    if ( t-to > 10 || r > (SIZE_MAX>>7) )
+    { PL_syntax_error("fastrw_size", in);
       return NULL;
+    }
     r = (r<<7)|(d&0x7f);
   } while((d & 0x80));
 
@@ -1060,23 +1085,70 @@ readSizeInt(IOSTREAM *in, char *to, size_t *sz)
   return t;
 }
 
+/* read_record_body() reads `size` bytes following the header [rec,np)
+   into `rec` if the record fits in FASTRW_FAST bytes, and otherwise into
+   a malloc()ed buffer.  This buffer grows as data arrives, such that a
+   bogus size cannot make us allocate memory the input does not provide.
+   Returns the buffer and sets *lenp to the record length, or returns
+   NULL after raising an exception.
+*/
+
+#define FASTRW_CHUNK (64*1024)
+
 static char *
-realloc_record(char *rec, char **np, size_t size)
-{ size_t hdr   = *np-rec;
-  size_t tsize = hdr + size;
-  char *nrec;
+read_record_body(IOSTREAM *in, char *rec, char *np, size_t size,
+		 const char *ctx, size_t *lenp)
+{ size_t hdr = np-rec;
+  size_t total, done, allocated;
+  char *buf;
 
-  if ( tsize <= FASTRW_FAST )
-  { return rec;
-  } else if ( (nrec = malloc(tsize)) )
-  { memcpy(nrec, rec, hdr);
-    *np = nrec+hdr;
+  if ( size > SIZE_MAX - hdr )
+  { PL_syntax_error(ctx, in);
+    return NULL;
+  }
+  total = hdr+size;
 
-    return nrec;
-  } else
+  if ( total <= FASTRW_FAST )
+  { if ( Sfread(np, 1, size, in) != size )
+    { PL_syntax_error(ctx, in);
+      return NULL;
+    }
+    *lenp = total;
+    return rec;
+  }
+
+  allocated = hdr + (size < FASTRW_CHUNK ? size : FASTRW_CHUNK);
+  if ( !(buf = malloc(allocated)) )
   { PL_no_memory();
     return NULL;
   }
+  memcpy(buf, rec, hdr);
+  for(done = hdr; done < total; )
+  { size_t chunk;
+
+    if ( done == allocated )
+    { size_t na = allocated > total/2 ? total : allocated*2;
+      char *nb;
+
+      if ( !(nb = realloc(buf, na)) )
+      { free(buf);
+	PL_no_memory();
+	return NULL;
+      }
+      buf = nb;
+      allocated = na;
+    }
+    chunk = allocated-done;
+    if ( Sfread(buf+done, 1, chunk, in) != chunk )
+    { free(buf);
+      PL_syntax_error(ctx, in);
+      return NULL;
+    }
+    done += chunk;
+  }
+
+  *lenp = total;
+  return buf;
 }
 
 
@@ -1092,6 +1164,7 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
     { int m = Sgetc(in);
       char fast[FASTRW_FAST];
       char *rec = fast;
+      size_t len = 0;
 
       switch(m)
       { case -1:
@@ -1104,9 +1177,11 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
 	  { rec[0] = (char)m;
 	    rec[1] = (char)size;
 	    if ( Sfread(&rec[2], 1, size, in) != size )
-	      rc = PL_syntax_error("fastrw_integer", in);
-	    else
+	    { rc = PL_syntax_error("fastrw_integer", in);
+	    } else
+	    { len = size+2;
 	      rc = true;
+	    }
 	  } else
 	  { rc = PL_syntax_error("fastrw_integer", in);
 	  }
@@ -1130,12 +1205,11 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
 	      rec[0] = (char)m;
 	      rec[1] = (char)op;
 
-	      if ( (np=readSizeInt(in, &rec[2], &bytes)) &&
-		   (rec = realloc_record(rec, &np, bytes)) &&
-		   Sfread(np, 1, bytes, in) == bytes )
-		rc = true;
-	      else
-		rc = PL_syntax_error("fastrw_atom", in);
+	      rc = ( (np=readSizeInt(in, &rec[2], &bytes)) &&
+		     (rec=read_record_body(in, rec, np, bytes,
+					   "fastrw_atom", &len)) );
+	      if ( !rec )
+		rec = fast;
 	      break;
 	    }
 	    default:
@@ -1150,14 +1224,13 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
 
 	  rec[0] = (char)m;
 
-	  if ( (np=readSizeInt(in, &rec[1], &codes)) &&
-	       (np=readSizeInt(in, np, &gsize)) &&
-	       ((m&REC_GROUND) || (np=readSizeInt(in, np, &nvars))) &&
-	       (rec = realloc_record(rec, &np, codes)) &&
-	       Sfread(np, 1, codes, in) == codes )
-	    rc = true;
-	  else
-	    rc = PL_syntax_error("fastrw_term", in);
+	  rc = ( (np=readSizeInt(in, &rec[1], &codes)) &&
+		 (np=readSizeInt(in, np, &gsize)) &&
+		 ((m&REC_GROUND) || (np=readSizeInt(in, np, &nvars))) &&
+		 (rec=read_record_body(in, rec, np, codes,
+				       "fastrw_term", &len)) );
+	  if ( !rec )
+	    rec = fast;
 	  break;
 	}
 	default:
@@ -1167,9 +1240,13 @@ PRED_IMPL("fast_read", 2, fast_read, 0)
       if ( rc )
       { term_t tmp;
 
-	rc = ( (tmp = PL_new_term_ref()) &&
-	       PL_recorded_external(rec, tmp) &&
-	       PL_unify(A2, tmp) );
+	if ( !(tmp = PL_new_term_ref()) )
+	  rc = false;
+	else if ( !recorded_external(rec, len, tmp) )
+	  rc = ( !PL_exception(0) &&
+		 PL_syntax_error("illegal_fastrw_record", in) );
+	else
+	  rc = PL_unify(A2, tmp);
       }
 
       if ( rec != fast )
@@ -1200,7 +1277,7 @@ typedef struct
   Word		gbase;			/* base of term on global stack */
   Word		gstore;			/* current storage location */
   uint		nvars;			/* Variables seen */
-  uint		dicts;			/* # dicts found */
+  TmpBuffer	dicts;			/* offsets of dicts (external records) */
   TmpBuffer	avars;			/* Values stored for attvars */
   Word		vars_buf[MAX_FAST_VARS];
 } copy_info, *CopyInfo;
@@ -1273,16 +1350,28 @@ fetchSizeInt(CopyInfo b)
 }
 
 
-static int64_t
-fetchInt64(CopyInfo b)
+/* Decode an integer written by addInt64(): `bytes` (1..8) bytes, most
+   significant first, sign extended.
+*/
+
+static inline int64_t
+int64_from_bytes(const char *data, uint bytes)
 { uint64_t val = 0;
-  uint bytes = *b->data++;
   uint64_t sign = 1ULL << (bytes * 8 - 1);
 
   while(bytes-- > 0)
-    val = (val << 8) | (*b->data++ & 0xff);
+    val = (val << 8) | (*data++ & 0xff);
 
   return (int64_t)((val ^ sign) - sign);
+}
+
+static int64_t
+fetchInt64(CopyInfo b)
+{ uint bytes = *b->data++ & 0xff;
+  int64_t val = int64_from_bytes(b->data, bytes);
+
+  b->data += bytes;
+  return val;
 }
 
 
@@ -1386,7 +1475,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	DEBUG(MSG_REC_ATTVAR,
 	      Sdprintf("Restore attvar %zd at %p\n", n, &b->gstore[1]));
 	register_attvar(b->gstore);
-	b->gstore[1] = consPtr(&b->gstore[2], TAG_ATTVAR|STG_GLOBAL);
+	b->gstore[1] = consAttVar(&b->gstore[2]);
 	*p = makeRefG(&b->gstore[1]);
 	b->vars[n] = p;
 	p = &b->gstore[2];
@@ -1425,6 +1514,11 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	*p = consInt(val);
 	continue;
       }
+      case PL_TYPE_PTRINT:
+      { int64_t val = fetchInt64(b);
+	*p = consPtrInt(val);
+	continue;
+      }
       case PL_TYPE_INTEGER:
       { size_t i;
 	union
@@ -1434,7 +1528,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 
 	val.i64 = fetchInt64(b);
 
-	*p = consPtr(b->gstore, TAG_INTEGER|STG_GLOBAL);
+	*p = consIndirect(b->gstore, TAG_INTEGER);
 	*b->gstore++ = mkIndHdr(WORDS_PER_PLINT, TAG_INTEGER);
 	for(i=0; i<WORDS_PER_PLINT; i++)
 	  *b->gstore++ = val.w[i];
@@ -1451,7 +1545,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 #endif
       case PL_TYPE_FLOAT:
       case PL_TYPE_EXT_FLOAT:
-      { *p = consPtr(b->gstore, TAG_FLOAT|STG_GLOBAL);
+      { *p = consIndirect(b->gstore, TAG_FLOAT);
 	*b->gstore++ = mkIndHdr(WORDS_PER_DOUBLE, TAG_FLOAT);
 	if ( tag == PL_TYPE_FLOAT )
 	  fetchFloat(b, b->gstore);
@@ -1468,7 +1562,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 
 	lw = (len+sizeof(word))/sizeof(word); /* see globalBlob() */
 	pad = (lw*sizeof(word) - len);
-	*p = consPtr(b->gstore, TAG_STRING|STG_GLOBAL);
+	*p = consIndirect(b->gstore, TAG_STRING);
 	*b->gstore++ = hdr = mkBlobHdr(lw, pad, TAG_STRING);
 	b->gstore[lw-1] = 0L;		/* zero-padding */
 	fetchChars(b, len, b->gstore);
@@ -1481,19 +1575,20 @@ copy_record(DECL_LD Word p, CopyInfo b)
       { size_t offset = fetchSizeInt(b);
 	Word ct = b->gbase+offset;
 
-	*p = consPtr(ct, TAG_COMPOUND|STG_GLOBAL);
+	*p = consCompound(ct);
 	continue;
       }
 #endif
     { word fdef;
       size_t arity;
+      atom_t name;
       case PL_TYPE_COMPOUND:
 
 	fdef = fetchWord(b);
 	arity = arityFunctor(fdef);
 
       compound:
-	*p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
+	*p = consCompound(b->gstore);
 	*b->gstore++ = fdef;
 	p = b->gstore;
 	b->gstore += arity;
@@ -1506,10 +1601,9 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	}
 	continue;
       case PL_TYPE_EXT_COMPOUND:
-      { atom_t name;
-	int opcode_atom;
+      { int opcode_atom;
 
-	arity = (int)fetchSizeInt(b);
+	arity = fetchSizeInt(b);
 	opcode_atom = fetchOpCode(b);
 	switch(opcode_atom)
 	{ case PL_TYPE_EXT_ATOM:
@@ -1522,7 +1616,6 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	    name = ATOM_nil;
 	    break;
 	  case PL_TYPE_DICT:
-	    b->dicts++;
 	    name = ATOM_dict;
 	    break;
 	  default:
@@ -1530,20 +1623,20 @@ copy_record(DECL_LD Word p, CopyInfo b)
 	    assert(0);
 	}
 
-	fdef = lookupFunctorDef(name, arity);
-	goto compound;
+	goto ext_compound;
       }
       case PL_TYPE_EXT_COMPOUND_V2:
-      { atom_t name;
-
-	arity = (int)fetchSizeInt(b);
+	arity = fetchSizeInt(b);
 	fetchAtom(b, &name);
+
+      ext_compound:
 	fdef = lookupFunctorDef(name, arity);
+	if ( name == ATOM_dict && b->dicts )
+	  addBuffer(b->dicts, (size_t)(b->gstore - b->gbase), size_t);
 	goto compound;
-      }
     }
       case PL_TYPE_CONS:
-      { *p = consPtr(b->gstore, TAG_COMPOUND|STG_GLOBAL);
+      { *p = consCompound(b->gstore);
 	*b->gstore++ = FUNCTOR_dot2;
 	p = b->gstore;
 	b->gstore += 2;
@@ -1565,7 +1658,7 @@ copy_record(DECL_LD Word p, CopyInfo b)
 }
 
 
-boolex_t				/* true or *_OVERFLOW */
+bool
 copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
 { copy_info b;
   boolex_t rc;
@@ -1575,13 +1668,12 @@ copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
 #ifdef REC_MAGIC
   assert(r->magic == REC_MAGIC);
 #endif
-  if ( !hasGlobalSpace(r->gsize) )
-  { if ( (rc=ensureGlobalSpace(r->gsize, flags)) != true )
-      return rc;
-  }
+  if ( !ensureGlobalSpace(r->gsize, flags) )
+    return false;
   b.base = b.data = dataRecord(r);
   b.gbase = b.gstore = gTop;
   b.version_map = NULL;
+  b.dicts = NULL;
 
   if ( (rc=init_copy_vars(&b, r->nvars)) == true )
   { gTop += r->gsize;
@@ -1589,7 +1681,7 @@ copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
     free_copy_vars(&b);
   }
   if ( rc != true )
-    return rc;
+    return raiseStackOverflow(rc);
 
   assert(b.gstore == gTop);
   DEBUG(CHK_SECURE, checkData(valTermRef(copy)));
@@ -1598,49 +1690,331 @@ copyRecordToGlobal(DECL_LD term_t copy, Record r, int flags)
 }
 
 
+		 /*******************************
+		 *   VALIDATE EXTERNAL RECORDS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+copy_record() trusts its  input.  check_external() verifies that len bytes
+at rec are a  well formed  external record  of  the current version, such
+that records from an untrusted source  can be decoded safely.  It checks
+that
+
+  - all data is inside the buffer and the buffer is used completely
+  - only opcodes generated for external records are used
+  - variable numbers are below the number of variables in the header
+  - the global stack size in the header is what copy_record() uses
+  - a cycle refers to a compound that has already been created
+  - numbers are canonical and wide characters are valid code points
+
+The check is a  single linear scan  without recursion.  It is only used
+by fast_read/2 and fast_term_serialized/2.  PL_recorded_external() still
+trusts its input.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct
+{ const unsigned char *data;		/* current position */
+  const unsigned char *end;		/* end of the record */
+} ext_reader;
+
+static inline size_t
+ext_left(const ext_reader *r)
+{ return (size_t)(r->end - r->data);
+}
+
 static bool
-is_external(const char *rec, size_t len)
-{ if ( len >= 2 )
-  { copy_info info;
-    uchar m;
-
-    info.data = info.base = rec;
-    fetchBuf(&info, &m, uchar);
-
-    switch(m)
-    { case REC_HDR|REC_INT|REC_GROUND:
-      { uint bytes = *info.data++;
-	return len == bytes+2;
-      }
-      case REC_HDR|REC_ATOM|REC_GROUND:
-      { uchar code;
-
-	fetchBuf(&info, &code, uchar);
-	switch(code)
-	{ case PL_TYPE_NIL:
-	  case PL_TYPE_DICT:
-	    return len == 2;
-	  case PL_TYPE_EXT_WATOM:
-	  case PL_TYPE_EXT_ATOM:
-	  { size_t bytes = fetchSizeInt(&info);
-	    return len == (info.data-info.base)+bytes;
-	  }
-	}
-      }
-      case REC_HDR|REC_GROUND:
-      case REC_HDR:
-      { size_t codes = fetchSizeInt(&info);
-	skipSizeInt(&info);		/* global stack size */
-	if ( !(m & REC_GROUND) )
-	  skipSizeInt(&info);		/* # variables */
-	return len == (info.data-info.base)+codes;
-      }
-      default:
-	assert(0);
-    }
+ext_byte(ext_reader *r, int *b)
+{ if ( r->data < r->end )
+  { *b = *r->data++;
+    return true;
   }
 
   return false;
+}
+
+static bool
+ext_size(ext_reader *r, size_t *sz)
+{ size_t v = 0;
+  int d;
+
+  do
+  { if ( r->data >= r->end || v > (SIZE_MAX>>7) )
+      return false;
+    d = *r->data++;
+    v = (v<<7)|(d&0x7f);
+  } while( (d&0x80) );
+
+  *sz = v;
+  return true;
+}
+
+static bool
+ext_int64(ext_reader *r, int64_t *v)
+{ int bytes;
+
+  if ( !ext_byte(r, &bytes) || bytes < 1 || bytes > 8 ||
+       ext_left(r) < (size_t)bytes )
+    return false;
+  *v = int64_from_bytes((const char*)r->data, bytes);
+  r->data += bytes;
+
+  return true;
+}
+
+static bool
+valid_wchars(const unsigned char *s, size_t count)
+{ if ( sizeof(pl_wchar_t) > 2 )
+  { for(; count-- > 0; s += sizeof(pl_wchar_t))
+    { pl_wchar_t c;
+
+      memcpy(&c, s, sizeof(c));		/* may be unaligned */
+      if ( (uint32_t)c > UNICODE_MAX )
+	return false;
+    }
+  }
+
+  return true;
+}
+
+/* Text of an atom: length followed by ISO Latin-1 or pl_wchar_t data */
+
+static bool
+ext_atom_text(ext_reader *r, bool wide)
+{ size_t len;
+
+  if ( !ext_size(r, &len) || ext_left(r) < len )
+    return false;
+  if ( wide &&
+       ( len % sizeof(pl_wchar_t) != 0 ||
+	 !valid_wchars(r->data, len/sizeof(pl_wchar_t)) ) )
+    return false;
+  r->data += len;
+
+  return true;
+}
+
+/* Text of a string: as an atom, but starting with 'B' (ISO Latin-1) or
+   a pl_wchar_t whose first byte is 'W' (wide).  See getCharsString().
+*/
+
+static bool
+ext_string_text(ext_reader *r, size_t *lenp)
+{ size_t len;
+
+  if ( !ext_size(r, &len) || len == 0 || ext_left(r) < len )
+    return false;
+  switch(r->data[0])
+  { case 'B':
+      break;
+    case 'W':
+      if ( len < sizeof(pl_wchar_t) || len % sizeof(pl_wchar_t) != 0 ||
+	   !valid_wchars(r->data+sizeof(pl_wchar_t),
+			 len/sizeof(pl_wchar_t)-1) )
+	return false;
+      break;
+    default:
+      return false;
+  }
+  r->data += len;
+  *lenp = len;
+
+  return true;
+}
+
+static int
+cmp_offset(const void *p1, const void *p2)
+{ size_t o1 = *(const size_t*)p1;
+  size_t o2 = *(const size_t*)p2;
+
+  return o1 < o2 ? -1 : o1 > o2 ? 1 : 0;
+}
+
+static bool
+check_external_term(ext_reader *r, size_t gsize, size_t nvars)
+{ size_t pending = 1;			/* # terms still to read */
+  size_t gused = 0;			/* global stack used so far */
+  tmp_buffer compounds;			/* offsets of compounds (ascending) */
+  bool rc = false;
+
+  initBuffer(&compounds);
+
+  while( pending > 0 )
+  { int op;
+    size_t n;
+
+    pending--;
+    if ( !ext_byte(r, &op) )
+      goto out;
+
+    switch(op)
+    { case PL_TYPE_VARIABLE:
+	if ( !ext_size(r, &n) || n >= nvars )
+	  goto out;
+	break;
+      case PL_REC_ALLOCVAR:		/* next term fills the variable */
+	gused++;
+	pending++;
+	break;
+#if O_ATTVAR
+      case PL_TYPE_ATTVAR:		/* next term is the value */
+	if ( !ext_size(r, &n) || n >= nvars )
+	  goto out;
+	gused += 3;
+	pending++;
+	break;
+#endif
+      case PL_TYPE_NIL:
+      case PL_TYPE_DICT:
+	break;
+      case PL_TYPE_EXT_ATOM:
+      case PL_TYPE_EXT_WATOM:
+	if ( !ext_atom_text(r, op == PL_TYPE_EXT_WATOM) )
+	  goto out;
+	break;
+      case PL_TYPE_TAGGED_INTEGER:
+      { int64_t v;
+
+	if ( !ext_int64(r, &v) || v < PLMINTAGGEDINT || v > PLMAXTAGGEDINT )
+	  goto out;
+	break;
+      }
+#if !O_BIGNUM
+      case PL_TYPE_INTEGER:		/* with bignums, indirect integers */
+      { int64_t v;			/* are MPZ.  See get_rational() */
+
+	if ( !ext_int64(r, &v) ||
+	     (v >= PLMINTAGGEDINT && v <= PLMAXTAGGEDINT) )
+	  goto out;
+	gused += WORDS_PER_PLINT+2;
+	break;
+      }
+#else
+      case PL_REC_MPZ:
+      case PL_REC_MPQ:
+      { const char *e;
+
+	if ( op == PL_REC_MPZ )
+	  e = checkMPZOnCharp((const char*)r->data, (const char*)r->end, &n);
+	else
+	  e = checkMPQOnCharp((const char*)r->data, (const char*)r->end, &n);
+	if ( !e )
+	  goto out;
+	r->data = (const unsigned char*)e;
+	gused += n;
+	break;
+      }
+#endif
+      case PL_TYPE_EXT_FLOAT:
+	if ( ext_left(r) < sizeof(double) )
+	  goto out;
+	r->data += sizeof(double);
+	gused += WORDS_PER_DOUBLE+2;
+	break;
+      case PL_TYPE_STRING:
+	if ( !ext_string_text(r, &n) )
+	  goto out;
+	gused += (n+sizeof(word))/sizeof(word) + 2;
+	break;
+#ifdef O_CYCLIC
+      case PL_REC_CYCLE:
+	if ( !ext_size(r, &n) ||
+	     !bsearch(&n, baseBuffer(&compounds, size_t),
+		      entriesBuffer(&compounds, size_t), sizeof(size_t),
+		      cmp_offset) )
+	  goto out;
+	break;
+#endif
+      case PL_TYPE_EXT_COMPOUND:
+      { int aop;
+
+	if ( !ext_size(r, &n) || !ext_byte(r, &aop) )
+	  goto out;
+	switch(aop)
+	{ case PL_TYPE_NIL:
+	  case PL_TYPE_DICT:
+	    break;
+	  case PL_TYPE_EXT_ATOM:
+	  case PL_TYPE_EXT_WATOM:
+	    if ( !ext_atom_text(r, aop == PL_TYPE_EXT_WATOM) )
+	      goto out;
+	    break;
+	  default:
+	    goto out;
+	}
+	goto compound;
+      }
+      case PL_TYPE_CONS:
+	n = 2;
+      compound:
+	if ( n > ext_left(r) )		/* each argument needs a byte */
+	  goto out;
+	addBuffer(&compounds, gused, size_t);
+	gused += n+1;
+	pending += n;
+	break;
+      default:				/* includes internal-only opcodes */
+	goto out;
+    }
+  }
+
+  rc = (r->data == r->end && gused == gsize);
+
+out:
+  discardBuffer(&compounds);
+  return rc;
+}
+
+static bool
+check_external(const char *rec, size_t len)
+{ ext_reader r = { (const unsigned char*)rec,
+		   (const unsigned char*)rec+len };
+  int m;
+
+  if ( !ext_byte(&r, &m) )
+    return false;
+
+  switch(m)
+  { case REC_HDR|REC_INT|REC_GROUND:
+    { int64_t v;
+
+      return ext_int64(&r, &v) && r.data == r.end;
+    }
+    case REC_HDR|REC_ATOM|REC_GROUND:
+    { int op;
+
+      if ( !ext_byte(&r, &op) )
+	return false;
+      switch(op)
+      { case PL_TYPE_NIL:
+	case PL_TYPE_DICT:
+	  break;
+	case PL_TYPE_EXT_ATOM:
+	case PL_TYPE_EXT_WATOM:
+	  if ( !ext_atom_text(&r, op == PL_TYPE_EXT_WATOM) )
+	    return false;
+	  break;
+	default:
+	  return false;
+      }
+      return r.data == r.end;
+    }
+    case REC_HDR|REC_GROUND:
+    case REC_HDR:
+    { size_t codes, gsize, nvars = 0;
+
+      if ( !ext_size(&r, &codes) || !ext_size(&r, &gsize) )
+	return false;
+      if ( !(m&REC_GROUND) &&
+	   ( !ext_size(&r, &nvars) || nvars == 0 ) )
+	return false;
+      if ( codes != ext_left(&r) || nvars > codes/2 )
+	return false;			/* a variable needs two bytes */
+
+      return check_external_term(&r, gsize, nvars);
+    }
+    default:
+      return false;
+  }
 }
 
 
@@ -1676,7 +2050,8 @@ skipLong(CopyInfo b)
 
 
 static void
-scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
+scanAtomsRecord(CopyInfo b, void (*func)(atom_t a),
+		void (*ffunc)(functor_t f))
 { size_t work = 0;
 
   do
@@ -1716,6 +2091,7 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 	continue;
       }
       case PL_TYPE_TAGGED_INTEGER:
+      case PL_TYPE_PTRINT:
       case PL_TYPE_INTEGER:
       { skipLong(b);
 	continue;
@@ -1742,6 +2118,8 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
       { word fdef = fetchWord(b);
 	size_t arity;
 
+	if ( ffunc )
+	  (*ffunc)(fdef);
 	arity = arityFunctor(fdef);
 	work += arity;
 	continue;
@@ -1767,12 +2145,12 @@ scanAtomsRecord(CopyInfo b, void (*func)(atom_t a))
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-markAtomsRecord(DECL_LD Record record) must be called on all records that
-use the R_NOLOCK option.
+markAtomsRecord(Record  record,  atom_mark_func  mark)  must  be  called
+using markAtom() on all records that use the R_NOLOCK option.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
-markAtomsRecord(Record record)
+markAtomsRecord(Record record, atom_mark_func mark)
 {
 #ifdef O_ATOMGC
   copy_info ci;
@@ -1783,7 +2161,7 @@ markAtomsRecord(Record record)
 
   ci.base = ci.data = dataRecord(record);
   ci.version_map = NULL;
-  scanAtomsRecord(&ci, markAtom);
+  scanAtomsRecord(&ci, mark, mark == markAtom ? markFunctor : NULL);
   assert(ci.data == addPointer(record, record->size));
 #endif
 }
@@ -1811,9 +2189,9 @@ freeRecord(Record record)
     ci.base = ci.data = dataRecord(record);
     ci.version_map = NULL;
 #ifdef O_DEBUG_ATOMGC
-    scanAtomsRecord(&ci, unregister_atom_rec);
+    scanAtomsRecord(&ci, unregister_atom_rec, releaseFunctor);
 #else
-    scanAtomsRecord(&ci, PL_unregister_atom);
+    scanAtomsRecord(&ci, PL_unregister_atom, releaseFunctor);
 #endif
     assert(ci.data == addPointer(record, record->size));
   }
@@ -1847,13 +2225,22 @@ freeRecordRef(RecordRef r)
 		 *	 EXTERNAL RECORDS	*
 		 *******************************/
 
-bool
-PL_recorded_external(const char *rec, term_t t)
-{ GET_LD
-  copy_info b;
+/* recorded_external() decodes an external record.  If `len` is not 0,
+   the record is first validated using check_external(), returning
+   false without an exception if it is not valid.  Otherwise the record
+   is trusted.
+*/
+
+static bool
+recorded_external(DECL_LD const char *rec, size_t len, term_t t)
+{ copy_info b;
   size_t gsize;
   uchar m;
-  bool rc;
+  boolex_t rc;
+  tmp_buffer dicts;
+
+  if ( len && !check_external(rec, len) )
+    return false;
 
   b.base = b.data = rec;
   b.version_map = NULL;
@@ -1913,7 +2300,8 @@ PL_recorded_external(const char *rec, term_t t)
   gsize = fetchSizeInt(&b);
   if ( !(b.gbase = b.gstore = allocGlobal(gsize)) )
     return false;			/* global stack overflow */
-  b.dicts = 0;
+  initBuffer(&dicts);
+  b.dicts = &dicts;
   if ( !(m & REC_GROUND) )
   { size_t nvars = fetchSizeInt(&b);
 
@@ -1922,20 +2310,51 @@ PL_recorded_external(const char *rec, term_t t)
       free_copy_vars(&b);
     }
   } else
-  { rc = copy_record(valTermRef(t), &b);
+  { b.vars = NULL;
+    rc = copy_record(valTermRef(t), &b);
   }
 
   if ( rc != true )
+  { discardBuffer(&dicts);
     return raiseStackOverflow(rc);
+  }
 
   assert(b.gstore == gTop);
 
-  if ( b.dicts )
-    resortDictsInTerm(t);
+  for(size_t *op = baseBuffer(&dicts, size_t), *e = topBuffer(&dicts, size_t);
+      op < e;
+      op++)
+    resortDict(b.gbase + *op);	/* no GC since decoding started */
+  discardBuffer(&dicts);
   DEBUG(CHK_SECURE, checkData(valTermRef(t)));
 
   return true;
 }
+
+
+bool
+PL_recorded_external(const char *rec, term_t t)
+{ GET_LD
+
+  return recorded_external(rec, 0, t);
+}
+
+
+/* PL_recorded_external_len() is PL_recorded_external() for a record of
+   `len` bytes from an untrusted source.  It fails silently if the data
+   is not a valid record.
+*/
+
+bool
+PL_recorded_external_len(const char *rec, size_t len, term_t t)
+{ GET_LD
+
+  if ( len == 0 )
+    return false;
+
+  return recorded_external(rec, len, t);
+}
+
 
 
 bool
@@ -1951,9 +2370,8 @@ PL_erase_external(char *rec)
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 The key is stored as an atom, integer  or functor header as found on the
-global-stack. A functor is a type with  the   same  mask as an atom, but
-using the STG_GLOBAL storage indicator.  So,   the  first line denotes a
-real atom.
+global-stack. A functor has the same tag   as an atom, but isFunctor() is
+true for it. So, the first line denotes a real atom.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
@@ -2204,11 +2622,8 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 	  if ( unifyKey(key, record->list->key) )
 	  { term_t copy = PL_new_term_ref();
 
-	    if ( (rc=copyRecordToGlobal(copy, record->record,
-					ALLOW_GC)) < 0 )
-	      rc = raiseStackOverflow(rc);
-	    else
-	      rc = PL_unify(term, copy);
+	    rc = ( copyRecordToGlobal(copy, record->record, ALLOW_GC) &&
+		   PL_unify(term, copy) );
 	  } else
 	    rc = false;
 	  PL_UNLOCK(L_RECORD);
@@ -2267,10 +2682,8 @@ PRED_IMPL("recorded", va, recorded, PL_FA_NONDETERMINISTIC)
 
 	if ( !copy && !(copy = PL_new_term_ref()) )
 	  goto error;
-	if ( (rc=copyRecordToGlobal(copy, record->record, ALLOW_GC)) < 0 )
-	{ raiseStackOverflow(rc);
+	if ( !copyRecordToGlobal(copy, record->record, ALLOW_GC) )
 	  goto error;
-	}
 
 	if ( PL_unify(term, copy) &&
 	     (!ref || PL_unify_recref(ref, record)) )
@@ -2343,7 +2756,7 @@ TBD: Also use this to move rule/2,3 to C?
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define fixup_ssu(in, out) LDFUNC(fixup_ssu, in, out)
-static int
+static bool
 fixup_ssu(DECL_LD term_t in, term_t out)
 { term_t head  = PL_new_term_ref();
   term_t body  = PL_new_term_ref();
@@ -2399,8 +2812,7 @@ PRED_IMPL("instance", 2, instance, 0)
     return false;
 
   if ( type == DB_REF_CLAUSE )
-  { ClauseRef cref = ptr;
-    Clause clause = cref->value.clause;
+  { Clause clause = ptr;
     gen_t generation = generationFrame(environment_frame);
 
     if ( ison(clause, GOAL_CLAUSE) ||
@@ -2427,7 +2839,7 @@ PRED_IMPL("instance", 2, instance, 0)
   { RecordRef rref = ptr;
     term_t t = PL_new_term_ref();
 
-    if ( copyRecordToGlobal(t, rref->record, ALLOW_GC) == true )
+    if ( copyRecordToGlobal(t, rref->record, ALLOW_GC) )
       return PL_unify(term, t);
   }
 
@@ -2448,8 +2860,7 @@ PRED_IMPL("erase", 1, erase, 0)
     return false;
 
   if ( type == DB_REF_CLAUSE )
-  { ClauseRef cref = ptr;
-    Clause clause = cref->value.clause;
+  { Clause clause = ptr;
     Definition def = clause->predicate;
 
     if ( !ison(def, P_DYNAMIC) )

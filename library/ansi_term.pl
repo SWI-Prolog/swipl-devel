@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2010-2025, VU University Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2010-2026, VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -37,13 +37,15 @@
 :- module(ansi_term,
           [ ansi_format/3,              % +Attr, +Format, +Args
             ansi_format/4,              % +Stream, +Attr, +Format, +Args
+            ansi_sgr/2,                 % +Attr, -Sequence
             ansi_get_color/2,           % +Which, -rgb(R,G,B)
             ansi_hyperlink/2,           % +Stream,+Location
             ansi_hyperlink/3            % +Stream,+URL,+Label
           ]).
 :- autoload(library(error), [domain_error/2, must_be/2, instantiation_error/1]).
-:- autoload(library(lists), [append/3]).
+:- autoload(library(lists), [append/3, selectchk/3]).
 :- autoload(library(utf8), [utf8_codes/3]).
+:- autoload(library(apply), [maplist/2]).
 
 /** <module> Print decorated text to ANSI consoles
 
@@ -63,13 +65,16 @@ The behavior of this library is controlled by two Prolog flags:
     simply call format/3.
   - `hyperlink_term`
     Emit terminal hyperlinks for url(Location) and url(URL, Label)
-    elements of Prolog messages.
+    elements of Prolog messages.  The default is `true` if the
+    environment identifies a terminal known to support OSC 8
+    hyperlinks.
 
 @see    http://en.wikipedia.org/wiki/ANSI_escape_code
 */
 
 :- multifile
     prolog:console_color/2,                     % +Term, -AnsiAttrs
+    prolog:console_color/3,                     % +Theme, +Term, -AnsiAttrs
     supports_get_color/0,
     hyperlink/2,                                % +Stream, +Spec
     tty_url_hook/2.                             % +For, -URL
@@ -82,22 +87,69 @@ color_term_flag_default(true) :-
     !.
 color_term_flag_default(false).
 
+%!  hyperlink_term_flag_default(-Bool) is det.
+%
+%   True when Bool tells whether  the  terminal   is  known  to support
+%   OSC 8 hyperlinks.  There is  no   escape  sequence  to ask whether a
+%   terminal supports them, so we  recognise   the  terminal  from the
+%   environment variables it sets.  A multiplexer (tmux, screen) hides
+%   the terminal it runs in and only  passes hyperlinks on if configured
+%   to do so, so we do not enable them inside one.
+
+hyperlink_term_flag_default(true) :-
+    color_term_flag_default(true),
+    \+ getenv('TMUX', _),
+    \+ getenv('STY', _),
+    osc8_terminal,
+    !.
+hyperlink_term_flag_default(false).
+
+osc8_terminal :-
+    getenv('TERM_PROGRAM', Program),
+    osc8_term_program(Program),
+    !.
+osc8_terminal :-
+    getenv('TERM', Term),
+    osc8_term(Term),
+    !.
+osc8_terminal :-
+    getenv('VTE_VERSION', Atom),                % GNOME Terminal, Tilix, ...
+    atom_number(Atom, Version),
+    Version >= 5000,
+    !.
+osc8_terminal :-
+    getenv('KITTY_WINDOW_ID', _),
+    !.
+osc8_terminal :-
+    getenv('WT_SESSION', _).                    % Windows Terminal
+
+osc8_term_program('Epilog').
+osc8_term_program('iTerm.app').
+osc8_term_program('WezTerm').
+osc8_term_program(ghostty).
+osc8_term_program(vscode).
+
+osc8_term('xterm-kitty').
+osc8_term('xterm-ghostty').
+osc8_term(foot).
+osc8_term('foot-extra').
+osc8_term(wezterm).
+osc8_term(alacritty).
+
 init_color_term_flag :-
-    color_term_flag_default(Default),
-    create_prolog_flag(color_term, Default,
+    color_term_flag_default(Color),
+    create_prolog_flag(color_term, Color,
                        [ type(boolean),
                          keep(true)
                        ]),
-    create_prolog_flag(hyperlink_term, false,
+    hyperlink_term_flag_default(Hyperlink),
+    create_prolog_flag(hyperlink_term, Hyperlink,
                        [ type(boolean),
                          keep(true)
                        ]).
 
 :- initialization
     init_color_term_flag.
-
-:- meta_predicate
-    keep_line_pos(+, 0).
 
 :- multifile
     user:message_property/2.
@@ -110,30 +162,32 @@ init_color_term_flag :-
 %   terminal, it adds ANSI escape sequences according to Attributes.
 %   For example, to print a text in bold cyan, do
 %
-%     ==
+%     ```
 %     ?- ansi_format([bold,fg(cyan)], 'Hello ~w', [world]).
-%     ==
+%     ```
 %
 %   Attributes is either a single attribute, a   list  thereof or a term
 %   that is mapped to concrete  attributes   based  on the current theme
-%   (see prolog:console_color/2). The attribute names   are derived from
+%   (see prolog:console_color/3). The attribute names   are derived from
 %   the ANSI specification. See the source   for sgr_code/2 for details.
 %   Some commonly used attributes are:
 %
 %     - bold
 %     - underline
 %     - fg(Color), bg(Color), hfg(Color), hbg(Color)
-%       For fg(Color) and bg(Color), the colour name can be '#RGB' or
-%       '#RRGGBB'
+%       For fg(Color) and bg(Color), the colour name can be `'#RGB'` or
+%       `'#RRGGBB'`
 %     - fg8(Spec), bg8(Spec)
 %       8-bit color specification.  Spec is a colour name, h(Color)
 %       or an integer 0..255.
 %     - fg(R,G,B), bg(R,G,B)
 %       24-bit (direct color) specification.  The components are
 %       integers in the range 0..255.
+%     - href(URL)
+%       Wrap the output as a link using ansi_hyperlink/3.
 %
-%   Defined color constants are below.  `default`   can  be  used to
-%   access the default color of the terminal.
+%   Defined color constants are below. `default`   can be used to access
+%   the default color of the terminal.
 %
 %     - black, red, green, yellow, blue, magenta, cyan, white
 %
@@ -152,18 +206,95 @@ ansi_format(Stream, Class, Format, Args) :-
     class_attrs(Class, Attr),
     Attr \== [],
     !,
-    phrase(sgr_codes_ex(Attr), Codes),
-    atomic_list_concat(Codes, ;, Code),
+    (   selectchk(href(HREF), Attr, Attr1)
+    ->  true
+    ;   Attr1 = Attr
+    ),
+    sgr_sequence(Attr1, Sequence),
     with_output_to(
         Stream,
-        (   keep_line_pos(current_output, format('\e[~wm', [Code])),
-            format(Format, Args),
-            keep_line_pos(current_output, format('\e[0m'))
+        (   write(Sequence),
+            format_content(Format, Args, HREF),
+            format('\e[0m')
         )
     ),
     flush_output.
 ansi_format(Stream, _Attr, Format, Args) :-
     format(Stream, Format, Args).
+
+format_content(Format, Args, HREF) :-
+    var(HREF),
+    !,
+    format(Format, Args).
+format_content(Format, Args, HREF) :-
+    format(string(Label), Format, Args),
+    ansi_hyperlink(current_output, HREF, Label).
+
+%!  ansi_sgr(+ClassOrAttributes, -Sequence:string) is det.
+%
+%   True when Sequence is the ANSI _Select Graphic Rendition_ sequence
+%   that activates the attributes of ClassOrAttributes.  Sequence is the
+%   empty string if the Prolog flag `color_term` is `false` or the class
+%   resolves to no attributes.
+%
+%   Unlike ansi_format/4 this does not write to a stream and thus does
+%   not require a terminal.  It is used to decorate strings that are
+%   handed to code that is not aware of colors, notably the toplevel
+%   prompt (see the Prolog flag `toplevel_prompt`).  As the caller
+%   controls where the sequence ends up, the caller is also responsible
+%   for verifying that the destination is a terminal and for emitting
+%   the reset sequence `\e[0m`.
+%
+%   @see ansi_format/3 for the possible values of ClassOrAttributes.
+
+ansi_sgr(Class, Sequence) :-
+    current_prolog_flag(color_term, true),
+    class_attrs(Class, Attr),
+    Attr \== [],
+    (   selectchk(href(_), Attr, Attr1)
+    ->  true
+    ;   Attr1 = Attr
+    ),
+    !,
+    sgr_sequence(Attr1, Sequence).
+ansi_sgr(_, "").
+
+%!  sgr_sequence(+ClassOrAttributes, -Sequence:string) is det.
+%
+%   Sequence is the SGR escape sequence for Attributes.  Note that a
+%   single attribute may map to multiple codes, e.g., bg8(Color).
+
+sgr_sequence(Attrs, Sequence) :-
+    phrase(sgr_codes_ex(Attrs), Codes),
+    codes_sequence(Codes, Sequence).
+
+codes_sequence(Codes, Sequence) :-
+    atomics_to_string(Codes, ;, Code),
+    format(string(Sequence), '\e[~wm', [Code]).
+
+%!  sgr_codes(+ClassOrAttributes)// is semidet.
+%
+%   As sgr_codes_ex//1, but fails rather than raising an exception if
+%   Attributes is not a valid attribute (list).   This is used where the
+%   decoration is optional and the plain text is a fine alternative.
+
+sgr_codes(X) -->
+    { var(X),
+      !,
+      fail
+    }.
+sgr_codes([]) -->
+    !.
+sgr_codes([H|T]) -->
+    !,
+    sgr_codes(H),
+    sgr_codes(T).
+sgr_codes(Attr) -->
+    { sgr_code(Attr, Code) },
+    (   { is_list(Code) }
+    ->  list(Code)
+    ;   [Code]
+    ).
 
 sgr_codes_ex(X) -->
     { var(X),
@@ -339,15 +470,74 @@ hex_color(D1,V) :-
     code_type(D1, xdigit(V1)),
     V is 16*V1+V1.
 
-%!  prolog:console_color(+Term, -AnsiAttributes) is semidet.
+%!  prolog:console_color(+Theme, +Term, -AnsiAttributes) is semidet.
 %
 %   Hook that allows  for  mapping  abstract   terms  to  concrete  ANSI
 %   attributes. This hook  is  used  by   _theme_  files  to  adjust the
-%   rendering based on  user  preferences   and  context.  Defaults  are
-%   defined in the file `boot/messages.pl`, default_theme/2.
+%   rendering based on  user  preferences   and  context.   Theme is the
+%   current theme: the value  of  the  Prolog   flag  `theme`  or, if no
+%   theme is selected, the  theme  of  a   loaded  theme  file.  Defaults
+%   are defined in the file `boot/messages.pl`, default_theme/2.
+%
+%   Besides the classes used for  messages   (`code`,  `comment`, `var`,
+%   `warning`, `error`, `truth(Truth)`, `port(Port)`, `message(Kind)`,
+%   ...), the interactive toplevel uses these:
+%
+%     - prompt
+%       The `?- ` prompt and its `|    ` continuation.
+%     - input
+%       The text typed by the user at the prompt.
+%     - answer(Parity)
+%       An answer written by the toplevel.  Parity is `odd` or `even`
+%       and alternates over the answers of a single query, which allows
+%       for _striping_ the answers using a background color.  Only an
+%       answer that shows bindings, residual goals or delays uses this
+%       class: ``true.`` and ``false.`` are not answers to stripe, and
+%       neither is the empty line that separates the answer from the
+%       next query.
+%     - binding(name)
+%       The variable name in a binding such as ``X = 1``.
+%
+%   The debugger uses, besides `frame(level)` and `port(Port)`:
+%
+%     - goal(Port, Parity)
+%       The goal of a frame reported for Port.  Parity is `odd` or `even`
+%       and alternates over the steps of a trace, which allows for
+%       _striping_ the goals using a background color.  Match on Port to
+%       color the goal by port instead of (or in addition to) striping.
+%
+%   Note that a background color on `prompt`, `input` or `answer(_)` is
+%   painted up to the right margin using `\e[K`.  A background on
+%   `goal(_,_)` is not: the debugger writes its ``? `` prompt on the same
+%   line.
+%
+%   If Theme does not define Term, the theme it is based on is used (see
+%   prolog:theme_base/2).
 %
 %   @see library(theme/dark) for an example  implementation and the Term
 %   values used by the system messages.
+
+%!  prolog:console_color(+Term, -AnsiAttributes) is semidet.
+%
+%   As prolog:console_color/3, but for any theme.  This allows the user
+%   to define colours in the init file that apply to all themes.
+
+%!  prolog:theme_base(?Theme, ?Base) is nondet.
+%
+%   Hook that makes Theme a variation of the theme Base.  If Theme does
+%   not define the colours of a class (prolog:console_color/3), those
+%   of Base are used, and so on.  The same applies to the styles of the
+%   online help and the theme colours of the development tools.  The
+%   theme file of Theme must load the theme file of Base, e.g.
+%
+%   ```
+%   :- module(prolog_theme_my_dark, []).
+%   :- use_module(library(theme/dark)).
+%   :- multifile prolog:theme/1, prolog:theme_base/2.
+%
+%   prolog:theme(my_dark).
+%   prolog:theme_base(my_dark, dark).
+%   ```
 
 
                  /*******************************
@@ -356,8 +546,46 @@ hex_color(D1,V) :-
 
 %!  prolog:message_line_element(+Stream, +Term) is semidet.
 %
-%   Hook implementation that deals with  ansi(+Attr, +Fmt, +Args) in
-%   message specifications.
+%   Hook implementation that colours the message elements produced by
+%   print_message_lines/3.  Handled elements are:
+%
+%     - ansi(Class, Fmt, Args)
+%     - ansi(Class, Fmt, Args, Ctx)
+%       Write Fmt/Args using the attributes of Class.  As the element
+%       ends with a full reset, the 4th argument version re-installs
+%       the decoration of the message as a whole afterwards.
+%     - url(Location)
+%     - url(URL, Label)
+%       Write a hyperlink.  See ansi_hyperlink/2,3.  Label is an atom or
+%       string, a Format-Args pair or an ansi/3 or ansi/4 term.  The
+%       latter combines a hyperlink with a style class.
+%     - begin(Class, Ctx)
+%     - end(Ctx)
+%       Decorate the message as a whole.  See below.
+%     - nl(Ctx), flush(Ctx)
+%       End a line.  If the message has a background colour, the
+%       remainder of the line is painted using `\e[K` (_Erase in Line_)
+%       such that the coloured block extends to the right margin.
+%     - eol(Ctx)
+%       As above, but also reset the attributes: this ends the decorated
+%       part of the line.  A message uses this for its last line if that
+%       line is not ended using `nl`.  Resetting matters because a
+%       terminal that scrolls while a background colour is in effect
+%       paints the newly exposed line with it.
+%
+%   Ctx is the message _context_.  It is created by the handler for
+%   begin/2 as a term
+%
+%       ansi(Reset, ReInstall, EraseEol)
+%
+%   where Reset is the sequence written by end/1, ReInstall is a
+%   Format-Args pair that re-installs the attributes of the message and
+%   EraseEol is the sequence that paints the remainder of the line or
+%   the empty atom.  Callers must treat Ctx as opaque.  It is left
+%   unbound if Stream is not a terminal, if the `color_term` flag is
+%   `false` or if the message has no attributes.  All handlers that use
+%   Ctx therefore fail if it is unbound, which makes
+%   print_message_lines/3 fall back to writing plain text.
 
 prolog:message_line_element(S, ansi(Class, Fmt, Args)) :-
     class_attrs(Class, Attr),
@@ -365,36 +593,113 @@ prolog:message_line_element(S, ansi(Class, Fmt, Args)) :-
 prolog:message_line_element(S, ansi(Class, Fmt, Args, Ctx)) :-
     class_attrs(Class, Attr),
     ansi_format(S, Attr, Fmt, Args),
-    (   nonvar(Ctx),
-        Ctx = ansi(_, RI-RA)
-    ->  keep_line_pos(S, format(S, RI, RA))
-    ;   true
-    ).
+    reinstall_message_attrs(S, Ctx).
+prolog:message_line_element(S, nl(Ctx)) :-
+    nonvar(Ctx),
+    Ctx = ansi(_, _, EOL),
+    write(S, EOL),
+    nl(S).
+prolog:message_line_element(S, flush(Ctx)) :-
+    nonvar(Ctx),
+    Ctx = ansi(_, _, EOL),
+    write(S, EOL),
+    flush_output(S).
+prolog:message_line_element(S, eol(Ctx)) :-
+    nonvar(Ctx),
+    Ctx = ansi(Reset, _, EOL),
+    write(S, EOL),
+    write(S, Reset).
 prolog:message_line_element(S, url(Location)) :-
     ansi_hyperlink(S, Location).
+prolog:message_line_element(S, url(URL, Label)) :-
+    link_label(Label, Class, Fmt, Args, Ctx),
+    !,
+    format(string(Text), Fmt, Args),
+    (   ansi_sgr_for(S, Class, Sequence)
+    ->  write(S, Sequence),
+        ansi_hyperlink(S, URL, Text),
+        write(S, '\e[0m'),
+        reinstall_message_attrs(S, Ctx)
+    ;   ansi_hyperlink(S, URL, Text)
+    ).
 prolog:message_line_element(S, url(URL, Label)) :-
     ansi_hyperlink(S, URL, Label).
 prolog:message_line_element(S, begin(Level, Ctx)) :-
     level_attrs(Level, Attr),
+    Attr \== [],
     stream_property(S, tty(true)),
     current_prolog_flag(color_term, true),
+    phrase(sgr_codes(Attr), Codes),     % fails on a kind without a theme
     !,
-    (   is_list(Attr)
-    ->  sgr_codes(Attr, Codes),
-        atomic_list_concat(Codes, ;, Code)
-    ;   sgr_code(Attr, Code)
-    ),
-    keep_line_pos(S, format(S, '\e[~wm', [Code])),
-    Ctx = ansi('\e[0m', '\e[0m\e[~wm'-[Code]).
+    codes_sequence(Codes, Sequence),
+    write(S, Sequence),
+    erase_eol(Attr, EOL),
+    Ctx = ansi('\e[0m', '\e[0m~w'-[Sequence], EOL).
 prolog:message_line_element(S, end(Ctx)) :-
     nonvar(Ctx),
-    Ctx = ansi(Reset, _),
-    keep_line_pos(S, write(S, Reset)).
+    Ctx = ansi(Reset, _, _),
+    write(S, Reset).
 
-sgr_codes([], []).
-sgr_codes([H0|T0], [H|T]) :-
-    sgr_code(H0, H),
-    sgr_codes(T0, T).
+%!  reinstall_message_attrs(+Stream, +Ctx) is det.
+%
+%   Re-install the attributes of the message as a whole after an element
+%   that ended with a full reset.  See prolog:message_line_element/2.
+
+reinstall_message_attrs(S, Ctx) :-
+    (   nonvar(Ctx),
+        Ctx = ansi(_, RI-RA, _)
+    ->  format(S, RI, RA)
+    ;   true
+    ).
+
+%!  link_label(+Label, -Class, -Format, -Args, -Ctx) is semidet.
+%
+%   Decompose a _decorated_ label of an  url/2 message element.  Fails if
+%   Label is plain text, which is written using ansi_hyperlink/3.
+
+link_label(Fmt-Args, -, Fmt, Args, _) :-
+    atom(Fmt),
+    is_list(Args),
+    !.
+link_label(ansi(Class, Fmt, Args), Class, Fmt, Args, _).
+link_label(ansi(Class, Fmt, Args, Ctx), Class, Fmt, Args, Ctx).
+
+%!  ansi_sgr_for(+Stream, +Class, -Sequence) is semidet.
+%
+%   Sequence activates the attributes of Class  on Stream.  Fails if the
+%   Stream is not a terminal, if colour output is disabled or if Class
+%   has no attributes.
+
+ansi_sgr_for(S, Class, Sequence) :-
+    Class \== (-),
+    stream_property(S, tty(true)),
+    ansi_sgr(Class, Sequence),
+    Sequence \== "".
+
+%!  erase_eol(+Attrs, -EOL) is det.
+%
+%   If Attrs sets a background color we must  paint the remainder of the
+%   line to make the colored block  extend   to  the right margin. `\e[K`
+%   (_Erase in Line_) does so on terminals   that implement _background
+%   color erase_ and does not move the cursor.
+
+erase_eol(Attrs, EOL) :-
+    (   is_list(Attrs),
+        has_background(Attrs)
+    ->  EOL = '\e[K'
+    ;   EOL = ''
+    ).
+
+has_background([H|T]) :-
+    (   background(H)
+    ->  true
+    ;   has_background(T)
+    ).
+
+background(bg(_)).
+background(bg(_,_,_)).
+background(bg8(_)).
+background(hbg(_)).
 
 level_attrs(Level,         Attrs) :-
     user:message_property(Level, color(Attrs)),
@@ -409,19 +714,40 @@ class_attrs(Class, Attrs) :-
     prolog:console_color(Class, Attrs),
     !.
 class_attrs(Class, Attrs) :-
+    '$messages':current_theme(Theme),
+    '$messages':theme_ancestor(Theme, Ancestor),
+    prolog:console_color(Ancestor, Class, Attrs),
+    !.
+class_attrs(Class, Attrs) :-
     '$messages':default_theme(Class, Attrs),
     !.
 class_attrs(Attrs, Attrs).
 
 %!  ansi_hyperlink(+Stream, +Location) is det.
-%!  ansi_hyperlink(+Stream, +URL, +Label) is det.
+%!  ansi_hyperlink(+Stream, +Location, +Label) is det.
 %
-%   Create a hyperlink for a terminal emulator. The file is fairly easy,
-%   but getting the line and column across is   not as there seems to be
-%   no established standard. The  current   implementation  emits, i.e.,
-%   inserting a capital ``L`` before the line.
+%   Create a hyperlink for  a  terminal   emulator  using  the ``OSC 8``
+%   escape sequence.  Location is one of
 %
-%       ``file://AbsFileName[#LLine[:Column]]``
+%     - An absolute URL
+%     - An atom (interpreted as a file name)
+%     - A term `File:Line`
+%     - A term `File:Line:Column`
+%
+%   There is no official standard for  encoding the `Line` and `Column`.
+%   We emit
+%
+%       ``file://AbsFileName[#Line[:Column]]``
+%
+%   Both `Line` and `Column` count from  1,   as  in the messages we
+%   print and as used by e.g., ``rg --hyperlink-format=...``.  Note that
+%   a capital ``L`` before the line, as   used by GitHub, is accepted by
+%   Epilog as well.
+%
+%   The sequence is emitted if and only  if the Prolog flag
+%   `hyperlink_term` is `true` and Stream has the property tty(true).
+%   ansi_format/4 is guarded the same way for `color_term`, so that a
+%   message captured using with_output_to/2 is plain text.
 %
 %   @see https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 
@@ -443,26 +769,47 @@ ansi_hyperlink(Stream, Location, Label),
     hyperlink(Stream, url(Location, Label)) =>
     true.
 ansi_hyperlink(Stream, Location, Label) =>
-    (   location_url(Location, URL)
-    ->  keep_line_pos(Stream,
-                      format(Stream, '\e]8;;~w\e\\', [URL])),
+    (   hyperlink_stream(Stream),
+        location_url(Location, URL)
+    ->  format(Stream, '\e]8;;~w\e\\', [URL]),
         format(Stream, '~w', [Label]),
-        keep_line_pos(Stream,
-                      format(Stream, '\e]8;;\e\\', []))
+        format(Stream, '\e]8;;\e\\', [])
     ;   format(Stream, '~w', [Label])
     ).
+
+%!  hyperlink_stream(+Stream) is semidet.
+%
+%   True when Stream may carry OSC 8 hyperlinks.  Compare ansi_sgr_for/3,
+%   which decides the same question for SGR sequences.
+
+hyperlink_stream(Stream) :-
+    current_prolog_flag(hyperlink_term, true),
+    stream_property(Stream, tty(true)).
+
+%!  is_url(@URL) is semidet.
+%
+%   True if URL is an absolute URL. This means it has a scheme and is
+%   not a (Windows) absolute file name as in `c:...`
 
 is_url(URL) :-
     (   atom(URL)
     ->  true
     ;   string(URL)
     ),
-    url_prefix(Prefix),
-    sub_string(URL, 0, _, _, Prefix).
+    sub_string(URL, Before, _, _, :),
+    !,
+    Before > 0,
+    sub_string(URL, 0, Before, _, Scheme),
+    atom_codes(Scheme, Codes),
+    maplist(between(0'a, 0'z), Codes),
+    not_drive_scheme(Scheme).
 
-url_prefix('http://').
-url_prefix('https://').
-url_prefix('file://').
+:- if(current_prolog_flag(windows, true)).
+not_drive_scheme(Scheme) :-
+    \+ string_length(Scheme, 1).
+:- else.
+not_drive_scheme(_).
+:- endif.
 
 %!  location_url(+Location, -URL) is det.
 %
@@ -494,10 +841,8 @@ location_url(File, URL) =>
 
 url_file_name(URL, File) :-
     is_url(File), !,
-    current_prolog_flag(hyperlink_term, true),
     URL = File.
 url_file_name(URL, File) :-
-    current_prolog_flag(hyperlink_term, true),
     absolute_file_name(File, AbsFile),
     ensure_leading_slash(AbsFile, AbsFile1),
     url_encode_path(AbsFile1, Encoded),
@@ -530,22 +875,6 @@ reserved(C) :- C =< 0'\s.
 reserved(C) :- C >= 127.
 reserved(0'#).
 
-%!  keep_line_pos(+Stream, :Goal)
-%
-%   Run goal without changing the position   information on Stream. This
-%   is used to avoid that the exchange   of  ANSI sequences modifies the
-%   notion of, notably, the `line_pos` notion.
-
-keep_line_pos(S, G) :-
-    stream_property(S, position(Pos)),
-    !,
-    setup_call_cleanup(
-        stream_position_data(line_position, Pos, LPos),
-        G,
-        set_stream(S, line_position(LPos))).
-keep_line_pos(_, G) :-
-    call(G).
-
 %!  ansi_get_color(+Which, -RGB) is semidet.
 %
 %   Obtain the RGB color for an ANSI  color parameter. Which is either a
@@ -555,7 +884,14 @@ keep_line_pos(_, G) :-
 %   compatible terminal.
 %
 %   @arg RGB is a term rgb(Red,Green,Blue).  The color components are
-%   integers in the range 0..65535.
+%   floats in the range 0.0..1.0.  They are sRGB encoded, as that is
+%   what the terminal reports; linearise them before doing colour
+%   arithmetic that assumes light intensities.
+%   @compat Up to version 10.1.13 the components were integers in the
+%   range 0..65535.  The terminal reports one to four hexadecimal digits
+%   per component, so that range suggested a precision the reply does
+%   not have, and it clashed with the rgb/3 term of win_window_color/2,
+%   whose components are in the range 0..255.
 
 ansi_get_color(Which0, RGB) :-
     \+ current_prolog_flag(console_menu, true),
@@ -568,8 +904,7 @@ ansi_get_color(Which0, RGB) :-
     ;   must_be(between(0,15),Which0)
     ->  Which = Which0
     ),
-    catch(keep_line_pos(user_output,
-                        ansi_get_color_(Which, RGB)),
+    catch(ansi_get_color_(Which, RGB),
           error(timeout_error(_,_), _),
           no_xterm).
 
@@ -582,68 +917,137 @@ supports_get_color :-
 color_alias(foreground, 10).
 color_alias(background, 11).
 
-ansi_get_color_(Which, rgb(R,G,B)) :-
-    format(codes(Id), '~w', [Which]),
-    hex4(RH),
-    hex4(GH),
-    hex4(BH),
-    phrase(("\e]", Id, ";rgb:", RH, "/", GH, "/", BH, "\a"), Pattern),
+ansi_get_color_(Which, RGB) :-
     stream_property(user_input, timeout(Old)),
     setup_call_cleanup(
         set_stream(user_input, timeout(0.05)),
-        with_tty_raw(exchange_pattern(Which, Pattern)),
+        with_tty_raw(exchange_color(Which, RGB)),
         set_stream(user_input, timeout(Old))),
-    !,
-    hex_val(RH, R),
-    hex_val(GH, G),
-    hex_val(BH, B).
+    !.
 
 no_xterm :-
     print_message(warning, ansi(no_xterm_get_colour)),
     fail.
 
-hex4([_,_,_,_]).
+%!  exchange_color(+Which, -RGB) is semidet.
+%
+%   Ask the terminal for colour Which and read its reply.
 
-hex_val([D1,D2,D3,D4], V) :-
-    code_type(D1, xdigit(V1)),
-    code_type(D2, xdigit(V2)),
-    code_type(D3, xdigit(V3)),
-    code_type(D4, xdigit(V4)),
-    V is (V1<<12)+(V2<<8)+(V3<<4)+V4.
-
-exchange_pattern(Which, Pattern) :-
+exchange_color(Which, RGB) :-
     format(user_output, '\e]~w;?\a', [Which]),
     flush_output(user_output),
-    read_pattern(user_input, Pattern, []).
+    format(codes(Id), '~w', [Which]),
+    read_osc_reply(user_input, Id, Codes),
+    phrase(color_reply(RGB), Codes).
 
-read_pattern(From, Pattern, NotMatched0) :-
-    copy_term(Pattern, TryPattern),
-    append(Skip, Rest, NotMatched0),
-    append(Rest, RestPattern, TryPattern),
+%!  read_osc_reply(+In, +Param:codes, -Body:codes) is semidet.
+%
+%   Read the body of the OSC reply to  our query, i.e., the text between
+%   ``ESC ] Param ;`` and the _string terminator_.  Terminals reply with
+%   either BEL or ST (``ESC \``), so we accept both.
+%
+%   Anything that is not our reply is  echoed:  it was typed by the user
+%   while we were waiting rather than sent by the terminal.
+
+read_osc_reply(In, Param, Body) :-
+    get_code(In, C),
+    C \== -1,
+    (   C == 0'\e,
+        osc_reply(In, Param, Body0)
+    ->  Body = Body0
+    ;   put_code(user_output, C),
+        read_osc_reply(In, Param, Body)
+    ).
+
+osc_reply(In, Param, Body) :-
+    get_code(In, 0']),
+    read_osc_param(In, Param),
+    read_osc_string(In, Body).
+
+read_osc_param(In, Param) :-
+    read_osc_param_(In, Codes),
+    Codes == Param.
+
+read_osc_param_(In, Codes) :-
+    get_code(In, C),
+    C \== -1,
+    (   C == 0';
+    ->  Codes = []
+    ;   Codes = [C|T],
+        read_osc_param_(In, T)
+    ).
+
+read_osc_string(In, Codes) :-
+    get_code(In, C),
+    C \== -1,
+    (   C == 0'\a                       % BEL
+    ->  Codes = []
+    ;   C == 0'\e                       % ST: ESC \
+    ->  get_code(In, 0'\\),
+        Codes = []
+    ;   Codes = [C|T],
+        read_osc_string(In, T)
+    ).
+
+%!  color_reply(-RGB)// is semidet.
+%
+%   Parse the body of the reply.  This is an X11 colour specification as
+%   understood by XParseColor().  Terminals  differ   in  the  number of
+%   digits they use per component: xterm  replies with four, others with
+%   one, two or three.  A component of N   digits  is expressed as the
+%   fraction of its maximum, which is what XParseColor() scaling amounts
+%   to and avoids claiming a precision the reply does not have.
+
+color_reply(rgb(R,G,B)) -->
+    "rgb:", !,
+    hex_component(R), "/", hex_component(G), "/", hex_component(B).
+color_reply(rgb(R,G,B)) -->                     % #RGB, #RRGGBB, ...
+    "#",
+    hex_digits(Ds),
+    { length(Ds, Len),
+      N is Len//3,
+      N > 0, N =< 4,
+      length(RDs, N), length(GDs, N), length(BDs, N),
+      append(RDs, Rest, Ds),
+      append(GDs, BDs, Rest),
+      hex_value(RDs, R),
+      hex_value(GDs, G),
+      hex_value(BDs, B)
+    }.
+
+hex_component(V) -->
+    hex_digits(Ds),
+    { Ds \== [],
+      length(Ds, N),
+      N =< 4,
+      hex_value(Ds, V)
+    }.
+
+hex_digits([H|T]) -->
+    [H],
+    { code_type(H, xdigit(_)) },
     !,
-    echo(Skip),
-    try_read_pattern(From, RestPattern, NotMatched, Done),
-    (   Done == true
-    ->  Pattern = TryPattern
-    ;   read_pattern(From, Pattern, NotMatched)
-    ).
+    hex_digits(T).
+hex_digits([]) -->
+    [].
 
-%!  try_read_pattern(+From, +Pattern, -NotMatched)
+%!  hex_value(+Digits, -Fraction) is det.
+%
+%   Fraction is a float in 0.0..1.0.  Note   that  we must not rely on
+%   (/)/2 to produce a float:  that  depends   on  the  Prolog  flag
+%   `prefer_rationals`.
 
-try_read_pattern(_, [], [], true) :-
-    !.
-try_read_pattern(From, [H|T], [C|RT], Done) :-
-    get_code(C),
-    (   C = H
-    ->  try_read_pattern(From, T, RT, Done)
-    ;   RT = [],
-        Done = false
-    ).
+hex_value(Ds, V) :-
+    hex_value(Ds, 0, V0),
+    length(Ds, N),
+    Max is 16^N - 1,
+    V is float(V0)/Max.
 
-echo([]).
-echo([H|T]) :-
-    put_code(user_output, H),
-    echo(T).
+hex_value([], V, V).
+hex_value([D|T], V0, V) :-
+    code_type(D, xdigit(DV)),
+    V1 is V0*16+DV,
+    hex_value(T, V1, V).
 
 :- multifile prolog:message//1.
 

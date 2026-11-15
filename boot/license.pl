@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2002-2016, University of Amsterdam
+    Copyright (c)  2002-2026, University of Amsterdam
+                              SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -49,10 +50,13 @@
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 License  definitions.  This  data  is   (still  incomplete)  taken  from
 http://www.fsf.org/licenses/license-list.html. The first argument is the
-license identifier. The second tells us with  which of the two principal
-licenses (GPL and LGPL) the license is   compatible.  The remainder is a
-list  of  properties  that   can   be    used   with   more   high-level
-license-information tools.
+license identifier. The second is the category: `gpl` and `lgpl` for the
+licenses compatible with the GPL and LGPL, `copyleft` for licenses whose
+copyleft is limited to the files of the component  (e.g., EPL and MPL),
+`permissive` and `proprietary`.  The remainder is a  list of properties
+that can be used with more high-level license-information tools.  The
+property gpl_compatible(false) flags licenses that may not be combined
+with GPL components.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 license(gpl, gpl,
@@ -138,6 +142,10 @@ license(zlib, permissive,
         [ comment('The license of ZLib'),
           url('http://www.gzip.org/zlib/zlib_license.html')
         ]).
+license(sleepycat, gpl,
+        [ comment('Sleepycat License (Berkeley DB up to 5.3)'),
+          url('https://opensource.org/license/sleepycat')
+        ]).
 license(agpl, gpl,
         [ comment('Affero General Public License'),
           url('http://www.gnu.org/licenses/agpl-3.0.en.html')
@@ -154,6 +162,15 @@ license(permissive, permissive,
 license(asl2, permissive,
         [ comment('Apache License 2.0'),
           url('http://www.apache.org/licenses/LICENSE-2.0')
+        ]).
+license(epl, copyleft,
+        [ comment('Eclipse Public License 1.0'),
+          url('https://www.eclipse.org/legal/epl-v10.html'),
+          gpl_compatible(false)
+        ]).
+license(eplv2, copyleft,
+        [ comment('Eclipse Public License 2.0'),
+          url('https://www.eclipse.org/legal/epl-2.0/')
         ]).
 
 
@@ -187,12 +204,20 @@ license :-
     (setof(Module, gpled(Module), GPL)   -> true ; GPL  = []),
     (setof(Module, lgpled(Module), LGPL) -> true ; LGPL = []),
     findall(L-Modules,
-            setof(Module, permissive(Module, L), Modules),
+            setof(Module, licensed(Module, copyleft, L), Modules),
+            Copyleft),
+    findall(L-Modules,
+            setof(Module, licensed(Module, permissive, L), Modules),
             Permissive),
     findall(L-Modules,
             setof(Module, proprietary(Module, L), Modules),
             Proprietary),
-    print_message(informational, license(GPL,LGPL,Permissive,Proprietary)).
+    (   gpl_conflict
+    ->  Conflict = true
+    ;   Conflict = false
+    ),
+    print_message(informational,
+                  license(GPL,LGPL,Copyleft,Conflict,Permissive,Proprietary)).
 
 gpled(Module) :-
     licensed(X, Module),
@@ -202,18 +227,42 @@ lgpled(Module) :-
     licensed(X, Module),
     license(X, lgpl, _).
 
-permissive(Module, L) :-
+licensed(Module, Category, L) :-
     licensed(L, Module),
-    license(L, permissive, _).
+    license(L, Category, _).
 
 proprietary(Module, L) :-
     licensed(L, Module),
     (   license(L, C, _)
-    ->  C \== gpl,
-        C \== lgpl,
-        C \== permissive
+    ->  \+ open_category(C)
     ;   true
     ).
+
+open_category(gpl).
+open_category(lgpl).
+open_category(copyleft).
+open_category(permissive).
+
+%!  gpl_conflict is semidet.
+%
+%   True if a component under the GNU GPL is combined with a component
+%   whose license has the property gpl_compatible(false).  Note that
+%   not all licenses in the `gpl` category are GNU licenses: e.g.,
+%   the Sleepycat license only shares the copyleft over the program.
+
+gpl_conflict :-
+    licensed(G, _),
+    gnu_gpl(G),
+    licensed(L, _),
+    license(L, _, Atts),
+    memberchk(gpl_compatible(false), Atts),
+    !.
+
+gnu_gpl(gpl).
+gnu_gpl(gplv2).
+gnu_gpl('gplv2+').
+gnu_gpl(gplv3).
+gnu_gpl(agpl).
 
 %!  known_licenses
 %
@@ -233,26 +282,29 @@ known_licenses :-
 :- multifile
     prolog:message/3.
 
-prolog:message(license(GPL,LGPL,Permissive,Proprietary)) -->
-    license_message(GPL,LGPL,Permissive,Proprietary).
+prolog:message(license(GPL,LGPL,Copyleft,Conflict,Permissive,Proprietary)) -->
+    license_message(GPL,LGPL,Copyleft,Conflict,Permissive,Proprietary).
 prolog:message(unknown_license(License)) -->
     [ 'The license "~w" is not known.  You can list the known '-[License], nl,
       'licenses using ?- known_licenses. or add information about this ',
       'license by extending license:license/3.'
     ].
 prolog:message(known_licenses(Licenses)) -->
-    [ 'The following license identifiers may be used in license/2',
+    [ 'The following license identifiers may be used in license/2 ',
       'and PL_license()'
     ],
     known_licenses(Licenses).
 
-%!  license_message(+GPL, +LGPL, +Proprietary)//
+%!  license_message(+GPL, +LGPL, +Copyleft, +Conflict,
+%!                  +Permissive, +Proprietary)//
 
-license_message(GPL, LGPL, Permissive, Proprietary) -->
-    license_message(GPL, LGPL, Permissive),
+license_message(GPL, LGPL, Copyleft, Conflict, Permissive, Proprietary) -->
+    license_message(GPL, LGPL, Copyleft, Permissive),
+    copyleft_licenses(Copyleft),
+    gpl_conflict(Conflict),
     proprietary_licenses(Proprietary).
 
-license_message([], [], Permissive) -->
+license_message([], [], [], Permissive) -->
     !,
     [ 'This program contains only components covered by permissive license', nl,
       'conditions. SWI-Prolog is covered by the Simplified BSD license:',
@@ -260,7 +312,7 @@ license_message([], [], Permissive) -->
     ],
     bsd2_license,
 	permissive_licenses(Permissive).
-license_message(GPL, _, _) -->
+license_message(GPL, _, _, _) -->
     { GPL \== [] },
     !,
     [ 'SWI-Prolog is covered by the Simplified BSD license:', nl, nl ],
@@ -270,7 +322,8 @@ license_message(GPL, _, _) -->
            'These components are:', nl, nl
          ]),
     file_list(GPL).
-license_message([], LGPL, _) -->
+license_message([], LGPL, _, _) -->
+    { LGPL \== [] },
     !,
     [ 'SWI-Prolog is covered by the Simplified BSD license:', nl, nl ],
     bsd2_license, [nl, nl],
@@ -279,6 +332,10 @@ license_message([], LGPL, _) -->
            'additional conditions.  These components are:', nl, nl
          ]),
     file_list(LGPL).
+license_message([], [], _, Permissive) -->
+    [ 'SWI-Prolog is covered by the Simplified BSD license:', nl, nl ],
+    bsd2_license,
+    permissive_licenses(Permissive).
 
 
 bsd2_license -->
@@ -314,10 +371,14 @@ permissive_licenses([LM| LMs]) -->
       'This program contains other components with permissive licenses:',
       nl, nl
     ],
-    permissive([LM| LMs]).
+    license_groups([LM| LMs]).
 
-permissive([]) --> [].
-permissive([License-Modules|T]) -->
+%!  license_groups(+Pairs:list(pair(atom,list)))//
+%
+%   Print the components for each license in Pairs.
+
+license_groups([]) --> [].
+license_groups([License-Modules|T]) -->
     license_title(License),
     license_url(License),
     [nl],
@@ -325,8 +386,27 @@ permissive([License-Modules|T]) -->
     (   {T==[]}
     ->  []
     ;   [nl],
-        permissive(T)
+        license_groups(T)
     ).
+
+copyleft_licenses([]) --> !.
+copyleft_licenses(List) -->
+    warn([ nl, nl,
+           'This program contains components covered by a copyleft license', nl,
+           'that applies to these components only.  Distributing this', nl,
+           'program in binary form requires making the source of these', nl,
+           'components available.  Modifications to them must be published', nl,
+           'under the same license.  These components are:', nl, nl
+         ]),
+    license_groups(List).
+
+gpl_conflict(false) --> [].
+gpl_conflict(true) -->
+    warn([ nl, nl,
+           'The license of some of the copyleft components above is not', nl,
+           'compatible with the GNU General Public License.  This program', nl,
+           'may therefore not be distributed.'
+         ]).
 
 proprietary_licenses([]) --> !.
 proprietary_licenses(List) -->
@@ -334,19 +414,7 @@ proprietary_licenses(List) -->
            'This program contains components with proprietary licenses:',
            nl, nl
          ]),
-    proprietary(List).
-
-proprietary([]) --> [].
-proprietary([License-Modules|T]) -->
-    license_title(License),
-    license_url(License),
-    [nl],
-    file_list(Modules),
-    (   {T==[]}
-    ->  []
-    ;   [nl],
-        proprietary(T)
-    ).
+    license_groups(List).
 
 license_title(License) -->
     {   license(License, _, Att),

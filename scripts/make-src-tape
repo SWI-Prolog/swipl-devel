@@ -25,6 +25,7 @@ COREMODULES+=" packages/archive packages/pengines packages/json"
 COREMODULES+=" packages/cql packages/bdb packages/libedit"
 COREMODULES+=" packages/pcre packages/yaml packages/paxos packages/redis"
 COREMODULES+=" packages/stomp packages/mqi packages/sweep packages/swipy"
+COREMODULES+=" packages/graphviz"
 SUBSUBMODULES="packages/libedit/libedit"
 
 if [ -r modules ]; then

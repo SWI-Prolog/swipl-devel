@@ -437,7 +437,7 @@ PL_discard_foreign_frame(fid_t id)
 #define determinism_error(fr, bfr, found) \
 	LDFUNC(determinism_error, fr, bfr, found)
 
-static bool
+static COLD bool
 determinism_error(DECL_LD LocalFrame fr, Choice bfr, atom_t found)
 { fid_t fid;
   bool rc = false;
@@ -703,7 +703,7 @@ is_exception_finish(enum finished reason)
 }
 
 
-static int
+static bool
 unify_finished(term_t catcher, enum finished reason)
 { GET_LD
 
@@ -732,6 +732,47 @@ call_term() calls a term from C. The  sound   and  simple way is to call
 call/1 with the term as argument, but in   most cases we can avoid that.
 As frameFinished() is rather time critical this seems worthwhile.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+call_internal_det_foreign() calls  an  internal   (system,  '$'  name)
+deterministic foreign predicate directly instead   of opening a query.
+This is notably used by setup_call_cleanup/3  and friends that run the
+setup and cleanup in a query (see   sig_atomic/1  and callCleanupHandler())
+and  where  these  goals  often   are    internal   predicates.  Unlike
+calling it through a query, the predicate has  no frame of its own. This
+affects the context of errors, which is why we limit this to internal
+predicates.  Returns false if the fast path cannot be used.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+bool
+call_internal_det_foreign(Procedure proc, term_t av, int *rc)
+{ GET_LD
+  Definition def = proc->definition;
+  struct foreign_context ctx;
+  typedef foreign_t (*FuncN)(term_t av, size_t argc, control_t);
+
+  if ( ison(def, P_FOREIGN) && ison(def, P_VARARG) &&
+       isoff(def, P_NONDET|P_TRANSPARENT) &&
+       def->module == MODULE_system &&
+       def->impl.foreign.function &&
+       stringAtom(def->functor->name)[0] == '$' &&
+#ifdef O_PROFILE
+       !LD->profile.active &&
+#endif
+       !debugstatus.debugging )
+  { ctx.engine    = LD;
+    ctx.control   = FRG_FIRST_CALL;
+    ctx.context   = 0;
+    ctx.predicate = def;
+    LD->statistics.inferences++;
+    *rc = (int)(*(FuncN)def->impl.foreign.function)(av, def->functor->arity,
+						    &ctx);
+    return true;
+  }
+
+  return false;
+}
 
 
 #define call1(mdef, goal) LDFUNC(call1, mdef, goal)
@@ -796,6 +837,8 @@ call_term(DECL_LD Module mdef, term_t goal)
     }
 
     proc = resolveProcedure(functor, module);
+    if ( call_internal_det_foreign(proc, av, &rval) )
+      return rval;
     qid = PL_open_query(module, PL_Q_PASS_EXCEPTION, proc, av);
     rval = PL_next_solution(qid);
     PL_cut_query(qid);
@@ -810,10 +853,16 @@ frameFinished() is used for two reasons:   providing hooks for the (GUI)
 debugger  for  updating   the   stack-view    and   for   dealing   with
 call_cleanup/2 family.  Both may call-back the Prolog engine.
 
-The helper callCleanupHandler() deals with the cleanup family. Currently
-the predicate is always
+The helper callCleanupHandler() deals with the cleanup family.  The
+predicate is determined by the arity:
 
-    setup_call_catcher_cleanup(Setup, Goal, Catcher, Cleanup).
+    call_cleanup(Goal, Cleanup)
+    setup_call_cleanup(Setup, Goal, Cleanup)
+    setup_call_catcher_cleanup(Setup, Goal, Catcher, Cleanup)
+    '$tbl_leader'(SCC, Goal, Wrapper, OldCurrent, Trie)
+
+The cleanup of '$tbl_leader'/5, which runs the leader of a new table, is
+the C function tbl_leader_finished().
 
 Note that the cleanup handler is called while protected against signals.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
@@ -829,6 +878,7 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
     size_t arg_catcher = 0;
     size_t arg_cleanup = 0;
     term_t clean;
+    term_t catcher = 0;
     wakeup_state wstate;
 
     if ( !(cid=PL_open_foreign_frame()) )
@@ -846,11 +896,14 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 	arg_cleanup = 4;
         arg_catcher = 3;
 	break;
+      case 5:		/* '$tbl_leader'(SCC, Goal, Wrapper, Old, Trie) */
+	assert(fr->predicate->functor->functor == FUNCTOR_dtbl_leader5);
+	break;
       default:
 	assert(0);
     }
 
-    set(fr, FR_CAUGHT);
+    setLocal(fr, FR_CAUGHT);
 
 			/* Unify the catcher */
     if ( arg_catcher )
@@ -858,16 +911,26 @@ callCleanupHandler(DECL_LD LocalFrame fr, enum finished reason)
 
       if ( !unify_finished(catcher, reason) )
 	goto out;
+    } else if ( !arg_cleanup )
+    { if ( !(catcher = PL_new_term_ref()) ||
+	   !unify_finished(catcher, reason) )
+	goto out;
     }
 
 			/* Call the cleanup handler */
     fr = (LocalFrame)valTermRef(fref);
-    clean = consTermRef(argFrameP(fr, arg_cleanup-1));
     if ( saveWakeup(&wstate, false) )
     { int rval;
 
       startCritical();
-      rval = call_term(contextModule(fr), clean);
+      if ( arg_cleanup )
+      { clean = consTermRef(argFrameP(fr, arg_cleanup-1));
+	rval = call_term(contextModule(fr), clean);
+      } else
+      { rval = tbl_leader_finished(consTermRef(argFrameP(fr, 3)), catcher,
+				   consTermRef(argFrameP(fr, 0)),
+				   consTermRef(argFrameP(fr, 2)));
+      }
       if ( !endCritical() )
 	rval = false;
       if ( !rval && exception_term )
@@ -916,7 +979,7 @@ frameFailed(DECL_LD LocalFrame fr)
 }
 
 #define mustBeCallable(call) LDFUNC(mustBeCallable, call)
-static int
+static bool
 mustBeCallable(DECL_LD term_t call)
 { Word p = valTermRef(call);
   Word ap;
@@ -1030,7 +1093,7 @@ put_call_goal(DECL_LD term_t t, Procedure proc)
     *gp++ = fd->functor;
     for(size_t i=0; i<fd->arity; i++)
       unify_gl(gp++, ap++, false);
-    *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
+    *valTermRef(t) = consCompound(gt);
   } else
   { *valTermRef(t) = fd->name;
   }
@@ -1045,7 +1108,7 @@ break applied.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define put_vm_call(t, frref, PC, op, has_firstvar, pop) LDFUNC(put_vm_call, t, frref, PC, op, has_firstvar, pop)
-static int
+static bool
 put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 	    int *pop)
 { atom_t simple_goal;
@@ -1120,7 +1183,7 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
 
       gt[0] = FUNCTOR_call1;
       gt[1] = simple_goal;
-      *valTermRef(t) = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
+      *valTermRef(t) = consCompound(gt);
 
       return true;
     }
@@ -1139,8 +1202,8 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       unify_gl(&gt[2], tm, has_firstvar);
       unify_gl(&gt[3], a, has_firstvar);
       gt[4] = FUNCTOR_call1;
-      gt[5] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
-      *valTermRef(t) = consPtr(&gt[4], STG_GLOBAL|TAG_COMPOUND);
+      gt[5] = consCompound(gt);
+      *valTermRef(t) = consCompound(&gt[4]);
 
       return true;
     }
@@ -1162,8 +1225,8 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       unify_gl(&gt[1], v1, has_firstvar);
       gt[2] = (word)PC[2];
       gt[3] = FUNCTOR_call1;
-      gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
-      *valTermRef(t) = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
+      gt[4] = consCompound(gt);
+      *valTermRef(t) = consCompound(&gt[3]);
 
       return true;
     }
@@ -1189,8 +1252,8 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       unify_gl(&gt[1], v1, has_firstvar);
       unify_gl(&gt[2], v2, has_firstvar);
       gt[3] = FUNCTOR_call1;
-      gt[4] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
-      *valTermRef(t) = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
+      gt[4] = consCompound(gt);
+      *valTermRef(t) = consCompound(&gt[3]);
 
       return true;
     }
@@ -1223,8 +1286,8 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       gt[0] = ftor;
       unify_gl(&gt[1], v1, has_firstvar);
       gt[2] = FUNCTOR_call1;
-      gt[3] = consPtr(gt, STG_GLOBAL|TAG_COMPOUND);
-      *valTermRef(t) = consPtr(&gt[2], STG_GLOBAL|TAG_COMPOUND);
+      gt[3] = consCompound(gt);
+      *valTermRef(t) = consCompound(&gt[2]);
 
       return true;
     }
@@ -1301,10 +1364,31 @@ put_vm_call(DECL_LD term_t t, term_t frref, Code PC, code op, int has_firstvar,
       gt[2] = consInt(add);
       gt[3] = FUNCTOR_is2;
       unify_gl(&gt[4], A, has_firstvar);
-      gt[5] = consPtr(&gt[0], STG_GLOBAL|TAG_COMPOUND);
+      gt[5] = consCompound(&gt[0]);
       gt[6] = FUNCTOR_call1;
-      gt[7] = consPtr(&gt[3], STG_GLOBAL|TAG_COMPOUND);
-      *valTermRef(t) = consPtr(&gt[6], STG_GLOBAL|TAG_COMPOUND);
+      gt[7] = consCompound(&gt[3]);
+      *valTermRef(t) = consCompound(&gt[6]);
+
+      return true;
+    }
+    case A_CMP_VV:
+    case A_CMP_VI:
+    { Word gt       = allocGlobal(3+2);		/* call(A <cmp> B) */
+      LocalFrame fr = (LocalFrame)valTermRef(frref);
+      Word A        = varFrameP(fr, (int)PC[2]);
+
+      if ( !gt )
+	return false;
+
+      gt[0] = cmpFunctor((int)PC[1]);
+      unify_gl(&gt[1], A, has_firstvar);
+      if ( op == A_CMP_VV )
+	unify_gl(&gt[2], varFrameP(fr, (int)PC[3]), has_firstvar);
+      else
+	gt[2] = consInt((sword)(scode)PC[3]);
+      gt[3] = FUNCTOR_call1;
+      gt[4] = consCompound(&gt[0]);
+      *valTermRef(t) = consCompound(&gt[3]);
 
       return true;
     }
@@ -1515,6 +1599,8 @@ TrailAssignment(DECL_LD Word p)
     *old = *p;				/* save the old value on the global */
     (tTop++)->address = p;
     (tTop++)->address = tagTrailPtr(old);
+  } else if ( unlikely(p < LD->gen_bar) ) /* old generation */
+  { gen_remember(p);
   }
 }
 
@@ -1575,6 +1661,8 @@ __do_undo(DECL_LD const mark *m)
 	});
 
   gTop = ngtop;
+  if ( LD->gen_bar > ngtop )
+    LD->gen_bar = ngtop;
 }
 
 
@@ -1696,7 +1784,7 @@ contextModule(LocalFrame fr)
 static inline void
 setContextModule__(LocalFrame fr, Module context)
 { fr->context = context;
-  set(fr, FR_CONTEXT);
+  setLocal(fr, FR_CONTEXT);
 }
 
 
@@ -1752,7 +1840,7 @@ m_qualify_argument(DECL_LD LocalFrame fr, int arg)
     } else
     { p2[2] = (needsRef(*p) ? makeRefG(p) : *p);
     }
-    *k = consPtr(p2, STG_GLOBAL|TAG_COMPOUND);
+    *k = consCompound(p2);
   } else
   { int depth = 100;
 
@@ -2020,12 +2108,12 @@ findCatcher() can do  GC/shift!  The  return   value  is  a  local-frame
 reference, so we can deal with relocation of the local stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define findCatcher(fid, fr, ch, ex) LDFUNC(findCatcher, fid, fr, ch, ex)
+#define findCatcher(fr, ch, ex) LDFUNC(findCatcher, fr, ch, ex)
 static term_t
-findCatcher(DECL_LD fid_t fid, LocalFrame fr, Choice ch, term_t ex0)
+findCatcher(DECL_LD LocalFrame fr, Choice ch, term_t ex0)
 { Definition catch3  = PROCEDURE_catch3->definition;
   term_t ex = PL_copy_term_ref(ex0);
-  term_t ex2 = 0;
+  term_t chref = consTermRef(ch);
   wakeup_state wstate;
 
   if ( !saveWakeup(&wstate, false) )
@@ -2037,41 +2125,47 @@ findCatcher(DECL_LD fid_t fid, LocalFrame fr, Choice ch, term_t ex0)
   while(fr)
   { if ( fr->predicate == catch3 &&
 	 isoff(fr, FR_CAUGHT) &&      /* not thrown from recover */
-	 (void*)fr <= (void*)ch )      /* not call-port of catch/3 */
+	 (void*)fr <= (void*)valTermRef(chref) ) /* not call-port of catch/3 */
     { int rc;
-      term_t tref, catcher;
+      term_t tref, catcher, ex2 = 0;
+      fid_t cfid;
 
       tref = consTermRef(fr);
+      if ( !(cfid = PL_open_foreign_frame()) )
+      { LD->outofstack = (Stack)&LD->stacks.local;
+	outOfStack(LD->outofstack, STACK_OVERFLOW_THROW);
+	assert(0);
+      }
+      fr = (LocalFrame)valTermRef(tref);
       catcher = consTermRef(argFrameP(fr, 1));
       DEBUG(MSG_THROW, Sdprintf("Unify ball for frame %ld\n", (long)tref));
       rc = PL_unify(catcher, ex);
       if ( rc )
-      { if ( !ex2 )
-	  ex2 = PL_new_term_ref();
+      { ex2 = PL_new_term_ref();
 	rc = foreignWakeup(ex2);
       }
       fr = (LocalFrame)valTermRef(tref);
 
       if ( rc )
       { DEBUG(MSG_THROW, Sdprintf("Unified for frame %ld\n", (long)tref));
+	PL_close_foreign_frame(cfid);
 	restoreWakeup(&wstate);
 	PL_put_term(exception_term, ex);
-	set(fr, FR_CAUGHT);
+	setLocal(fr, FR_CAUGHT);
 	return consTermRef(fr);
       } else
       { if ( ex2 && !isVar(*valTermRef(ex2)) )
 	{ DEBUG(MSG_THROW, Sdprintf("Exception from foreignWakeup()\n"));
 	  PL_raise_exception(ex2);
 	  PL_put_term(ex, exception_term);
-	  PL_put_variable(ex2);
-	  fr = (LocalFrame)valTermRef(tref);
 	} else if ( exception_term )
 	{ DEBUG(MSG_THROW, Sdprintf("Exception from PL_unify()\n"));
 	  PL_put_term(ex, exception_term);
 	}
       }
 
-      PL_rewind_foreign_frame(wstate.fid ? wstate.fid : fid);
+      PL_discard_foreign_frame(cfid);
+      fr = (LocalFrame)valTermRef(tref);
     }
 
     fr = fr->parent;
@@ -2107,7 +2201,7 @@ Returns:
 
 #ifdef O_DEBUGGER
 #define isCaughtInOuterQuery(qid, ball) LDFUNC(isCaughtInOuterQuery, qid, ball)
-static term_t
+static COLD term_t
 isCaughtInOuterQuery(DECL_LD qid_t qid, term_t ball)
 { Definition catch3 = PROCEDURE_catch3->definition;
   QueryFrame qf = QueryFromQid(qid);
@@ -2241,7 +2335,7 @@ of redo.  We always show redo for an external redo.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define dbgRedoFrame(fr, cht) LDFUNC(dbgRedoFrame, fr, cht)
-static LocalFrame
+static COLD LocalFrame
 dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
 { DEBUG(MSG_TRACE_REDO, Sdprintf("REDO on [%u] %s\n",
 				 levelFrame(fr), predicateName(fr->predicate)));
@@ -2259,7 +2353,7 @@ dbgRedoFrame(DECL_LD LocalFrame fr, choice_type cht)
 		 predicateName(fr->predicate),
 		 ison(fr, FR_INBOX) ? " (inbox)" : ""));
   if ( fr && isoff(fr, FR_INBOX) )
-  { set(fr, FR_INBOX);			/* External retry */
+  { setLocal(fr, FR_INBOX);			/* External retry */
     return fr;
   }
 
@@ -2691,7 +2785,7 @@ on behalf of the debugger we need to preserve the pending exception.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define dbg_discardChoicesAfter(fr, reason) LDFUNC(dbg_discardChoicesAfter, fr, reason)
-static void
+static COLD void
 dbg_discardChoicesAfter(DECL_LD LocalFrame fr, enum finished reason)
 { if ( exception_term )
   { Word p = valTermRef(exception_term);
@@ -3001,7 +3095,7 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 
   DEBUG(3, Sdprintf("Level = %d\n", levelFrame(fr)));
   if ( ison(qf, PL_Q_NODEBUG) )
-  { set(fr, FR_HIDE_CHILDS);
+  { setLocal(fr, FR_HIDE_CHILDS);
     suspendTrace(true);
     qf->debugSave = debugstatus.debugging;
     debugstatus.debugging = false;
@@ -3289,6 +3383,37 @@ typedef enum
 #define LD_REGISTER "rbx"
 #define REGFILE_REGISTER "r12"
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+VMI_TAILCALL (see pl-incl.h): using VMI functions, instructions and
+helpers continue with a guaranteed tail call (musttail) to the next
+instruction rather than returning the next PC to the dispatch loop in
+PL_next_solution().  This requires musttail (Clang >= 13, GCC >= 15).
+Compilers without it use the dispatch loop.  Helper arguments are passed in the register file, so
+all VMI and VMH functions have the same signature, as Clang requires
+for musttail.
+
+VMI_CC is the calling convention of the VMI functions.  preserve_none
+(Clang >= 19, GCC >= 15) passes up to 12 arguments in registers and has
+no callee-saved registers, which avoids saving registers in each VMI.
+MinGW GCC (16) accepts it, but the result crashes while compiling the
+boot file: a VMI is entered with LD == NULL.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if VMI_TAILCALL
+#define VMI_MUSTTAIL __attribute__((musttail))
+/* noinline: GCC 16 silently turns the musttail calls of an inlined
+   VMI into normal calls, overflowing the C stack.  Inlining one VMI in
+   another only duplicates code anyway. */
+#define VMI_NOINLINE __attribute__((noinline))
+#if !defined(VMI_CC) && __has_attribute(preserve_none) && \
+    !(defined(__MINGW32__) && !defined(__clang__))
+#define VMI_CC __attribute__((preserve_none))
+#endif
+#endif
+#ifndef VMI_CC
+#define VMI_CC
+#endif
+
 #if O_VMI_FUNCTIONS
 struct register_file;
 #define VMI_RETTYPE Code
@@ -3311,51 +3436,29 @@ struct register_file;
 #   define VMI_ARG_PASS PC, registers
 #  endif
 # endif
-typedef VMI_RETTYPE (*vmi_instr)(VMI_ARG_DECL);
+# if VMI_TAILCALL && !VMI_USE_REGISTER_VARIABLES
+/* Pass the hottest registers as arguments.  Using preserve_none, the
+   first four are in r12-r15, which ordinary C functions preserve. */
+#  undef VMI_ARG_DECL
+#  undef VMI_ARG_PASS
+#  if (defined(O_PLMT) || defined(O_ENGINES)) && USE_LD_MACROS
+#   define VMI_ARG_DECL PL_local_data_t *__PL_ld, Code PC, LocalFrame __FR, \
+			struct register_file *registers, Word __ARGP
+#   define VMI_ARG_PASS __PL_ld, PC, FR, registers, ARGP
+#  else
+#   define VMI_ARG_DECL Code PC, LocalFrame __FR, \
+			struct register_file *registers, Word __ARGP
+#   define VMI_ARG_PASS PC, FR, registers, ARGP
+#  endif
+#  define VMI_REGISTER_ARGS 1
+# endif
+typedef VMI_CC VMI_RETTYPE (*vmi_instr)(VMI_ARG_DECL);
 # if VMI_REGISTER_VARIABLES
 register struct register_file *__reg_registers asm(REGFILE_REGISTER);
 register PL_local_data_t *__reg_ld asm(LD_REGISTER);
 # endif
 #endif
 
-/* All the registers used in PL_next_solution et al; there will always be a
- * variable or macro called REGISTERS with the current active registers */
-typedef struct register_file
-{ unify_mode umode;			/* Unification mode */
-# define     UMODE	(REGISTERS.umode)
-  int        slow_unify;		/* B_UNIFY_FIRSTVAR */
-# define     SLOW_UNIFY	(REGISTERS.slow_unify)
-  qid_t      qid;			/* External query ID (argument to PL_next_solution()) */
-# define     QID	(REGISTERS.qid)
-  QueryFrame qf;			/* Query frame */
-# define     QF		(REGISTERS.qf)
-  LocalFrame fr;			/* current frame */
-# define     FR		(REGISTERS.fr)
-# define     CL		(FR->clause)	/* clause of current frame */
-  LocalFrame nfr;			/* Next frame */
-# define     NFR	(REGISTERS.nfr)
-  Word       argp;			/* current argument pointer */
-# define     ARGP	(REGISTERS.argp)
-  Definition def;			/* definition of current procedure */
-# define     DEF	(REGISTERS.def)
-  fid_t      ffr_id;			/* foreign function id */
-# define     FFR_ID	(REGISTERS.ffr_id)
-  ar_context pl_ar_ctx;
-# define     __PL_ar_ctx (REGISTERS.pl_ar_ctx)
-  struct foreign_context fndet_context;	/* foreign function non-deterministic context */
-# define     FNDET_CONTEXT (REGISTERS.fndet_context)
-#if VMCODE_IS_ADDRESS
-  int	     nop1;			/* See SEPARATE_VMI1 */
-  int	     nop2;			/* See SEPARATE_VMI2 */
-#endif
-#ifdef O_DEBUG
-  int	     throwed_from_line;		/* Debugging: line we came from */
-# define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
-#endif
-  /* Not initialized below here */
-  size_t     pl_ar_buf[GMP_STACK_ALLOC];
-#define __PL_ar_buf	(REGISTERS.pl_ar_buf)
-} register_file;
 
 
 /* Components of VMI/VMH macro expansion. The underscore-prefix macros
@@ -3423,36 +3526,105 @@ FOREACH_VMH(T_EMPTY,
   ,VMH_ARGSTRUCT, {VMH_PAD_STRUCT ,VMH_ARGS, };
 )
 
+/* All the registers used in PL_next_solution et al; there will always be a
+ * variable or macro called REGISTERS with the current active registers */
+typedef struct register_file
+{ unify_mode umode;			/* Unification mode */
+# define     UMODE	(REGISTERS.umode)
+  int        slow_unify;		/* B_UNIFY_FIRSTVAR */
+# define     SLOW_UNIFY	(REGISTERS.slow_unify)
+  qid_t      qid;			/* External query ID (argument to PL_next_solution()) */
+# define     QID	(REGISTERS.qid)
+  QueryFrame qf;			/* Query frame */
+# define     QF		(REGISTERS.qf)
+  LocalFrame fr;			/* current frame */
+# define     FR		(REGISTERS.fr)
+# define     CL		(FR->clause)	/* clause of current frame */
+  LocalFrame nfr;			/* Next frame */
+# define     NFR	(REGISTERS.nfr)
+  Word       argp;			/* current argument pointer */
+# define     ARGP	(REGISTERS.argp)
+  Definition def;			/* definition of current procedure */
+# define     DEF	(REGISTERS.def)
+  fid_t      ffr_id;			/* foreign function id */
+# define     FFR_ID	(REGISTERS.ffr_id)
+  ar_context pl_ar_ctx;
+# define     __PL_ar_ctx (REGISTERS.pl_ar_ctx)
+  struct foreign_context fndet_context;	/* foreign function non-deterministic context */
+# define     FNDET_CONTEXT (REGISTERS.fndet_context)
+#if VMCODE_IS_ADDRESS
+  int	     nop1;			/* See SEPARATE_VMI1 */
+  int	     nop2;			/* See SEPARATE_VMI2 */
+#endif
+#if VMI_TAILCALL
+  union					/* Arguments of VMH helpers */
+  { FOREACH_VMH(T_EMPTY,
+      ,VMH_ARGSTRUCT, ,VMH_NAME,;
+    )
+  } helper_args;
+#endif
+#ifdef O_DEBUG
+  int	     throwed_from_line;		/* Debugging: line we came from */
+# define     THROWED_FROM_LINE	(REGISTERS.throwed_from_line)
+#endif
+  /* Not initialized below here */
+  size_t     pl_ar_buf[GMP_STACK_ALLOC];
+#define __PL_ar_buf	(REGISTERS.pl_ar_buf)
+} register_file;
+
 #define ASSIGN_ARG(n,at,an)		at an = HELPER_ARGS(n).an;
 #undef _VMH_PROLOGUE
 #define _VMH_PROLOGUE(Name,na,at,an)	VMH_ARGS ## na(Name, at, an, ASSIGN_ARG)
 #if O_VMI_FUNCTIONS
 
+#if VMCODE_IS_ADDRESS
+#define VMI_ADDR(c)		((vmi_instr)(c))
+#else
+#define VMI_ADDR(c)		jmp_table[c]
+#endif
+
+#if VMI_TAILCALL
+#define HELPER_ARGS(n)			REGISTERS.helper_args.n
+#define _VMI_DECLARATION(Name,na,at,an)	static VMI_NOINLINE VMI_CC VMI_RETTYPE instr_ ## Name(VMI_ARG_DECL)
+#define _VMH_DECLARATION(Name,na,at,an)	static VMI_NOINLINE VMI_CC VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL)
+#define _NEXT_INSTRUCTION		DbgPrintInstruction(FR, PC); \
+					VMI_MUSTTAIL return VMI_ADDR(*PC)(VMI_ARG_PASS)
+#define _VMI_GOTO(n)			PC--; VMI_MUSTTAIL return instr_ ## n(VMI_ARG_PASS)
+#define _VMH_GOTO(n,...)		HELPER_ARGS(n) = (VMH_ARGSTRUCT(n))VMH_INIT_ARGSTRUCT(__VA_ARGS__); \
+					VMI_MUSTTAIL return helper_ ## n(VMI_ARG_PASS)
+#define _VMI_GOTO_CODE(c)		PC--; VMI_MUSTTAIL return VMI_ADDR(c)(VMI_ARG_PASS)
+#else
 #define HELPER_ARGS(n)			__args
 #define _VMI_DECLARATION(Name,na,at,an)	static VMI_RETTYPE instr_ ## Name(VMI_ARG_DECL)
 #define _VMH_DECLARATION(Name,na,at,an)	static VMI_RETTYPE helper_ ## Name(VMI_ARG_DECL, VMH_ARGSTRUCT(Name) __args)
 #define _NEXT_INSTRUCTION		return PC
+#define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
+#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = VMH_INIT_ARGSTRUCT(__VA_ARGS__); (void)__args; \
+					return helper_ ## n(VMI_ARG_PASS, __args)
+#define _VMI_GOTO_CODE(c)		PC--; return VMI_ADDR(c)(VMI_ARG_PASS)
+#endif
 #if O_THROW
 #define _SOLUTION_RETURN(val)		LD->vm.return_code = (val); \
 					longjmp(LD->exception.throw_environment->exception_jmp_env, 2)
 #else
 #define _SOLUTION_RETURN(val)		LD->vm.return_code = (val); return NULL
 #endif
-#define _VMI_GOTO(n)			PC--; return instr_ ## n(VMI_ARG_PASS)
-#define _VMH_GOTO(n,...)		VMH_ARGSTRUCT(n) __args = VMH_INIT_ARGSTRUCT(__VA_ARGS__); (void)__args; \
-					return helper_ ## n(VMI_ARG_PASS, __args)
 #undef _VMI_PROLOGUE
 #define _VMI_PROLOGUE(Ident,f,na,a)	PC++;
-#if VMCODE_IS_ADDRESS
-#define VMI_ADDR(c)		((vmi_instr)(c))
-#else
-#define VMI_ADDR(c)		jmp_table[c]
-#endif
-#define _VMI_GOTO_CODE(c)	PC--; return VMI_ADDR(c)(VMI_ARG_PASS)
 
 /* Declare prototypes for all VMI/VMH functions */
 FOREACH_VMIDECL_CALL(T_SEMICOLON, _VMI_DECLARATION);
 FOREACH_VMHDECL_CALL(T_SEMICOLON, _VMH_DECLARATION);
+
+/* Group the hottest VMI functions in .text.hot to keep them together for
+ * the instruction cache.  The attribute of this redeclaration is merged.
+ */
+#if VMI_TAILCALL && defined(__GNUC__)
+#define VMI_HOT(f) static VMI_NOINLINE VMI_CC __attribute__((hot)) \
+		   VMI_RETTYPE f(VMI_ARG_DECL);
+#include "pl-vmi-hot.h"
+#undef VMI_HOT
+#endif
 
 /* Define the jump table with all the function addresses */
 static vmi_instr jmp_table[] =
@@ -3471,15 +3643,34 @@ static vmi_instr jmp_table[] =
 #else
 # define REGISTERS (*registers)
 #endif
+#if VMI_REGISTER_ARGS			/* FR and ARGP are arguments */
+# undef FR
+# undef ARGP
+# define FR   __FR
+# define ARGP __ARGP
+#endif
 #include "pl-vmi.c"
+#if VMI_REGISTER_ARGS
+# undef FR
+# undef ARGP
+# define FR   (REGISTERS.fr)
+# define ARGP (REGISTERS.argp)
+#endif
 #undef REGISTERS
 
 /* Redefine NEXT_INSTRUCTION and VMH_GOTO for PL_next_solution() */
 #undef NEXT_INSTRUCTION
 #undef VMH_GOTO
 #define NEXT_INSTRUCTION (void)0
+#if VMI_TAILCALL
+#define VMH_GOTO(n) do { REGISTERS.helper_args.n = \
+			   (VMH_ARGSTRUCT(n))VMH_INIT_ARGSTRUCT(); \
+			 PC = helper_##n(VMI_ARG_PASS); \
+		       } while(0)
+#else
 #define VMH_GOTO(n) PC = helper_##n(VMI_ARG_PASS, \
 				    (VMH_ARGSTRUCT(n))VMH_INIT_ARGSTRUCT())
+#endif
 
 #if VMI_USE_REGISTER_VARIABLES
 # undef LD
@@ -3741,6 +3932,7 @@ variables used in the B_THROW instruction.
   { fid_t fid = QF->foreign_frame;
     QF->foreign_frame = 0;
     PL_close_foreign_frame(fid);
+    environment_frame = FR;		/* shallow backtracking keeps it */
     BODY_FAILED;
   } else				/* first call */
     VMH_GOTO(depart_or_retry_continue);

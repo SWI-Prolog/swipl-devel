@@ -345,6 +345,20 @@ function test_bigint(out)
 }
 
 ////////////////////////////////////////////////////////////////
+tests.push({ name: "UTF-8 exchange",
+	     call: test_utf8_exchange
+	   });
+
+promise_unicode_dict = new Promise(resolve => {resolve({елемент: "Стринг"})})
+
+function test_utf8_exchange(out)
+{ return Prolog.forEach("utf8_exchange(Value)",
+			(r) => println(out, r.Value))
+	   .then((n) => println(out, `Got ${n} answers`))
+           .catch((e) => println(out, `Got error ${e}`));
+}
+
+////////////////////////////////////////////////////////////////
 tests.push({ name: "Test simple error handling",
 	     call: test_error
 	   });

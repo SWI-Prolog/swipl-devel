@@ -49,8 +49,8 @@ code should use format/1, format/2  and   friends,  which  are currently
 supported by more Prolog implementations.
 
 The   writef-family   of   predicates   conflicts    with   the   modern
-_|character-esacapes|_ flag about  the   interpretation  of \-sequences.
-This can be avoided by
+_|character-escapes|_ flag about the interpretation of \-sequences. This
+can be avoided by
 
   1. Disable character escapes (not recommended unless one wants to
   run really outdated code unmodified).
@@ -73,7 +73,7 @@ This can be avoided by
 %       | =|\n|= | Output a newline character |
 %       | =|\l|= | Output a line separator (same as =|\n|=) |
 %       | =|\r|= | Output a carriage-return character (ASCII 13) |
-%       | =|\r|= | Output a TAB character (ASCII 9) |
+%       | =|\t|= | Output a TAB character (ASCII 9) |
 %       | =|\\|= | Output =|\|= |
 %       | =|\%|= | Output =|%|= |
 %       | =|\nnn|= | Output character <nnn>. <nnn> is a 1-3 decimal number |

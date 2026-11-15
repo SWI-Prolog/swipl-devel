@@ -51,7 +51,6 @@ char *		sourceFileName(SourceFile sf);
 char *		generationName(gen_t gen);
 int		clauseNo(Clause clause, gen_t gen);
 int		notImplemented(char *name, int arity);
-foreign_t	setBoolean(int *flag, term_t o, term_t n);
 foreign_t	setInteger(int *val, term_t old, term_t new);
 const char *	atom_summary(atom_t name, unsigned int maxlen);
 const char *	string_summary(word name, unsigned int maxlen);

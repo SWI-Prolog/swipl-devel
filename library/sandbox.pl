@@ -535,6 +535,7 @@ safe_primitive(system:nonground(_,_)).
 safe_primitive(system:cyclic_term(_)).
 safe_primitive(acyclic_term(_)).
 safe_primitive(system:is_stream(_)).
+safe_primitive(system:is_address(_)).
 safe_primitive(system:'$is_char'(_)).
 safe_primitive(system:'$is_char_code'(_)).
 safe_primitive(system:'$is_char_list'(_,_)).
@@ -652,11 +653,10 @@ safe_primitive(system:string_length(_,_)).
 safe_primitive(system:string_lower(_,_)).
 safe_primitive(system:string_upper(_,_)).
 safe_primitive(system:term_string(_,_)).
-safe_primitive('$syspreds':term_string(_,_,_)).
                                         % Lists
 safe_primitive(length(_,_)).
                                         % exceptions
-safe_primitive(throw(_)).
+safe_primitive(throw(Ball)) :- safe_ball(Ball).
 safe_primitive(system:abort).
                                         % misc
 safe_primitive(current_prolog_flag(_,_)).
@@ -682,7 +682,6 @@ safe_primitive(system:format_time(_,_,_,_)).
 safe_primitive(system:date_time_stamp(_,_)).
 safe_primitive(system:stamp_date_time(_,_,_)).
 safe_primitive(system:strip_module(_,_,_)).
-safe_primitive('$messages':message_to_string(_,_)).
 safe_primitive(system:import_module(_,_)).
 safe_primitive(system:file_base_name(_,_)).
 safe_primitive(system:file_directory_name(_,_)).
@@ -761,7 +760,6 @@ safe_primitive(system:assert(X)) :-
     safe_assert(X).
                                         % Output
 safe_primitive(system:writeln(_)).
-safe_primitive('$messages':print_message(_,_)).
 
                                         % Stack limits (down)
 safe_primitive('$syspreds':set_prolog_stack(Stack, limit(ByteExpr))) :-
@@ -800,8 +798,7 @@ safe_primitive(system:use_module(Spec)) :-
         phrase(segments_to_path(Segments), List),
         atomic_list_concat(List, Path)
     ),
-    \+ is_absolute_file_name(Path),
-    \+ sub_atom(Path, _, _, _, '/../'),
+    safe_relative_path(Path),
     absolute_file_name(Spec, AbsFile,
                        [ access(read),
                          file_type(prolog),
@@ -896,6 +893,14 @@ safe_meta(system:put_attr(V,M,A), Called) :-
 safe_meta(system:with_output_to(Output, G), [G]) :-
     safe_output(Output),
     !.
+safe_meta(system:write_term(_Term, Options), Calls) :-
+    write_options_calls(Options, Calls).
+safe_meta('$syspreds':term_string(_Term, _String, Options), Calls) :-
+    write_options_calls(Options, Calls).
+safe_meta('$messages':print_message(_Kind, Msg), Calls) :-
+    message_calls(Msg, Calls).
+safe_meta('$messages':message_to_string(Msg, _String), Calls) :-
+    message_calls(Msg, Calls).
 safe_meta(system:format(Format, Args), Calls) :-
     format_calls(Format, Args, Calls).
 safe_meta(system:format(Output, Format, Args), Calls) :-
@@ -920,11 +925,29 @@ safe_meta('$tabling':abolish_table_subgoals(V), []) :-
 safe_meta('$tabling':current_table(V, _), []) :-
     \+ qualified(V).
 safe_meta('$tabling':tnot(G), [G]).
+safe_meta(catch(G, Catcher, Recover), [G, Recover1]) :-
+    caught(Catcher, Recover, Recover1).
+safe_meta(system:setup_call_catcher_cleanup(S, G, Catcher, Cleanup),
+          [S, G, Cleanup1]) :-
+    caught(Catcher, Cleanup, Cleanup1).
 safe_meta('$tabling':not_exists(G), [G]).
 
 qualified(V) :-
     nonvar(V),
     V = _:_.
+
+%!  caught(+Catcher, +Handler, -Handler1) is det.
+%
+%   Handler1 is a copy of Handler where  the variables of Catcher are
+%   bound to '$sandbox_caught'.  A caught exception is either raised
+%   by a system predicate or by throw/1 inside the analysed goal,
+%   which is verified by safe_ball/1.  This allows for e.g.
+%   catch(G, E, (print_message(error, E), throw(E))).
+
+caught(Catcher, Handler, Handler1) :-
+    copy_term(Catcher-Handler, Catcher1-Handler1),
+    term_variables(Catcher1, Vars),
+    maplist(=('$sandbox_caught'), Vars).
 
 %!  attr_hook_predicates(+Hooks0, +Module, -Hooks) is det.
 %
@@ -1065,7 +1088,6 @@ safe_meta((0,0)).
 safe_meta((0;0)).
 safe_meta((0->0)).
 safe_meta(system:(0*->0)).
-safe_meta(catch(0,*,0)).
 safe_meta(findall(*,0,*)).
 safe_meta('$bags':findall(*,0,*,*)).
 safe_meta(setof(*,^,*)).
@@ -1074,7 +1096,6 @@ safe_meta('$bags':findnsols(*,*,0,*)).
 safe_meta('$bags':findnsols(*,*,0,*,*)).
 safe_meta(system:call_cleanup(0,0)).
 safe_meta(system:setup_call_cleanup(0,0,0)).
-safe_meta(system:setup_call_catcher_cleanup(0,0,*,0)).
 safe_meta('$attvar':call_residue_vars(0,*)).
 safe_meta('$syspreds':call_with_inference_limit(0,*,*)).
 safe_meta('$syspreds':call_with_depth_limit(0,*,*)).
@@ -1114,7 +1135,8 @@ safe_output(current_error).
 %
 %   Find ~@ calls from Format and Args.
 
-:- public format_calls/3.                       % used in pengines_io
+:- public format_calls/3,                       % used in pengines_io
+          write_options_calls/2.
 
 format_calls(Format, Args, Calls) :-
     is_list(Args),
@@ -1131,9 +1153,106 @@ format_callables([], [], []).
 format_callables([callable|TT], [G|TA], [G|TG]) :-
     !,
     format_callables(TT, TA, TG).
+format_callables([list|TT], [Options|TA], TG) :-     % ~W
+    !,
+    write_options_calls(Options, TG0),
+    format_callables(TT, TA, TG1),
+    append(TG0, TG1, TG).
 format_callables([_|TT], [_|TA], TG) :-
     !,
     format_callables(TT, TA, TG).
+
+
+%!  write_options_calls(+Options, -Calls) is det.
+%
+%   Calls is a list of goals called by write_term/2 using Options.
+%   The option portray_goal(Goal) calls Goal with two additional
+%   arguments.
+
+write_options_calls(Options, _) :-
+    var(Options),
+    !,
+    instantiation_error(Options).
+write_options_calls([], []) :-
+    !.
+write_options_calls([H|T], Calls) :-
+    !,
+    write_option_calls(H, Calls, Calls1),
+    write_options_calls(T, Calls1).
+write_options_calls(Options, _) :-
+    type_error(list, Options).
+
+write_option_calls(Opt, _, _) :-
+    var(Opt),
+    !,
+    instantiation_error(Opt).
+write_option_calls(portray_goal(G), [Call|T], T) :-
+    !,
+    extend(2, G, Call).
+write_option_calls(portray_goal=G, [Call|T], T) :-
+    !,
+    extend(2, G, Call).
+write_option_calls(_, T, T).
+
+%!  message_calls(+Message, -Calls) is det.
+%
+%   Message translation for format(Fmt,Args) and debug(Fmt,Args)
+%   calls format/2.
+
+message_calls(Msg, _) :-
+    unbound_message(Msg),
+    !,
+    instantiation_error(Msg).
+message_calls(Msg, Calls) :-
+    message_format(Msg, Fmt, Args),
+    !,
+    format_calls(Fmt, Args, Calls0),
+    maplist(message_qualify, Calls0, Calls).
+message_calls(_, []).
+
+unbound_message(Msg) :-
+    var(Msg),
+    !.
+unbound_message(error(Formal, _)) :-
+    var(Formal).
+
+%!  safe_ball(@Ball) is semidet.
+%
+%   True if throw(Ball) is safe.  Exceptions are typically printed
+%   using print_message/2 outside the sandbox.  We therefore deny
+%   exception terms that are translated into a user-provided format
+%   string.
+
+safe_ball(Ball) :-
+    unbound_message(Ball),
+    !,
+    instantiation_error(Ball).
+safe_ball(Ball) :-
+    \+ message_format(Ball, _, _).
+
+% Message lines are formatted in the module '$messages'.
+message_qualify(G, G) :-
+    nonvar(G),
+    G = _:_,
+    !.
+message_qualify(G, '$messages':G).
+
+message_format(format(Fmt, Args), Fmt, Args).
+message_format(debug(Fmt, Args), Fmt, Args).
+message_format(error(Formal, _), Fmt, Args) :-
+    nonvar(Formal),
+    Formal = format(Fmt, Args).
+
+%!  safe_relative_path(+Path) is semidet.
+%
+%   True if Path is a relative path that cannot point outside the
+%   directory against which it is resolved.
+
+safe_relative_path(Path) :-
+    \+ is_absolute_file_name(Path),
+    \+ sub_atom(Path, 0, _, _, ~),
+    split_string(Path, "/\\", "", Segments),
+    \+ memberchk("..", Segments).
 
 
                  /*******************************
@@ -1252,11 +1371,7 @@ safe_path(X) :-
     ;   string(X)
     ),
     !,
-    \+ sub_atom(X, 0, _, 0, '..'),
-    \+ sub_atom(X, 0, _, _, '/'),
-    \+ sub_atom(X, 0, _, _, '../'),
-    \+ sub_atom(X, _, _, 0, '/..'),
-    \+ sub_atom(X, _, _, _, '/../').
+    safe_relative_path(X).
 safe_path(A/B) :-
     !,
     safe_path(A),

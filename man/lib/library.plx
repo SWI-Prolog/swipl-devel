@@ -1,0 +1,95 @@
+\chapter{The SWI-Prolog library}		\label{sec:libpl}
+
+This chapter documents the SWI-Prolog library.  As SWI-Prolog provides
+auto-loading, there is little difference between library predicates
+and built-in predicates.  Part of the library is therefore documented
+in the rest of the manual.  Library predicates differ from built-in
+predicates in the following ways:
+
+\begin{itemize}
+    \item User definition of a built-in leads to a permission error,
+          while using the name of a library predicate is allowed.
+
+    \item If autoloading is disabled explicitly or because trapping
+          unknown predicates is disabled (see unknown/2 and
+          current_prolog_flag/2), library predicates must be loaded
+	  explicitly.
+
+    \item Using libraries reduces the footprint of applications that
+          don't need them.
+\end{itemize}
+
+\begin{quote}\em
+The documentation of the library has just started. Material from the
+standard packages should be moved here, some material from other parts
+of the manual should be moved too and various libraries are not
+documented at all.
+\end{quote}
+
+\input{aggregate}
+\input{ansiterm}
+\input{apply}
+\input{assoc}
+\input{broadcast}
+\input{charsio}
+\input{check}
+\input{clpb}
+\input{clpfd}
+\input{clpqr}
+\input{csv}
+\input{dcgbasics}
+\input{dcghighorder}
+\input{debug}
+\input{dicts}
+\input{error}
+\input{exceptions}
+\input{fastrw}
+\input{gensym}
+\input{heaps}
+\input{increval}
+\input{intercept}
+\input{iostream}
+\input{listing}
+\input{lists}
+\input{macros}
+\input{main}
+\input{nbset}
+\input{writef}
+\input{wwwbrowser}
+\input{occurs}
+\input{option}
+\input{optparse}
+\input{ordsets}
+\input{pairs}
+\input{persistency}
+\input{pio}
+\input{portraytext}
+\input{predicateoptions}
+\input{prologcoverage}
+\input{prologdebug}
+\input{prologjiti}
+\input{prologtrace}
+\input{prologversions}
+\input{prologxref}
+\input{quasiquotations}
+\input{random}
+\input{rbtrees}
+\input{readutil}
+\input{record}
+\input{registry}
+\InputIfFileExists{rwlocks}{}{}
+\input{settings}
+\input{shell}
+\input{statistics}
+\input{strings}
+\InputIfFileExists{simplex}{}{}
+\input{solutionsequences}
+\input{tables}
+\input{tableutil}
+\input{terms}
+\InputIfFileExists{thread}{}{}
+\InputIfFileExists{threadpool}{}{}
+\input{ugraphs}
+\input{url}
+\input{varnumbers}
+\input{yall}

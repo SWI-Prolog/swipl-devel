@@ -481,8 +481,11 @@ prolog_id_cont([]) --> "".
 
 %!  csym(?Symbol:atom)// is semidet.
 %
-%   Recognise a C symbol according to   the  `csymf` and `csym` code
-%   type classification provided by the C library.
+%   Recognise a C identifier: an ASCII letter or underscore followed by
+%   ASCII letters, digits and underscores.  This is the `csymf` and
+%   `csym` classification of code_type/2.  Note that this does not
+%   cover identifiers holding non-ASCII characters; classify those with
+%   the `prolog_atom_start` and `prolog_identifier_continue` types.
 
 csym(Name, Head, Tail) :-
     nonvar(Name),

@@ -302,8 +302,10 @@ depth_limit(fail-1) :-
 
 type_test(type-1) :-
     X = Y, var(X), Y = a, nonvar(X).
+:- style_check(-no_effect).             % tests on constants are intended
 type_test(type-2) :-
     atom(hello), \+ atom(10), \+ atom("hello").
+:- style_check(+no_effect).
 type_test(type-3) :-
     call(callable, atom),
     call(callable, term(a)),
@@ -932,6 +934,48 @@ c4(3).
 p(f(a,d)).
 p(f(b,c)).
 
+/* ==/2 and \==/2 on a fresh variable inside \+ in a branch of ;/2.
+   fill4/4 leaves garbage in the local stack slots reused by notN/3.
+*/
+
+:- style_check(-singleton).
+fill4(_, _, _, _).
+not3(A, B, C) :-
+    (   fail -> true
+    ;   \+ ( nonvar(A), D == 1 )
+    ),
+    C = f(D).
+not4(A, B, C) :-
+    (   fail
+    ;   \+ ( nonvar(A), D \== 1 )
+    ),
+    C = f(D).
+not5(A, B, C) :-
+    (   nonvar(A), D \== 1
+    ;   \+ ( nonvar(A), D == 2 )
+    ),
+    C = f(D).
+
+/* Same for var/1 and nonvar/1 on a fresh variable, which the optimiser
+   replaces by true or fail.
+*/
+
+:- push_prolog_flag(optimise, true).
+:- style_check(-no_effect).
+not6(A, B, C) :-
+    (   nonvar(A), A == xyz
+    ;   \+ ( nonvar(A), var(D) )
+    ),
+    C = f(D).
+not7(A, B, C) :-
+    (   nonvar(A), A == xyz
+    ;   \+ ( nonvar(A), nonvar(D) )
+    ),
+    C = f(D).
+:- style_check(+no_effect).
+:- pop_prolog_flag(optimise).
+:- style_check(+singleton).
+
 control(softcut-1) :-
     findall(A, softcut1(A), [1,2]).
 control(softcut-2) :-
@@ -956,6 +1000,31 @@ control(not-2) :-                       % see comments with compileBody()
     (   fail
     ;   \+ A\=A
     ).
+control(not-3) :-                       % ==/2 inside \+ in branch of ;
+    fill4(a, b, c, garbage),
+    not3(_, _, C),
+    C = f(V),
+    var(V).
+control(not-4) :-                       % idem for \==/2
+    fill4(a, b, c, garbage),
+    not4(_, _, C),
+    C = f(V),
+    var(V).
+control(not-5) :-
+    fill4(a, b, c, garbage),
+    not5(_, _, C),
+    C = f(V),
+    var(V).
+control(not-6) :-                       % optimised var/1 inside \+
+    fill4(a, b, c, garbage),
+    not6(_, _, C),
+    C = f(V),
+    var(V).
+control(not-7) :-                       % optimised nonvar/1 inside \+
+    fill4(a, b, c, garbage),
+    not7(_, _, C),
+    C = f(V),
+    var(V).
 control(ifthen-1) :-                    % Must be the same
     ( fail
     ; ((p(f(X,Y))->fail;true)->fail;true)
@@ -1417,6 +1486,10 @@ os(setenv-1) :-
     setenv(pltestsetenv, yes),
     getenv(pltestsetenv, X),
     X == yes.
+os(unsetenv-1) :-
+    setenv(pltestsetenv, yes),
+    unsetenv(pltestsetenv),
+    \+ getenv(pltestsetenv, _).
 
 
                  /*******************************
@@ -1934,7 +2007,8 @@ wide_character_types :-
 
 testdir('unprotected') :-
     current_prolog_flag(protect_static_code, false).
-testdir('core').
+testdir('core_lang').
+testdir('core_text').
 testdir('attvar').
 testdir('debug').
 testdir('library').
@@ -2064,16 +2138,17 @@ test_packages(Options) :-
     option(packages(true), Options),
     !,
     concurrent_forall(
-        find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
-        run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir),
+        find_package_test(Pkg, TestName, PkgScript, Goal, Options, PkgDir),
+        run_pkg_test(Pkg, TestName, PkgScript, Goal, Options, PkgDir),
         [ threads(8)
         ]).
 test_packages(Options) :-
     option(package(Pkg), Options),
     !,
     (   is_pkg(Pkg)
-    ->  forall(find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir),
-               run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir))
+    ->  forall(find_package_test(Pkg, TestName, PkgScript, Goal, Options,
+                                 PkgDir),
+               run_pkg_test(Pkg, TestName, PkgScript, Goal, Options, PkgDir))
     ;   existence_error(package, Pkg)
     ).
 test_packages(_).
@@ -2087,46 +2162,50 @@ concurrent_forall(Generate, Test, _Options) :-
 load_cmake_test_db :-
     ensure_loaded(swi('test/cmake_pkg_tests.db')).
 
-find_package_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+find_package_test(Pkg, TestName, PkgScript, Goal, Options, PkgDir) :-
     load_cmake_test_db,
-    cmake_test(Pkg, TestName, test_goal(PkgDir, PkgScript, Goal)),
+    cmake_test(Pkg, TestName, test_goal(PkgDir, PkgScript, Goal, Options)),
     is_pkg(Pkg).
 
 is_pkg(Pkg) :-
     load_cmake_test_db,
-    once(cmake_test(Pkg, _, test_goal(_, _, _))),
+    once(cmake_test(Pkg, _, test_goal(_, _, _, _))),
     absolute_file_name(library(ext/Pkg), _,
                        [ file_type(directory),
                          access(exist),
                          file_errors(fail)
                        ]).
 
-%!  run_pkg_test(+Package, +TestName, +TestScript, +Goal, +PkgDir)
+%!  run_pkg_test(+Package, +TestName, +TestScript, +Goal, +Options, +PkgDir)
 %
 %   Run test for the specified  package,   making  sure  the working
-%   directory is set to the location of the package.
+%   directory is set to the location of the package.  Options are the
+%   commandline options CMake's test_libs() was given for it, so that a
+%   test run from an installed tree is run the way ctest runs it.
 
-run_pkg_test(Pkg, TestName, PkgScript, Goal, PkgDir) :-
+run_pkg_test(Pkg, TestName, PkgScript, Goal, Options, PkgDir) :-
     script_dir(ScriptDir),
     atomic_list_concat([ScriptDir, PkgDir], /, TestDir),
     format(user_error, '~N    Start testing package ~w:~w~n',[Pkg,TestName]),
     get_time(Start),
-    run_pkg_test1(PkgScript, Goal, TestDir),
+    run_pkg_test1(PkgScript, Goal, Options, TestDir),
     get_time(End),
     Time is End - Start,
     format(user_error, 'Package ~w:~w~`.t~40| passed ~2f sec.~n', [Pkg,TestName,Time]).
 
-run_pkg_test1(Script, Goal, PkgDir) :-
+run_pkg_test1(Script, Goal, Options, PkgDir) :-
     working_directory(CWD, CWD),
     format(atom(POpt), 'test_tmp_dir=~w', [CWD]),
-    process_create(prolog(swipl),
-                   [ '-f', 'none',
-                     '-t', 'halt',
-                     '--no-packs',
-                     '-p', POpt,
-                     '-g', Goal,
-                     Script
-                   ],
+    append([ '-f', 'none',
+             '-t', 'halt',
+             '--no-packs',
+             '-p', POpt
+           | Options
+           ],
+           [ '-g', Goal,
+             Script
+           ], Argv),
+    process_create(prolog(swipl), Argv,
                    [ stdout(pipe(Out)),
                      stderr(pipe(Out)),
                      cwd(PkgDir),

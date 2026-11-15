@@ -93,7 +93,7 @@ test(glob, error(syntax_error(_))) :-
 :- begin_tests(glob_expand).
 
 base(Base) :-
-    tmp_file(glob, Base).
+    tmp_directory(glob, Base).
 
 test_expand(Paths, Pattern) :-
     setup_call_cleanup(

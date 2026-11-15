@@ -36,6 +36,7 @@
 
 #ifndef PL_TEXT_H_INCLUDED
 #define PL_TEXT_H_INCLUDED
+#include "pl-utf8.h"
 
 typedef enum
 { PL_CHARS_VIRGIN = 0,			/* not initialised */
@@ -76,26 +77,30 @@ typedef struct
 #if USE_LD_MACROS
 #define	PL_get_text(l, text, flags)	LDFUNC(PL_get_text, l, text, flags)
 #define textToAtom(text)		LDFUNC(textToAtom, text)
+#define textToLocalAtom(text)		LDFUNC(textToLocalAtom, text)
 #define textToString(text)		LDFUNC(textToString, text)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
 
 bool	PL_unify_text(term_t term, term_t tail, PL_chars_t *text, int type);
-int	PL_unify_text_range(term_t term, const PL_chars_t *text,
+bool	PL_unify_text_range(term_t term, const PL_chars_t *text,
 			    size_t from, size_t len, int type);
+bool	PL_unify_text_units(term_t term, const PL_chars_t *text,
+			    size_t from, size_t len, int type);
+size_t	PL_text_unit_offset(const PL_chars_t *text, size_t index);
 
-int	PL_promote_text(PL_chars_t *text);
-int	PL_mb_text(PL_chars_t *text, int flags);
+bool	PL_promote_text(PL_chars_t *text);
+bool	PL_mb_text(PL_chars_t *text, int flags);
 int	PL_canonicalise_text(PL_chars_t *text) WUNUSED;
-int	PL_canonicalise_text_ex(PL_chars_t *text) WUNUSED;
+bool	PL_canonicalise_text_ex(PL_chars_t *text) WUNUSED;
 
-int	PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
+cmp_t	PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 		    size_t len);
-int	PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result);
+bool	PL_concat_text(size_t n, PL_chars_t **text, PL_chars_t *result);
 
 void	PL_free_text(PL_chars_t *text);
-int	PL_save_text(PL_chars_t *text, int flags);
+bool	PL_save_text(PL_chars_t *text, int flags);
 size_t  utf16_text_length(const PL_chars_t *text);
 
 static inline size_t
@@ -108,13 +113,19 @@ PL_text_length(const PL_chars_t *text)
   return text->length;
 }
 
+typedef enum
+{ GT_FALSE = false,
+  GT_TRUE  = true,
+  GT_ISVAR = 2
+} get_text_t;
 
-int		PL_get_text(term_t l, PL_chars_t *text, int flags);
+get_text_t	PL_get_text(term_t l, PL_chars_t *text, int flags);
 atom_t		textToAtom(PL_chars_t *text);
+atom_t		textToLocalAtom(PL_chars_t *text);
 word		textToString(PL_chars_t *text);
 
 IOSTREAM *	Sopen_text(PL_chars_t *text, const char *mode);
-int		PL_text_recode(PL_chars_t *text, IOENC encoding);
+bool		PL_text_recode(PL_chars_t *text, IOENC encoding);
 
 /* Moved to pl-fli.c:
  int get_atom_ptr_text(Atom atom, PL_chars_t *text);
@@ -131,6 +142,53 @@ text_get_char(const PL_chars_t *t, size_t i)
 }
 
 
+/* Offsets in a text are in units: bytes for ENC_ISO_LATIN_1 and wchar_t
+ * for ENC_WCHAR.  If wchar_t is 16 bits (Windows), a code point above
+ * 0xffff takes two units, a UTF-16 surrogate pair.  text_get_char()
+ * returns the unit at an offset.  text_next_code() and text_prev_code()
+ * return the code point at or before the unit offset *ip and move *ip
+ * past it.
+ */
+
+static inline int
+text_next_code(const PL_chars_t *t, size_t *ip)
+{ size_t i = (*ip)++;
+
+  assert(t->canonical);
+  if ( t->encoding == ENC_ISO_LATIN_1 )
+    return t->text.t[i]&0xff;
+
+  int c = t->text.w[i];
+#if SIZEOF_WCHAR_T == 2
+  if ( IS_UTF16_LEAD(c) && i+1 < t->length &&
+       IS_UTF16_TRAIL(t->text.w[i+1]) )
+  { c = utf16_decode(c, t->text.w[i+1]);
+    (*ip)++;
+  }
+#endif
+  return c;
+}
+
+static inline int
+text_prev_code(const PL_chars_t *t, size_t *ip)
+{ size_t i = --(*ip);
+
+  assert(t->canonical);
+  if ( t->encoding == ENC_ISO_LATIN_1 )
+    return t->text.t[i]&0xff;
+
+  int c = t->text.w[i];
+#if SIZEOF_WCHAR_T == 2
+  if ( IS_UTF16_TRAIL(c) && i > 0 && IS_UTF16_LEAD(t->text.w[i-1]) )
+  { c = utf16_decode(t->text.w[i-1], c);
+    (*ip)--;
+  }
+#endif
+  return c;
+}
+
+/* Unit offset of the code point chr in t or (size_t)-1 */
+
 static inline size_t
 text_chr(const PL_chars_t *t, int chr)
 { assert(t->canonical);
@@ -141,7 +199,23 @@ text_chr(const PL_chars_t *t, int chr)
 	return e-t->text.t;
     }
   } else
-  { wchar_t *e = wcschr(t->text.w, chr);
+  {
+#if SIZEOF_WCHAR_T == 2
+    if ( chr > 0xffff )			/* find the surrogate pair */
+    { wchar_t pair[3];
+      int l, tr;
+
+      utf16_encode(chr, &l, &tr);
+      pair[0] = (wchar_t)l;
+      pair[1] = (wchar_t)tr;
+      pair[2] = 0;
+      wchar_t *e = wcsstr(t->text.w, pair);
+      if ( e )
+	return(e-t->text.w);
+      return (size_t)-1;
+    }
+#endif
+    wchar_t *e = wcschr(t->text.w, chr);
     if ( e )
       return(e-t->text.w);
   }

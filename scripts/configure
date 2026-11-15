@@ -21,12 +21,18 @@ cmake=cmake
 os=any
 gcc_suffix=""
 brew=false
+autoconfirm=false
 
 # Get config from build.feat1-feat2 and arguments
 
+if [ "$1" == "-y" ]; then
+  autoconfirm=true
+  shift
+fi
+
 if [ "$1" == --help ]; then
 cat <<EOF
-Usage: $0 [feature ...]
+Usage: $0 [-y] [feature ...]
 
 Features come from the build directory named build.feat1-feat2-...
 Optional commandline arguments are added at the end.
@@ -149,6 +155,16 @@ set_config()
 	  opts+=" -DMACOSX_DEPENDENCIES_FROM=Macports"
 	  gcc_suffix="-mp"
 	  ;;
+      deps)			# deps: MacOS: use ~/deps and macOS 10.15, as the bundle
+	  # The dependencies built by scripts/macos-deps.sh.  This builds
+	  # what scripts/make-distribution builds, but for this machine's
+	  # CPU and not as a bundle.
+	  opts+=" -DMACOSX_DEPENDENCIES_FROM=${MACOS_DEPS:-$HOME/deps}"
+	  opts+=" -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15"
+	  opts+=" -DJAVA_COMPATIBILITY=ON"
+	  export CC=clang
+	  export CXX=clang++
+	  ;;
       # group: Optimization
       native)			# native: Optimize for native CPU
 	  CFLAGS+=" -mtune=native -march=native"
@@ -177,6 +193,9 @@ set_config()
 	  ;;
       malloc)			# malloc: Use native malloc instead of tcmalloc
 	  opts+=" -DUSE_TCMALLOC=OFF"
+	  ;;
+      crmath)
+	  opts+=" -DUSE_CRMATH=ON"
 	  ;;
       # group: Select thread support
       single)			# single: Build single-threaded version
@@ -245,7 +264,11 @@ case "$CC" in
 esac
 
 function confirm ()
-{ while true; do
+{ if [ "$autoconfirm" == "true" ]; then
+    return 0
+  fi
+
+  while true; do
     echo -n "$1 "
     read answer
     case "$answer" in

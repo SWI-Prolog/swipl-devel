@@ -44,7 +44,7 @@ of the actual data. The guard cell indicates  the length of the blob and
 is needed for the upward  and  downward   scans  needed  by  the garbage
 collector. For example, a float is represented using:
 
-   <ptr, tagged with TAG_FLOAT|STG_GLOBAL>
+   <ptr, tagged with TAGEX_INDIRECT_FLOAT>
      |
      |-----> [guard size 1]  (* size 2 on 32-bit hardware *)
 	     [IEEE double]
@@ -70,7 +70,7 @@ volatile areas and thus we can use purely reference count based GC.
 #define LDFUNC_DECLARATIONS
 
 static void	 rehash_indirect_table(indirect_table *tab);
-static int	 bump_ref(indirect *h, unsigned int refs);
+static bool	 bump_ref(indirect *h, unsigned int refs);
 static indirect *reserve_indirect(indirect_table *tab, word val);
 static indirect *create_indirect(indirect *h, size_t index, word val);
 
@@ -166,7 +166,7 @@ destroy_indirect_table(indirect_table *tab)
 
 
 word
-intern_indirect(DECL_LD indirect_table *tab, word val, int create)
+intern_indirect(DECL_LD indirect_table *tab, word val, bool create)
 { Word	 idata     = addressIndirect(val);	/* points at header */
   size_t isize     = wsizeofInd(*idata);	/* include header */
   unsigned int key = MurmurHashAligned2(idata+1, isize*sizeof(word), MURMUR_SEED);
@@ -225,7 +225,7 @@ intern_indirect(DECL_LD indirect_table *tab, word val, int create)
 }
 
 
-static int
+static bool
 bump_ref(indirect *h, unsigned int refs)
 { for(;;)
   { if ( COMPARE_AND_SWAP_UINT(&h->references, refs, refs+1) )
@@ -308,9 +308,9 @@ reserve_indirect(DECL_LD indirect_table *tab, word val)
 
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Ideally, we use a different storage mask, so we can distinguish interned
-and normal indirects. STG_STATIC however is  an alias for STG_INLINE, so
-we cannot distinguish inlined integers from bignums and MPZ integers.
+Ideally, interned indirects get a tag of  their own. For now, the handle
+is the index with the tagex()  of   the  indirect  it was created from,
+e.g., TAGEX_INDIRECT_FLOAT.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static indirect *
@@ -318,7 +318,7 @@ create_indirect(DECL_LD indirect *h, size_t index, word val)
 { Word	 idata = addressIndirect(val);	/* points at header */
   size_t isize = wsizeofInd(*idata);	/* include header */
 
-  h->handle = (index<<LMASK_BITS)|tag(val)|STG_GLOBAL; /* (*) */
+  h->handle = consTagged(index, tagex(val)); /* (*) */
   h->header = idata[0];
   h->data   = PL_malloc(isize*sizeof(word));
   memcpy(h->data, &idata[1], isize*sizeof(word));
@@ -372,20 +372,14 @@ rehash_indirect_table(indirect_table *tab)
 
 word
 extern_indirect(DECL_LD indirect_table *tab, word val, Word *gp)
-{ size_t index = (size_t)(val>>LMASK_BITS);
+{ size_t index = (size_t)valTagged(val);
   int idx = MSB(index);
   indirect *h = &tab->array.blocks[idx][index];
   size_t wsize = wsizeofInd(h->header);
   Word p, r;
 
-  if ( !hasGlobalSpace(wsize+2) )
-  { int rc;
-
-    if ( (rc=ensureGlobalSpace(wsize+2, ALLOW_GC)) != true )
-    { raiseStackOverflow(rc);
-      return 0;
-    }
-  }
+  if ( !ensureGlobalSpace(wsize+2, ALLOW_GC) )
+    return 0;
 
   if ( gp )
     r = p = *gp;
@@ -401,13 +395,13 @@ extern_indirect(DECL_LD indirect_table *tab, word val, Word *gp)
   else
     gTop = p;
 
-  return consPtr(r, tag(val)|STG_GLOBAL);
+  return consIndirect(r, indKind(val));
 }
 
 
 word
 extern_indirect_no_shift(DECL_LD indirect_table *tab, word val)
-{ size_t index = (size_t)(val>>LMASK_BITS);
+{ size_t index = (size_t)valTagged(val);
   int idx = MSB(index);
   indirect *h = &tab->array.blocks[idx][index];
   size_t wsize = wsizeofInd(h->header);
@@ -421,7 +415,7 @@ extern_indirect_no_shift(DECL_LD indirect_table *tab, word val)
     p += wsize;
     *p++ = h->header;
 
-    return consPtr(r, tag(val)|STG_GLOBAL);
+    return consIndirect(r, indKind(val));
   } else
     return 0;
 }
@@ -429,7 +423,7 @@ extern_indirect_no_shift(DECL_LD indirect_table *tab, word val)
 
 size_t
 gsize_indirect(indirect_table *tab, word val)
-{ size_t index = (size_t)(val>>LMASK_BITS);
+{ size_t index = (size_t)valTagged(val);
   int idx = MSB(index);
   indirect *h = &tab->array.blocks[idx][index];
   size_t wsize = wsizeofInd(h->header);

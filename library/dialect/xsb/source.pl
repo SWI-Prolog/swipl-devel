@@ -209,6 +209,8 @@ ignored_table_options(Option, Option) :-
     !.
 ignored_table_options(opaque, true) :-
     !.
+ignored_table_options(if_not_tabled, true) :-
+    !.
 ignored_table_options(Option, true) :-
     print_message(warning, xsb(table_option_ignored(Option))).
 

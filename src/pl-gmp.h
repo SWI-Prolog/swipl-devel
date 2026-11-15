@@ -45,9 +45,9 @@
 #define	PL_put_number(t, n)		LDFUNC(PL_put_number, t, n)
 #define	get_number(w, n)		LDFUNC(get_number, w, n)
 #define	PL_get_number(t, n)		LDFUNC(PL_get_number, t, n)
-#define	put_int64(p, i, flags)		LDFUNC(put_int64, p, i, flags)
-#define	put_uint64(at, l, flags)	LDFUNC(put_uint64, at, l, flags)
-#define	put_number(at, n, flags)	LDFUNC(put_number, at, n, flags)
+#define	put_int64(p, i)			LDFUNC(put_int64, p, i)
+#define	put_uint64(at, l)		LDFUNC(put_uint64, at, l)
+#define	put_number(at, n)		LDFUNC(put_number, at, n)
 #define get_int64(w, ip)		LDFUNC(get_int64, w, ip)
 #ifdef O_BIGNUM
 #define	get_rational_no_int(w, n)	LDFUNC(get_rational_no_int, w, n)
@@ -60,9 +60,9 @@ bool	PL_unify_number(term_t t, Number n);
 bool	PL_put_number(term_t t, Number n);
 void	get_number(word w, Number n);
 bool	PL_get_number(term_t t, Number n);
-int	put_uint64(Word at, uint64_t l, int flags);
-int	put_int64(Word p, int64_t i, int flags);
-int	put_number(Word at, Number n, int flags);
+bool	put_uint64(Word at, uint64_t l);
+bool	put_int64(Word p, int64_t i);
+bool	put_number(Word at, Number n);
 bool	get_int64(word w, int64_t *ip);
 bool	promoteToFloatNumber(Number n);
 bool	make_same_type_numbers(Number n1, Number n2) WUNUSED;
@@ -99,6 +99,37 @@ void	get_rational_no_int(word w, number *n);
 #define O_MY_GMP_ALLOC 1
 #define O_GMP_PRECHECK_ALLOCATIONS 1	/* GMP 4.2.3 uses abort() sometimes */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+GMP's mpz_realloc() calls abort() if the  size in limbs of the number to
+create does not fit in its bit count type, i.e., if
+
+    limbs > ULONG_MAX/GMP_NUMB_BITS
+
+This check is only performed if `mp_size_t`   is  an `int`, which is the
+case on Windows.  There, `long` is 32 bits   while  `size_t` is 64 bits,
+limiting integers to 512Mb.  As we cannot   recover from abort(), we must
+verify the size of the integers we  create ourselves.  MPZ_MAX_BYTES
+leaves some slack as e.g., mpz_pow_ui()  allocates a few limbs more than
+strictly needed.
+
+maxBigIntSize() is the max size in bytes  of a bignum we are prepared to
+create.  It must both fit in GMP and on the global stack.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#if O_GMP
+#define MPZ_MAX_BYTES	((size_t)(ULONG_MAX/8) - 1024)
+#else					/* LibBF has no such limit */
+#define MPZ_MAX_BYTES	((size_t)-1)
+#endif
+
+#define maxBigIntSize()	((size_t)globalStackLimit() < MPZ_MAX_BYTES ?	\
+			 (size_t)globalStackLimit() : MPZ_MAX_BYTES)
+
+/* True if the (positive) 64 bit integer `v` fits in an `unsigned long`,
+   the type GMP uses for exponents, roots, etc.
+*/
+#define FITS_ULONG(v)	((uint64_t)(unsigned long)(v) == (uint64_t)(v))
+
 void	initGMP(void);
 void	cleanupGMP(void);
 void	get_bigint(word w, number *n);
@@ -114,6 +145,10 @@ char *	loadMPZFromCharp(const char *data, Word r, Word *store);
 char *	loadMPQFromCharp(const char *data, Word r, Word *store);
 char *	skipMPZOnCharp(const char *data);
 char *	skipMPQOnCharp(const char *data);
+const char *checkMPZOnCharp(const char *data, const char *end,
+			    size_t *gsize);
+const char *checkMPQOnCharp(const char *data, const char *end,
+			    size_t *gsize);
 bool	mpz_to_int64(mpz_t mpz, int64_t *i);
 int	mpz_to_uint64(mpz_t mpz, uint64_t *i);
 void	mpz_init_set_si64(mpz_t mpz, int64_t i);
@@ -133,25 +168,20 @@ clearNumber(Number n)
   }
 }
 
-static inline word
-mpz_size_stack(int sz)
-{ return ((word)sz<<1) & ~(word)MP_RAT_MASK;
-}
+/* The size words of MPZ and MPQ numbers on the stack hold the signed
+   number of limbs.  The cell kind tells MPZ from MPQ (see KIND_MPQ).
+*/
 
 static inline word
-mpq_size_stack(int sz)
-{ return ((word)sz<<1) | MP_RAT_MASK;
+mpz_size_stack(int sz)
+{ return (word)(sword)sz;
 }
 
 static inline int
 mpz_stack_size(word w)
-{ return (int)w>>1;
+{ return (int)(sword)w;
 }
 
-static inline int
-mpq_stack_size(word w)
-{ return (int)w>>1;
-}
 
 #ifdef O_GMP
 static inline void
@@ -165,7 +195,7 @@ mpz_add_si(mpz_t r, const mpz_t n1, long add)
 
 static inline void
 get_integer(word w, Number n)
-{ if ( storage(w) == STG_INLINE )
+{ if ( isInlineInt(w) )
   { n->type = V_INTEGER,
     n->value.i = valInt(w);
   } else
@@ -177,7 +207,7 @@ get_integer(word w, Number n)
 #define get_rational(w, n) LDFUNC(get_rational, w, n)
 static inline void
 get_rational(DECL_LD word w, Number n)
-{ if ( storage(w) == STG_INLINE )
+{ if ( isInlineInt(w) )
   { n->value.i = valInt(w);
     n->type = V_INTEGER;
   } else
@@ -208,7 +238,13 @@ get_rational(DECL_LD word w, Number n)
 		 *******************************/
 
 #define FE_NOTSET (-1)
-#define GMP_STACK_ALLOC 1024	/* in size_t units */
+/* Size of the C-stack buffer for GMP temporaries.  This buffer is part
+   of the frame of PL_next_solution() and several arithmetic functions.
+   Larger numbers are allocated using malloc().  256 units (2Kb) has no
+   measurable impact on bignum performance compared to 1024 units while
+   allowing threads with a smaller C stack.
+*/
+#define GMP_STACK_ALLOC 256	/* in size_t units */
 
 #if O_MY_GMP_ALLOC
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

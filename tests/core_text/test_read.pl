@@ -1,0 +1,429 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2011-2024, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
+:- module(test_read, [test_read/0]).
+:- use_module(library(plunit)).
+:- use_module(library(apply)).
+:- use_module(library(debug)).
+:- use_module(library(prolog_source), [valid_term_position/2]).
+
+/** <module> Read tests
+
+Test term reading, notably option processing
+
+@author	Jan Wielemaker
+*/
+
+test_read :-
+    run_tests([ read_term,
+                read_op,
+		read_numbers,
+		read_deep
+	      ]).
+
+:- begin_tests(read_term).
+
+test(singletons, Names == ['_a','_A','_0','A']) :-
+    term_string(_, "a(_,_a,_A,_0,A)",
+                [ singletons(Singletons)
+                ]),
+    maplist(arg(1), Singletons, Names).
+test(warn_singletons, Messages =@= [singletons(a(_,_,_,_,_), ['_a','A'])]) :-
+    catch_messages(_,
+                   term_string(_, "a(_,_a,_A,_0,A)",
+                               [ singletons(warning)
+                               ]),
+                   Messages).
+test(position,
+     [Query,TermPos,Comments] ==
+     [true,7-11,['$stream_position'(0,0,0,0)-"%hello"]]) :-
+	QueryString = "%hello\ntrue",
+	term_string(Query, QueryString,
+                [ subterm_positions(TermPos),
+                  comments(Comments)
+                ]).
+
+test(valid_position_var) :-
+    term_position_check("Var", _Var, 0-3).
+
+test(valid_position_atom) :-
+    term_position_check("'Atom'", 'Atom', 0-6).
+
+test(valid_position_number1) :-
+    term_position_check(" 123 ", 123, 1-4).
+test(valid_position_number2) :-
+    term_position_check(" -123.45     ", -123.45, 1-8).
+
+test(valid_position_string_string,
+     [setup((current_prolog_flag(double_quotes, QuotesFlag),
+             set_prolog_flag(double_quotes, string))),
+      cleanup(set_prolog_flag(double_quotes, QuotesFlag))]) :-
+    term_position_check('"abc"', "abc", string_position(0,5)).
+test(valid_position_string_codes,
+     [setup((current_prolog_flag(double_quotes, QuotesFlag),
+             set_prolog_flag(double_quotes, codes))),
+      cleanup(set_prolog_flag(double_quotes, QuotesFlag))]) :-
+    term_position_check('"abc"', [97,98,99], string_position(0,5)).
+test(valid_position_string_chars,
+     [setup((current_prolog_flag(double_quotes, QuotesFlag),
+             set_prolog_flag(double_quotes, chars))),
+      cleanup(set_prolog_flag(double_quotes, QuotesFlag))]) :-
+    term_position_check('"abc"', [a,b,c], string_position(0,5)).
+test(valid_position_string_atom,
+     [setup((current_prolog_flag(double_quotes, QuotesFlag),
+             set_prolog_flag(double_quotes, atom))),
+      cleanup(set_prolog_flag(double_quotes, QuotesFlag))]) :-
+    term_position_check('"abc"', 'abc', string_position(0,5)).
+
+test(valid_position_nil) :-
+    term_position_check(" [   ] ", [], 1-6).
+
+test(valid_position_braces) :-
+    term_position_check(
+	" { foo, bar } ", {foo,bar},
+	brace_term_position(1,13,term_position(3,11,6,7,[3-6,8-11]))).
+
+test(valid_position_braces1) :-
+    term_position_check(
+	" [ foo, [bar] ] ", [foo,[bar]],
+	list_position(1,15,[3-6,list_position(8,13,[9-12],none)],none)).
+test(valid_position_braces2) :-
+    term_position_check(" [ foo,123 | bar] ", [foo,123|bar],
+                        list_position(1,17,[3-6,7-10],13-16)).
+test(valid_position_braces3) :-
+    term_position_check("[X|Xs]", [_X|_Xs],
+                        list_position(0,6,[1-2],3-5)).
+
+test(valid_position_term1) :-
+    term_position_check("a()", a(), term_position(0, 3, 0, 1, [])).
+test(valid_position_term2) :-
+    term_position_check("a(X,y)", a(_X,y), term_position(0, 6, 0, 1, [2-3, 4-5])).
+test(valid_position_term2) :-
+    term_position_check("call(X):[adder]", call(_X):[adder],
+                        term_position(0, 15, 7, 8,
+                                      [term_position(0, 7, 0, 4, [5-6]),
+                                       list_position(8, 15, [9-14], none)])).
+test(valid_position_dict1) :-
+    term_position_check("_{}", _{},
+                        dict_position(0,3,0,1,[])).
+test(valid_position_dict2) :-
+    term_position_check(
+	"_{a:[1],b:{}}", _{a:[1],b:{}},
+	dict_position(0,13,0,1,
+		      [ key_value_position(2,7,3,4,a,2-3,
+					   list_position(4,7,[5-6],none)),
+			key_value_position(8,12,9,10,b,8-9,10-12)
+		      ])).
+% key-value order of term is defined (ordered)
+test(valid_position_dict3) :-
+    term_position_check(
+	"tag{bb:1,aa:2}", tag{aa:2,bb:1},
+	dict_position(0,14,0,3,
+		      [ key_value_position(4,8,6,7,bb,4-6,7-8),
+			key_value_position(9,13,11,12,aa,9-11,12-13)
+		      ])).
+% Issue #1541: non-ASCII characters in syntax error arguments
+test(eof_in_quoted, E == end_of_file_in_quoted(Q)) :-
+    char_code(Q, 0xAB),
+    atom_codes(A, [0xAB, 0'x]),
+    catch(term_to_atom(_, A), error(syntax_error(E), _), true).
+test(undefined_char_escape, E == undefined_char_escape(C)) :-
+    char_code(C, 0x3A9),
+    atom_codes(A, [0'\', 0'\\, 0x3A9, 0'\']),
+    catch(term_to_atom(_, A), error(syntax_error(E), _), true).
+test(undefined_char_escape, E == undefined_char_escape(C)) :-
+    char_code(C, 0x1F600),
+    atom_codes(A, [0'\', 0'\\, 0x1F600, 0'\']),
+    catch(term_to_atom(_, A), error(syntax_error(E), _), true).
+% context of an error before anything was read showed a stale byte
+test(eof_in_comment, Ctx == string("", 0)) :-
+    catch(term_to_atom(_, abcdef), _, true),
+    catch(term_to_atom(_, '/* x'), error(_, Ctx), true).
+% context of unterminated quoted text or comment held only one byte
+test(eof_in_quoted_ctx, Ctx == string("foo('x", 4)) :-
+    catch(term_to_atom(_, 'foo(\'x'), error(_, Ctx), true).
+test(eof_in_quoted_ctx, Ctx == string(S, 0)) :-
+    atom_codes(A, [0xAB, 0'x, 0' , 0'\', 0'y]),
+    atom_string(A, S),
+    catch(term_to_atom(_, A), error(_, Ctx), true).
+test(eof_in_comment_ctx, Offset == 2) :-
+    catch(term_to_atom(_, 'a /* x'), error(_, string(_, Offset)), true).
+test(eof_in_quoted_pos, Pos == 2:2:5) :-
+    setup_call_cleanup(
+	open_string("a,\n  'x", In),
+	catch(read(In, _), error(_, stream(_, L, LP, C)), true),
+	close(In)),
+    Pos = L:LP:C.
+test(eof_in_comment_pos, Pos == 2:2:5) :-
+    setup_call_cleanup(
+	open_string("a,\n  /* x", In),
+	catch(read(In, _), error(_, stream(_, L, LP, C)), true),
+	close(In)),
+    Pos = L:LP:C.
+% cycles(Bool) was written as int, overwriting dotlists
+test(dotlists, T == [a|b]) :-
+    term_string(T, "'.'(a,b)", [dotlists(true)]).
+test(dotlists_cycles, T == [a|b]) :-
+    term_string(T, "'.'(a,b)", [dotlists(true), cycles(true)]).
+test(dotlists_cycles, T == [a|b]) :-
+    term_string(T, "'.'(a,b)", [dotlists(true), cycles(false)]).
+test(dotlists_cycles, T == [a|b]) :-
+    term_string(T, "'.'(a,b)", [cycles(true), dotlists(true)]).
+
+:- end_tests(read_term).
+
+:- begin_tests(read_op).
+
+:- op(600, fy, !).
+:- op(600, fy, []).
+
+test(modify, Term = !([])) :-
+    context_module(M),
+    term_string(Term, '![]', [module(M)]).
+test(minus_block, Term = -([x])) :-
+    context_module(M),
+    term_string(Term, '-[x]', [module(M)]).
+test(modify_block, Term = !([x])) :-
+    context_module(M),
+    term_string(Term, '![x]', [module(M)]).
+test(pos_block) :-
+    context_module(M),
+    term_position_check(
+	"![x]", !([x]),
+	term_position(0,4,0,1,[list_position(1,4,[2-3],none)]),
+        [module(M)]).
+
+:- end_tests(read_op).
+
+:- begin_tests(read_numbers).
+
+% 0' at the end of the text used to read beyond the end
+test(quote_eos, fail) :-
+    atom_number('0\'', _).
+test(quote_eos, error(syntax_error(illegal_number))) :-
+    number_codes(_, `0'`).
+
+test(float_overflow, error(syntax_error(float_overflow))) :-
+    term_string(_, '1.797693134862316e+308', []).
+test(float_overflow, F =:= inf) :-
+    current_prolog_flag(float_overflow, Old),
+    setup_call_cleanup(
+        set_prolog_flag(float_overflow, infinity),
+        term_string(F, '1.797693134862316e+308', []),
+        set_prolog_flag(float_overflow, Old)).
+
+:- if(current_prolog_flag(bounded, false)).
+% Big integers used to be read in quadratic time
+test(bigint, Y == X) :-
+    X is -(7^200000),
+    format(string(S), '~d', [X]),
+    term_string(Y, S).
+test(bigint, Y == X) :-
+    X is 7^20000,
+    format(string(S), '~I', [X]),
+    term_string(Y, S).
+test(bigint, Y == X) :-
+    X is 7^20000,
+    format(string(S), '36\'~36r', [X]),
+    term_string(Y, S).
+test(bigint, Y == X) :-
+    X is 7^20000,
+    format(string(S), '0x~16r', [X]),
+    term_string(Y, S).
+:- endif.
+
+:- end_tests(read_numbers).
+
+:- begin_tests(read_deep).
+
+% Reading may not use C stack proportional to the nesting of the term.
+% The depth below is well above the number of levels that used to fit in
+% the C stack: about 8,000 natively and 1,000 on WASM.
+
+deep(20 000).
+
+%!	nested(+Open, +Close, +Depth, -String) is det.
+%
+%	String is Open^Depth, "x" and Close^Depth, e.g. "f(f(f(x)))".
+
+nested(Open, Close, Depth, String) :-
+    length(Opens, Depth),
+    maplist(=(Open), Opens),
+    length(Closes, Depth),
+    maplist(=(Close), Closes),
+    append([Opens, [x], Closes], Parts),
+    atomics_to_string(Parts, String).
+
+%!	depth(+Term, -Depth) is det.
+%
+%	Depth is the number of times we can  take the first argument (or
+%	the value of the key `a` for a dict) of Term.
+
+depth(Term, Depth) :-
+    depth(Term, 0, Depth).
+
+depth(Dict, D0, D) :-
+    is_dict(Dict),
+    get_dict(a, Dict, Value),
+    !,
+    D1 is D0+1,
+    depth(Value, D1, D).
+depth(Term, D0, D) :-
+    compound(Term),
+    !,
+    arg(1, Term, A),
+    D1 is D0+1,
+    depth(A, D1, D).
+depth(_, D, D).
+
+test(compound, D == Depth) :-
+    deep(Depth),
+    nested("f(", ")", Depth, S),
+    term_string(T, S),
+    depth(T, D).
+test(list, D == Depth) :-
+    deep(Depth),
+    nested("[", "]", Depth, S),
+    term_string(T, S),
+    depth(T, D).
+test(list_tail, D == Depth) :-
+    deep(Depth),
+    nested("[a|", "]", Depth, S),
+    term_string(T, S),
+    last_arg_depth(T, 0, D).
+test(braces, D == Depth) :-
+    deep(Depth),
+    nested("{", "}", Depth, S),
+    term_string(T, S),
+    depth(T, D).
+test(parentheses, T == x) :-
+    deep(Depth),
+    nested("(", ")", Depth, S),
+    term_string(T, S).
+test(operators, D == Depth) :-			% left recursion: (((x+b)+b)+b)
+    deep(Depth),
+    length(Ops, Depth),
+    maplist(=("+b"), Ops),
+    atomics_to_string(["x"|Ops], S),
+    term_string(T, S),
+    depth(T, D).
+test(prefix_operators, D == Depth) :-		% right recursion: - - - x
+    deep(Depth),
+    length(Ops, Depth),
+    maplist(=("- "), Ops),
+    append(Ops, ["x"], Parts),
+    atomics_to_string(Parts, S),
+    term_string(T, S),
+    depth(T, D).
+test(dict, D == Depth) :-
+    deep(Depth),
+    nested("_{a:", "}", Depth, S),
+    term_string(T, S),
+    depth(T, D).
+test(mixed, D == Depth) :-
+    deep(Depth0),
+    Depth is Depth0*4,
+    nested("f([{-", "}])", Depth0, S),
+    term_string(T, S),
+    depth(T, D).
+test(last_argument, D == Depth) :-		% not the first argument
+    deep(Depth),
+    nested("f(a,", ")", Depth, S),
+    term_string(T, S),
+    last_arg_depth(T, 0, D).
+test(syntax_error, error(syntax_error(_))) :-	% unwind a deep frame stack
+    deep(Depth),
+    length(Opens, Depth),
+    maplist(=("f("), Opens),
+    atomics_to_string(Opens, S),
+    term_string(_, S).
+test(positions) :-
+    nested("f(", ")", 100, S),
+    term_string(T, S, [subterm_positions(P)]),
+    assertion(valid_term_position(T, P)).
+
+last_arg_depth(Term, D0, D) :-
+    compound(Term),
+    !,
+    compound_name_arity(Term, _, Arity),
+    arg(Arity, Term, A),
+    D1 is D0+1,
+    last_arg_depth(A, D1, D).
+last_arg_depth(_, D, D).
+
+:- end_tests(read_deep).
+
+term_position_check(TermString, ExpectedTerm, ExpectedTermPos) :-
+    term_position_check(TermString, ExpectedTerm, ExpectedTermPos, []).
+
+term_position_check(TermString, ExpectedTerm, ExpectedTermPos, Options) :-
+    term_string(Term, TermString,
+                [ subterm_positions(TermPos)
+                | Options
+                ]),
+    assertion(ground(TermPos)),
+    assertion(ground(ExpectedTermPos)),
+    assertion(Term =@= ExpectedTerm),
+    assertion(TermPos == ExpectedTermPos),
+    assertion(valid_term_position(Term, TermPos)).
+
+%%	catch_messages(+Kind, :Goal, -Messages) is semidet.
+
+:- thread_local
+	message/1.
+:- meta_predicate
+	catch_messages(?, 0, -).
+
+catch_messages(Kind, Goal, Messages) :-
+	setup_call_cleanup(
+	    asserta((user:thread_message_hook(Term, Kind, _) :-
+		        \+ \+ (prolog_load_context(variable_names, VarNames),
+			       bind_variable_names(VarNames),
+			       assertz(message(Term)))), Ref),
+	    once(Goal),
+	    erase(Ref)),
+	findall(Msg, retract(message(Msg)), Messages).
+
+bind_variable_names([]).
+bind_variable_names([Name='$VAR'(Int)|T]) :- !,
+	var_name(Int, Name),
+	bind_variable_names(T).
+bind_variable_names([_|T]) :-
+	bind_variable_names(T).
+
+var_name(N, Name) :-
+	atom_codes(Name, [C]),
+	between(0'A, 0'Z, C),
+	N is C - 0'A.

@@ -123,6 +123,16 @@ function(install_in_home name)
 	     "${SWIPL_BUILD_HOME}" buildhome ${my_DESTINATION})
     endif()
 
+    # Destination is not below the Prolog home (e.g. headers in
+    # swipl.framework/Versions/A/Headers).  No build-home shadow is
+    # needed; the install() call from install_prolog_src() handles
+    # the installation.  Still declare an empty ${name} target so
+    # downstream `DEPENDS ${name}` (e.g. pkg_doc) resolves.
+    if(buildhome STREQUAL my_DESTINATION)
+      add_custom_target(${name})
+      return()
+    endif()
+
     set(deps)
 
     foreach(file ${my_FILES})
@@ -180,6 +190,7 @@ set(noqlf_pattern
     "home/boot/.*[.]pl"
     "home/doc/.*"
     "home/demo/.*"
+    "home/customize/.*"
     "home/xpce/prolog/boot/.*[.]pl"
     "home/xpce/prolog/lib/compatibility/.*[.]pl"
     "home/library/ext/ltx2htm/sty_.*[.]pl")
@@ -191,6 +202,9 @@ set(noqlf_file
     home/library/threadutil.pl
     home/library/theme/dark.pl
     home/library/ext/pldoc/pldoc/hooks.pl
+    home/library/ext/pldoc/pldoc/git_extract_changes.pl
+    home/library/ext/pldoc/pldoc/doc_changes.pl
+    home/library/ext/pldoc/pldoc/changelog_events.pl
     home/xpce/prolog/lib/swi_compatibility.pl
     home/xpce/prolog/lib/english/pce_messages.pl
     home/xpce/prolog/lib/trace/gui.pl
@@ -217,7 +231,8 @@ set(noqlf_file
     home/library/ext/http/http/dcg_basics.pl
     home/library/ext/json/http/json.pl
     home/library/ext/json/http/json_convert.pl
-    home/library/ext/json/http/js_grammar.pl)
+    home/library/ext/json/http/js_grammar.pl
+    home/library/ext/semweb/semweb/rdf_sandbox.pl)
 
 set(include_src_pattern
     "library/tabling[.]pl$"
@@ -225,10 +240,14 @@ set(include_src_pattern
     "theme/[^/]*[.]pl$"
     "ltx2htm/sty_[^/]*[.]pl$"
     "hooks[.]pl$"			# Should only match pldoc/hooks.pl
+    "git_extract_changes[.]pl$"
+    "doc_changes[.]pl$"
+    "changelog_events[.]pl$"
     "xref/quintus[.]pl$"
     "xref/sicstus[.]pl$"
     "http/dcg_basics[.]pl$"
     "trace/pprint[.]pl$"
+    "semweb/rdf_sandbox[.]pl$"	# Depends on what is loaded
     "lib/swi_compatibility[.]pl")
 
 set(WASM_prolog_src

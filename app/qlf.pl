@@ -236,9 +236,9 @@ write_source(Dep, Options) :-
     option(indent(Indent), Options, 0),
     format('~t~*|~w ~w~n', [Indent, Indicator, File]).
 
-dep(source(File),     s, File).
-dep(include(File),    i, File).
-dep(dependency(File), d, File).
+dep(source(File, _Hash),     s, File).
+dep(include(File, _Hash),    i, File).
+dep(dependency(File, _Hash), d, File).
 
 cli_qlf_info_exports(File, Options) :-
     '$qlf_module'(File, Info),
@@ -358,19 +358,32 @@ up_to_date(File, CurrentVersion, _MinLoadVersion, FileVersion,
     maplist(arg(1), Sources, Files),
     (   forall(member(S, Files), \+ exists_file(S))
     ->  Status = no_source
-    ;   include(outofdate(TQLF), Files, Modified)
-    ->  (   Modified == []
+    ;   include(outofdate(TQLF), Sources, Changed)
+    ->  (   Changed == []
         ->  Status = up_to_date
-        ;   Status = out_of_date(Modified)
+        ;   maplist(arg(1), Changed, Modified),
+            Status = out_of_date(Modified)
         )
     ).
 up_to_date(_File, _CurrentVersion, _MinLoadVersion, _FileVersion,
            _CurrentSignature, _FileSignature, incompatible).
 
+%!  outofdate(+QlfTime, +Source) is semidet.
+%
+%   True when the file of Source changed since it was compiled into the
+%   .qlf file.  Its time only says that it may have; the hash the .qlf
+%   file records for it settles it, as it does for the system that
+%   decides whether to recompile.  See '$qlf_out_of_date'/3.
 
 outofdate(TQLF, Source) :-
-    catch(time_file(Source, TS), error(_,_), fail),
-    TS > TQLF.
+    arg(1, Source, File),
+    arg(2, Source, Hash),
+    catch(time_file(File, TS), error(_,_), fail),
+    TS > TQLF,
+    (   Hash =\= 0
+    ->  \+ '$file_hash'(File, Hash)
+    ;   true
+    ).
 
 %!  cli_qlf_list(+Files, +Options) is det.
 %

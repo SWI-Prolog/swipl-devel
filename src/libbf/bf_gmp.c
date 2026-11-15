@@ -764,7 +764,6 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
 	   size_t SIZE, int ENDIAN, size_t NAILS, const void *OP)
 { if ( SIZE == 1 )
   { bf_t bf;
-    ssize_t bytes = COUNT;
     limb_t *lt;
     limb_t l = 0;
     const unsigned char *data = OP;
@@ -775,6 +774,7 @@ mpz_import(mpz_t ROP, size_t COUNT, int ORDER,
       data++;
     }
 
+    ssize_t bytes = COUNT;
     bf_import_dimension(&bf, data, COUNT);
 
     assert(NAILS==0 && ORDER==1);

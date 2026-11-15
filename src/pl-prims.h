@@ -48,6 +48,9 @@
 #define	unify_ptrs(t1, t2, flags)	LDFUNC(unify_ptrs, t1, t2, flags)
 #define	unify_vp(vp, val)		LDFUNC(unify_vp, vp, val)
 #define	compareStandard(t1, t2, eq)	LDFUNC(compareStandard, t1, t2, eq)
+#define	compareStandardOrder(t1, t2, c1, c2) \
+	LDFUNC(compareStandardOrder, t1, t2, c1, c2)
+#define	raiseIncomparable(c1, c2)	LDFUNC(raiseIncomparable, c1, c2)
 #define	skip_list(l, tailp)		LDFUNC(skip_list, l, tailp)
 #define lengthList(l, e)		LDFUNC(lengthList, l, e)
 #define	is_acyclic(p)			LDFUNC(is_acyclic, p)
@@ -61,11 +64,13 @@
 
 #define LDFUNC_DECLARATIONS
 
-boolex_t	do_unify(Word t1, Word t2);
+HOT boolex_t	do_unify(Word t1, Word t2);
 boolex_t	unify_ptrs(Word t1, Word t2, int flags);
 void		unify_vp(Word vp, Word val);
 bool		can_unify(Word t1, Word t2, term_t ex);
 cmpex_t		compareStandard(Word t1, Word t2, bool eq);
+cmpex_t		compareStandardOrder(Word t1, Word t2, Word *c1, Word *c2);
+cmpex_t		raiseIncomparable(Word c1, Word c2);
 cmp_t		compareAtoms(atom_t a1, atom_t a2);
 intptr_t	skip_list(Word l, Word *tailp);
 intptr_t	lengthList(term_t list, bool errors);
@@ -86,7 +91,7 @@ Word		ground(Word p);
 bool		PL_factorize_term(term_t term,
 				  term_t template, term_t factors);
 bool		PL_var_occurs_in(term_t var, term_t value);
-void		raiseInferenceLimitException(void);
+COLD void		raiseInferenceLimitException(void);
 bool		PL_same_term(term_t t1, term_t t2);
 bool		setarg(size_t argn, term_t term, term_t value,
 		       unsigned int flags);

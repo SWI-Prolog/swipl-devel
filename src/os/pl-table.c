@@ -81,9 +81,17 @@ Transitioning between states is performed using CAS.
 
 #ifdef O_PLMT
 
+/* Announce that we access `k`, so htable_maybe_free_kvs() does not free
+   it.  If t->kvs changed while we announced, the map we announced may
+   already be freed, so we try again.
+*/
+
 #define acquire_kvs(t, k) \
-  { LD->thread.info->access.kvs = t->kvs; \
-    k = LD->thread.info->access.kvs; \
+  { do \
+    { k = t->kvs; \
+      LD->thread.info->access.kvs = k; \
+      MEMORY_BARRIER(); \
+    } while ( k != t->kvs ); \
   }
 
 #define release_kvs() \
@@ -195,6 +203,7 @@ htable_maybe_free_kvs(Table ht)
   { return;
   }
 
+  MEMORY_BARRIER();			/* see acquire_kvs() */
   kvs = ht->kvs;
 
   while( kvs->prev )
@@ -256,6 +265,22 @@ htable_copy_kvs(Table ht, KVS old_kvs, KVS new_kvs)
 }
 
 
+/* Make ht->kvs the first map that is not completely copied to its
+ * successor.  Operations start at ht->kvs and only look forward, so it
+ * may not advance past a map from which entries are still being copied.
+ * Resizes may be nested or concurrent: a thread that is directed to the
+ * new map while it is being filled may resize the new map.
+ */
+
+static void
+htable_advance_kvs(Table ht)
+{ KVS kvs;
+
+  while ( (kvs=ht->kvs)->copied )
+    COMPARE_AND_SWAP_PTR(&ht->kvs, kvs, kvs->next);
+}
+
+
 static KVS
 htable_resize(Table ht, KVS kvs)
 {
@@ -286,8 +311,9 @@ htable_resize(Table ht, KVS kvs)
     new_kvs->resizing = true;
     htable_copy_kvs(ht, kvs, new_kvs);
     new_kvs->resizing = false;
-
-    ht->kvs = new_kvs;
+    kvs->copied = true;
+    MEMORY_BARRIER();
+    htable_advance_kvs(ht);
 
     htable_maybe_free_kvs(ht);
   } else

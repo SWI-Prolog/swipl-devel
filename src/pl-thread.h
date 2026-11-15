@@ -106,13 +106,13 @@ typedef enum
 typedef struct _PL_thread_info_t
 { int		    pl_tid;		/* Prolog thread id */
   unsigned short    open_count;		/* for PL_thread_detach_engine() */
-  unsigned	    detached      : 1;	/* detached thread */
-  unsigned	    debug         : 1;	/* thread can be debugged */
-  unsigned	    in_exit_hooks : 1;	/* true: running exit hooks */
-  unsigned	    has_tid       : 1;	/* true: tid = valid */
-  unsigned	    is_engine	  : 1;	/* true: created as engine */
-  unsigned	    c_stack_low   : 1;	/* true: Signalled low C stack */
-  unsigned	    joined_by_creator : 1;
+  bool		    detached;		/* detached thread */
+  bool		    debug;		/* thread can be debugged */
+  bool		    in_exit_hooks;	/* true: running exit hooks */
+  bool		    has_tid;		/* true: tid = valid */
+  bool		    is_engine;		/* true: created as engine */
+  bool		    c_stack_low;	/* true: Signalled low C stack */
+  bool		    joined_by_creator;
   int		    joining_by;		/* TID of joining thread */
   c_stack_info	   *c_stack;
   size_t	    stack_limit;	/* Stack sizes */
@@ -127,11 +127,16 @@ typedef struct _PL_thread_info_t
 #ifdef __WINDOWS__
   DWORD		    w32id;		/* Win32 thread HANDLE */
 #endif
+#ifdef __APPLE__
+  uint64_t	    mac_tid;		/* pthread_threadid_np() */
+#endif
 #endif
   struct PL_local_data  *thread_data;	/* The thread-local data  */
   module_t	    module;		/* Module for starting goal */
   record_t	    goal;		/* Goal to start thread */
   record_t	    return_value;	/* Value (term) returned */
+  int		    inheriting;		/* # thread_create/3 copying our data */
+  struct thread_handle *discarded;	/* GC'ed handle; see handle_mutex */
   atom_t	    symbol;		/* thread_handle symbol */
   atom_t	    class;		/* Class of thread */
   struct _PL_thread_info_t *next_free;	/* Next in free list */
@@ -187,6 +192,7 @@ typedef struct message_queue
   int		       waiting;		/* # waiting threads */
   int		       waiting_var;	/* # waiting with unbound */
   int		       wait_for_drain;	/* # threads waiting for write */
+  int		       pins;		/* # pin_message_queue() */
   unsigned	anonymous : 1;		/* <message_queue>(0x...) */
   unsigned	initialized : 1;	/* Queue is initialised */
   unsigned	destroyed : 1;		/* Thread is being destroyed */
@@ -228,6 +234,7 @@ typedef struct pl_mutex
   int count;				/* lock count */
   int owner;				/* integer id of owner */
   atom_t id;				/* id of the mutex */
+  int users;				/* # get_mutex() without put_mutex() */
   unsigned anonymous    : 1;		/* <mutex>(0x...) */
   unsigned initialized  : 1;		/* Mutex is initialized */
   unsigned destroyed    : 1;		/* Mutex is destroyed */
@@ -298,6 +305,16 @@ countingMutexLock(counting_mutex *cm)
   cm->lock_count++;
 }
 
+static inline bool
+countingMutexTryLock(counting_mutex *cm)
+{ if ( !simpleMutexTryLock(&cm->mutex) )
+    return false;
+
+  cm->count++;
+  cm->lock_count++;
+  return true;
+}
+
 static inline void
 countingMutexUnlock(counting_mutex *cm)
 { assert(cm->lock_count > 0);
@@ -322,6 +339,10 @@ countingMutexUnlock(counting_mutex *cm)
 #define PL_LOCK(id)   IF_MT(id, countingMutexLock(&_PL_mutexes[id]))
 #define PL_UNLOCK(id) IF_MT(id, countingMutexUnlock(&_PL_mutexes[id]))
 #endif
+/* True if we got the lock.  PL_UNLOCK() releases it */
+#define PL_TRYLOCK(id) \
+	( (id) == L_THREAD || GD->thread.enabled \
+		? countingMutexTryLock(&_PL_mutexes[id]) : true )
 
 #define LOCKDEF(def)   PL_LOCK(L_PREDICATE)
 #define UNLOCKDEF(def) PL_UNLOCK(L_PREDICATE)
@@ -457,6 +478,7 @@ typedef struct thread_wait_for		/* thread data for wait/update */
   int		signalled;		/* are we signalled? */
   thread_dcell *registered;		/* cell in thread_wait_area */
   struct module_cell *updating;		/* thread_update/2 modules */
+  struct module *locked;		/* we hold locked->wait->mutex */
 } thread_wait_for;
 
 typedef struct thread_wait_area		/* module data for wait/update */
@@ -571,7 +593,7 @@ void	forThreadLocalDataUnsuspended(
 		    void *ctx);
 void	resumeThreads(void);
 void	markAtomsMessageQueues(void);
-void	markAtomsThreadMessageQueue(PL_local_data_t *ld);
+void	markAtomsThreadMessageQueue(PL_local_data_t *ld, atom_mark_func mark);
 
 #ifndef O_PLMT
 #define GLOBAL_LD (PL_current_engine_ptr)
@@ -591,6 +613,7 @@ void	markAtomsThreadMessageQueue(PL_local_data_t *ld);
 #ifndef O_PLMT
 #define PL_LOCK(id)		(void)0
 #define PL_UNLOCK(id)		(void)0
+#define PL_TRYLOCK(id)		true
 
 #define LOCKDEF(def)		(void)0
 #define UNLOCKDEF(def)		(void)0
@@ -648,10 +671,12 @@ void		markAccessedPredicates(PL_local_data_t *ld);
 bool		cgc_thread_stats(cgc_stats *stats);
 bool		signalGCThread(int sig);
 bool		isSignalledGCThread(int sig);
+bool		gcByGCThread(void);
 double		ThreadCPUTime(int which);
 void		updatePendingThreadSignals(void);
 bool		require_c_stack(size_t needed);
 void		clear_low_c_stack(void);
+void		sync_local_definitions(void);
 
 #undef LDFUNC_DECLARATIONS
 

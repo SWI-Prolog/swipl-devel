@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2025, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1985-2026, University of Amsterdam
 			      VU University Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
@@ -105,7 +105,6 @@ in this array.
 
 static double const_nan;
 static double const_inf;
-static double const_neg_inf;
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 On some machines, notably  FreeBSD  upto   version  3.x,  floating point
@@ -168,7 +167,7 @@ clearInteger(Number n)
 typedef struct between_state
 { number low;
   number high;
-  int hinf;
+  bool hinf;
 } between_state;
 
 
@@ -179,12 +178,12 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
   term_t low = A1;
   term_t high = A2;
   term_t n = A3;
-  int rc = true;
+  bool rc = true;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
       { number l, h, i;
-	int hinf = false;
+	bool hinf = false;
 
 	if ( !PL_get_number(low, &l) || !intNumber(&l) )
 	  return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, low);
@@ -199,9 +198,7 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 
 					/* between(+,+,+) */
 	if ( PL_get_number(n, &i) && intNumber(&i) )
-	{ int rc;
-
-	  if ( hinf )
+	{ if ( hinf )
 	  { rc = cmpNumbers(&i, &l) >= 0;
 	  } else
 	  { rc = cmpNumbers(&i, &l) >= 0 && cmpNumbers(&i, &h) <= 0;
@@ -224,12 +221,12 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	  fail;
 	}
 
-	if ( !PL_unify(n, low) )
-	  fail;
+					/* l and h may point into the global */
+					/* stack.  Copy before PL_unify() */
 	if ( hinf == false && cmpNumbers(&l, &h) == 0 )
 	{ clearInteger(&l);
 	  clearInteger(&h);
-	  succeed;
+	  return PL_unify(n, low);
 	}
 
 	state = allocForeignState(sizeof(*state));
@@ -238,6 +235,12 @@ PRED_IMPL("between", 3, between, PL_FA_NONDETERMINISTIC)
 	state->hinf = hinf;
 	clearInteger(&l);
 	clearInteger(&h);
+	if ( !PL_unify(n, low) )
+	{ clearInteger(&state->low);
+	  clearInteger(&state->high);
+	  freeForeignState(state, sizeof(*state));
+	  fail;
+	}
 	ForeignRedoPtr(state);
 	/*NOTREACHED*/
       }
@@ -278,7 +281,7 @@ PRED_IMPL("succ", 2, succ, 0)
 { PRED_LD
   Word p1, p2;
   number i1, i2, one;
-  int rc;
+  bool rc;
 
   p1 = valTermRef(A1); deRef(p1);
 
@@ -341,7 +344,7 @@ PRED_IMPL("succ", 2, succ, 0)
 
 
 #define var_or_integer(t, n, which, mask) LDFUNC(var_or_integer, t, n, which, mask)
-static int
+static bool
 var_or_integer(DECL_LD term_t t, number *n, int which, int *mask)
 { Word p = valTermRef(t);
 
@@ -349,10 +352,10 @@ var_or_integer(DECL_LD term_t t, number *n, int which, int *mask)
   if ( isInteger(*p) )
   { get_integer(*p, n);
     *mask |= which;
-    succeed;
+    return true;
   }
   if ( canBind(*p) )
-    succeed;
+    return true;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
@@ -363,12 +366,12 @@ PRED_IMPL("plus", 3, plus, 0)
 { GET_LD
   number m, n, o;
   int mask = 0;
-  int rc;
+  bool rc;
 
   if ( !var_or_integer(A1, &m, 0x1, &mask) ||
        !var_or_integer(A2, &n, 0x2, &mask) ||
        !var_or_integer(A3, &o, 0x4, &mask) )
-    fail;
+    return false;
 
   switch(mask)
   { case 0x7:				/* +, +, + */
@@ -403,7 +406,7 @@ static
 PRED_IMPL("bounded_number", 3, bounded_number, 0)
 { PRED_LD
   number n, lo, hi;
-  int rc;
+  bool rc;
 
   if ( PL_get_number(A3, &n) )
   { switch(n.type)
@@ -437,11 +440,29 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
       }
     }
 
-    rc = ( ((PL_get_number(A1, &lo)) ? (cmpNumbers(&lo, &n) == -1)
-				     : PL_unify_number(A1, &lo)) &&
-	   ((PL_get_number(A2, &hi)) ? (cmpNumbers(&n, &hi) == -1)
-				     : PL_unify_number(A2, &hi))
-	 );
+#ifdef O_BIGNUM
+    if ( n.type == V_MPZ )		/* n may point into the global stack, */
+    { number copy;			/* which PL_unify_number() may GC */
+
+      cpNumber(&copy, &n);
+      n = copy;
+    }
+#endif
+
+    number a;				/* value of A1 or A2 */
+
+    if ( PL_get_number(A1, &a) )
+    { rc = cmpNumbers(&a, &n) == -1;
+      clearNumber(&a);
+    } else
+      rc = PL_unify_number(A1, &lo);
+    if ( rc )
+    { if ( PL_get_number(A2, &a) )
+      { rc = cmpNumbers(&n, &a) == -1;
+	clearNumber(&a);
+      } else
+	rc = PL_unify_number(A2, &hi);
+    }
 
   } else
   { rc = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_number, A1);
@@ -460,7 +481,7 @@ PRED_IMPL("bounded_number", 3, bounded_number, 0)
 #ifdef O_BIGNUM
 
 #define get_mpz(t, n) LDFUNC(get_mpz, t, n)
-static int
+static bool
 get_mpz(DECL_LD term_t t, Number n)
 { Word p = valTermRef(t);
 
@@ -489,7 +510,7 @@ static
 PRED_IMPL("divmod", 4, divmod, 0)
 { PRED_LD
   number N = {V_INTEGER}, D = {V_INTEGER};
-  int rc = false;
+  bool rc = false;
 
   if ( get_mpz(A1, &N) &&
        get_mpz(A2, &D) )
@@ -525,7 +546,7 @@ PRED_IMPL("nth_integer_root_and_remainder", 4,
 { PRED_LD
   number N = {V_INTEGER};
   long I;
-  int rc = false;
+  bool rc = false;
 
   if ( PL_get_long_ex(A1, &I) &&
        get_mpz(A2, &N) )
@@ -569,7 +590,7 @@ PRED_IMPL("rational", 3, rational, 0)
   if ( isRational(*p) )
   { if ( isMPQNum(*p) )
     { number n, num, den;
-      int rc;
+      bool rc;
 
       get_rational(*p, &n);
       assert(n.type == V_MPQ);
@@ -626,17 +647,17 @@ PRED_IMPL("float_parts", 4, float_parts, 0)
 /* implements <, =<, >, >=, =:= and =\=
  */
 
-int
+bool
 ar_compare(Number n1, Number n2, int what)
-{ int diff = cmpNumbers(n1, n2);		/* nan compares CMP_NOTEQ */
+{ cmpex_t diff = cmpNumbers(n1, n2);		/* nan compares CMP_NOTEQ */
 
   switch(what)
-  { case LT: return diff == CMP_LESS;
-    case GT: return diff == CMP_GREATER;
-    case LE: return (diff == CMP_LESS) || (diff == CMP_EQUAL);
-    case GE: return (diff == CMP_GREATER) || (diff == CMP_EQUAL);
-    case NE: return diff != CMP_EQUAL;
-    case EQ: return diff == CMP_EQUAL;
+  { case LT: return diff == CMPEX_LESS;
+    case GT: return diff == CMPEX_GREATER;
+    case LE: return (diff == CMPEX_LESS) || (diff == CMPEX_EQUAL);
+    case GE: return (diff == CMPEX_GREATER) || (diff == CMPEX_EQUAL);
+    case NE: return diff != CMPEX_EQUAL;
+    case EQ: return diff == CMPEX_EQUAL;
     default:
       assert(0);
       return false;
@@ -644,8 +665,27 @@ ar_compare(Number n1, Number n2, int what)
 }
 
 
-#define compareNumbers(n1, n2, what) LDFUNC(compareNumbers, n1, n2, what)
-static foreign_t
+/* own_number() makes sure n does not refer to a big integer or rational
+   number on the global stack.  Such a number becomes invalid if the
+   stacks are shifted or garbage collected.
+*/
+
+static bool
+own_number(Number n)
+{
+#ifdef O_BIGNUM
+  if ( n->type == V_MPZ || n->type == V_MPQ )
+  { number copy;
+
+    cpNumber(&copy, n);
+    clearNumber(n);
+    *n = copy;
+  }
+#endif
+  return true;
+}
+
+bool
 compareNumbers(DECL_LD term_t n1, term_t n2, int what)
 { AR_CTX
   number left, right;
@@ -654,6 +694,7 @@ compareNumbers(DECL_LD term_t n1, term_t n2, int what)
   AR_BEGIN();
 
   if ( valueExpression(n1, &left) &&
+       own_number(&left) &&		/* evaluating n2 may GC */
        valueExpression(n2, &right) )
   { rc = ar_compare(&left, &right, what);
 
@@ -839,7 +880,7 @@ check_float(Number n)
   return true;
 }
 
-static int
+static bool
 check_zero_div(int sign_n, Number r, char *func, int arity)
 { GET_LD
 
@@ -1080,7 +1121,7 @@ retry:
       goto error;
     }
 
-    while ( tagex(*--p) == (TAG_ATOM|STG_GLOBAL) )
+    while ( isFunctor(*--p) )
     { functor_t functor = word2functor(*p);
       ArithF f;
 
@@ -1099,7 +1140,7 @@ retry:
 	    rc = (*(ArithF1)f)(a0, n);
 	    clearNumber(a0);
 	    if ( rc )
-	    { *a0 = *n;
+	    { moveNumber(a0, n);
 	    } else
 	    { popTopOfSegStack(&arg_stack);
 	      goto error;
@@ -1119,7 +1160,7 @@ retry:
 
 	    if ( rc )
 	    { number *n1 = a[1];
-	      *n1 = *n;
+	      moveNumber(n1, n);
 	    } else
 	    { popTopOfSegStack(&arg_stack);
 	      goto error;
@@ -1141,7 +1182,7 @@ retry:
 
 	    if ( rc )
 	    { number *n2 = a[2];
-	      *n2 = *n;
+	      moveNumber(n2, n);
 	    } else
 	    { popTopOfSegStack(&arg_stack);
 	      goto error;
@@ -1155,7 +1196,7 @@ retry:
 
 	popForMark(&term_stack, &p, &walk_ref);
 	if ( p == start )
-	{ *result = *n;
+	{ moveNumber(result, n);
 
 	  return true;
 	}
@@ -1193,7 +1234,7 @@ valueExpression(DECL_LD term_t expr, number *n)
 { Word p = valTermRef(expr);
 
   deRef(p);
-  if ( tagex(*p) == (TAG_INTEGER|STG_INLINE) )
+  if ( isTaggedInt(*p) )
   { n->value.i = valInt(*p);
     n->type = V_INTEGER;
     return true;
@@ -1204,11 +1245,11 @@ valueExpression(DECL_LD term_t expr, number *n)
     return true;
   }
 
-/* Exception is guarded at PL_next_solution() anyway, but clang
-   crashes, at least on Linux and the Emscripten version.
+/* Exception is guarded at PL_next_solution() anyway.  Avoid setjmp()
+   here as it is costly on some systems (two system calls on macOS).
 */
 
-#if O_THROW && !__clang__
+#if O_THROW
   return evalExpression(expr, n);
 #else
   bool rc;
@@ -1316,7 +1357,7 @@ getCharExpression(DECL_LD Word p, Number r)
 		 *	     CONVERSION		*
 		 *******************************/
 
-static int
+static bool
 double_in_int64_range(double x)
 { int k;
   double y = frexp(x, &k);
@@ -1361,7 +1402,7 @@ toIntegerNumber(Number n, int flags)
     case V_FLOAT:
       if ( !check_float(n) )
 	return false;
-      if ( (flags & TOINT_CONVERT_FLOAT) )
+      if ( (flags & TOINT_CONVERT_FLOAT) && isfinite(n->value.f) )
       { if ( double_in_int64_range(n->value.f) )
 	{ int64_t l = (int64_t)n->value.f;
 
@@ -1642,12 +1683,40 @@ int_too_big(void)
 }
 
 
-static int
-shift_to_far(Number shift, Number r, int dir)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+int_bits_ok() is true if we can create an integer of `bits` bits, where
+`bits` must be an _upper bound_ on the   size of the result.  GMP calls
+abort() if we ask it for a number that does not fit in its data types,
+so this must be checked _before_ calling GMP.  See maxBigIntSize().
+
+check_int_bits() is the same, but raises a resource error.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+int_bits_ok(uint64_t bits)
+{ if ( bits > 10000 )
+  { GET_LD
+
+    if ( bits/8 > (uint64_t)maxBigIntSize() )
+      return false;
+  }
+
+  return true;
+}
+
+
+static bool
+check_int_bits(uint64_t bits)
+{ return int_bits_ok(bits) ? true : int_too_big();
+}
+
+
+static bool
+shift_to_far(Number n, Number shift, Number r, int dir)
 { if ( ar_sign_i(shift) * dir < 0 )	/* << */
   { return int_too_big();
-  } else
-  { r->value.i = 0;
+  } else				/* >>: rounds towards -inf */
+  { r->value.i = (ar_sign_i(n) < 0 ? -1 : 0);
     r->type = V_INTEGER;
 
     return true;
@@ -1675,7 +1744,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   { case V_INTEGER:
       if ( n2->value.i < LONG_MIN  ||
 	   n2->value.i > LONG_MAX )
-	return shift_to_far(n2, r, dir);
+	return shift_to_far(n1, n2, r, dir);
       else
 	shift = (long)n2->value.i;
       break;
@@ -1683,7 +1752,7 @@ ar_shift(Number n1, Number n2, Number r, int dir)
     case V_MPZ:
       if ( mpz_cmp_si(n2->value.mpz, LONG_MIN) < 0 ||
 	   mpz_cmp_si(n2->value.mpz, LONG_MAX) > 0 )
-	return shift_to_far(n2, r, dir);
+	return shift_to_far(n1, n2, r, dir);
       else
 	shift = mpz_get_si(n2->value.mpz);
       break;
@@ -1694,7 +1763,9 @@ ar_shift(Number n1, Number n2, Number r, int dir)
   }
 
   if ( shift < 0 )
-  { shift = -shift;
+  { if ( shift == LONG_MIN )		/* -shift is undefined */
+      return shift_to_far(n1, n2, r, dir);
+    shift = -shift;
     dir = -dir;
   }
 
@@ -1737,12 +1808,9 @@ ar_shift(Number n1, Number n2, Number r, int dir)
 #ifdef O_BIGNUM_PRECHECK_ALLOCATIONS
 	uint64_t msb = mpz_sizeinbase(n1->value.mpz, 2)+shift;
 
-	if ( msb > 10000 )
-	{ GET_LD
-	  if ( (msb/sizeof(char)) > (uint64_t)globalStackLimit() )
-	  { mpz_clear(r->value.mpz);
-	    return int_too_big();
-	  }
+	if ( !check_int_bits(msb) )
+	{ mpz_clear(r->value.mpz);
+	  return false;
 	}
 #endif /*O_BIGNUM_PRECHECK_ALLOCATIONS*/
 	mpz_mul_2exp(r->value.mpz, n1->value.mpz, shift);
@@ -1843,6 +1911,10 @@ i64_gcd(int64_t a, int64_t b)
 }
 
 
+/* Note that gcd/2 needs no size check: the  result is never larger than
+   the smallest of its arguments.  lcm/2 is bounded by n1*n2.
+*/
+
 static bool
 ar_gcd(Number n1, Number n2, Number r)
 { if ( !same_positive_ints("gcd", n1, n2) )
@@ -1892,10 +1964,17 @@ ar_lcm(Number n1, Number n2, Number r)
       promoteToMPZNumber(n1);
       promoteToMPZNumber(n2);
     case V_MPZ:
+    { uint64_t bits = (uint64_t)mpz_sizeinbase(n1->value.mpz, 2) +
+		      (uint64_t)mpz_sizeinbase(n2->value.mpz, 2);
+
+      if ( !check_int_bits(bits) )
+	return false;
+
       r->type = V_MPZ;
       mpz_init(r->value.mpz);
       mpz_lcm(r->value.mpz, n1->value.mpz, n2->value.mpz);
       break;
+    }
 #endif
     default:
       assert(0);
@@ -1924,6 +2003,11 @@ FE_TONEAREST mode is in effect which is not a proven fact.
 This set of correctly rounded functions (cr_exp, cr_log, cr_sin, cr_cos,
 etc.) are used to redefine the standard functions as used in the various
 'ar_...' arithmetic functions.
+
+There  are  two  possible  implementations   of  the  cr_xxx  elementary
+functions.  If HAVE_CRMATH is true, they  are provided by the CORE-MATH
+library (crmath.h).   Otherwise they are  implemented here as described
+above.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -1943,6 +2027,9 @@ static double cr_##func(double in) \
   return result; \
 }
 
+#if HAVE_CRMATH
+#include <crmath.h>
+#else
 // #define unary function with abs(result) =< 1.0
 #define CR_FUNC_1(func) \
 static double cr_##func(double in) \
@@ -1988,31 +2075,22 @@ cr_exp(double in)
   if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
   return result;
 }
-#define exp(x) cr_exp(x)
 
 CR_FUNC(log)
-#define log(x) cr_log(x)
 
 CR_FUNC(log10)
-#define log10(x) cr_log10(x)
 
 CR_FUNC_1(sin)
-#define sin(x) cr_sin(x)
 
 CR_FUNC_1(cos)
-#define cos(x) cr_cos(x)
 
 CR_FUNC(tan)
-#define tan(x) cr_tan(x)
 
 CR_FUNC(asin)
-#define asin(x) cr_asin(x)
 
 CR_FUNC(acos)
-#define acos(x) cr_acos(x)
 
 CR_FUNC(atan)
-#define atan(x) cr_atan(x)
 
 // special case for binary atan2 function with standard rounding, finite result
 static double
@@ -2029,10 +2107,8 @@ cr_atan2(double y, double x)
   if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
   return result;
 }
-#define atan2(y,x) cr_atan2(y,x)
 
 CR_FUNC(sinh)
-#define sinh(x) cr_sinh(x)
 
 // special case for unary cosh with lower limit of 1.0
 static double
@@ -2056,10 +2132,8 @@ cr_cosh(double in)
   if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
   return result;
 }
-#define cosh(x) cr_cosh(x)
 
 CR_FUNC_1(tanh)
-#define tanh(x) cr_tanh(x)
 
 // special case for binary function pow with lower limit of 0.0
 static double
@@ -2085,7 +2159,6 @@ cr_pow(double base, double exp)
   if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
   return result;
 }
-#define pow(b,e) cr_pow(b,e)
 
 // special case for unary erf with bounded by +/- 1.0
 static double
@@ -2112,18 +2185,33 @@ cr_erf(double in)
   if ( roundMode != FE_TONEAREST ) fesetround(roundMode);
   return result;
 }
-#define erf(x) cr_erf(x)
 
 static double cr_erfc(double in)
 { return 1.0 - cr_erf(in);
 }
-#define erfc(x) cr_erfc(x)
+#endif /*HAVE_CRMATH*/
 
-CR_FUNC(lgamma)
+CR_FUNC(lgamma)  // for both cases (not in libcrmath, Windows issue?)
+
+#define exp(x) cr_exp(x)
+#define log(x) cr_log(x)
+#define log10(x) cr_log10(x)
+#define sin(x) cr_sin(x)
+#define cos(x) cr_cos(x)
+#define tan(x) cr_tan(x)
+#define asin(x) cr_asin(x)
+#define acos(x) cr_acos(x)
+#define atan(x) cr_atan(x)
+#define atan2(y,x) cr_atan2(y,x)
+#define sinh(x) cr_sinh(x)
+#define cosh(x) cr_cosh(x)
+#define tanh(x) cr_tanh(x)
+#define pow(b,e) cr_pow(b,e)
+#define erf(x) cr_erf(x)
+#define erfc(x) cr_erfc(x)
 #define lgamma(x) cr_lgamma(x)
 
 #endif /*O_ROUND_UP_DOWN*/
-
 
 /* Unary functions requiring double argument */
 
@@ -2265,14 +2353,11 @@ bn_pow_ui(mpz_t r, const mpz_t base, uint64_t exp)
   { int64_t r_bits;
     size_t base_bits = mpz_sizeinbase(base, 2);
 
-    if ( mul64(base_bits, exp, &r_bits) )
-    { if ( r_bits > 10000 )
-      { GET_LD
+    if ( !FITS_ULONG(exp) )		/* mpz_pow_ui() takes unsigned long */
+      return -1;
 
-	if ( r_bits/8 > (int64_t)globalStackLimit() )
-	  return -1;
-      }
-    } else
+    if ( !mul64(base_bits, exp, &r_bits) ||
+	 !int_bits_ok(r_bits) )
       return -1;
 
     mpz_pow_ui(r, base, (unsigned long)exp);
@@ -2285,16 +2370,15 @@ bn_pow_ui(mpz_t r, const mpz_t base, uint64_t exp)
 #endif /*O_BIGNUM*/
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Get the _absolute_ value from `n` as an   unsigned  long. As we will use
-this value for exponentation, and 0 is   already handled, any value that
-does not fit in an unsigned long   will  anyway generate an integer that
-will not fit on the  stacks  and   thus  this  routine generates a stack
-overflow rather that doing all the work  that will result in an overflow
-anyway.
+Get the _absolute_ value from `n` as an   uint64_t.  As we will use this
+value for exponentation, and 0 is already   handled, any value that does
+not fit in an unsigned long will   anyway  generate an integer that will
+not fit on the stacks and thus   this routine generates a stack overflow
+rather that doing all the work that will result in an overflow anyway.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
-get_int_exponent(Number n, unsigned long *expp)
+static bool
+get_int_exponent(Number n, uint64_t *expp)
 { int64_t i;
 
   switch(n->type)
@@ -2312,18 +2396,16 @@ get_int_exponent(Number n, unsigned long *expp)
       return false;
   }
 
-#if SIZEOF_LONG < 8
-  if ( i > LONG_MAX || i < LONG_MIN )
-    return int_too_big();
-#endif
-
   if ( i < 0 )
-  { i = -i;
-    if ( i < 0 )
+  { if ( i == INT64_MIN )		/* -i is undefined */
       return int_too_big();
+    i = -i;
   }
 
-  *expp = (unsigned long)i;
+  if ( !FITS_ULONG(i) )			/* GMP exponents are unsigned long */
+    return int_too_big();
+
+  *expp = (uint64_t)i;
 
   return true;
 }
@@ -2361,7 +2443,7 @@ sign_f(double f)
 	     0 ;  /* sign_f(NaN) = 0 */
 }
 
-static inline int
+static inline bool
 pow64(int64_t m, int64_t n, int64_t *resp)	/* *resp = m^n */
 { int64_t res = 1;
 
@@ -2386,7 +2468,7 @@ static bool
 ar_pow(Number n1, Number n2, Number r)
 { int zero_div_sign;
   int exp_sign;
-  unsigned long exp;
+  uint64_t exp;
   int exp_nan;
   int n1_val;
 
@@ -2447,8 +2529,12 @@ ar_pow(Number n1, Number n2, Number r)
     { case V_INTEGER:
       { int64_t v = n1->value.i;
 
-	if ( v < 0 ) v = -v;
-	op1_bits = MSB64(v);
+	if ( v == PLMININT )		/* -v is undefined */
+	{ op1_bits = sizeof(v)*8;
+	} else
+	{ if ( v < 0 ) v = -v;
+	  op1_bits = MSB64(v)+1;	/* # bits, as mpz_sizeinbase() */
+	}
 	break;
       }
 #ifdef O_BIGNUM
@@ -2461,15 +2547,10 @@ ar_pow(Number n1, Number n2, Number r)
 	fail;
     }
 
-    if ( mul64(op1_bits, exp, &r_bits) )
-    { if ( r_bits > 10000 )
-      { GET_LD
-
-	if ( r_bits/8 > (int64_t)globalStackLimit() )
-	  return int_too_big();
-      }
-    } else
+    if ( !mul64(op1_bits, exp, &r_bits) )
       return int_too_big();
+    if ( !check_int_bits(r_bits) )
+      return false;
 
     /* Try using small integers.  See (*) above */
     if ( n1->type == V_INTEGER && r_bits < sizeof(int64_t)*8-1 )
@@ -2556,7 +2637,8 @@ ar_pow(Number n1, Number n2, Number r)
     if ( exp_sign == -1 )
       mpz_neg(mpq_numref(n2->value.mpq), mpq_numref(n2->value.mpq));
 
-    if ( mpz_to_uint64(mpq_denref(n2->value.mpq), &r_den) )
+    if ( mpz_to_uint64(mpq_denref(n2->value.mpq), &r_den) ||
+	 !FITS_ULONG(r_den) )
     {
     maybe_real_mpq:
       { GET_LD
@@ -2572,7 +2654,7 @@ ar_pow(Number n1, Number n2, Number r)
 
     switch (n1->type)
     { case V_INTEGER:
-      { mpz_init_set_si(r->value.mpz, (long)n1->value.i);
+      { mpz_init_set_si64(r->value.mpz, n1->value.i);
 	goto int_to_rat;
       }
       case V_MPZ:
@@ -2588,11 +2670,11 @@ ar_pow(Number n1, Number n2, Number r)
 	  return check_float(r);
 	}
 
-	if ( mpz_root(r->value.mpz, r->value.mpz, (long)r_den))
+	if ( mpz_root(r->value.mpz, r->value.mpz, (unsigned long)r_den))
 	{ uint64_t r_num;
 
 	  if ( mpz_to_uint64(mpq_numref(n2->value.mpq), &r_num) ||
-	       bn_pow_ui(r->value.mpz, r->value.mpz, (unsigned long)r_num) )
+	       bn_pow_ui(r->value.mpz, r->value.mpz, r_num) )
 	    goto maybe_real_mpq;
 
 	  if (exp_sign == -1)		/* create mpq=1/r->value */
@@ -2756,11 +2838,11 @@ static bool
 ar_powm(Number base, Number exp, Number mod, Number r)
 {
   if ( !intNumber(base) )
-    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, base);
+    return PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, base);
   if ( !intNumber(exp) )
-    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, exp);
+    return PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, exp);
   if ( !intNumber(mod) )
-    PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, mod);
+    return PL_error("powm", 3, NULL, ERR_AR_TYPE, ATOM_integer, mod);
 
 #ifdef O_BIGNUM
   promoteToMPZNumber(base);
@@ -2782,45 +2864,10 @@ ar_powm(Number base, Number exp, Number mod, Number r)
 #endif
 }
 
-#if 0
-/* These tests originate from the days that float errors used
- * to be signalling on many systems.  Nowadays this is no longer
- * the case.  We leave the code in for just-in-case.
- */
-#define AR_UNDEFINED_IF(func, arity, test, r)			\
-	if ( test )						\
-	{ GET_LD						\
-	  if ( LD->arith.f.flags & FLT_UNDEFINED )		\
-	  { r->type = V_FLOAT;					\
-	    r->value.f = const_nan;				\
-	    return true;					\
-	  } else						\
-	  { return PL_error(func, arity, NULL, ERR_AR_UNDEF);	\
-	  }							\
-	}
-#define AR_DIV_ZERO_IF(func, arity, n, d, r)			\
-	if ( d == 0.0 )						\
-	{ GET_LD						\
-	  if ( LD->arith.f.flags & FLT_ZERO_DIV )		\
-	  { r->type = V_FLOAT;					\
-	    r->value.f = signbit(n) == signbit(d)		\
-			? const_inf				\
-			: const_neg_inf;			\
-	    return true;					\
-	  } else						\
-	  { return PL_error(func, arity, NULL, ERR_DIV_BY_ZERO);\
-	  }							\
-	}
-#else
-#define AR_UNDEFINED_IF(func, arity, test, r) (void)0
-#define AR_DIV_ZERO_IF(func, arity, n, d, r)  (void)0
-#endif
-
 static bool
 ar_sqrt(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
-  AR_UNDEFINED_IF("sqrt", 1,  n1->value.f < 0, r);
   r->value.f = sqrt(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2832,7 +2879,6 @@ static bool
 ar_asin(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
-  AR_UNDEFINED_IF("asin", 1, n1->value.f < -1.0 || n1->value.f > 1.0, r);
   r->value.f = asin(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2844,7 +2890,6 @@ static bool
 ar_acos(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
-  AR_UNDEFINED_IF("ascos", 1, n1->value.f < -1.0 || n1->value.f > 1.0, r);
   r->value.f = acos(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2856,7 +2901,6 @@ static bool
 ar_log(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
-  AR_UNDEFINED_IF("log", 1, n1->value.f <= 0.0 , r);
   r->value.f = log(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -2868,7 +2912,6 @@ static bool
 ar_log10(Number n1, Number r)
 { if ( !promoteToFloatNumber(n1) )
     return false;
-  AR_UNDEFINED_IF("log10", 1, n1->value.f <= 0.0, r);
   r->value.f = log10(n1->value.f);
   r->type    = V_FLOAT;
 
@@ -3008,7 +3051,7 @@ http://www.gnu.org/software/autoconf/manual/autoconf-2.67/html_node/Floating-Poi
 #define IEEE754 1
 
 #ifdef IEEE754
-static inline int
+static inline bool
 signbit(double f)
 { union
   { double f;
@@ -3530,10 +3573,17 @@ ar_mul(Number n1, Number n2, Number r)
       promoteToMPZNumber(n2);
 
     case V_MPZ:
+    { uint64_t bits = (uint64_t)mpz_sizeinbase(n1->value.mpz, 2) +
+		      (uint64_t)mpz_sizeinbase(n2->value.mpz, 2);
+
+      if ( !check_int_bits(bits) )
+	return false;
+
       mpz_init(r->value.mpz);
       r->type = V_MPZ;
       mpz_mul(r->value.mpz, n1->value.mpz, n2->value.mpz);
       succeed;
+    }
     case V_MPQ:
       r->type = V_MPQ;
       mpq_init(r->value.mpq);
@@ -3860,7 +3910,9 @@ typedef unsigned long mp_bitcnt_t;
 #endif
 
 #define MP_BITCNT_T_MIN 0
+#ifndef MP_BITCNT_T_MAX
 #define MP_BITCNT_T_MAX (~(mp_bitcnt_t)0)
+#endif
 
 static bool
 ar_getbit(Number I, Number K, Number r)
@@ -4069,7 +4121,8 @@ ar_integer(Number n1, Number r)
 	return true;
       }
 
-      if ( n1->value.f <= (float)PLMAXINT && n1->value.f >= (float)PLMININT )
+      /* (double)PLMAXINT rounds up to 2^63, which does not fit */
+      if ( n1->value.f < -(double)PLMININT && n1->value.f >= (double)PLMININT )
       {
 #if SIZEOF_LONG == 8
 	r->value.i = lround(n1->value.f);
@@ -4349,7 +4402,7 @@ ar_truncate(Number n1, Number r)
 #define MIN_RAND_SEED_LEN 16
 
 #define seed_from_dev(dev) LDFUNC(seed_from_dev, dev)
-static int
+static bool
 seed_from_dev(DECL_LD const char *dev)
 { int done = false;
 #if defined(S_ISCHR) && !defined(__WINDOWS__)
@@ -4395,7 +4448,7 @@ seed_from_dev(DECL_LD const char *dev)
 
 
 #define seed_from_crypt_context(_) LDFUNC(seed_from_crypt_context, _)
-static int
+static bool
 seed_from_crypt_context(DECL_LD)
 {
 #ifdef __WINDOWS__
@@ -4771,12 +4824,10 @@ PRED_IMPL("is", 2, is, PL_FA_ISO)	/* -Value is +Expr */
 { PRED_LD
   AR_CTX
   number arg;
-  int rc;
+  bool rc;
 
-  if ( !hasGlobalSpace(0) )		/* see (*) */
-  { if ( (rc=ensureGlobalSpace(0, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(0, ALLOW_GC) )	/* see (*) */
+    return false;
 
   AR_BEGIN();
   if ( (rc=valueExpression(A2, &arg)) )
@@ -5017,7 +5068,6 @@ initArith(void)
 
   const_nan     = nan15();
   const_inf     = HUGE_VAL;
-  const_neg_inf = -HUGE_VAL;
 
 #ifdef O_BIGNUM
   LD->arith.rat.max_rational_size = (size_t)-1;
@@ -5107,7 +5157,7 @@ get_arith_flag(DECL_LD term_t val, atom_t k)
 }
 
 #ifdef O_BIGNUM
-static int
+static bool
 set_restraint(term_t t, size_t *valp, size_t min)
 { GET_LD
   atom_t inf;
@@ -5125,7 +5175,7 @@ set_restraint(term_t t, size_t *valp, size_t min)
 }
 
 #define set_restraint_action(t, key, valp) LDFUNC(set_restraint_action, t, key, valp)
-static int
+static bool
 set_restraint_action(DECL_LD term_t t, atom_t key, atom_t *valp)
 { atom_t act;
 

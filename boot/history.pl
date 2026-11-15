@@ -76,9 +76,11 @@ read_history_(Raw, Term, Options) :-
     ;   true
     ),
     '$option'(variable_names(Bindings), Options, Bindings0),
+    history_blob_mode(Changed, BlobMode),
     catch(read_term_from_atom(Expanded, Term0,
                               [ module(Module),
-                                variable_names(Bindings0)
+                                variable_names(Bindings0),
+                                blob(BlobMode)
                               ]),
           E,
           (   print_message(error, E),
@@ -94,6 +96,17 @@ read_history_(Raw, Term, Options) :-
         Term = Term0,
         Bindings = Bindings0
     ).
+
+%!  history_blob_mode(+Changed, -Mode) is det.
+%
+%   Decide how read_term/3 should deal  with   a  blob written as
+%   <Type>(...).  Text the user just typed  may hold a blob of this
+%   process, so we resolve it. Text substituted from the history may
+%   come from a previous process, where an  address that happens to
+%   match a live blob would resolve to an unrelated object.
+
+history_blob_mode(true, dead) :- !.             % expanded from history
+history_blob_mode(_, resolve).
 
 %!  list_history
 %
@@ -260,9 +273,18 @@ match_event(_, _, _) :-
     print_message(query, history(no_event)),
     fail.
 
-not_event_char(C) :- code_type(C, csym), !, fail.
+not_event_char(C) :- event_char(C), !, fail.
 not_event_char(!) :- !, fail.
 not_event_char(_).
+
+%!  event_char(+Code) is semidet.
+%
+%   Character that may appear in a \quote{!name} history reference.
+%   Deliberately not code_type/2 \const{csym}, which is ASCII: an event
+%   name may hold any word character.
+
+event_char(C) :- code_type(C, alnum), !.
+event_char(0'_).
 
 find_event([!|Left], Event, Left) :-
     !,
@@ -280,7 +302,7 @@ find_event(Spec, Event, Left) :-
     matching_event(String, Event).
 
 take_string([C|Rest], [C|String], Left) :-
-    code_type(C, csym),
+    event_char(C),
     !,
     take_string(Rest, String, Left).
 take_string([C|Rest], [], [C|Rest]) :- !.

@@ -130,6 +130,16 @@ mpz_init_set_si64(mpz_t r, int64_t n)
   bf_set_si(r, n);
 }
 
+/* Only supports a plain sequence of digits */
+static inline int
+mpz_set_str(mpz_t r, const char *s, int base)
+{ const char *end;
+  int rc = bf_atof(r, s, &end, base, BF_PREC_INF,
+		   BF_RNDZ|BF_ATOF_NO_HEX|BF_ATOF_NO_NAN_INF);
+
+  return (rc & BF_ST_MEM_ERROR) || *end ? -1 : 0;
+}
+
 // Copy
 static inline void
 mpz_set(mpz_t r, const mpz_t n)

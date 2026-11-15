@@ -78,6 +78,7 @@ Where the compiler translates '$reset' into
 static int /* true, FRESET_* */
 findReset(DECL_LD LocalFrame fr, term_t ball, term_t *rframe)
 { Definition reset3  = PROCEDURE_reset3->definition;
+  Definition reset6  = PROCEDURE_dtbl_reset6->definition;
 
   for(; fr; fr = fr->parent)
   { int rc;
@@ -88,7 +89,7 @@ findReset(DECL_LD LocalFrame fr, term_t ball, term_t *rframe)
     if ( fr->predicate == proc_fl->definition )
       return FRESET_FINDALL;
 
-    if ( fr->predicate != reset3 )
+    if ( fr->predicate != reset3 && fr->predicate != reset6 )
       continue;
 
     tref = consTermRef(fr);
@@ -231,7 +232,7 @@ put_environment(DECL_LD term_t env, LocalFrame fr, Code pc, bool for_copy)
   { Word tp = gTop;
     gTop = p;
 
-    *valTermRef(env) = consPtr(tp, TAG_COMPOUND|STG_GLOBAL);
+    *valTermRef(env) = consCompound(tp);
   }
 
   PL_unregister_atom(cref);
@@ -246,6 +247,8 @@ env3_predicate(Definition def)
     return FUNCTOR_catch3;
   if ( def == PROCEDURE_reset3->definition )
     return FUNCTOR_reset3;
+  if ( def == PROCEDURE_dtbl_reset6->definition )
+    return FUNCTOR_dtbl_reset6;
   return 0;
 }
 
@@ -312,15 +315,17 @@ put_continuation(term_t cont, LocalFrame resetfr, LocalFrame fr, Code pc,
       fr_ref = consTermRef(fr);
 
       if ( (env_f=env3_predicate(fr->predicate)) )
-      { term_t av = PL_new_term_refs(2);
+      { size_t arity = arityFunctor(env_f);
+	term_t av = PL_new_term_refs(arity);
 
-	fr = (LocalFrame)valTermRef(fr_ref);
-	PL_put_term(av+0, consTermRef(argFrameP(fr, 1)));
-	PL_put_term(av+1, consTermRef(argFrameP(fr, 2)));
+	for(size_t i=1; i<arity; i++)
+	{ fr = (LocalFrame)valTermRef(fr_ref); /* PL_put_term() may shift */
+	  PL_put_term(av+i, consTermRef(argFrameP(fr, i)));
+	}
 
 	if ( PL_cons_list_v(contv, depth, contv) &&
-	     PL_cons_functor(contv, FUNCTOR_call_continuation1, contv) &&
-	     PL_cons_functor(contv, env_f, contv, av+0, av+1) &&
+	     PL_cons_functor(av+0, FUNCTOR_call_continuation1, contv) &&
+	     PL_cons_functor_v(contv, env_f, av) &&
 	     PL_cons_functor(contv, FUNCTOR_call1, contv) )
 	  depth = 0;
 	else
@@ -435,14 +440,15 @@ garbage collector and subsequently the blob  becomes subject to the atom
 garbage collector, both destroying the clause   reference and the clause
 if it was retracted.
 
-We prevent this by pushing the blob onto the environment stack, where it
+We prevent this by pushing a clause_ref for the frame onto the
+environment stack, just below the frame.  Its key is the blob, where it
 will be found by the atom  garbage   collector.  This  protects both the
 reference and the clause itself as long   as the continuation depends on
-it. Note that the atom is simply pushed  onto the stack where it resides
-between stack frames. This is fine as  atom-gc performs a linear scan of
-the environment stack. Also note that as we push this, it is above lTop.
-This is fine as in  this  stage  the   blob  is  still  protected by the
-continuation.
+it. Note that the clause_ref resides between stack frames. This is fine
+as atom-gc performs a linear scan of the environment stack and the stack
+shifter updates a frame clause on the local stack. Also note that as we
+push this, it is above lTop. This is fine as in this stage the blob is
+still protected by the continuation.
 
 A pushVolatileAtom() is not needed as this   protection only needs to be
 effective after the next GC call and GC won't run concurrently with AGC.
@@ -471,16 +477,19 @@ retry:
     atom_t mname = word2atom(*ep++);
     atom_t blob  = word2atom(*ep++);
 
-    if ( !(cref = clause_clref(blob)) ||
-	 arityFunctor(f->definition) != cref->value.clause->variables + 3 )
+    if ( !(cl = clause_dbref(blob)) ||
+	 arityFunctor(f->definition) != cl->variables + 3 )
     { PL_type_error("continuation", continuation);
       return NULL;
     }
+    if ( foreignLocalClause(cl) )
+    { PL_permission_error("call", "thread_local_clause", continuation);
+      return NULL;
+    }
 
-    cl = cref->value.clause;
     pcoffset = (size_t)valInt(*ep++);
 
-    lneeded = ( sizeof(word) +			/* blob (AGC protect) */
+    lneeded = ( SIZEOF_CREF_CLAUSE +		/* clause_ref (*) */
 		sizeof(struct localFrame) +	/* new frame */
 		cl->variables * sizeof(word) );	/* arguments to frame */
     lroom   = roomStack(local);
@@ -490,8 +499,11 @@ retry:
       return NULL;
     }
 
-    *(Word)top = blob;			/* see (*) */
-    fr   = addPointer(top, sizeof(word));
+    cref = (ClauseRef)top;		/* see (*) */
+    cref->next         = NULL;
+    cref->d.key        = blob;
+    cref->value.clause = cl;
+    fr   = addPointer(top, SIZEOF_CREF_CLAUSE);
     top  = addPointer(top, lneeded);
 
     ap = argFrameP(fr, 0);
@@ -554,6 +566,73 @@ retry:
     return NULL;
   }
 }
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+push_continuation_list() pushes all  environments of  a  continuation
+list as produced by shift/1 at once, the last (outermost) first, such
+that each environment returns into the next.  This does the same as
+call_continuation/1, but without executing that predicate.
+
+This is only used by tabling.  In general, reinstalling the whole
+continuation can make a program quadratic (Schrijvers et al., ICLP 2013,
+section 4.2): if a resumed continuation shifts again, the next capture
+must scan all reinstalled environments, whereas call_continuation/1
+keeps the not yet resumed part as the term `Rest` in its own
+environment.  A generator that shifts from a non-tail-recursive loop
+thus becomes quadratic.  Tabling copies each captured continuation into
+the worklist and back for each resumption (term_to_fastheap() and
+put_fastheap()), which is linear in the size of the continuation
+anyway, so reinstalling it as a whole does not change the complexity.
+See doc/tabling/continuations.md.
+
+Returns the PC  at which to start
+or NULL with an exception.  If the list is empty, it returns `pcret`.
+If the list contains a call(Goal) element, which represents a nested
+reset/3, it returns NULL without an exception and pushes nothing.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Code
+push_continuation_list(DECL_LD term_t list, LocalFrame pfr, Code pcret)
+{ term_t pref = consTermRef(pfr);
+  tmp_buffer b;
+  Word p;
+  size_t n;
+
+  initBuffer(&b);			/* global offsets of the elements */
+  p = valTermRef(list);
+  deRef(p);
+  for(; isList(*p); )
+  { Word h = HeadList(p);
+
+    deRef(h);
+    if ( hasFunctor(*h, FUNCTOR_call1) )
+    { discardBuffer(&b);
+      return NULL;			/* nested reset; no exception */
+    }
+    addBuffer(&b, (size_t)(h-gBase), size_t);
+    p = TailList(p);
+    deRef(p);
+  }
+  if ( !isNil(*p) )
+  { discardBuffer(&b);
+    PL_type_error("continuation", list);
+    return NULL;
+  }
+
+  for(n = entriesBuffer(&b, size_t); n-- > 0; )
+  { term_t cont = pushWordAsTermRef(gBase+baseBuffer(&b, size_t)[n]);
+
+    pcret = push_continuation(cont, (LocalFrame)valTermRef(pref), pcret);
+    popTermRef();
+    if ( !pcret )
+      break;
+    pref = consTermRef(environment_frame);
+  }
+  discardBuffer(&b);
+
+  return pcret;
+}
+
 
 void
 cleanupCont(void)

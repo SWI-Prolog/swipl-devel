@@ -35,13 +35,17 @@
 */
 
 /*#define O_DEBUG 1*/
+#include "pl-funct.h"
 #include "pl-atom.h"
 #include "pl-setup.h"
 #include "pl-gc.h"
 #include "pl-fli.h"
 #include "pl-pro.h"
 #include "pl-read.h"
+#include "pl-trie.h"
+#include "pl-wam.h"
 #include "os/pl-ctype.h"
+#include "os/pl-utf8.h"
 #undef LD
 #define LD LOCAL_LD
 
@@ -52,7 +56,7 @@ Implementation issues
 There are two parts in the atom   administration. One is a dynamic array
 (called buffer) atom_array, which is there to   find  the atoms back. An
 atom   as   it   appears   is   of   type   word   and   of   the   form
-(n<<LMASK_BITS)|TAG_ATOM. The atom structure is   located by getting the
+MK_ATOM(n). The atom  structure  is   located  by  getting  the
 n-th pointer from the atom_array  dynamic   array.  See  atomValue() for
 translating the word into the address of the structure.
 
@@ -157,6 +161,12 @@ Atoms are reclaimed by collectAtoms(), which is a two pass process.
 				       not found so insert at atoms[v]
 	  CAS ref -> ref+1
 
+A lookup that matches an atom that is being invalidated retries until
+the atom is unlinked.  Only then may it create a new blob for the same
+data: the release hook of the old blob must have completed before the
+acquire hook of the new one runs, as both update the same object (e.g.,
+DBREF_CLAUSE of a clause).
+
 The dynamic array gets holes and  we   remember  the  first free hole to
 avoid too much search. Alternatively, we could  turn the holes into some
 form of linked list, for example by   encoding an integer that expresses
@@ -202,32 +212,233 @@ Note that threads can mark their atoms and continue execution because:
       that they can safely be walked.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int	rehashAtoms(void);
+static bool	rehashAtoms(void);
 static void	considerAGC(void);
-static unsigned int register_atom(volatile Atom p);
+static unsigned int register_atom(volatile Atom p, bool promote);
 static void	 unregister_atom(volatile Atom p);
+#ifdef O_ATOMGC
+#define reserveLocalAtom(_) LDFUNC(reserveLocalAtom, _)
+static Atom	reserveLocalAtom(DECL_LD);
+#define unreserveLocalAtom(a) LDFUNC(unreserveLocalAtom, a)
+static void	unreserveLocalAtom(DECL_LD Atom a);
+#define addLocalUnits(a) LDFUNC(addLocalUnits, a)
+static inline void addLocalUnits(DECL_LD Atom a);
+#define lookupLocalBlob(s, length, type) LDFUNC(lookupLocalBlob, s, length, type)
+static atom_t	lookupLocalBlob(DECL_LD const char *s, size_t length,
+				PL_blob_t *type);
+#endif
 #ifdef O_DEBUG_ATOMGC
-static int	tracking(const Atom a);
+static bool	tracking(const Atom a);
 IOSTREAM *atomLogFd = 0;
 #endif
 
-static inline int
-bump_atom_references(Atom a, unsigned int ref)
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Per blob type accounting.  A type may declare a `gc_margin', in which case
+we track how much of it has no registrations, in the same places where we
+track GD->atoms.unregistered.  The unit is the blob's length: for text and
+for copied blobs that is its size in bytes, and for PL_BLOB_NOCOPY it is
+whatever the type passed to PL_unify_blob(), which is free to describe the
+resource the blob keeps alive.  A type that cares about the number of live
+instances rather than their size passes 1.
+
+Types that declare no margin are not accounted at all, so nothing changes
+for them.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* gc_margin and the two counters were carved out of PL_blob_t's unused
+   reserved[8].  The struct must not have changed size: extensions define
+   their type statically and are not recompiled.
+*/
+static_assert(sizeof(((PL_blob_t*)0)->reserved) + 5*sizeof(size_t) ==
+	      8*sizeof(void*),
+	      "PL_blob_t layout changed; this breaks the foreign ABI");
+
+/* Subtract, without letting the counter wrap.  The length of a blob can
+   change under us: PL_free_blob() sets it to zero.
+*/
+
+static inline void
+sub_size(size_t *cnt, size_t units)
+{ size_t old, new;
+
+  do
+  { old = *cnt;
+    new = old > units ? old-units : 0;
+  } while( !COMPARE_AND_SWAP_SIZE(cnt, old, new) );
+}
+
+
+/* How many blobs of this type exist and how much they hold.  Tracked for
+   every type: answering this from current_blob/2 costs a scan of the whole
+   atom array.
+*/
+
+static inline void
+add_type_live(Atom a)
+{ ATOMIC_INC(&a->type->live);
+  ATOMIC_ADD(&a->type->space, a->length);
+}
+
+
+static inline void
+del_type_live(Atom a)
+{ ATOMIC_DEC(&a->type->live);
+  sub_size(&a->type->space, a->length);
+}
+
+
+static inline void
+add_type_units(Atom a)
+{ PL_blob_t *type = a->type;
+
+  if ( type->gc_margin )
+    ATOMIC_ADD(&type->unregistered, a->length);
+}
+
+/* The length may change under us: PL_free_blob() sets it to zero.  Any
+   drift is corrected by collectAtoms(), which recomputes from scratch, but
+   we must not let the counter wrap.
+*/
+
+static inline void
+del_type_units(Atom a)
+{ PL_blob_t *type = a->type;
+
+  if ( type->gc_margin )
+    sub_size(&type->unregistered, a->length);
+}
+
+
+/* PL_free_blob() dropped the resource while the blob may still be counted
+   as a candidate.  Called before the length is cleared.
+*/
+
+void
+PL_blob_gc_released(Atom a)
+{ unsigned int ref = a->references;
+
+  if ( ATOM_IS_LOCAL(ref) )		/* not counted, see lookupLocalBlob() */
+    return;
+  if ( ATOM_REF_COUNT(ref) == 0 )
+    del_type_units(a);
+  sub_size(&a->type->space, a->length);
+}
+
+
+/* Make a blob refer to nothing, without calling its release hook.  As
+   after PL_free_blob(), PL_blob_data() returns NULL.  Used if the C object
+   of a PL_BLOB_NOCOPY blob is freed while Prolog may still refer to the
+   blob.
+*/
+
+void
+discardBlob(atom_t a)
+{ Atom x = atomValue(a);
+
+  PL_blob_gc_released(x);
+  x->length = 0;
+  MEMORY_BARRIER();
+  x->name = NULL;
+}
+
+
+/* The C object of a local PL_BLOB_OWNED blob no longer claims it: it
+ * was freed or its ownership moved to the atom.  If the blob is still
+ * local, its promotion then no longer adds a reference for the object.
+ * Otherwise the object holds a reference, which we drop.  This is a CAS
+ * on the references, so that a promotion by another thread (see
+ * shareLocalBlob()) adds the object's reference if and only if we do
+ * not see a local atom.
+ */
+
+void
+disownBlob(atom_t a)
+{ Atom p = atomValue(a);
+
+  for(;;)
+  { unsigned int ref = p->references;
+
+    if ( !ATOM_IS_LOCAL(ref) )
+    { PL_unregister_atom(a);
+      return;
+    }
+    if ( COMPARE_AND_SWAP_UINT(&p->references, ref,
+			       ref|ATOM_DISOWNED_REFERENCE) )
+      return;
+  }
+}
+
+
+/* The references of a local atom after promotion.  The caller passes the
+ * type: if `ref` is outdated, a PL_BLOB_UNIQUE atom may have been
+ * unlinked, which overwrites its type (see chainInvalidAtom()).  The CAS
+ * that installs the result then fails.
+ */
+
+static inline unsigned int
+promoting_ref(unsigned int ref, const PL_blob_t *type)
+{ if ( unlikely(ATOM_IS_LOCAL(ref)) )	/* see promoteLocalAtom() */
+  { if ( ison(type, PL_BLOB_OWNED) && !(ref&ATOM_DISOWNED_REFERENCE) )
+      ref++;				/* reference of the object */
+    ref &= ~(ATOM_LOCAL_REFERENCE|ATOM_DISOWNED_REFERENCE);
+    if ( GD->atoms.gc_active )
+      ref |= ATOM_MARKED_REFERENCE;
+  }
+
+  return ref;
+}
+
+static void	promoted_atom(Atom a, unsigned int nref);
+
+static inline bool
+bump_atom_references(Atom a, unsigned int ref, const PL_blob_t *type)
 { for(;;)
-  { unsigned int nref = ref+1;
+  { unsigned int nref = promoting_ref(ref+1, type);
 
     if ( ATOM_REF_COUNT(nref) == 0 )
       return true;			/* reached max references */
 
     if ( COMPARE_AND_SWAP_UINT(&a->references, ref, nref) )
-    { if ( ATOM_REF_COUNT(ref) == 0 )
-	ATOMIC_DEC(&GD->atoms.unregistered);
+    { if ( unlikely(ATOM_IS_LOCAL(ref)) )
+      { promoted_atom(a, nref);
+      } else if ( ATOM_REF_COUNT(ref) == 0 )
+      { ATOMIC_DEC(&GD->atoms.unregistered);
+	del_type_units(a);
+      }
       return true;
     } else
     { ref = a->references;
       if ( !ATOM_IS_VALID(ref) )
 	return false;
     }
+  }
+}
+
+/* As bump_atom_references() for a lookup that found the local atom `a`
+ * in the atom table.  If we own it, the reference does not promote, as
+ * for registerAtomLocally(): callers drop it or keep it in data of this
+ * thread.  Else we promote.
+ */
+
+#define bump_local_references(a, ref, type) \
+	LDFUNC(bump_local_references, a, ref, type)
+static bool
+bump_local_references(DECL_LD Atom a, unsigned int ref, const PL_blob_t *type)
+{ if ( localAtomOwner(a->atom) != LD )
+    return bump_atom_references(a, ref, type);
+
+  for(;;)
+  { unsigned int nref = ref+1;
+
+    if ( ATOM_REF_COUNT(nref) == 0 )
+      return true;			/* reached max references */
+    if ( COMPARE_AND_SWAP_UINT(&a->references, ref, nref) )
+      return true;
+    ref = a->references;
+    if ( !ATOM_IS_VALID(ref) )
+      return false;
+    if ( !ATOM_IS_LOCAL(ref) )		/* promoted by another thread */
+      return bump_atom_references(a, ref, type);
   }
 }
 
@@ -247,6 +458,396 @@ static PL_blob_t unregistered_blob_atom =
   PL_BLOB_NOCOPY|PL_BLOB_TEXT,
   "unregistered"
 };
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The `unavailable' blob type holds a blob that has no foreign object: the
+result of reading <type>(...) with read_term/2,3 and blob(dead).  Its
+content is the source text, so that writing it reproduces the input.
+
+It is deliberately not PL_BLOB_TEXT (so atom/1 fails on it, as it does
+for the blob it stands for) and not PL_BLOB_UNIQUE (the pointer printed
+by a blob is not a stable identity: the atom garbage collector reuses
+addresses, so two blobs that write the same text are not necessarily the
+same object).  Because it is a type of its own, every typed accessor
+rejects it by comparing the type: no additional guards are needed.
+
+blob/2 reports the type name recorded in the text rather than
+`unavailable'.  See deadBlobType().
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static int
+write_unavailable(IOSTREAM *s, atom_t a, int flags)
+{ size_t len;
+  const char *text = PL_blob_data(a, &len, NULL);
+  const char *e = text+len;
+
+  (void)flags;
+  while ( text < e )			/* the text is UTF-8; emit code */
+  { int c;				/* points to respect the encoding */
+
+    text = utf8_get_char(text, &c);
+    if ( Sputcode(c, s) < 0 )
+      return false;
+  }
+
+  return true;
+}
+
+
+static int
+compare_unavailable(atom_t a, atom_t b)
+{ size_t la, lb;
+  const char *ta = PL_blob_data(a, &la, NULL);
+  const char *tb = PL_blob_data(b, &lb, NULL);
+  size_t l = la < lb ? la : lb;
+  int v;
+
+  if ( (v=memcmp(ta, tb, l)) != 0 )
+    return SCALAR_TO_CMP(v, 0);
+  if ( la != lb )
+    return SCALAR_TO_CMP(la, lb);
+
+  return SCALAR_TO_CMP(ta, tb);		/* distinct blobs, equal text */
+}
+
+
+static PL_blob_t unavailable_blob =
+{ PL_BLOB_MAGIC,
+  0,
+  "unavailable",
+  NULL,					/* release */
+  compare_unavailable,
+  write_unavailable
+};
+
+
+/* deadBlobType() returns the type name recorded in the text of a
+   dead blob, i.e. `stream' for "<stream>(0x55c1e0)".  Returns 0 if `a'
+   is not a dead blob.
+*/
+
+atom_t
+deadBlobType(atom_t a)
+{ size_t len;
+  PL_blob_t *type;
+  const char *text = PL_blob_data(a, &len, &type);
+  const char *e;
+
+  if ( type != &unavailable_blob || !text || len < 2 || text[0] != '<' )
+    return 0;
+  if ( !(e=memchr(text+1, '>', len-1)) )
+    return 0;
+
+  return PL_new_atom_mbchars(REP_UTF8, e-(text+1), text+1);
+}
+
+
+/* Announce access to the atom table and a bucket, for the bucket
+   protocol of atom-GC (see the top of this file).
+*/
+
+#ifdef O_PLMT
+
+#define acquire_atom_table(t, b) \
+  { AtomTable _at; \
+    do \
+    { _at = LOAD_SEQ_CST(GD->atoms.table); \
+      PUBLISH_HAZARD(LD->thread.info->access.atom_table, _at); \
+    } while ( _at != LOAD_SEQ_CST(GD->atoms.table) ); \
+    t = _at->table; \
+    b = _at->buckets; \
+  }
+
+#define release_atom_table() \
+  { LD->thread.info->access.atom_table = NULL; \
+    LD->thread.info->access.atom_bucket = NULL; \
+  }
+
+#define acquire_atom_bucket(b) \
+  { PUBLISH_HAZARD(LD->thread.info->access.atom_bucket, (b)); \
+  }
+
+#define release_atom_bucket() \
+  { LD->thread.info->access.atom_bucket = NULL; \
+  }
+
+#else
+
+#define acquire_atom_table(t, b) \
+  { t = GD->atoms.table->table; \
+    b = GD->atoms.table->buckets; \
+  }
+
+#define release_atom_table() (void)0
+
+#define acquire_atom_bucket(b) (void)0
+
+#define release_atom_bucket() (void)0
+
+#endif
+
+
+/* Take a reference to an atom found by scanning the atom array.  We
+   skip local atoms of other threads: their owner releases and reuses
+   their slots without synchronising with us, so `ref` and `type` may be
+   outdated by the time we would get the reference.  Our own local atoms
+   stay local.  See "Thread-local blobs".
+*/
+
+#define bump_scanned_references(a, ref, type) \
+	LDFUNC(bump_scanned_references, a, ref, type)
+static inline bool
+bump_scanned_references(DECL_LD Atom a, unsigned int ref,
+			const PL_blob_t *type)
+{ if ( unlikely(ATOM_IS_LOCAL(ref)) )
+    return ( localAtomOwner(a->atom) == LD &&
+	     bump_local_references(a, ref, type) );
+
+  return bump_atom_references(a, ref, type);
+}
+
+
+/* matchLiveBlob() is called with a reference to the candidate `a`.  If it
+   writes as `text`, it becomes *found, keeping the reference.  Returns
+   false if the search must stop: a second match makes the text
+   ambiguous, so *found is reset to 0.
+*/
+
+static bool
+matchLiveBlob(atom_t a, PL_blob_t *btype, const char *text, size_t len,
+	      atom_t *found, bool *ambiguous)
+{ IOSTREAM *s;
+  char *out = NULL;			/* Sopenmem() writes through both */
+  size_t outlen = 0;
+  bool eq;
+
+  if ( !(s=Sopenmem(&out, &outlen, "w")) )
+  { PL_unregister_atom(a);
+    return false;
+  }
+  s->encoding = ENC_UTF8;
+  eq = (*btype->write)(s, a, PL_WRT_QUOTED);
+  eq = ( Sclose(s) == 0 && eq &&
+	 outlen == len &&
+	 memcmp(out, text, len) == 0 );
+  Sfree(out);
+
+  if ( !eq )
+  { PL_unregister_atom(a);
+    return true;
+  }
+
+  if ( *found )				/* ambiguous: refuse to guess */
+  { PL_unregister_atom(a);
+    PL_unregister_atom(*found);
+    *found = 0;
+    if ( ambiguous )
+      *ambiguous = true;
+    return false;
+  }
+  *found = a;				/* keep the reference */
+  return true;
+}
+
+
+/* Local PL_BLOB_UNIQUE|PL_BLOB_NOCOPY atoms of other threads with data
+   `addr`, which the scan of the atom array skips.  We find them in the
+   atom table, where the bucket protocol keeps an atom from being
+   destroyed while we look at it, so we may take a reference, which
+   promotes it.  Its `type` is valid if `references` did not change
+   while we read it: the type is only overwritten after unlinking, which
+   follows a change of `references`.  Fills cands[] with referenced
+   atoms and returns their number.
+*/
+
+#define MAX_TABLE_CANDIDATES 4
+
+#define localBlobsByAddress(addr, cands, types) \
+	LDFUNC(localBlobsByAddress, addr, cands, types)
+static int
+localBlobsByAddress(DECL_LD void *addr, atom_t *cands, PL_blob_t **types)
+{ const char *s = addr;
+  unsigned int v0 = MurmurHashAligned2(&s, sizeof(s), MURMUR_SEED);
+  Atom *table;
+  int buckets, n = 0;
+
+  acquire_atom_table(table, buckets);
+  Atom *bucket = &table[v0 & (buckets-1)];
+  acquire_atom_bucket(bucket);
+
+  for(Atom a = *bucket; a && n < MAX_TABLE_CANDIDATES; a = a->next)
+  { unsigned int ref = a->references;
+    PL_blob_t *type;
+
+    if ( !(ATOM_IS_VALID(ref) && ATOM_IS_LOCAL(ref)) )
+      continue;
+    type = a->type;
+    MEMORY_BARRIER();
+    if ( a->references != ref )
+      continue;
+    if ( ison(type, PL_BLOB_UNIQUE) && ison(type, PL_BLOB_NOCOPY) &&
+	 type->write && (void*)a->name == addr &&
+	 localAtomOwner(a->atom) != LD &&
+	 bump_atom_references(a, ref, type) )
+    { cands[n] = a->atom;
+      types[n] = type;
+      n++;
+    }
+  }
+
+  release_atom_table();
+  release_atom_bucket();
+
+  return n;
+}
+
+
+/* scanLiveBlobs() finds the blob that writes as `text'.  Candidates are
+   selected on their data pointer if `by_addr', else on their type name.
+   Returns a registered atom, or 0 if there is no match or more than one.
+   In the latter case *ambiguous is set to true.  Local atoms of other
+   threads are only found by address, using the atom table.
+*/
+
+static atom_t
+scanLiveBlobs(atom_t type_name, void *addr, bool by_addr,
+	      const char *text, size_t len, bool *ambiguous)
+{ GET_LD
+  size_t index;
+  int i, last=false;
+  atom_t found = 0;
+
+  for(index=1, i=MSB(index); !last; i++)
+  { size_t upto = (size_t)2<<i;
+    size_t high = GD->atoms.highest;
+    Atom b = GD->atoms.array.blocks[i];
+
+    if ( upto >= high )
+    { upto = high;
+      last = true;
+    }
+
+    for(; index<upto; index++)
+    { Atom atom = b + index;
+      unsigned int refs = atom->references;
+      PL_blob_t *btype = atom->type;
+
+      if ( !(ATOM_IS_VALID(refs) && btype && btype->write &&
+	     atom->name &&			/* PL_free_blob() was called */
+	     ( by_addr ? (void*)atom->name == addr
+		       : type_name == btype->atom_name ) &&
+	     atom->atom != ATOM_garbage_collected &&
+	     bump_scanned_references(atom, refs, btype)) )
+	continue;
+
+      if ( !matchLiveBlob(atom->atom, btype, text, len, &found, ambiguous) )
+	return found;
+    }
+  }
+
+  if ( by_addr )
+  { atom_t cands[MAX_TABLE_CANDIDATES];
+    PL_blob_t *types[MAX_TABLE_CANDIDATES];
+    int n = localBlobsByAddress(addr, cands, types);
+
+    for(int i=0; i<n; i++)
+    { if ( !matchLiveBlob(cands[i], types[i], text, len, &found, ambiguous) )
+      { while(++i < n)
+	  PL_unregister_atom(cands[i]);
+	return found;
+      }
+    }
+  }
+
+  return found;
+}
+
+
+/* blob_address() is true if the first argument of `<type>(Arg, ...)' is
+   a pointer, e.g., <clause>(0x63c0850).  See the `%p' of Svfprintf().
+*/
+
+static bool
+blob_address(const char *text, size_t len, void **addrp)
+{ const char *e = &text[len];
+  const char *s = memchr(text, '(', len);
+  const char *d;
+  uintptr_t addr = 0;
+
+  if ( !s || e-s < 4 || s[1] != '0' || s[2] != 'x' )
+    return false;
+
+  for(d=s+3; d<e; d++)
+  { int c = *d;
+
+    if ( c >= '0' && c <= '9' )
+      addr = addr<<4 | (c-'0');
+    else if ( c >= 'a' && c <= 'f' )
+      addr = addr<<4 | (c-'a'+10);
+    else
+      break;
+  }
+
+  if ( d == s+3 || d == e || (*d != ',' && *d != ')') || addr == 0 )
+    return false;
+
+  *addrp = (void*)addr;
+  return true;
+}
+
+
+/* lookupLiveBlob() finds the blob of type `type_name' that writes as
+   `text'.  Returns a registered atom, or 0 if there is no match or more
+   than one.  Used for read_term/2,3 with blob(resolve).
+
+   Most write() functions print the blob data using `%p', which allows us
+   to find the candidate without writing every blob in the atom table.
+   That is not just faster: a write() may need a lock, e.g., the Python
+   GIL for library(janus).  If the first argument is not the blob data we
+   fall back to comparing the text of all blobs of this type.
+
+   Note that the printed form is not an identity: after atom garbage
+   collection an address can be reused by another blob of the same type.
+   Resolving is therefore best-effort and only enabled where the input is
+   trusted, i.e. the toplevel.
+*/
+
+static atom_t
+lookupLiveBlob(atom_t type_name, const char *text, size_t len)
+{ void *addr;
+
+  if ( blob_address(text, len, &addr) )
+  { bool ambiguous = false;
+    atom_t found = scanLiveBlobs(0, addr, true, text, len, &ambiguous);
+
+    if ( found || ambiguous )
+      return found;
+  }
+
+  return scanLiveBlobs(type_name, NULL, false, text, len, NULL);
+}
+
+
+/* newDeadBlob() creates the blob for read_term/2,3 reading
+   <type>(...).  If `resolve', first look for a live blob that writes as
+   this text.  Returns a registered atom or 0.
+*/
+
+atom_t
+newDeadBlob(atom_t type_name, const char *text, size_t len, bool resolve)
+{ GET_LD
+  bool new;
+
+  if ( resolve )
+  { atom_t live;
+
+    if ( (live=lookupLiveBlob(type_name, text, len)) )
+      return live;
+  }
+
+  return lookupBlob(text, len, &unavailable_blob, &new);
+}
 
 
 void
@@ -337,7 +938,7 @@ PL_unregister_blob_type(PL_blob_t *type)
       PL_blob_t *btype = atom->type;
 
       if ( ATOM_IS_VALID(refs) && btype == type &&
-	   bump_atom_references(atom, refs) )
+	   bump_atom_references(atom, refs, btype) )
       { atom->type = &unregistered_blob_atom;
 
 	atom->name = "<discarded blob>";
@@ -365,41 +966,6 @@ static const ccharp atoms[] = {
 };
 #undef ATOM
 
-#ifdef O_PLMT
-
-#define acquire_atom_table(t, b) \
-  { LD->thread.info->access.atom_table = GD->atoms.table; \
-    t = LD->thread.info->access.atom_table->table; \
-    b = LD->thread.info->access.atom_table->buckets; \
-  }
-
-#define release_atom_table() \
-  { LD->thread.info->access.atom_table = NULL; \
-    LD->thread.info->access.atom_bucket = NULL; \
-  }
-
-#define acquire_atom_bucket(b) \
-  { LD->thread.info->access.atom_bucket = (b); \
-  }
-
-#define release_atom_bucket() \
-  { LD->thread.info->access.atom_bucket = NULL; \
-  }
-
-#else
-
-#define acquire_atom_table(t, b) \
-  { t = GD->atoms.table->table; \
-    b = GD->atoms.table->buckets; \
-  }
-
-#define release_atom_table() (void)0
-
-#define acquire_atom_bucket(b) (void)0
-
-#define release_atom_bucket() (void)0
-
-#endif
 
 /* Note that we use PL_malloc_uncollectable() here because the pointer in
    our block is not the real memory pointer.  Probably it is better to
@@ -413,41 +979,61 @@ atoms. In that case accessing a GC'ed   atom  causes a crash rather then
 another atom.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* A new block of the atom array is zeroed, which makes its slots free
+   (references 0) with a NULL type (see ATOM_TYPE_IS_INVALID()).  We do
+   not touch it, so the pages of a block only use physical memory once
+   atoms are created in them (see alloc_lazy_zeroed()).
+*/
+
 static void
 allocateAtomBlock(int idx)
 { if ( !GD->atoms.array.blocks[idx] )
   { size_t bs = (size_t)1<<idx;
-    size_t i;
-    Atom newblock;
+    Atom newblock = alloc_lazy_zeroed(bs*sizeof(struct atom));
 
-    if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(struct atom))) )
-      outOfCore();
-
-    memset(newblock, 0, bs*sizeof(struct atom));
-    for(i=0; i<bs; i++)
-    { newblock[i].type = ATOM_TYPE_INVALID;
-      newblock[i].name = "<virgin>";
-    }
     if ( !COMPARE_AND_SWAP_PTR(&GD->atoms.array.blocks[idx],
 			   NULL, newblock-bs) )
-      PL_free(newblock);		/* done by someone else */
+      free_lazy_zeroed(newblock, bs*sizeof(struct atom)); /* done by someone else */
   }
 }
 
-static Atom
-reserveAtom(void)
-{ size_t index;
-#ifdef O_ATOMGC				/* try to find a hole! */
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Atom slots are reserved in batches of up to ATOM_RESERVE_BATCH per thread
+and handed out from LD->atoms.reserved.  Reserving one slot at a time
+makes threads that create many atoms (e.g., the blobs of tables) write
+the shared GD->atoms.no_hole_before and GD->atoms.highest for each atom,
+and interleaves their atoms in the atom array, so that the cache lines
+holding an atom's reference count are shared between threads.
+
+A reserved slot has ATOM_RESERVED_REFERENCE without ATOM_VALID_REFERENCE.
+Atom-GC and rehashing skip such slots.  releaseReservedAtoms() frees the
+unused slots of a thread that terminates.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+claimAtomSlot(size_t index)
+{ Atom a = fetchAtomArray(index);
+  unsigned int ref = a->references;
+
+  return ( ATOM_IS_FREE(ref) &&
+	   COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_RESERVED_REFERENCE) );
+}
+
+/* Reserve up to `max` atom slots, storing their indexes in `slots`.
+ * Returns the number reserved, at least one.
+ */
+
+static unsigned
+reserveAtomSlots(size_t *slots, unsigned max)
+{ unsigned n = 0;
+  size_t index;
+#ifdef O_ATOMGC				/* try to find holes! */
   int i;
   int last = false;
-  Atom a;
-  unsigned int ref;
-  int idx;
 
   for(index=GD->atoms.no_hole_before, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
     size_t high = GD->atoms.highest;
-    Atom b = GD->atoms.array.blocks[i];
 
     if ( upto >= high )
     { upto = high;
@@ -455,40 +1041,72 @@ reserveAtom(void)
     }
 
     for(; index<upto; index++)
-    { a = b + index;
-      ref = a->references;
-
-      if ( ATOM_IS_FREE(ref) &&
-	   COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_RESERVED_REFERENCE) )
-      { assert(a->type == ATOM_TYPE_INVALID);
-	GD->atoms.no_hole_before = index+1;
-        a->atom = (index<<LMASK_BITS)|TAG_ATOM;
-
-	return a;
+    { if ( claimAtomSlot(index) )
+      { slots[n++] = index;
+	if ( n == max )
+	{ GD->atoms.no_hole_before = index+1;
+	  return n;
+	}
       }
     }
   }
-  GD->atoms.no_hole_before = index+1;
+  GD->atoms.no_hole_before = index;
+  if ( n > 0 )
+    return n;
 #endif /*O_ATOMGC*/
 
-  for(;;)
+  for(;;)				/* extend the array */
   { index = __atomic_load_n(&GD->atoms.highest, __ATOMIC_ACQUIRE);
-    idx = MSB(index);
-    assert(index >= 0);
+    int idx = MSB(index);
+    size_t end = (size_t)2<<idx;	/* end of the block */
+    size_t upto = index+max;
 
+    if ( upto > end )
+      upto = end;
     if ( !GD->atoms.array.blocks[idx] )
       allocateAtomBlock(idx);
 
-    a = &GD->atoms.array.blocks[idx][index];
-    ref = a->references;
-
-    if ( ATOM_IS_FREE(ref) &&
-	 COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_RESERVED_REFERENCE) )
-    { COMPARE_AND_SWAP_SIZE(&GD->atoms.highest, index, index+1);
-      a->atom = (index<<LMASK_BITS)|TAG_ATOM;
-
-      return a;
+    if ( COMPARE_AND_SWAP_SIZE(&GD->atoms.highest, index, upto) )
+    { for(; index<upto; index++)	/* a hole scan may take some */
+      { if ( claimAtomSlot(index) )
+	  slots[n++] = index;
+      }
+      if ( n > 0 )
+	return n;
     }
+  }
+}
+
+#define reserveAtom(_) LDFUNC(reserveAtom, _)
+static Atom
+reserveAtom(DECL_LD)
+{ size_t index;
+  Atom a;
+
+  if ( LD->atoms.reserved.next == LD->atoms.reserved.count )
+  { LD->atoms.reserved.count = reserveAtomSlots(LD->atoms.reserved.index,
+						ATOM_RESERVE_BATCH);
+    LD->atoms.reserved.next = 0;
+  }
+  index = LD->atoms.reserved.index[LD->atoms.reserved.next++];
+  a = fetchAtomArray(index);
+  assert(ATOM_TYPE_IS_INVALID(a->type));
+  a->atom = MK_ATOM(index);
+
+  return a;
+}
+
+/* Free the atom slots reserved by a terminating thread */
+
+void
+releaseReservedAtoms(PL_local_data_t *ld)
+{ while( ld->atoms.reserved.next < ld->atoms.reserved.count )
+  { size_t index = ld->atoms.reserved.index[ld->atoms.reserved.next++];
+    Atom a = fetchAtomArray(index);
+
+    a->references = 0;
+    if ( GD->atoms.no_hole_before > index )
+      GD->atoms.no_hole_before = index;
   }
 }
 
@@ -515,10 +1133,13 @@ they manage to register the atom in   the old table before rehashAtoms()
 activates the new table the insertion   is successful, but rehashAtoms()
 may not have moved the atom to the new   table. Now we will repeat if we
 bypassed the LOCK as either GD->atoms.rehashing is true or the new table
-is activated.
+is activated.  We check GD->atoms.rehashing again after the CAS, which
+is a full barrier.  rehashAtoms() has a barrier between setting
+GD->atoms.rehashing and scanning the atoms, so either we see the flag
+or rehashAtoms() sees our reserved atom and waits for it.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 same_name(const Atom a, const char *s, size_t length, const PL_blob_t *type)
 { if ( isoff(type, PL_BLOB_NOCOPY) )
     return length == 0 || memcmp(s, a->name, length) == 0;
@@ -527,31 +1148,70 @@ same_name(const Atom a, const char *s, size_t length, const PL_blob_t *type)
 }
 
 
+/* The atom table holds the ordinary PL_BLOB_UNIQUE atoms and the local
+ * ones, which are not in GD->statistics.atoms.  lookupBlob() and
+ * rehashAtoms() must agree, or every lookup takes L_REHASH_ATOMS for a
+ * rehash that is not done.
+ */
+
+static inline bool
+atomTableNeedsRehash(void)
+{ return ( GD->atoms.table->buckets * 2 <
+	   GD->statistics.atoms + GD->atoms.local_unique );
+}
+
+
+/* lookupBlob() for a PL_BLOB_LOCAL type creates local atoms.  For
+ * other types, lookupBlobEx() can create a local atom if `local` is
+ * true.  This is for PL_BLOB_UNIQUE types whose atoms only data of the
+ * calling thread will refer to, e.g., a text atom that is unified with a
+ * term after which the caller drops its reference (see unify_text()) or
+ * the atoms of the tokens of read_term/2 (see pl-read.c).  A
+ * lookup that finds a local atom of another thread promotes it, so the
+ * atom is still unique.
+ */
+
 atom_t
-lookupBlob(DECL_LD const char *s, size_t length, PL_blob_t *type, int *new)
-{ unsigned int v0, v, ref;
-  Atom *table;
+lookupBlob(DECL_LD const char *s, size_t length, PL_blob_t *type, bool *new)
+{ return lookupBlobEx(s, length, type, new, ison(type, PL_BLOB_LOCAL));
+}
+
+
+atom_t
+lookupBlobEx(DECL_LD const char *s, size_t length, PL_blob_t *type, bool *new,
+	     bool local)
+{ unsigned int v0, v = 0, ref;
+  Atom *table = NULL;
   int buckets;
-  Atom a, head;
+  Atom a, head = NULL;
 
   if ( !type->registered )		/* avoid deadlock */
     PL_register_blob_type(type);
+#ifdef O_ATOMGC
+  if ( ison(type, PL_BLOB_LOCAL) && ison(type, PL_BLOB_NOCOPY) &&
+       isoff(type, PL_BLOB_UNIQUE) )
+  { *new = true;
+    return lookupLocalBlob(s, length, type);
+  }
+#endif
 
   if ( ison(type, PL_BLOB_NOCOPY) )
     v0 = MurmurHashAligned2(&s, sizeof(s), MURMUR_SEED);
+  else if ( ison(type, PL_BLOB_WCHAR) )	/* same on all machines */
+    v0 = MurmurHashWide((const pl_wchar_t*)s, length, MURMUR_SEED);
   else
     v0 = MurmurHashAligned2(s, length, MURMUR_SEED);
 
 redo:
-  acquire_atom_table(table, buckets);
+  if ( ison(type, PL_BLOB_UNIQUE) )	/* other blobs are not in the table */
+  { acquire_atom_table(table, buckets);
 
-  v  = v0 & (buckets-1);
-  head = table[v];
-  acquire_atom_bucket(table+v);
-  DEBUG(MSG_HASH_STAT, GD->atoms.lookups++);
+    v  = v0 & (buckets-1);
+    head = table[v];
+    acquire_atom_bucket(table+v);
+    DEBUG(MSG_HASH_STAT, GD->atoms.lookups++);
 
-  if ( ison(type, PL_BLOB_UNIQUE) )
-  { for(a = table[v]; a; a = a->next)
+    for(a = table[v]; a; a = a->next)
     { DEBUG(MSG_HASH_STAT, GD->atoms.cmps++);
       ref = a->references;
       if ( ATOM_IS_RESERVED(ref) &&
@@ -562,8 +1222,10 @@ redo:
 	  goto redo;
 #ifdef O_ATOMGC
         if ( indexAtom(a->atom) >= GD->atoms.builtin &&
-	     !likely(bump_atom_references(a, ref)) )
-	  break;			/* atom was just GCed.  Re-create */
+	     !likely(unlikely(ATOM_IS_LOCAL(ref))
+			? bump_local_references(a, ref, type)
+			: bump_atom_references(a, ref, type)) )
+	  goto redo;			/* being GCed: wait until unlinked */
 #endif
 #ifdef O_DEBUG_ATOMGC
         if ( atomLogFd && tracking(a) )
@@ -576,23 +1238,27 @@ redo:
 	return a->atom;
       }
     }
+
+    if ( atomTableNeedsRehash() )
+    { bool rc;
+
+      PL_LOCK(L_REHASH_ATOMS);
+      rc = rehashAtoms();
+      PL_UNLOCK(L_REHASH_ATOMS);
+
+      if ( !rc )
+	outOfCore();
+    }
+
+    if ( !( table == GD->atoms.table->table && head == table[v] ) )
+      goto redo;
   }
 
-  if ( GD->atoms.table->buckets * 2 < GD->statistics.atoms )
-  { int rc;
-
-    PL_LOCK(L_REHASH_ATOMS);
-    rc = rehashAtoms();
-    PL_UNLOCK(L_REHASH_ATOMS);
-
-    if ( !rc )
-      outOfCore();
-  }
-
-  if ( !( table == GD->atoms.table->table && head == table[v] ) )
-    goto redo;
-
+#ifdef O_ATOMGC
+  a = local ? reserveLocalAtom() : reserveAtom();
+#else
   a = reserveAtom();
+#endif
   a->length = length;
   a->type = type;
   if ( isoff(type, PL_BLOB_NOCOPY) )
@@ -620,19 +1286,29 @@ redo:
   { a->next = table[v];
     if ( !( !GD->atoms.rehashing &&	/* See (**) above */
             COMPARE_AND_SWAP_PTR(&table[v], head, a) &&
+	    !LOAD_SEQ_CST(GD->atoms.rehashing) &&
 	    table == GD->atoms.table->table ) )
     { if ( isoff(type, PL_BLOB_NOCOPY) )
         PL_free(a->name);
       a->type = ATOM_TYPE_INVALID;
       a->name = "<race>";
       MEMORY_BARRIER();
-      a->references = 0;
+#ifdef O_ATOMGC
+      if ( local )
+	unreserveLocalAtom(a);
+      else
+#endif
+	a->references = 0;
       goto redo;
     }
   }
 
 #ifdef O_ATOMGC
-  a->references = 1 | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE;
+  if ( local )
+    a->references = ( 1 | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE |
+		      ATOM_LOCAL_REFERENCE );
+  else
+    a->references = 1 | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE;
 #endif
 
 #ifdef O_DEBUG_ATOMGC
@@ -647,6 +1323,15 @@ redo:
   release_atom_table();
   release_atom_bucket();
 
+#ifdef O_ATOMGC
+  if ( local )				/* see lookupLocalBlob() */
+  { if ( ison(type, PL_BLOB_UNIQUE) )	/* for rehashing */
+      ATOMIC_INC(&GD->atoms.local_unique);
+    addLocalUnits(a);
+    return a->atom;
+  }
+#endif
+  add_type_live(a);
   if ( ATOMIC_INC(&GD->statistics.atoms) % 128 == 0 )
     considerAGC();
 
@@ -656,9 +1341,21 @@ redo:
 
 atom_t
 lookupAtom(DECL_LD const char *s, size_t length)
-{ int new;
+{ bool new;
 
   return lookupBlob(s, length, &text_atom, &new);
+}
+
+/* As lookupAtom(), creating a local atom if it does not exist.  Only for
+ * callers that drop the reference after putting the atom on the stacks
+ * of the calling thread.
+ */
+
+atom_t
+lookupLocalAtom(DECL_LD const char *s, size_t length)
+{ bool new;
+
+  return lookupBlobEx(s, length, &text_atom, &new, true);
 }
 
 
@@ -671,7 +1368,7 @@ lookupAtom(DECL_LD const char *s, size_t length)
 #ifdef O_DEBUG_ATOMGC
 static char *t_tracking;
 
-static int
+static bool
 tracking(const Atom a)
 { return ( a->type == &text_atom &&
 	   strcmp(a->name, t_tracking) == 0 );
@@ -689,7 +1386,7 @@ _PL_debug_register_atom(atom_t a,
   { Atom atom = fetchAtomArray(i);
     unsigned int refs;
 
-    refs = ATOM_REF_COUNT(register_atom(atom));
+    refs = ATOM_REF_COUNT(register_atom(atom, true));
     if ( atomLogFd && tracking(atom) )
       Sfprintf(atomLogFd, "%s:%d: %s(): ++ (%d) for `%s' (#%zd)\n",
 	       file, line, func, refs, atom->name, i);
@@ -770,8 +1467,10 @@ markAtom(atom_t a)
     return;				/* locked range */
 
   ap = fetchAtomArray(i);
+  unsigned int ref = ap->references;
 
-  if ( ATOM_IS_VALID(ap->references) && !ATOM_IS_MARKED(ap->references) )
+  if ( ATOM_IS_VALID(ref) && !ATOM_IS_MARKED(ref) &&
+       !ATOM_IS_LOCAL(ref) )		/* owned by a thread */
   {
 #ifdef O_DEBUG_ATOMGC
     if ( atomLogFd && tracking(ap) )
@@ -831,11 +1530,14 @@ destroyAtom()  actually  discards  an  atom.
 
 static Atom invalid_atoms = NULL;
 
-static int
-invalidateAtom(Atom a, unsigned int ref)
-{ Atom *ap;
+/* Move an atom without references to ATOM_PRE_DESTROY_REFERENCE and run
+ * its release hook, which may refuse.  Returns false if the atom was not
+ * released.
+ */
 
-  if ( !COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_PRE_DESTROY_REFERENCE) )
+static bool
+preDestroyAtom(Atom a, unsigned int ref)
+{ if ( !COMPARE_AND_SWAP_UINT(&a->references, ref, ATOM_PRE_DESTROY_REFERENCE) )
   { return false;
   }
 
@@ -851,6 +1553,63 @@ invalidateAtom(Atom a, unsigned int ref)
     }
   }
 
+  return true;
+}
+
+/* Remove a PL_BLOB_UNIQUE atom from the atom table.  Lookups only insert
+ * at the head of a bucket, so we need a CAS for the head only.  Caller
+ * holds L_REHASH_ATOMS, which serialises removal and rehashing.
+ */
+
+static void
+unlinkAtom(Atom a)
+{ Atom *ap;
+  AtomTable table;
+  uintptr_t mask;
+
+redo:
+  table = GD->atoms.table;
+  mask = table->buckets-1;
+  ap = &table->table[a->hash_value & mask];
+
+  if ( *ap == a )
+  { if ( !COMPARE_AND_SWAP_PTR(&table->table[a->hash_value & mask], a, a->next) )
+    { goto redo;
+    }
+  }
+  else
+  { for( ; ; ap = &(*ap)->next )
+    { assert(*ap);		// MT: TBD: failed a few times!?
+
+      if ( *ap == a )
+      { *ap = a->next;
+	break;
+      }
+    }
+  }
+}
+
+/* Chain an unlinked atom into *chain, overwriting its type */
+
+static void
+chainInvalidAtom(Atom a, Atom *chain)
+{ if ( isoff(a->type, PL_BLOB_NOCOPY) )
+  { size_t slen = a->length + a->type->padding;
+    ATOMIC_SUB(&GD->statistics.atom_string_space, slen);
+    ATOMIC_ADD(&GD->statistics.atom_string_space_freed, slen);
+    a->next_invalid = (uintptr_t)*chain | ATOM_NAME_MUST_FREE;
+  } else
+  { a->next_invalid = (uintptr_t)*chain;
+  }
+  *chain = a;
+  a->length = 0;
+}
+
+static bool
+invalidateAtom(Atom a, unsigned int ref)
+{ if ( !preDestroyAtom(a, ref) )
+    return false;
+
   a->references = ATOM_DESTROY_REFERENCE;
 
 #ifdef O_DEBUG_ATOMGC
@@ -859,62 +1618,39 @@ invalidateAtom(Atom a, unsigned int ref)
 #endif
 
   if ( ison(a->type, PL_BLOB_UNIQUE) )
-  { AtomTable table;
-    uintptr_t mask;
+    unlinkAtom(a);
 
-  redo:
-    table = GD->atoms.table;
-    mask = table->buckets-1;
-    ap = &table->table[a->hash_value & mask];
-
-    if ( *ap == a )
-    { if ( !COMPARE_AND_SWAP_PTR(&table->table[a->hash_value & mask], a, a->next) )
-      { goto redo;
-      }
-    }
-    else
-    { for( ; ; ap = &(*ap)->next )
-      { assert(*ap);		// MT: TBD: failed a few times!?
-
-        if ( *ap == a )
-        { *ap = a->next;
-          break;
-        }
-      }
-    }
-  }
-
-  if ( isoff(a->type, PL_BLOB_NOCOPY) )
-  { size_t slen = a->length + a->type->padding;
-    ATOMIC_SUB(&GD->statistics.atom_string_space, slen);
-    ATOMIC_ADD(&GD->statistics.atom_string_space_freed, slen);
-    a->next_invalid = (uintptr_t)invalid_atoms | ATOM_NAME_MUST_FREE;
-  } else
-  { a->next_invalid = (uintptr_t)invalid_atoms;
-  }
-  invalid_atoms = a;
-  a->length = 0;
+  del_type_live(a);
+  chainInvalidAtom(a, &invalid_atoms);
 
   return true;
 }
 
-static int
-destroyAtom(Atom a, Atom **buckets)
-{ unsigned int v;
-  AtomTable t;
-  size_t index;
+/* True if a lookup may be walking the bucket of the invalidated atom `a`.
+ * `buckets` is the 0-terminated result of pl_atom_buckets_in_use().
+ */
 
-  while ( buckets && *buckets )
-  { t = GD->atoms.table;
-    while ( t )
-    { v = a->hash_value & (t->buckets-1);
+static bool
+atomBucketInUse(Atom a, Atom **buckets)
+{ while ( buckets && *buckets )
+  { for(AtomTable t = GD->atoms.table; t; t = t->prev)
+    { unsigned int v = a->hash_value & (t->buckets-1);
+
       if ( *buckets == t->table+v )
-      { return false;
-      }
-      t = t->prev;
+	return true;
     }
     buckets++;
   }
+
+  return false;
+}
+
+static bool
+destroyAtom(Atom a, Atom **buckets)
+{ size_t index;
+
+  if ( atomBucketInUse(a, buckets) )
+    return false;
 
 #ifdef O_DEBUG_ATOMGC
   /* tracking() always returns false as the type is lost */
@@ -946,6 +1682,10 @@ collectAtoms(void)
   size_t index;
   int i, last=false;
   Atom temp, next, prev = NULL;	 /* = NULL to keep compiler happy */
+  PL_blob_t *type;
+
+  for(type = GD->atoms.types; type; type = type->next)
+    type->unregistered = 0;	/* recomputed by the scan below */
 
   for(index=GD->atoms.builtin, i=MSB(index); !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -964,13 +1704,18 @@ collectAtoms(void)
       if ( !ATOM_IS_VALID(ref) )
       { continue;
       }
+      if ( ATOM_IS_LOCAL(ref) )		/* owned by a thread */
+	continue;
 
       if ( !ATOM_IS_MARKED(ref) && (ATOM_REF_COUNT(ref) == 0) )
       { invalidateAtom(a, ref);
       } else
-      {	ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
+      { if ( ATOM_IS_MARKED(ref) )	/* do not dirty the others */
+	  ATOMIC_AND(&a->references, ~ATOM_MARKED_REFERENCE);
         if ( ATOM_REF_COUNT(ref) == 0 )
-	  unregistered++;
+	{ unregistered++;
+	  add_type_units(a);
+	}
       }
     }
   }
@@ -1003,6 +1748,8 @@ collectAtoms(void)
   maybe_free_atom_tables();
 
   GD->atoms.unregistered = GD->atoms.non_garbage = unregistered;
+  for(type = GD->atoms.types; type; type = type->next)
+    type->non_garbage = type->unregistered;
 
   return reclaimed;
 }
@@ -1028,6 +1775,9 @@ pl_garbage_collect_atoms(void)
   if ( GD->halt.cleaning != CLN_NORMAL )	/* Cleaning up */
     return true;
 
+  if ( LD->atoms.local.live )		/* our own thread-local blobs */
+    collectLocalAtoms();
+
   if ( !COMPARE_AND_SWAP_INT(&GD->atoms.gc_active, false, true) )
     return true;
 
@@ -1050,6 +1800,8 @@ pl_garbage_collect_atoms(void)
   forThreadLocalDataUnsuspended(markAtomsOnStacks, NULL);
   markAtomsMessageQueues();
 #endif
+  markAtomsInTries();			/* after the stacks */
+  collectFunctors();			/* unregisters their names */
   oldcollected = GD->atoms.collected;
   reclaimed = collectAtoms();
   GD->atoms.collected += reclaimed;
@@ -1070,6 +1822,7 @@ pl_garbage_collect_atoms(void)
 			  PL_DOUBLE, (double)t);
 
   GD->atoms.gc_active = false;
+  freeZombieTrieChunks();
 
   return rc;
 }
@@ -1081,6 +1834,50 @@ PL_agc_hook(PL_agc_hook_t new)
   GD->atoms.gc_hook = new;
 
   return old;
+}
+
+
+/* A type that declared a gc_margin gets its own budget.  Same shape as the
+   global rule, so that a type whose blobs turn out to be *live* stops
+   asking: non_garbage grows at the next sweep and absorbs them.
+*/
+
+static void
+considerAGCType(const PL_blob_t *type)
+{ if ( GD->atoms.margin != 0 &&		/* agc_margin 0 disables all AGC */
+       type->gc_margin != 0 &&
+       type->unregistered >= type->non_garbage + type->gc_margin )
+  { DEBUG(MSG_AGC_CONSIDER,
+	  Sdprintf("Signal AGC for <%s>.  Unregistered %zd, non-garbage %zd, "
+		   "margin %zd\n", type->name, type->unregistered,
+		   type->non_garbage, type->gc_margin));
+    signalGCThread(SIG_ATOM_GC);
+  }
+}
+
+
+/* Is a collection wanted?  Used to re-test when the request is picked up,
+   as time has passed since it was raised.  Must agree with considerAGC()
+   and considerAGCType() or a raised request is dropped on the floor.
+*/
+
+bool
+AGC_wanted(void)
+{ PL_blob_t *type;
+
+  if ( GD->atoms.margin == 0 )		/* AGC disabled */
+    return false;
+
+  if ( GD->atoms.unregistered >= GD->atoms.non_garbage + GD->atoms.margin )
+    return true;
+
+  for(type = GD->atoms.types; type; type = type->next)
+  { if ( type->gc_margin != 0 &&
+	 type->unregistered >= type->non_garbage + type->gc_margin )
+      return true;
+  }
+
+  return false;
 }
 
 
@@ -1097,12 +1894,861 @@ considerAGC(void)
 }
 
 
+		 /*******************************
+		 *	THREAD-LOCAL BLOBS	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Blobs whose type has PL_BLOB_LOCAL start  owned by the thread or engine
+that creates them.  Such an atom has ATOM_LOCAL_REFERENCE.  While local:
+
+  - Only the owner can reach it: from its stacks, findall bags, message
+    queue and counted references (PL_register_atom()).
+  - It does not count in GD->statistics.atoms, towards the AGC margin
+    nor in the `live` and `space` of its type.  Global AGC neither marks
+    nor collects it and current_blob/2 only enumerates it in the owner.
+
+Local atoms live in chunks of LOCAL_CHUNK_SIZE consecutive atom slots,
+aligned on LOCAL_CHUNK_SIZE.  A thread takes a chunk from the pool of
+returned chunks or by extending the atom array (getLocalChunk()) and
+owns the slots of the chunk in `avail`.  Free slots of a chunk remain
+reserved (ATOM_RESERVED_REFERENCE), also while the chunk is in the pool,
+so ordinary atoms never use them.  GD->atoms.local_chunks maps a chunk number to its
+descriptor, which holds the owner and the `used` and `marked` bitmaps.
+Only the owner writes these bitmaps.  The descriptors are never freed,
+so other threads may read them at any time.
+
+collectLocalAtoms() is the owner's sweep at a safe point.  It sets the
+`marked` bits of the local atoms reachable from its roots and releases
+the used, unmarked ones that have no references.  The slots remain in
+the chunk for reuse.
+
+When the thread terminates, releaseLocalAtoms() releases its local atoms
+without references and turns the others into ordinary atoms, left to
+global AGC.  The slots of the latter leave the chunk and the chunk goes
+to the pool.  After a sweep, empty chunks beyond the threshold also go
+to the pool.
+
+Atoms that escape to another thread are promoted to ordinary atoms (see
+promoteLocalAtom()).  Local PL_BLOB_UNIQUE atoms are in the atom table,
+where a lookup from another thread finds and promotes them.  Releasing
+them needs the bucket protocol of global AGC (see finishLocalAtoms()).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* The descriptor of a chunk or NULL if its block does not exist */
+
+static inline local_atom_chunk *
+localChunk(size_t chunk)
+{ local_atom_chunk *b = GD->atoms.local_chunks.blocks[MSB(chunk)];
+
+  return b ? &b[chunk] : NULL;
+}
+
+
+static void
+allocateLocalChunkBlock(int idx)
+{ size_t bs = (size_t)1<<idx;
+  local_atom_chunk *newblock;
+
+  if ( !(newblock=PL_malloc_uncollectable(bs*sizeof(*newblock))) )
+    outOfCore();
+  memset(newblock, 0, bs*sizeof(*newblock));
+  if ( !COMPARE_AND_SWAP_PTR(&GD->atoms.local_chunks.blocks[idx],
+			     NULL, newblock-bs) )
+    PL_free(newblock);			/* done by someone else */
+}
+
+
+/* Get a chunk from the pool, returning its number or 0 */
+
+static size_t
+popLocalChunk(void)
+{ size_t chunk = 0;
+
+  if ( GD->atoms.local_pool.count )
+  { PL_LOCK(L_MISC);
+    if ( GD->atoms.local_pool.count )
+      chunk = GD->atoms.local_pool.chunks[--GD->atoms.local_pool.count];
+    PL_UNLOCK(L_MISC);
+  }
+
+  return chunk;
+}
+
+
+static void
+pushLocalChunk(size_t chunk)
+{ PL_LOCK(L_MISC);
+  if ( GD->atoms.local_pool.count == GD->atoms.local_pool.size )
+  { size_t size = GD->atoms.local_pool.size ? GD->atoms.local_pool.size*2
+					     : 16;
+
+    GD->atoms.local_pool.chunks =
+      PL_realloc(GD->atoms.local_pool.chunks,
+		 size*sizeof(*GD->atoms.local_pool.chunks));
+    GD->atoms.local_pool.size = size;
+  }
+  GD->atoms.local_pool.chunks[GD->atoms.local_pool.count++] = chunk;
+  PL_UNLOCK(L_MISC);
+}
+
+
+/* Claim a new chunk by extending the atom array to the next aligned
+ * chunk.  The skipped slots are free and found by the hole scan of
+ * reserveAtomSlots().  Slots the hole scan claimed before us are not in
+ * `avail`.
+ */
+
+static size_t
+newLocalChunk(void)
+{ size_t high, start, chunk;
+  local_atom_chunk *c;
+  uint64_t avail = 0;
+
+  for(;;)
+  { high  = __atomic_load_n(&GD->atoms.highest, __ATOMIC_ACQUIRE);
+    start = (high+LOCAL_CHUNK_SIZE-1) & ~(LOCAL_CHUNK_SIZE-1);
+    int idx = MSB(start);
+
+    assert(start >= LOCAL_CHUNK_SIZE);	/* chunk is inside the block */
+    if ( !GD->atoms.array.blocks[idx] )
+      allocateAtomBlock(idx);
+    if ( COMPARE_AND_SWAP_SIZE(&GD->atoms.highest, high,
+			       start+LOCAL_CHUNK_SIZE) )
+      break;
+  }
+  if ( start > high && GD->atoms.no_hole_before > high )
+    GD->atoms.no_hole_before = high;
+
+  for(size_t i=0; i<LOCAL_CHUNK_SIZE; i++)
+  { if ( claimAtomSlot(start+i) )
+      avail |= (uint64_t)1<<i;
+  }
+
+  chunk = start>>LOCAL_CHUNK_BITS;
+  if ( !(c=localChunk(chunk)) )
+  { allocateLocalChunkBlock(MSB(chunk));
+    c = localChunk(chunk);
+  }
+  c->avail = avail;
+
+  return chunk;
+}
+
+
+/* Add a chunk to the chunks of this thread */
+
+#define getLocalChunk(_) LDFUNC(getLocalChunk, _)
+static void
+getLocalChunk(DECL_LD)
+{ size_t chunk;
+  local_atom_chunk *c;
+
+  if ( !(chunk=popLocalChunk()) )
+    chunk = newLocalChunk();
+  c = localChunk(chunk);
+  c->used   = 0;
+  c->marked = 0;
+  MEMORY_RELEASE();
+  c->owner  = LD;
+
+  if ( LD->atoms.local.count == LD->atoms.local.size )
+  { size_t size = LD->atoms.local.size ? LD->atoms.local.size*2 : 16;
+
+    LD->atoms.local.chunks = PL_realloc(LD->atoms.local.chunks,
+					size*sizeof(*LD->atoms.local.chunks));
+    LD->atoms.local.size = size;
+  }
+  LD->atoms.local.chunks[LD->atoms.local.count++] = chunk;
+}
+
+
+/* Reserve a slot for a local atom.  As reserveAtom(), the slot has
+ * ATOM_RESERVED_REFERENCE and the caller fills it.
+ */
+
+static Atom
+reserveLocalAtom(DECL_LD)
+{ local_atom_chunk *c = LD->atoms.local.current;
+  size_t chunk;
+  uint64_t free;
+  unsigned int bit;
+  Atom a;
+
+  if ( likely(c && (free = c->avail & ~c->used)) )
+  { chunk = LD->atoms.local.chunks[LD->atoms.local.cursor];
+  } else
+  { if ( c )
+      LD->atoms.local.cursor++;
+    for(;;)
+    { if ( LD->atoms.local.cursor == LD->atoms.local.count )
+	getLocalChunk();
+      chunk = LD->atoms.local.chunks[LD->atoms.local.cursor];
+      c = localChunk(chunk);
+      if ( (free = c->avail & ~c->used) )
+	break;
+      LD->atoms.local.cursor++;
+    }
+    LD->atoms.local.current = c;
+  }
+
+  bit = LSB64(free);
+  c->used |= (uint64_t)1<<bit;
+  size_t index = (chunk<<LOCAL_CHUNK_BITS)+bit;
+  a = fetchAtomArray(index);
+  assert(ATOM_TYPE_IS_INVALID(a->type));
+  a->atom = MK_ATOM(index);
+
+  if ( !LD->atoms.local.threshold )
+    LD->atoms.local.threshold = LOCAL_AGC_MIN;
+  LD->atoms.local.created++;
+  if ( ++LD->atoms.local.live >= LD->atoms.local.threshold )
+    raiseSignal(LD, SIG_ATOM_GC);	/* handled by agc_handler() */
+
+  return a;
+}
+
+
+/* Undo reserveLocalAtom() for a lookup that lost the race to insert */
+
+static void
+unreserveLocalAtom(DECL_LD Atom a)
+{ size_t index = indexAtom(a->atom);
+  local_atom_chunk *c = localChunk(index>>LOCAL_CHUNK_BITS);
+
+  a->references = ATOM_RESERVED_REFERENCE;
+  c->used &= ~((uint64_t)1<<(index&(LOCAL_CHUNK_SIZE-1)));
+  LD->atoms.local.live--;
+}
+
+
+/* A type with a gc_margin also asks for a local sweep, when the units of
+ * its local blobs created since the last sweep reach the margin.  The
+ * units of all types with a margin are counted together.  See
+ * "Per blob type accounting" for the global equivalent.
+ */
+
+static inline void
+addLocalUnits(DECL_LD Atom a)
+{ PL_blob_t *type = a->type;
+
+  if ( unlikely(type->gc_margin) && GD->atoms.margin != 0 )
+  { LD->atoms.local.units += a->length;
+    if ( LD->atoms.local.units >= LD->atoms.local.units_kept + type->gc_margin &&
+	 !LD->atoms.local.units_due )
+    { LD->atoms.local.units_due = true;
+      raiseSignal(LD, SIG_ATOM_GC);	/* handled by agc_handler() */
+    }
+  }
+}
+
+
+/* Create a local PL_BLOB_NOCOPY blob.  These are not in the atom table,
+ * so all we need is a slot.  Local atoms are not counted in the type
+ * statistics, which avoids atomic updates of memory shared by all threads.
+ * The hash is only used by term_hash/2 and friends.
+ */
+
+#define createLocalBlob(s, length, type, refs) \
+	LDFUNC(createLocalBlob, s, length, type, refs)
+static inline atom_t
+createLocalBlob(DECL_LD const char *s, size_t length, PL_blob_t *type,
+		unsigned int refs)
+{ Atom a = reserveLocalAtom();
+  uint64_t h = (uint64_t)(uintptr_t)s;
+
+  a->length = length;
+  a->type   = type;
+  a->name   = (char *)s;
+#ifdef O_TERMHASH
+  a->hash_value = (unsigned int)((h>>3) * 0x9E3779B1u) ^ (unsigned int)(h>>35);
+#endif
+  a->references = ( refs | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE |
+		    ATOM_LOCAL_REFERENCE );
+  if ( type->acquire )
+    (*type->acquire)(a->atom);
+  addLocalUnits(a);
+
+  return a->atom;
+}
+
+static atom_t
+lookupLocalBlob(DECL_LD const char *s, size_t length, PL_blob_t *type)
+{ return createLocalBlob(s, length, type, 1);
+}
+
+/* Create a local PL_BLOB_NOCOPY blob without a reference.  The caller
+ * must put it on the stacks before the next safe point, where the local
+ * sweep may reclaim it.
+ */
+
+atom_t
+newLocalBlob(DECL_LD void *data, size_t length, PL_blob_t *type)
+{ if ( unlikely(!type->registered) )
+    PL_register_blob_type(type);
+
+  DEBUG(0, assert(ison(type, PL_BLOB_LOCAL) && ison(type, PL_BLOB_NOCOPY) &&
+		  isoff(type, PL_BLOB_UNIQUE)));
+  return createLocalBlob(data, length, type, 0);
+}
+
+
+/* Mark a local atom from the roots of the calling thread.  Like
+ * markAtom(), we must be prepared for words that only look like atoms.
+ */
+
+void
+markLocalAtom(atom_t a)
+{ GET_LD
+  size_t i = indexAtom(a);
+  local_atom_chunk *c;
+
+  if ( i >= GD->atoms.highest || i < GD->atoms.builtin )
+    return;
+
+  if ( i < LOCAL_CHUNK_SIZE )		/* chunk 0 is never local */
+    return;
+  if ( (c=localChunk(i>>LOCAL_CHUNK_BITS)) && c->owner == LD )
+    c->marked |= (uint64_t)1<<(i&(LOCAL_CHUNK_SIZE-1));
+}
+
+
+/* Destroy a local atom without references.  As invalidateAtom(), the
+ * release hook runs while the atom is in ATOM_PRE_DESTROY_REFERENCE state
+ * and may refuse.  The slot stays reserved for the chunk.
+ */
+
+static bool
+destroyLocalAtom(Atom a, unsigned int ref)
+{ if ( !preDestroyAtom(a, ref) )
+    return false;
+
+  if ( isoff(a->type, PL_BLOB_NOCOPY) )	/* not counted: no del_type_live() */
+  { size_t slen = a->length + a->type->padding;
+
+    ATOMIC_SUB(&GD->statistics.atom_string_space, slen);
+    ATOMIC_ADD(&GD->statistics.atom_string_space_freed, slen);
+    PL_free(a->name);
+  }
+
+  a->length = 0;
+  a->name = "<reclaimed>";
+  a->type = ATOM_TYPE_INVALID;
+  MEMORY_BARRIER();
+  a->references = ATOM_RESERVED_REFERENCE; /* keep the slot */
+
+  return true;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Local PL_BLOB_UNIQUE atoms are in the atom table, so lookups by other
+threads find them (and promote them).  Releasing such an atom requires
+the protocol of global AGC: unlink it under L_REHASH_ATOMS and keep the
+slot until no lookup may be walking its bucket.  A sweep therefore
+releases them in a second pass, if it gets L_REHASH_ATOMS without
+waiting: global AGC holds this lock while it marks.  Else they are tried
+again in the next sweep.  If some lookup is in the bucket, we hand the
+atom to global AGC by adding it to invalid_atoms.  Its slot leaves the
+chunk.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef struct local_release
+{ bool	locked;				/* we have L_REHASH_ATOMS */
+  bool	deferred;			/* skipped PL_BLOB_UNIQUE atoms */
+  Atom	unlinked;			/* chain of unlinked atoms */
+} local_release;
+
+/* Invalidate and unlink a local PL_BLOB_UNIQUE atom without references.
+ * finishLocalAtoms() releases the slot.
+ */
+
+static bool
+unlinkLocalAtom(Atom a, unsigned int ref, local_release *lr)
+{ if ( !preDestroyAtom(a, ref) )
+    return false;
+
+  a->references = ATOM_DESTROY_REFERENCE;
+  unlinkAtom(a);
+  chainInvalidAtom(a, &lr->unlinked);
+
+  return true;
+}
+
+/* Release the slots of the atoms unlinked by unlinkLocalAtom() */
+
+static void
+finishLocalAtoms(local_release *lr)
+{ Atom** buckets = lr->unlinked ? pl_atom_buckets_in_use() : NULL;
+  size_t count = 0;
+  Atom next;
+
+  for(Atom a = lr->unlinked; a; a = next)
+  { size_t index = indexAtom(a->atom);
+    local_atom_chunk *c = localChunk(index>>LOCAL_CHUNK_BITS);
+    uint64_t mask = (uint64_t)1<<(index&(LOCAL_CHUNK_SIZE-1));
+
+    next = (Atom)(a->next_invalid & ~ATOM_NAME_MUST_FREE);
+    count++;
+    c->used &= ~mask;
+    if ( !atomBucketInUse(a, buckets) )
+    { if ( a->next_invalid & ATOM_NAME_MUST_FREE )
+	PL_free(a->name);
+      a->name = "<reclaimed>";
+      a->type = ATOM_TYPE_INVALID;
+      MEMORY_BARRIER();
+      a->references = ATOM_RESERVED_REFERENCE; /* keep the slot */
+    } else				/* leave it to destroyAtom() */
+    { c->avail &= ~mask;
+      a->next_invalid = ( (uintptr_t)invalid_atoms |
+			  (a->next_invalid & ATOM_NAME_MUST_FREE) );
+      invalid_atoms = a;
+      ATOMIC_INC(&GD->statistics.atoms); /* collectAtoms() subtracts it */
+    }
+  }
+  lr->unlinked = NULL;
+
+  if ( count )
+    ATOMIC_SUB(&GD->atoms.local_unique, count);
+  if ( buckets )
+    PL_free(buckets);
+}
+
+/* Release the local atoms of chunk `c` in `candidates` that have no
+ * references.  A candidate that is no longer local is not ours anymore.
+ * Without lr->locked, PL_BLOB_UNIQUE atoms are skipped, setting
+ * lr->deferred.  With it, we only release PL_BLOB_UNIQUE atoms.
+ * Returns the number of released atoms.
+ *
+ * If the release hook of a local atom refuses, we promote the atom, so
+ * global AGC retries it rather than every sweep of this thread.  A hook
+ * refuses if it cannot do its work here, e.g., because it needs a lock
+ * that is busy or must call Prolog (see LD->atoms.local.sweeping).
+ */
+
+static size_t
+releaseLocalCandidates(local_atom_chunk *c, size_t chunk, uint64_t candidates,
+		       local_release *lr)
+{ size_t released = 0;
+
+  while ( candidates )
+  { unsigned int bit = LSB64(candidates);
+    uint64_t mask = (uint64_t)1<<bit;
+    Atom a = fetchAtomArray((chunk<<LOCAL_CHUNK_BITS)+bit);
+    unsigned int ref = a->references;
+
+    candidates &= ~mask;
+    if ( !ATOM_IS_LOCAL(ref) )
+    { c->used  &= ~mask;
+      c->avail &= ~mask;
+    } else if ( ATOM_REF_COUNT(ref) == 0 )
+    { if ( ison(a->type, PL_BLOB_UNIQUE) )
+      { if ( !lr->locked )
+	  lr->deferred = true;
+	else if ( unlinkLocalAtom(a, ref, lr) )
+	  released++;			/* finishLocalAtoms() clears `used` */
+	else
+	  promoteLocalAtom(a);		/* release refused: see above */
+      } else if ( !lr->locked )
+      { if ( destroyLocalAtom(a, ref) )
+	{ c->used &= ~mask;
+	  released++;
+	} else
+	  promoteLocalAtom(a);
+      }
+    }
+  }
+
+  return released;
+}
+
+
+/* Put a chunk in the pool.  Its used slots must be ordinary atoms by
+ * now: they leave the chunk.  The free slots remain reserved.
+ */
+
+static void
+returnLocalChunk(local_atom_chunk *c, size_t chunk)
+{ c->owner = NULL;
+  c->avail &= ~c->used;
+  c->used = 0;
+  if ( c->avail )
+    pushLocalChunk(chunk);
+}
+
+
+/* Return empty chunks while we keep at least `keep` slots */
+
+#define returnEmptyLocalChunks(keep) LDFUNC(returnEmptyLocalChunks, keep)
+static void
+returnEmptyLocalChunks(DECL_LD size_t keep)
+{ size_t capacity = 0;
+
+  for(size_t i=0; i<LD->atoms.local.count; i++)
+    capacity += POPCOUNT64(localChunk(LD->atoms.local.chunks[i])->avail);
+
+  for(size_t i=LD->atoms.local.count; i-- > 0; )
+  { size_t chunk = LD->atoms.local.chunks[i];
+    local_atom_chunk *c = localChunk(chunk);
+    size_t slots = POPCOUNT64(c->avail);
+
+    if ( !c->used && capacity-slots >= keep )
+    { returnLocalChunk(c, chunk);
+      capacity -= slots;
+      LD->atoms.local.chunks[i] =
+	LD->atoms.local.chunks[--LD->atoms.local.count];
+    }
+  }
+}
+
+
+/* The gc_margin units of the local atoms in a chunk */
+
+static size_t
+localUnits(local_atom_chunk *c, size_t chunk)
+{ size_t units = 0;
+
+  for(uint64_t used = c->used; used; used &= used-1)
+  { Atom a = fetchAtomArray((chunk<<LOCAL_CHUNK_BITS)+LSB64(used));
+
+    if ( ATOM_IS_LOCAL(a->references) && a->type->gc_margin )
+      units += a->length;
+  }
+
+  return units;
+}
+
+
+/* Reclaim the local atoms of this thread that are not reachable from its
+ * roots and have no references.  Must be called at a safe point.  Returns
+ * the number of reclaimed atoms.
+ */
+
+size_t
+collectLocalAtoms(void)
+{ GET_LD
+  static const atom_mark_ctx ctx = { markLocalAtom, true };
+  size_t reclaimed = 0, live = 0;
+
+  if ( !LD->atoms.local.live || LD->gc.status.active )
+    return 0;
+
+  markAtomsOnStacks(LD, (void*)&ctx);
+
+  LD->atoms.local.sweeping = true;
+  local_release lr = {0};
+  for(size_t i=0; i<LD->atoms.local.count; i++)
+  { size_t chunk = LD->atoms.local.chunks[i];
+    local_atom_chunk *c = localChunk(chunk);
+
+    reclaimed += releaseLocalCandidates(c, chunk, c->used & ~c->marked, &lr);
+  }
+  if ( lr.deferred && PL_TRYLOCK(L_REHASH_ATOMS) )
+  { lr.locked = true;
+    for(size_t i=0; i<LD->atoms.local.count; i++)
+    { size_t chunk = LD->atoms.local.chunks[i];
+      local_atom_chunk *c = localChunk(chunk);
+
+      reclaimed += releaseLocalCandidates(c, chunk, c->used & ~c->marked, &lr);
+    }
+    finishLocalAtoms(&lr);
+    PL_UNLOCK(L_REHASH_ATOMS);
+  }
+  LD->atoms.local.sweeping = false;
+
+  size_t units = 0;
+  for(size_t i=0; i<LD->atoms.local.count; i++)
+  { size_t chunk = LD->atoms.local.chunks[i];
+    local_atom_chunk *c = localChunk(chunk);
+
+    c->marked = 0;
+    live += POPCOUNT64(c->used);
+    if ( LD->atoms.local.units )
+      units += localUnits(c, chunk);
+  }
+
+  LD->atoms.local.units = LD->atoms.local.units_kept = units;
+  LD->atoms.local.units_due = false;
+  LD->atoms.local.live = live;
+  LD->atoms.local.created = 0;
+  LD->atoms.local.cursor = 0;
+  LD->atoms.local.current = NULL;
+  LD->atoms.local.threshold = live*2 > LOCAL_AGC_MIN ? live*2
+						     : LOCAL_AGC_MIN;
+  returnEmptyLocalChunks(LD->atoms.local.threshold);
+  LD->atoms.local.collected += reclaimed;
+  LD->atoms.local.sweeps++;
+
+  return reclaimed;
+}
+
+
+/* Called from agc_handler() if the number of live local atoms reached the
+ * threshold or a gc_margin was reached.  A sweep scans the stacks, so for
+ * the threshold we only sweep if there are at least one local atom per
+ * LOCAL_AGC_SCAN_RATIO words of stack.  Else we raise the threshold.  A
+ * reached gc_margin always sweeps: the blobs hold resources that the
+ * number of atoms does not express.
+ */
+
+void
+considerLocalSweep(void)
+{ GET_LD
+  size_t words = (usedStack(global)+usedStack(local))/sizeof(word);
+  size_t needed = words/LOCAL_AGC_SCAN_RATIO;
+
+  if ( LD->atoms.local.live >= needed || LD->atoms.local.units_due )
+    collectLocalAtoms();
+  else
+    LD->atoms.local.threshold = needed;
+}
+
+
+/* The thread or engine is going to idle: it calls thread_idle/2 or it
+ * is detached without open queries.  Only its own sweep releases its
+ * local atoms, so it sweeps now if it created local atoms since the last
+ * sweep.  Else the resources of their blobs, such as the Java objects of
+ * JPL, remain claimed for as long as it idles.
+ */
+
+void
+idleLocalSweep(void)
+{ GET_LD
+
+  if ( LD && LD->atoms.local.created && !LD->atoms.local.sweeping )
+    collectLocalAtoms();
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Promotion turns a local atom into an ordinary atom: it clears
+ATOM_LOCAL_REFERENCE, after which global AGC manages the atom.  Its
+atom_t does not change.  Any thread may promote an atom.  The slot stays
+in the `used` bitmap of its chunk until the owner's sweep finds it is no
+longer local.  Escapes that promote:
+
+  - PL_register_atom() and lookups that add a reference
+    (bump_atom_references()).  Data of the owner thread that must not
+    promote uses registerAtomLocally().
+  - Copies that are marked by atom-GC instead of registered: the keys of
+    chunked trie nodes and the records of message queues
+    (promoteAtomIfLocal()).
+
+Normally the owner promotes: until then, no other thread can see the
+atom.  Global AGC does not mark local atoms.  If it is active, the
+promoted atom is marked, as it may have been skipped while marking.
+
+A PL_BLOB_OWNED blob belongs to a C object that remembers it, such as a
+tabling worklist.  Promotion adds a reference for the object, which the
+object drops when it is freed and discards the blob.  Global AGC thus
+never reclaims such a blob while its object lives, and the release hook,
+which updates the object, only runs in the owner's local sweep.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* Account for an atom that was promoted to `nref`.  If we own it, it no
+ * longer counts as live: atoms that are created locally and promoted
+ * soon, such as the atoms read by load_files/2, would otherwise trigger
+ * sweeps that reclaim nothing.  The sweep recomputes `live`.
+ */
+
+static void
+promoted_atom(Atom a, unsigned int nref)
+{ GET_LD
+
+  if ( HAS_LD && LD->atoms.local.live && localAtomOwner(a->atom) == LD )
+    LD->atoms.local.live--;
+  ATOMIC_INC(&GD->statistics.atoms);
+  if ( ison(a->type, PL_BLOB_UNIQUE) )
+    ATOMIC_DEC(&GD->atoms.local_unique);
+  add_type_live(a);
+  if ( ATOM_REF_COUNT(nref) == 0 )
+  { ATOMIC_INC(&GD->atoms.unregistered);
+    add_type_units(a);
+  }
+}
+
+/* Promote a local atom.  Returns false if it was not local. */
+
+bool
+promoteLocalAtom(Atom a)
+{ for(;;)
+  { unsigned int ref = a->references;
+    unsigned int nref;
+
+    if ( !ATOM_IS_LOCAL(ref) )
+      return false;
+    nref = promoting_ref(ref, a->type);
+    if ( COMPARE_AND_SWAP_UINT(&a->references, ref, nref) )
+    { promoted_atom(a, nref);
+      return true;
+    }
+  }
+}
+
+/* Make `a` a shared atom, also if it is a local atom of another thread.
+ * This is for a thread that reaches the C object `data` of another
+ * thread and needs its blob, while the owner's sweep may reclaim it and
+ * reuse the slot for another local atom at any time.  Returns true if
+ * `a` is a valid, shared blob of `type` for `data`.  The caller must
+ * check that `data` still refers to `a` afterwards: if `a` was reused,
+ * we may have promoted another atom, which is safe.
+ */
+
+bool
+shareLocalBlob(atom_t a, PL_blob_t *type, const void *data)
+{ Atom p = atomValue(a);
+
+  for(;;)
+  { unsigned int ref = p->references;
+
+    if ( !ATOM_IS_VALID(ref) || p->type != type || p->name != data )
+      return false;
+    if ( !ATOM_IS_LOCAL(ref) )
+      return true;
+
+    unsigned int nref = promoting_ref(ref, type);
+    if ( COMPARE_AND_SWAP_UINT(&p->references, ref, nref) )
+    { promoted_atom(p, nref);
+      return true;
+    }
+  }
+}
+
+/* Create a shared blob of a PL_BLOB_LOCAL|PL_BLOB_NOCOPY type, as
+ * lookupBlob() does for a type without PL_BLOB_LOCAL.  The blob has one
+ * reference, which is the reference of the object for a PL_BLOB_OWNED
+ * type.
+ */
+
+atom_t
+newSharedBlob(DECL_LD void *data, size_t length, PL_blob_t *type)
+{ Atom a;
+
+  if ( unlikely(!type->registered) )
+    PL_register_blob_type(type);
+
+  DEBUG(0, assert(ison(type, PL_BLOB_NOCOPY) && isoff(type, PL_BLOB_UNIQUE)));
+  a = reserveAtom();
+  a->length = length;
+  a->type   = type;
+  a->name   = data;
+#ifdef O_TERMHASH
+  a->hash_value = MurmurHashAligned2(&data, sizeof(data), MURMUR_SEED);
+#endif
+  a->references = 1 | ATOM_VALID_REFERENCE | ATOM_RESERVED_REFERENCE;
+  if ( type->acquire )
+    (*type->acquire)(a->atom);
+
+  add_type_live(a);
+  if ( ATOMIC_INC(&GD->statistics.atoms) % 128 == 0 )
+    considerAGC();
+
+  return a->atom;
+}
+
+/* Promote `a` if it is a local atom.  Cheap if it is not: a local atom
+ * is in a chunk that has an owner, and the chunk table is much denser
+ * than the atom array, so we test that before looking at the atom.
+ */
+
+void
+promoteAtomIfLocal(atom_t a)
+{ size_t index = indexAtom(a);
+  size_t chunk = index>>LOCAL_CHUNK_BITS;
+  local_atom_chunk *c;
+
+  if ( chunk && index < GD->atoms.highest &&
+       (c=localChunk(chunk)) && c->owner )
+  { Atom p = fetchAtomArray(index);
+
+    if ( unlikely(ATOM_IS_LOCAL(p->references)) )
+      promoteLocalAtom(p);
+  }
+}
+
+/* The thread that owns the chunk of atom `a` or NULL.  A promoted atom
+ * keeps the owner of its chunk until the owner's sweep or termination
+ * releases the slot.  Chunk descriptors are never freed, so any thread
+ * may call this.
+ */
+
+PL_local_data_t *
+localAtomOwner(atom_t a)
+{ size_t chunk = indexAtom(a)>>LOCAL_CHUNK_BITS;
+  local_atom_chunk *c;
+
+  if ( chunk && (c=localChunk(chunk)) )
+    return c->owner;
+
+  return NULL;
+}
+
+
+/* A thread or engine terminates.  Its stacks are dead, so its local atoms
+ * without references are released.  The others become ordinary atoms,
+ * left to global AGC.  The free slots of its chunks become holes.
+ */
+
+void
+releaseLocalAtoms(PL_local_data_t *ld)
+{ GET_LD
+  local_release lr = {0};
+  bool sweeping = LD && LD->atoms.local.sweeping;
+
+  if ( LD )				/* LD may differ from ld */
+    LD->atoms.local.sweeping = true;
+
+  for(size_t i=0; i<ld->atoms.local.count; i++)
+  { size_t chunk = ld->atoms.local.chunks[i];
+
+    releaseLocalCandidates(localChunk(chunk), chunk,
+			   localChunk(chunk)->used, &lr);
+  }
+  if ( lr.deferred )
+  { PL_LOCK(L_REHASH_ATOMS);
+    lr.locked = true;
+    for(size_t i=0; i<ld->atoms.local.count; i++)
+    { size_t chunk = ld->atoms.local.chunks[i];
+
+      releaseLocalCandidates(localChunk(chunk), chunk,
+			     localChunk(chunk)->used, &lr);
+    }
+    finishLocalAtoms(&lr);
+    PL_UNLOCK(L_REHASH_ATOMS);
+  }
+  if ( LD )
+    LD->atoms.local.sweeping = sweeping;
+
+  for(size_t i=0; i<ld->atoms.local.count; i++)
+  { size_t chunk = ld->atoms.local.chunks[i];
+    local_atom_chunk *c = localChunk(chunk);
+    size_t base = chunk<<LOCAL_CHUNK_BITS;
+    uint64_t used;
+
+    for(used = c->used; used; used &= used-1)
+      promoteLocalAtom(fetchAtomArray(base+LSB64(used)));
+
+    returnLocalChunk(c, chunk);
+  }
+
+  if ( ld->atoms.local.chunks )
+    PL_free(ld->atoms.local.chunks);
+  memset(&ld->atoms.local, 0, sizeof(ld->atoms.local));
+}
+
+
 #endif /*O_ATOMGC*/
 
 
-void
-resetAtoms()
-{
+PL_atom_normalize_t
+PL_atom_normalize_hook(PL_atom_normalize_t new)
+{ PL_atom_normalize_t old = GD->atoms.normalize_hook;
+  GD->atoms.normalize_hook = new;
+  PL_set_prolog_flag("atom_normalize_hook", PL_BOOL, new != NULL);
+  if ( !new )
+    GD->atoms.normalize_hook_load_attempted = false;
+
+  return old;
 }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1114,16 +2760,26 @@ operations. This should be safe because:
     - When we unregister an atom, it must have at least one reference.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* Add a reference to p.  If `promote` is true, a local atom is promoted
+ * (see promoteLocalAtom()).  Otherwise the caller is the owner and keeps
+ * the reference in data of its own thread.
+ */
+
 static unsigned int
-register_atom(volatile Atom p)
+register_atom(volatile Atom p, bool promote)
 { for(;;)
   { unsigned int ref  = p->references;
-    unsigned int nref = ref+1;
+    unsigned int nref = promote ? promoting_ref(ref+1, p->type) : ref+1;
 
     if ( ATOM_REF_COUNT(nref) != 0 )
     { if ( COMPARE_AND_SWAP_UINT(&p->references, ref, nref) )
-      { if ( ATOM_REF_COUNT(nref) == 1 )
-	  ATOMIC_DEC(&GD->atoms.unregistered);
+      { if ( unlikely(ATOM_IS_LOCAL(ref)) )
+	{ if ( promote )
+	    promoted_atom(p, nref);
+	} else if ( ATOM_REF_COUNT(nref) == 1 )
+	{ ATOMIC_DEC(&GD->atoms.unregistered);
+	  del_type_units(p);
+	}
 	return nref;
       }
     } else
@@ -1142,7 +2798,64 @@ void
   if ( index >= GD->atoms.builtin )
   { Atom p = fetchAtomArray(index);
 
-    register_atom(p);
+    register_atom(p, true);
+  }
+#endif
+}
+
+
+/* As PL_register_atom(), but a local atom stays local.  For references
+ * from data that belongs to the thread that owns the atom, such as the
+ * suspensions of its tabling worklists.
+ */
+
+/* As PL_register_atom(), but fails if atom-GC is destroying `a`: its
+ * release hook may be running.  This is for atoms that are found in a
+ * data structure that the release hook updates, such as the thread
+ * handles in PL_thread_info_t.  If we register first, atom-GC no longer
+ * destroys `a`.  Thread handles are global atoms, so no promotion.
+ */
+
+bool
+registerAtomIfLive(atom_t a)
+{
+#ifdef O_ATOMGC
+  size_t index = indexAtom(a);
+
+  if ( index >= GD->atoms.builtin )
+  { Atom p = fetchAtomArray(index);
+
+    for(;;)
+    { unsigned int ref = p->references;
+
+      if ( ATOM_IS_DESTROYED(ref) || !ATOM_IS_VALID(ref) )
+	return false;
+      if ( ATOM_IS_LOCAL(ref) )
+	return register_atom(p, true), true;
+      if ( COMPARE_AND_SWAP_UINT(&p->references, ref, ref+1) )
+      { if ( ATOM_REF_COUNT(ref+1) == 1 )
+	{ ATOMIC_DEC(&GD->atoms.unregistered);
+	  del_type_units(p);
+	}
+	return true;
+      }
+    }
+  }
+#endif
+  return true;
+}
+
+
+void
+registerAtomLocally(atom_t a)
+{
+#ifdef O_ATOMGC
+  size_t index = indexAtom(a);
+
+  if ( index >= GD->atoms.builtin )
+  { Atom p = fetchAtomArray(index);
+
+    register_atom(p, false);
   }
 #endif
 }
@@ -1199,9 +2912,28 @@ unregistering  in  LD->atoms.unregistered  and  mark    this  atom  from
 markAtomsOnStacks().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+As soon as we drop the last reference to `p`, AGC may reclaim the atom.
+destroyAtom() then sets p->type to ATOM_TYPE_INVALID, a non-NULL invalid
+pointer.  Normally a running AGC is stopped from doing so because we
+publish the atom in LD->atoms.unregistering, which markAtomsOnStacks()
+marks for us.
+
+This protection does not work while a thread or engine is being cleaned
+up: freePrologThread() sets the thread status to PL_THREAD_EXITED and
+clears ld->magic before calling freePrologLocalData(), after which
+neither forThreadLocalDataUnsuspended() nor markAtomsOnStacks()
+considers this `ld` anymore.  As freePrologLocalData() drops the
+references to all atoms in e.g. the thread's tabling data, this is easy
+to hit.  Therefore we must not access `p` after dropping the last
+reference.  All we need is p->type, so we grab that up front.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
 static void
 unregister_atom(volatile Atom p)
 { unsigned int newref;
+  const PL_blob_t *type = p->type;	/* p may die once we drop the ref */
+  int dropped = false;			/* reached zero registrations */
 
   if ( unlikely(!ATOM_IS_VALID(p->references)) )
   { Sdprintf("OOPS: PL_unregister_atom('%s'): invalid atom\n", p->name);
@@ -1241,7 +2973,11 @@ unregister_atom(volatile Atom p)
 
         if ( HAS_LD )
 	  LD->atoms.unregistering = p->atom;
-	ATOMIC_INC(&GD->atoms.unregistered);
+	if ( !ATOM_IS_LOCAL(newref) )	/* local atoms are not counted */
+	{ ATOMIC_INC(&GD->atoms.unregistered);
+	  add_type_units(p);
+	  dropped = true;
+	}
       }
     } while( !COMPARE_AND_SWAP_UINT(&p->references, oldref, newref) );
   }
@@ -1258,6 +2994,16 @@ unregister_atom(volatile Atom p)
     if ( buf )
       PL_free(buf);
     trap_gdb();
+  }
+
+/* This is where GD->atoms.unregistered grows, so this is where the margin
+   can be exceeded.  Without this, the condition is only ever tested when a
+   new atom is created (see lookupBlob()), and dropping the last reference
+   to a lot of atoms reclaims nothing until something else allocates.
+*/
+  if ( dropped )
+  { considerAGC();
+    considerAGCType(type);
   }
 }
 
@@ -1301,7 +3047,7 @@ is_volatile_atom(atom_t a)
 
 #ifdef O_DEBUG
 
-static int
+static bool
 findAtomSelf(Atom a)
 {
 #if O_PLMT
@@ -1381,7 +3127,7 @@ checkAtoms_src(const char *file, int line)
 		 *	    REHASH TABLE	*
 		 *******************************/
 
-static int
+static bool
 rehashAtoms(void)
 { AtomTable newtab;
   uintptr_t mask;
@@ -1392,7 +3138,7 @@ rehashAtoms(void)
     return true;			/* no point anymore and foreign ->type */
 					/* pointers may have gone */
 
-  if ( GD->atoms.table->buckets * 2 >= GD->statistics.atoms )
+  if ( !atomTableNeedsRehash() )
     return true;
 
   if ( !(newtab = allocHeap(sizeof(*newtab))) )
@@ -1411,6 +3157,7 @@ rehashAtoms(void)
 		 GD->atoms.table->buckets, newtab->buckets));
 
   GD->atoms.rehashing = true;
+  MEMORY_BARRIER();			/* See (**) at lookupBlob() */
 
   for(index=1, i=0; !last; i++)
   { size_t upto = (size_t)2<<i;
@@ -1429,7 +3176,10 @@ redo:
       ref = a->references;
       if ( ATOM_IS_RESERVED(ref) )
       { if ( !ATOM_IS_VALID(ref) )
-	  goto redo;
+	{ if ( ATOM_TYPE_IS_INVALID(a->type) )
+	    continue;			/* reserved by a thread, see */
+	  goto redo;			/* reserveAtom() */
+	}
 	if ( ison(a->type, PL_BLOB_UNIQUE) )
 	{ size_t v;
 	  v = a->hash_value & mask;
@@ -1440,6 +3190,7 @@ redo:
     }
   }
 
+  MEMORY_RELEASE();			/* publish filled table */
   GD->atoms.table = newtab;
   GD->atoms.rehashing = false;
 
@@ -1544,7 +3295,7 @@ registerBuiltinAtoms(void)
     v  = v0 & (GD->atoms.table->buckets-1);
 
     a = &GD->atoms.array.blocks[idx][index];
-    a->atom       = (index<<LMASK_BITS)|TAG_ATOM;
+    a->atom       = MK_ATOM(index);
     a->name       = (char *)s;
     a->length     = len;
     a->type       = &text_atom;
@@ -1650,8 +3401,24 @@ cleanupAtoms(void)
   i = 0;
   while( GD->atoms.array.blocks[i] )
   { size_t bs = (size_t)1<<i;
-    PL_free(GD->atoms.array.blocks[i++] + bs);
+    free_lazy_zeroed(GD->atoms.array.blocks[i++] + bs,
+		     bs*sizeof(struct atom));
   }
+
+#ifdef O_ATOMGC
+  for(i=0; i<8*(int)sizeof(void*); i++)	/* thread-local chunk descriptors */
+  { local_atom_chunk *b = GD->atoms.local_chunks.blocks[i];
+
+    if ( b )
+    { GD->atoms.local_chunks.blocks[i] = NULL;
+      PL_free(b + ((size_t)1<<i));
+    }
+  }
+  if ( GD->atoms.local_pool.chunks )
+  { PL_free(GD->atoms.local_pool.chunks);
+    memset(&GD->atoms.local_pool, 0, sizeof(GD->atoms.local_pool));
+  }
+#endif
 
   for(i=0; i<256; i++)			/* char-code -> char-atom map */
   { atom_t *p;
@@ -1745,7 +3512,7 @@ current_blob(DECL_LD term_t a, term_t type, frg_code call, intptr_t state)
       if ( ATOM_IS_VALID(refs) && btype &&
 	   (!type_name || type_name == btype->atom_name) &&
 	   atom->atom != ATOM_garbage_collected &&
-	   bump_atom_references(atom, refs) )
+	   bump_scanned_references(atom, refs, btype) )
       { DEBUG(CHK_ATOM_GARBAGE_COLLECTED,
 	      /* avoid trap through linkVal() check */
 	      if ( atom->atom == ATOM_garbage_collected )
@@ -1804,13 +3571,159 @@ static
 PRED_IMPL("blob", 2, blob, 0)
 { PRED_LD
   PL_blob_t *bt;
+  atom_t a;
 
   if ( PL_is_blob(A1, &bt) )
+  { if ( PL_get_atom(A1, &a) &&		/* dead blob: report the type it */
+	 (a=deadBlobType(a)) )	/* stands for, not `unavailable' */
+      return PL_unify_atom(A2, a);
+
     return PL_unify_atom(A2, bt->atom_name);
+  }
 
   return false;
 }
 
+
+/** blob_released(@Term) is semidet
+
+True if Term is a blob whose data was released using PL_free_blob().
+Such a blob still exists as a term and keeps its type, but the object it
+referred to is gone, so every predicate that expects the real thing
+rejects it.
+
+Only blobs can be released; a text atom is reclaimed by the atom garbage
+collector as a whole and its name is valid for as long as it exists.  A
+NULL name therefore identifies a released blob on its own.
+*/
+
+static
+PRED_IMPL("blob_released", 1, blob_released, 0)
+{ PRED_LD
+  atom_t a;
+
+  if ( PL_get_atom(A1, &a) )
+  { Atom x = atomValue(a);
+
+    return !x->name;
+  }
+
+  return false;
+}
+
+
+#ifdef O_ATOMGC
+/* '$local_test_blob'(-Blob) creates a thread-local blob for testing the
+ * local sweep.  '$local_atoms'(+Key, -Value) provides statistics: `live`,
+ * `collected`, `sweeps`, `chunks` and `units` (of types with a gc_margin)
+ * for the calling thread, `pool`, the
+ * number of chunks in the global pool, and `highest`, the size of the
+ * atom array.
+ */
+
+static PL_blob_t local_test_blob =
+{ PL_BLOB_MAGIC,
+  PL_BLOB_LOCAL,
+  "local_test"
+};
+
+static
+PRED_IMPL("$local_test_blob", 1, local_test_blob, 0)
+{ static int64_t serial = 0;
+  int64_t n = ATOMIC_INC(&serial);
+
+  return PL_unify_blob(A1, &n, sizeof(n), &local_test_blob);
+}
+
+/* '$local_unique_test_blob'(+Units, -Blob) creates a blob as foreign
+ * code that references external objects does: PL_BLOB_UNIQUE|
+ * PL_BLOB_NOCOPY|PL_BLOB_LOCAL on a new object.  Units is the `len' of
+ * the blob, which counts towards its type's gc_margin.  Release frees the
+ * object.
+ */
+
+static int
+release_local_unique_test(atom_t a)
+{ free(PL_blob_data(a, NULL, NULL));
+
+  return true;
+}
+
+static int
+write_local_unique_test(IOSTREAM *s, atom_t a, int flags)
+{ (void)flags;
+
+  return Sfprintf(s, "<local_unique_test>(%p)", PL_blob_data(a, NULL, NULL)) >= 0;
+}
+
+static PL_blob_t local_unique_test_blob =
+{ PL_BLOB_MAGIC,
+  PL_BLOB_UNIQUE|PL_BLOB_NOCOPY|PL_BLOB_LOCAL,
+  "local_unique_test",
+  release_local_unique_test,
+  NULL,					/* compare */
+  write_local_unique_test
+};
+
+static
+PRED_IMPL("$local_unique_test_blob", 2, local_unique_test_blob, 0)
+{ PRED_LD
+  size_t units;
+  int64_t *obj;
+
+  if ( !PL_get_size_ex(A1, &units) )
+    return false;
+  if ( !(obj=malloc(sizeof(*obj))) )
+    return PL_no_memory();
+  *obj = 0;
+
+  if ( PL_unify_blob(A2, obj, units, &local_unique_test_blob) )
+    return true;
+  free(obj);				/* not created */
+  return false;
+}
+
+/* '$local_atom'(@Atom) is true if Atom is a local atom */
+
+static
+PRED_IMPL("$local_atom", 1, local_atom, 0)
+{ PRED_LD
+  atom_t a;
+
+  if ( PL_get_atom(A1, &a) && indexAtom(a) >= GD->atoms.builtin )
+    return ATOM_IS_LOCAL(atomValue(a)->references) != 0;
+
+  return false;
+}
+
+static
+PRED_IMPL("$local_atoms", 2, local_atoms, 0)
+{ PRED_LD
+  char *key;
+  size_t v;
+
+  if ( !PL_get_chars(A1, &key, CVT_ATOM|CVT_EXCEPTION) )
+    return false;
+  if ( streq(key, "live") )
+    v = LD->atoms.local.live;
+  else if ( streq(key, "collected") )
+    v = LD->atoms.local.collected;
+  else if ( streq(key, "sweeps") )
+    v = LD->atoms.local.sweeps;
+  else if ( streq(key, "chunks") )
+    v = LD->atoms.local.count;
+  else if ( streq(key, "units") )
+    v = LD->atoms.local.units;
+  else if ( streq(key, "pool") )
+    v = GD->atoms.local_pool.count;
+  else if ( streq(key, "highest") )
+    v = GD->atoms.highest;
+  else
+    return PL_domain_error("local_atoms_key", A1);
+
+  return PL_unify_int64(A2, v);
+}
+#endif
 
 static
 PRED_IMPL("$atom_references", 2, atom_references, 0)
@@ -1843,14 +3756,14 @@ typedef struct match
 /* An atom without references cannot be part of the program
 */
 
-static int
+static bool
 global_atom(Atom a)
 { return ( ATOM_REF_COUNT(a->references) != 0 ||
 	   indexAtom(a->atom) < GD->atoms.builtin );
 }
 
 
-static int
+static bool
 is_identifier_text(PL_chars_t *txt)
 { if ( txt->length == 0 )
     return false;
@@ -1889,7 +3802,7 @@ is_identifier_text(PL_chars_t *txt)
 }
 
 
-static int
+static bool
 extendAtom(char *prefix, bool *unique, char *common)
 { size_t index;
   int i, last=false;
@@ -1983,7 +3896,7 @@ compareMatch(const void *m1, const void *m2)
 }
 
 
-static int
+static bool
 extend_alternatives(PL_chars_t *prefix, struct match *altv, int *altn)
 { size_t index;
   int i, last=false;
@@ -2092,7 +4005,7 @@ atom_generator_create_key(void)
 static size_t atom_genetor_state;
 #endif
 
-static int
+static bool
 atom_generator(PL_chars_t *prefix, PL_chars_t *hit, int state)
 { GET_LD
   size_t index;
@@ -2245,11 +4158,180 @@ atom_space(void)
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
 
+		 /*******************************
+		 *      BLOB TYPE PROPERTIES	*
+		 *******************************/
+
+static PL_blob_t *
+blob_type_from_name(term_t t)
+{ GET_LD
+  atom_t name;
+
+  if ( PL_get_atom_ex(t, &name) )
+  { PL_blob_t *type;
+
+    for(type = GD->atoms.types; type; type = type->next)
+    { if ( type->atom_name == name )
+	return type;
+    }
+
+    PL_existence_error("blob_type", t);
+  }
+
+  return NULL;
+}
+
+
+/* The properties of a blob type, in enumeration order.  Absent flags are
+   skipped: unify_blob_property() fails for them without binding anything.
+*/
+
+#define BT_NPROPS 11
+
+static bool
+unify_blob_property(term_t prop, const PL_blob_t *type, int i)
+{ GET_LD
+  atom_t name;
+  int64_t value;
+
+  switch(i)
+  { case 0: return ison(type, PL_BLOB_UNIQUE) && PL_unify_atom(prop, ATOM_unique);
+    case 1: return ison(type, PL_BLOB_TEXT)   && PL_unify_atom(prop, ATOM_text);
+    case 2: return ison(type, PL_BLOB_NOCOPY) && PL_unify_atom(prop, ATOM_nocopy);
+    case 3: return ison(type, PL_BLOB_WCHAR)  && PL_unify_atom(prop, ATOM_wchar);
+    case 4: name = ATOM_rank;	      value = type->rank;	  break;
+    case 5: name = ATOM_padding;      value = type->padding;	  break;
+    case 6: name = ATOM_gc_margin;    value = type->gc_margin;	  break;
+    case 7: name = ATOM_unregistered; value = type->unregistered; break;
+    case 8: name = ATOM_non_garbage;  value = type->non_garbage;  break;
+    case 9: name = ATOM_live;	      value = type->live;	  break;
+    case 10:name = ATOM_space;	      value = type->space;	  break;
+    default:
+      assert(0);
+      return false;
+  }
+
+  return PL_unify_term(prop,
+		       PL_FUNCTOR, PL_new_functor(name, 1),
+		         PL_INT64, value);
+}
+
+
+/** blob_type_property(?Type, ?Property) is nondet.
+ *
+ * True when the registered blob type Type has Property.  See the manual
+ * for the properties; gc_margin(Units) is the only one that can be set,
+ * using set_blob_type/2.
+ */
+
+static
+PRED_IMPL("blob_type_property", 2, blob_type_property, PL_FA_NONDETERMINISTIC)
+{ PRED_LD
+  PL_blob_t *type;
+  size_t state;
+  fid_t fid;
+
+  switch( CTX_CNTRL )
+  { case FRG_FIRST_CALL:
+      if ( !PL_is_variable(A1) && !PL_is_variable(A2) )
+      {	/* Both given: answer once rather than leaving a choice point on
+	   the remaining properties, which is what callers ask for. */
+	int i;
+
+	if ( !(type=blob_type_from_name(A1)) )
+	  return false;
+	for(i=0; i<BT_NPROPS; i++)
+	{ if ( unify_blob_property(A2, type, i) )
+	    return true;
+	}
+	return false;
+      }
+      state = 0;
+      break;
+    case FRG_REDO:
+      state = (size_t)CTX_INT;
+      break;
+    default:
+      return true;
+  }
+
+  if ( !(fid=PL_open_foreign_frame()) )
+    return false;
+
+  for( ; ; state++ )
+  { size_t ti = state/BT_NPROPS;
+    size_t n;
+
+    for(type = GD->atoms.types, n = 0; type && n < ti; type = type->next)
+      n++;
+    if ( !type )
+      break;
+
+    if ( PL_unify_atom(A1, type->atom_name) &&
+	 unify_blob_property(A2, type, (int)(state%BT_NPROPS)) )
+    { PL_close_foreign_frame(fid);
+      ForeignRedoInt(state+1);
+    }
+    PL_rewind_foreign_frame(fid);
+  }
+  PL_close_foreign_frame(fid);
+
+  return false;
+}
+
+
+/** set_blob_type(+Type, +Property) is det.
+ *
+ * Set a property of the registered blob type Type.  Only gc_margin(Units)
+ * can be set; see the manual.
+ */
+
+static
+PRED_IMPL("set_blob_type", 2, set_blob_type, 0)
+{ PRED_LD
+  PL_blob_t *type;
+  atom_t pname;
+  size_t arity;
+  term_t arg;
+
+  if ( !(type=blob_type_from_name(A1)) )
+    return false;
+
+  if ( !PL_get_name_arity(A2, &pname, &arity) || arity != 1 )
+    return PL_type_error("blob_type_property", A2);
+
+  if ( !(arg=PL_new_term_ref()) )
+    return false;
+  _PL_get_arg(1, A2, arg);
+
+  if ( pname == ATOM_gc_margin )
+  { size_t margin;
+
+    if ( !PL_get_size_ex(arg, &margin) )
+      return false;
+    type->gc_margin = margin;
+
+    return true;
+  }
+
+  return PL_domain_error("blob_type_property", A2);
+}
+
+
 BeginPredDefs(atom)
+  PRED_DEF("blob_type_property", 2, blob_type_property, PL_FA_NONDETERMINISTIC)
+  PRED_DEF("set_blob_type", 2, set_blob_type, 0)
   PRED_DEF("current_blob",  2, current_blob, PL_FA_NONDETERMINISTIC)
   PRED_DEF("current_atom", 1, current_atom, PL_FA_NONDETERMINISTIC)
   PRED_DEF("blob", 2, blob, 0)
+  PRED_DEF("blob_released", 1, blob_released, 0)
   PRED_DEF("$atom_references", 2, atom_references, 0)
+#ifdef O_ATOMGC
+  PRED_DEF("$local_test_blob", 1, local_test_blob, 0)
+  PRED_DEF("$local_unique_test_blob", 2, local_unique_test_blob, 0)
+  PRED_DEF("$local_atoms", 2, local_atoms, 0)
+  PRED_DEF("$local_atom", 1, local_atom, 0)
+#endif
   PRED_DEF("$atom_completions", 2, atom_completions, 0)
   PRED_DEF("$complete_atom", 3, complete_atom, 0)
 #ifdef O_DEBUG_ATOMGC

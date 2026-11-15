@@ -76,17 +76,19 @@ bool		find_attr(Word av, atom_t name, Word *vp);
 		 *******************************/
 
 #define varBindConst(p, c) LDFUNC(varBindConst, p, c)
-static inline int
+static inline bool
 varBindConst(DECL_LD Word p, word c)
 { *p = (c);
   if ( unlikely((void*)p >= (void*)lBase || p < LD->mark_bar) )
     return trail_ptr(p);
+  if ( unlikely(p < LD->gen_bar) )	/* old generation */
+    gen_remember(p);
 
   return true;
 }
 
 #define bindConst(p, c) LDFUNC(bindConst, p, c)
-static inline int
+static inline bool
 bindConst(DECL_LD Word p, word c)
 {
 #ifdef O_ATTVAR

@@ -116,7 +116,6 @@ test("foldl breakoff with failure", fail) :-
 test("foldl breakoff with exception", error(type_error(_,_))) :-
     foldl([E,_,_]>>call(E), [true,type_error(_,_)], _, _).
 
-% an unbound variable as list is actually not supported according to the mode flags
 test("foldl on list that is initially an unbound variable",
      Bag = [[[], 0], [[0], 1], [[0, 1], 2], [[0, 1, 2], 3]]) :-
     findall(

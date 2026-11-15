@@ -68,7 +68,7 @@ typedef struct
 } segstack;
 
 
-static inline int
+static inline bool
 emptySegStack(segstack *s)
 { return (s->top == s->base) &&
 	 (s->last == NULL || s->last->previous == NULL);
@@ -165,7 +165,7 @@ topsOfSegStack(segstack *stack, int count, void **tops)
    addition synchronization in that case.
 */
 
-static inline int
+static inline bool
 quickPopTopOfSegStack(segstack *stack)
 { if ( stack->top >= stack->base + stack->unit_size )
   { stack->top -= stack->unit_size;

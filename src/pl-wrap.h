@@ -46,11 +46,20 @@ typedef struct closure
 #define	get_closure_predicate(t, def)	LDFUNC(get_closure_predicate, t, def)
 #endif /*USE_LD_MACROS*/
 
+extern PL_blob_t _PL_closure_blob;	/* defined in pl-wrap.c */
+
+/* A wrapper supervisor starts with S_CALLWRAPPER or S_TABLED.  Both
+ * have the same arguments: <wrapper clause> <closure> <wrapper name>
+ */
+#define isCallWrapper(c) ((c) == encode(S_CALLWRAPPER) || \
+			  (c) == encode(S_TABLED))
+
 #define LDFUNC_DECLARATIONS
 
-GLOBAL PL_blob_t _PL_closure_blob;
+void	  initWrap(void);
 void	  resetWrappedSupervisor(Definition def, bool do_linger);
 void	  unregisterWrappedSupervisor(Code codes);
+Code	  skipWrapperPrefix(Code PC);
 bool	  get_closure_predicate(term_t t, Definition *def);
 
 #undef LDFUNC_DECLARATIONS

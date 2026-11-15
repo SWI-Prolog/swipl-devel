@@ -1,0 +1,6 @@
+# SWI-Prolog manual sources are LaTeX with light preprocessing
+# (see man/doc2tex.pl). The .plx extension stops file managers
+# from labelling them as MS Word and lets editors recognise the
+# format via this gitattributes hint.
+*.plx linguist-language=TeX
+*.plx diff=tex

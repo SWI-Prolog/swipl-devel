@@ -143,7 +143,7 @@ gmp_too_big(DECL_LD gmp_tb why)
 }
 
 
-static int
+static bool
 gmp_check_size(DECL_LD size_t bytes)
 { gmp_tb why = GMO_TB_OK;
 
@@ -292,7 +292,7 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
     size_t alloc0 = base-ctx->alloc_buf;
 
     if ( alloc0 + base[0] == ctx->allocated ) /* at the top */
-    { if ( alloc0+fastunits-1 <= GMP_STACK_ALLOC )
+    { if ( alloc0+fastunits <= GMP_STACK_ALLOC )
       { base[0] = fastunits;		      /* and still fits */
 	ctx->allocated = alloc0+fastunits;
 	return ptr;
@@ -304,7 +304,7 @@ mp_realloc(void *ptr, size_t oldsize, size_t newsize)
 
     void *new = mp_alloc(newsize);
     if ( new )
-    { size_t cp = base[0]*sizeof(size_t);
+    { size_t cp = (base[0]-1)*sizeof(size_t); /* excl. header */
       if ( newsize < cp )
 	cp = newsize;
       memcpy(new, ptr, cp);
@@ -345,7 +345,7 @@ mp_cleanup(ar_context *ctx)
 }
 
 #ifdef O_DEBUG
-static int
+static bool
 mp_test_alloc(void)
 { GET_LD
   AR_CTX;
@@ -400,7 +400,7 @@ isascii(int c)				/* missing from gmp.lib */
 An MPZ number on the stack is represented as:
 
   - Indirect Header
-  - Size shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+  - Size (number of limbs), negative size is negative MPZ
 if O_BF
   - exponent
 endif
@@ -409,8 +409,8 @@ endif
 
 An MPQ number on the stack is represented as:
   - Indirect Header
-  - Size numerator shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
-  - Size denominator shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+  - Size numerator (number of limbs), negative size is negative MPQ
+  - Size denominator (number of limbs)
 if O_BF
   - exponent numerator
   - exponent denominator
@@ -446,7 +446,7 @@ mpz_wsize(const mpz_t mpz, size_t *s)
 An MPZ when emulated using LibBF is represented as:
 
   - Indirect Header
-  - Size shifted left by 1, MP_RAT_MASK=0, negative size is nagative MPZ
+  - Size (number of limbs), negative size is negative MPZ
   - Exponent
   - Limbs
   - Indirect Header
@@ -472,9 +472,9 @@ globalMPZ() pushes an mpz type GMP  integer   onto  the local stack. The
 saved version is the _mp_size field, followed by the limps.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define globalMPZ(at, mpz, flags) LDFUNC(globalMPZ, at, mpz, flags)
+#define globalMPZ(at, mpz) LDFUNC(globalMPZ, at, mpz)
 static bool
-globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
+globalMPZ(DECL_LD Word at, mpz_t mpz)
 { DEBUG(CHK_SECURE, assert(!onStackArea(global, at) &&
 			   !onStackArea(local, at)));
 
@@ -492,13 +492,12 @@ globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
       return 0;
     }
 
-    if ( !hasGlobalSpace(wsz+MPZ_STACK_EXTRA+2) &&
-	 !ensureGlobalSpace(wsz+MPZ_STACK_EXTRA+2, flags) )
+    if ( !ensureGlobalSpace(wsz+MPZ_STACK_EXTRA+2, ALLOW_GC) )
       return false;
     p = gTop;
     gTop += wsz+MPZ_STACK_EXTRA+2;
 
-    *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+    *at = consIndirect(p, TAG_INTEGER);
 
     *p++     = m;
     p[wsz+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
@@ -517,16 +516,16 @@ globalMPZ(DECL_LD Word at, mpz_t mpz, int flags)
     size_t wsz = mpz_wsize(mpz, &size);
     assert(p[0] == mkIndHdr(wsz+MPZ_STACK_EXTRA, TAG_INTEGER));
 #endif
-    *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+    *at = consIndirect(p, TAG_INTEGER);
   }
 
   return true;
 }
 
 
-#define globalMPQ(at, mpq, flags) LDFUNC(globalMPQ, at, mpq, flags)
-static int
-globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
+#define globalMPQ(at, mpq) LDFUNC(globalMPQ, at, mpq)
+static bool
+globalMPQ(DECL_LD Word at, mpq_t mpq)
 { mpz_t num, den;			/* num/den */
 
   num[0] = *mpq_numref(mpq);
@@ -540,29 +539,25 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
   copy:
     num_wsz = mpz_wsize(num, &num_size);
     den_wsz = mpz_wsize(den, &den_size);
-    m       = mkIndHdr(num_wsz+den_wsz+2*MPZ_STACK_EXTRA, TAG_INTEGER);
+    m       = mkIndHdr(num_wsz+den_wsz+2*MPZ_STACK_EXTRA, KIND_MPQ);
 
     if ( wsizeofInd(m) != num_wsz+den_wsz+2*MPZ_STACK_EXTRA )
     { PL_error(NULL, 0, NULL, ERR_REPRESENTATION, ATOM_rational);
       return 0;
     }
 
-    if ( !hasGlobalSpace(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA) )
-    { int rc = ensureGlobalSpace(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, flags);
-
-      if ( rc != true )
-	return rc;
-    }
+    if ( !ensureGlobalSpace(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, ALLOW_GC) )
+      return false;
     p = gTop;
     gTop += num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA;
 
-    *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+    *at = consIndirect(p, KIND_MPQ);
     *p++ = m;
-    *p++ = mpq_size_stack(MPZ_LIMB_SIZE(num));
+    *p++ = mpz_size_stack(MPZ_LIMB_SIZE(num));
 #if O_BF
     *p++ = num->expn;
 #endif
-    *p++ = mpq_size_stack(MPZ_LIMB_SIZE(den));
+    *p++ = mpz_size_stack(MPZ_LIMB_SIZE(den));
 #if O_BF
     *p++ = den->expn;
 #endif
@@ -583,10 +578,10 @@ globalMPQ(DECL_LD Word at, mpq_t mpq, int flags)
 	    size_t den_size;
 	    size_t num_wsz = mpz_wsize(num, &num_size);
 	    size_t den_wsz = mpz_wsize(den, &den_size);
-	    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, TAG_INTEGER));
+	    assert(p[0] == mkIndHdr(num_wsz+den_wsz+2+2*MPZ_STACK_EXTRA, KIND_MPQ));
 	    assert((Word)MPZ_LIMBS(den) == (Word)MPZ_LIMBS(num) + num_wsz);
 	  });
-    *at = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+    *at = consIndirect(p, KIND_MPQ);
   }
 
   return true;
@@ -657,7 +652,7 @@ void
 get_bigint(word w, Number n)
 { Word p = addressIndirect(w);
 
-  DEBUG(0, assert(storage(w) != STG_INLINE));
+  DEBUG(0, assert(!isInlineInt(w)));
 
   p++;				/* bits of indirect */
   n->type = V_MPZ;
@@ -675,7 +670,7 @@ get_rational_no_int(DECL_LD word w, Number n)
 { Word p = addressIndirect(w);
 
   p++;
-  if ( (*p&MP_RAT_MASK) )
+  if ( tagex(w) == TAGEX_INDIRECT_MPQ )
   { n->type = V_MPQ;
     get_mpq_from_stack(p, n->value.mpq);
   } else
@@ -711,10 +706,10 @@ get_mpq_from_code(Code pc, mpq_t mpq)
 
 bool
 get_int64(DECL_LD word w, int64_t *ip)
-{ if ( tagex(w) == (TAG_INTEGER|STG_INLINE) )
+{ if ( isTaggedInt(w) )
   { *ip = valInt(w);
     return true;
-  } else if ( tagex(w) == (TAG_INTEGER|STG_GLOBAL) )
+  } else if ( tagex(w) == TAGEX_INDIRECT_INT )
   { number n;
 
     get_bigint(w, &n);
@@ -885,7 +880,7 @@ loadMPZFromCharp(const char *data, Word r, Word *store)
   wsize = (limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
   p = *store;
   *store += (wsize+2+MPZ_STACK_EXTRA);
-  *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
+  *r = consIndirect(p, TAG_INTEGER);
   m = mkIndHdr(wsize+MPZ_STACK_EXTRA, TAG_INTEGER);
   *p++ = m;
   p[wsize+MPZ_STACK_EXTRA-1] = 0L;	/* pad out */
@@ -929,14 +924,14 @@ loadMPQFromCharp(const char *data, Word r, Word *store)
 
   p = *store;
   *store += wsize+2+2*MPZ_STACK_EXTRA;
-  *r = consPtr(p, TAG_INTEGER|STG_GLOBAL);
-  m = mkIndHdr(wsize+2*MPZ_STACK_EXTRA, TAG_INTEGER);
+  *r = consIndirect(p, KIND_MPQ);
+  m = mkIndHdr(wsize+2*MPZ_STACK_EXTRA, KIND_MPQ);
   *p++ = m;
-  *p++ = mpq_size_stack((int) (num_neg ? -num_limbsize : num_limbsize)); /* dubious cast */
+  *p++ = mpz_size_stack((int) (num_neg ? -num_limbsize : num_limbsize)); /* dubious cast */
 #if O_BF
   *p++ = num_bf.expn;
 #endif
-  *p++ = mpq_size_stack((int) (den_neg ? -den_limbsize : den_limbsize)); /* dubious cast */
+  *p++ = mpz_size_stack((int) (den_neg ? -den_limbsize : den_limbsize)); /* dubious cast */
 #if O_BF
   *p++ = den_bf.expn;
 #endif
@@ -972,6 +967,117 @@ skipMPQOnCharp(const char *data)
   data += den_size;
 
   return (char *)data;
+}
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+checkMPZOnCharp() and checkMPQOnCharp() validate  a number in [data,end)
+as stored by addMPZToBuffer() or addMPQToBuffer() before it is loaded by
+loadMPZFromCharp() or loadMPQFromCharp(),  which trust their input.  The
+number must be canonical:  an integer is not a  tagged integer, while a
+rational has a non-zero numerator and  a denominator larger than 1 that
+has no common  factor with the numerator.   On success, the end of the
+number is returned and *gsize is set to the number of cells the loader
+uses on the global stack.  Otherwise NULL is returned.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* Get the size of a number and verify its bits are in [bits,end) and
+   normalized.  Returns false for zero.
+*/
+
+static bool
+check_mpz_charp(const char *sdata, const char *bits, const char *end,
+		int *szp, bool *negp)
+{ int size;
+
+  load_mpz_size(sdata, &size);
+  if ( size == INT_MIN )
+    return false;
+  *negp = (size < 0);
+  if ( size < 0 )
+    size = -size;
+  if ( size == 0 || end-bits < size || bits[0] == 0 )
+    return false;
+  *szp = size;
+
+  return true;
+}
+
+/* Number of global stack cells used by the bits of a number */
+
+static size_t
+mpz_charp_wsize(const char *bits, int size)
+{ size_t limbsize;
+
+#if O_BF
+  bf_t bf;
+  bf_import_dimension(&bf, (const unsigned char*)bits, size);
+  limbsize = bf.len;
+#else
+  (void)bits;
+  limbsize = (size+sizeof(mp_limb_t)-1)/sizeof(mp_limb_t);
+#endif
+
+  return (limbsize*sizeof(mp_limb_t)+sizeof(word)-1)/sizeof(word);
+}
+
+const char *
+checkMPZOnCharp(const char *data, const char *end, size_t *gsize)
+{ int size;
+  bool neg;
+  const char *bits = data+4;
+
+  if ( end-data < 4 ||
+       !check_mpz_charp(data, bits, end, &size, &neg) )
+    return NULL;
+  if ( size <= 8 )			/* must not be a tagged integer */
+  { const unsigned char *u = (const unsigned char*)bits;
+    uint64_t mag = 0;
+
+    for(int i=0; i<size; i++)
+      mag = (mag<<8)|u[i];
+    if ( neg ? mag <= (uint64_t)-(PLMINTAGGEDINT+1)+1
+	     : mag <= (uint64_t)PLMAXTAGGEDINT )
+      return NULL;
+  }
+
+  *gsize = mpz_charp_wsize(bits, size)+2+MPZ_STACK_EXTRA;
+  return bits+size;
+}
+
+const char *
+checkMPQOnCharp(const char *data, const char *end, size_t *gsize)
+{ int num_size, den_size;
+  bool num_neg, den_neg;
+  const char *num_bits = data+8;	/* sizes come first, then the bits */
+  const char *den_bits;
+  bool ok;
+
+  if ( end-data < 8 ||
+       !check_mpz_charp(data, num_bits, end, &num_size, &num_neg) )
+    return NULL;
+  den_bits = num_bits+num_size;
+  if ( !check_mpz_charp(data+4, den_bits, end, &den_size, &den_neg) ||
+       den_neg || (den_size == 1 && den_bits[0] == 1) )
+    return NULL;
+
+  mpz_t num, den, gcd;
+  mpz_init(num);
+  mpz_init(den);
+  mpz_init(gcd);
+  mpz_import(num, num_size, 1, 1, 1, 0, num_bits);
+  mpz_import(den, den_size, 1, 1, 1, 0, den_bits);
+  mpz_gcd(gcd, num, den);
+  ok = (mpz_cmp_ui(gcd, 1) == 0);
+  mpz_clear(num);
+  mpz_clear(den);
+  mpz_clear(gcd);
+  if ( !ok )
+    return NULL;
+
+  *gsize = ( mpz_charp_wsize(num_bits, num_size) +
+	     mpz_charp_wsize(den_bits, den_size) +
+	     2 + 2*MPZ_STACK_EXTRA );
+  return den_bits+den_size;
 }
 
 #undef SHIFTSIGN32
@@ -1259,7 +1365,7 @@ bignum_index(const word *p)
 
   if ( n <= KEY_INDEX_MAX )
   { return murmur_key(p, n*sizeof(*p));
-  } else if ( (p[0]&MP_RAT_MASK) )
+  } else if ( indKind(m) == KIND_MPQ )
   { word data[4];
 #if O_GMP
     data[0] = p[0]^p[1]<<(sizeof(p[0])*4);
@@ -1378,47 +1484,43 @@ most compact representation, which is  essential   to  make unify() work
 without any knowledge of the represented data.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define put_mpz(at, mpz, flags) LDFUNC(put_mpz, at, mpz, flags)
-static int
-put_mpz(DECL_LD Word at, mpz_t mpz, int flags)
+#define put_mpz(at, mpz) LDFUNC(put_mpz, at, mpz)
+static bool
+put_mpz(DECL_LD Word at, mpz_t mpz)
 { DEBUG(2,
 	{ char buf[256];
 	  Sdprintf("put_mpz(%s)\n",
 		   mpz_get_str(buf, 10, mpz));
 	});
 
-#if SIZEOF_LONG < SIZEOF_WORD
-  if ( mpz_cmp(mpz, MPZ_MIN_LONG) >= 0 &&
-       mpz_cmp(mpz, MPZ_MAX_LONG) <= 0 )
-#else
   if ( mpz_cmp(mpz, MPZ_MIN_TAGGED) >= 0 &&
        mpz_cmp(mpz, MPZ_MAX_TAGGED) <= 0 )
-#endif
-  { long v = mpz_get_si(mpz);
+  { int64_t v;
 
-    if ( !ensureGlobalSpace(0, flags) )
+#if SIZEOF_LONG < SIZEOF_WORD
+    bool rc = mpz_to_int64(mpz, &v);
+    assert(rc);
+    (void)rc;
+#else
+    static_assertion(sizeof(word) == sizeof(long));
+    v = mpz_get_si(mpz);
+#endif
+
+    if ( !ensureGlobalSpace(0, ALLOW_GC) )
       return false;
 
     *at = consInt(v);
     assert(valInt(*at) == v);
     return true;
   } else
-  { return globalMPZ(at, mpz, flags);
+  { return globalMPZ(at, mpz);
   }
 }
 
 #endif /*O_GMP*/
 
-/* returns one of
-
-  true: ok
-  false: some error
-  GLOBAL_OVERFLOW: no space
-  LOCAL_OVERFLOW: cannot represent (no GMP)
-*/
-
-int
-put_int64(DECL_LD Word at, int64_t l, int flags)
+bool
+put_int64(DECL_LD Word at, int64_t l)
 { word r;
 
   r = consInt(l);
@@ -1431,27 +1533,27 @@ put_int64(DECL_LD Word at, int64_t l, int flags)
     mpz_t mpz;
 
     mpz_init_set_si64(mpz, l);
-    return globalMPZ(at, mpz, flags);
+    return globalMPZ(at, mpz);
 #else
-    return LOCAL_OVERFLOW;
+    return PL_representation_error("int64_t");
 #endif
   }
 }
 
 
-int
-put_uint64(DECL_LD Word at, uint64_t l, int flags)
+bool
+put_uint64(DECL_LD Word at, uint64_t l)
 { if ( (int64_t)l >= 0 )
-  { return put_int64(at, l, flags);
+  { return put_int64(at, l);
   } else
   {
 #ifdef O_BIGNUM
     mpz_t mpz;
 
     mpz_init_set_uint64(mpz, l);
-    return globalMPZ(at, mpz, flags);
+    return globalMPZ(at, mpz);
 #else
-    return LOCAL_OVERFLOW;
+    return PL_representation_error("uint64_t");
 #endif
   }
 }
@@ -1465,44 +1567,40 @@ affected by GC/shift.  The intented scenario is:
 
   { word c;
 
-    if ( (rc=put_number(&c, n, ALLOW_GC)) == true )
+    if ( put_number(&c, n) )
       bindConst(<somewhere>, c);
     ...
   }
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int				/* true, false, _*OVERFLOW */
-put_number(DECL_LD Word at, Number n, int flags)
+bool
+put_number(DECL_LD Word at, Number n)
 { switch(n->type)
   { case V_INTEGER:
     { word w = consInt(n->value.i);
 
       if ( valInt(w) == n->value.i )
-      { if ( !hasGlobalSpace(0) )
-	{ int rc = ensureGlobalSpace(0, flags);
-
-	  if ( rc != true )
-	    return rc;
-	}
+      { if ( !ensureGlobalSpace(0, ALLOW_GC) )
+	  return false;
 
 	*at = w;
 	return true;
       }
 
-      return put_int64(at, n->value.i, flags);
+      return put_int64(at, n->value.i);
     }
 #ifdef O_BIGNUM
     case V_MPZ:
-      return put_mpz(at, n->value.mpz, flags);
+      return put_mpz(at, n->value.mpz);
     case V_MPQ:
     { if ( mpz_cmp_ui(mpq_denref(n->value.mpq), 1L) == 0 )
-	return put_mpz(at, mpq_numref(n->value.mpq), flags);
+	return put_mpz(at, mpq_numref(n->value.mpq));
       else
-	return globalMPQ(at, n->value.mpq, flags);
+	return globalMPQ(at, n->value.mpq);
     }
 #endif
     case V_FLOAT:
-      return put_double(at, n->value.f, flags);
+      return put_double(at, n->value.f);
   }
 
   assert(0);
@@ -1523,10 +1621,8 @@ PL_unify_number(DECL_LD term_t t, Number n)
     return varBindConst(p, w);
 
   if ( canBind(*p) )
-  { int rc;
-
-    if ( (rc=put_number(&w, n, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
+  { if ( !put_number(&w, n) )
+      return false;
 
     p = valTermRef(t);			/* put_number can shift the stacks */
     deRef(p);
@@ -1585,10 +1681,9 @@ PL_unify_number(DECL_LD term_t t, Number n)
 bool
 PL_put_number(DECL_LD term_t t, Number n)
 { word w;
-  int rc;
 
-  if ( (rc=put_number(&w, n, ALLOW_GC)) != true )
-    return raiseStackOverflow(rc);
+  if ( !put_number(&w, n) )
+    return false;
 
   *valTermRef(t) = w;
 

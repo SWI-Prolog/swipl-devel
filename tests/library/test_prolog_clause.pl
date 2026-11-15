@@ -39,6 +39,7 @@
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(prolog_clause)).
+:- use_module(library(apply_macros)).
 
 /** <module> Test source-information on clauses
 
@@ -54,10 +55,20 @@ test_prolog_clause :-
 	run_tests([ prolog_clause
 		  ]).
 
+% Compiled with optimise:  debug/3 is removed and maplist/3 is expanded
+% by library(apply_macros), which changes the order of the '.'/3 calls.
+:- '$clausable'(t8/1).
+:- push_prolog_flag(optimise, true).
+t8(D) :-
+	debug(test_prolog_clause, '~p', [D.a.b]),
+	maplist(dp(D.a.b), D.a.c, L),
+	b(L).
+:- pop_prolog_flag(optimise).
+
 :- begin_tests(prolog_clause).
 
 :- style_check(-no_effect).
-:- '$clausable'((t0/0,t1/0,t2/0,t3/0,t4/0,t5/0,t6/0)).
+:- '$clausable'((t0/0,t1/0,t2/0,t3/0,t4/0,t5/0,t6/0,t7/0)).
 t0 :-	a(X), b(Y), X=Y.
 t1 :-	a, _ = hello, b.
 t2 :-	a(X), a(b) = X, b(X).
@@ -65,6 +76,7 @@ t3 :-	a, _ == hello, b.
 t4 :-	a(X), x == X, b(X).
 t5 :-	a(X), f(x) = X, b(X).
 t6 :-	i(A), B is A-1, b(B).
+t7 :-	i(A), B is 0'A+A, b(B).
 :- style_check(+no_effect).
 
 a.
@@ -72,6 +84,7 @@ b.
 a(_).
 b(_).
 i(10).
+dp(_,_,_).
 
 test_ci(Head) :-
 	clause(Head, _Body, Ref),
@@ -85,5 +98,12 @@ test(t3) :- test_ci(t3).
 test(t4) :- test_ci(t4).
 test(t5) :- test_ci(t5).
 test(t6) :- test_ci(t6).
+test(t7) :- test_ci(t7).
+test(t8) :- test_ci(t8(_)).
+test(t8_optimise) :-
+	setup_call_cleanup(
+	    push_prolog_flag(optimise, true),
+	    test_ci(t8(_)),
+	    pop_prolog_flag(optimise)).
 
 :- end_tests(prolog_clause).

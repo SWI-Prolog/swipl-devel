@@ -33,6 +33,11 @@ bigint(I, N, Neg) :-
     N is 2^I,
     Neg is -N.
 
+utf8_exchange(Value) :-
+    Promise := promise_unicode_dict,
+    await(Promise, Dict),
+    Value = Dict.елемент.
+
 q(10) :- writeln(q=10).
 q(20) :- writeln(q=20).
 

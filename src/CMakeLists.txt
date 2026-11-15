@@ -89,10 +89,10 @@ set(SRC_CORE pl-atom.c pl-wam.c pl-arith.c pl-bag.c pl-error.c
     pl-version.c pl-codetable.c pl-supervisor.c
     pl-dbref.c pl-termhash.c pl-variant.c pl-assert.c
     pl-copyterm.c pl-debug.c pl-cont.c pl-ressymbol.c pl-dict.c
-    pl-trie.c pl-indirect.c pl-tabling.c pl-rsort.c pl-mutex.c
+    pl-trie.c pl-indirect.c pl-tabling.c pl-idgset.c pl-rsort.c pl-mutex.c
     pl-allocpool.c pl-wrap.c pl-event.c pl-transaction.c
+    pl-bisim.c
     pl-undo.c pl-alloc.c pl-index.c pl-fli.c pl-coverage.c)
-
 
 set(LIBSWIPL_SRC
     ${SRC_CORE}
@@ -125,7 +125,7 @@ set(SWIPL_DATA_DIRS
     library/dialect library/dialect/swi library/dialect/eclipse
     library/dialect/hprolog library/dialect/iso
     library/dialect/yap library/theme library/iri_scheme
-    demo cmake app)
+    demo cmake app customize)
 
 if(HAVE_CLIB)
   list(APPEND SWIPL_DATA_DIRS
@@ -165,7 +165,7 @@ set(SWIPL_DATA_library explain.pl sort.pl prolog_config.pl
     charsio.pl portray_text.pl csv.pl persistency.pl fastrw.pl
     coinduction.pl ansi_term.pl base32.pl prolog_history.pl
     optparse.pl arithmetic.pl writef.pl predicate_options.pl
-    random.pl prolog_breakpoints.pl prolog_autoload.pl
+    random.pl random_terms.pl prolog_breakpoints.pl prolog_autoload.pl
     prolog_colour.pl varnumbers.pl codesio.pl prolog_codewalk.pl
     prolog_metainference.pl quasi_quotations.pl
     sandbox.pl prolog_format.pl check_installation.pl
@@ -239,7 +239,8 @@ set(SWIPL_DATA_library_dialect_xsb README.md source.pl basics.pl machine.pl
     storage.pl ordsets.pl intern.pl string.pl setof.pl consult.pl
     curr_sym.pl error_handler.pl lists.pl standard.pl gpp.pl gensym.pl)
 set(SWIPL_DATA_library_build tools.pl conan.pl cmake.pl make.pl)
-set(SWIPL_DATA_demo likes.pl README.md)
+set(SWIPL_DATA_demo colours.pl likes.pl trace.pl unicode.pl README.md)
+set(SWIPL_DATA_customize edit init.pl README.md)
 set(SWIPL_DATA_cmake swipl.cmake)
 set(SWIPL_DATA_app app.pl qlf.pl README.md)
 if(HAVE_CLIB)
@@ -452,6 +453,10 @@ endforeach()
 # Final swipl.home for installed system
 file(WRITE "${SWIPL_BIN_ROOT}/dot.txt" ".\n")
 file(WRITE "${SWIPL_BIN_ROOT}/dotdot.txt" "..\n")
+if(BUILD_MACOS_FRAMEWORK)
+  # bin/swipl walks two parents up to Versions/A and looks for swipl.home there.
+  file(WRITE "${SWIPL_BIN_ROOT}/framework_home.txt" "Resources/swipl\n")
+endif()
 
 endif(NOT PGO_SUFFIX)
 
@@ -492,6 +497,7 @@ endif()
 # build swipl
 add_executable(swipl${PGO_SUFFIX} ${SWIPL_SRC})
 target_link_libraries(swipl${PGO_SUFFIX} ${SWIPL_LIBRARIES} libswipl${PGO_SUFFIX})
+add_dsym(swipl${PGO_SUFFIX})
 if(MINGW)
   target_link_options(swipl${PGO_SUFFIX} PRIVATE -municode)
 endif()
@@ -534,6 +540,10 @@ else()
   set(LIBSWIPL_TYPE STATIC)
 endif()
 
+if(HAVE_CRMATH)
+include(crmath)
+endif()
+
 # Create an OBJECT library so we can build both a static and dynamic
 # library
 
@@ -564,7 +574,28 @@ function(libswipl_properties lib outname)
   else()
     set(LIB_PREFIX)
   endif()
-  if(SWIPL_SO_VERSIONS)
+  if(BUILD_MACOS_FRAMEWORK AND LIBSWIPL_TYPE STREQUAL "SHARED" AND
+     outname STREQUAL SWIPL_FRAMEWORK_NAME)
+    # A macOS .framework wraps libswipl.  The framework binary is
+    # `swipl' (no lib prefix, no .dylib suffix) at
+    # swipl.framework/Versions/A/swipl.  CMake derives the framework
+    # install_name (@rpath/swipl.framework/Versions/A/swipl) from
+    # FRAMEWORK + OUTPUT_NAME, so we do NOT set INSTALL_NAME_DIR.
+    # The outname check excludes the PGO-instrumented intermediate
+    # (libswipl-pgo-instrumented), which is a throw-away dylib used
+    # only to collect profile data and must NOT land at the same
+    # framework path as the real libswipl.
+    set_target_properties(${lib} PROPERTIES
+                          OUTPUT_NAME ${SWIPL_FRAMEWORK_NAME}
+                          FRAMEWORK TRUE
+                          FRAMEWORK_VERSION ${SWIPL_FRAMEWORK_VERSION}
+                          MACOSX_FRAMEWORK_IDENTIFIER org.swi-prolog.swipl
+                          MACOSX_FRAMEWORK_BUNDLE_NAME ${SWIPL_FRAMEWORK_NAME}
+                          MACOSX_FRAMEWORK_BUNDLE_VERSION ${SWIPL_VERSION_STRING}
+                          MACOSX_FRAMEWORK_SHORT_VERSION_STRING ${SWIPL_VERSION_STRING}
+                          MACOSX_FRAMEWORK_INFO_PLIST
+                              ${CMAKE_SOURCE_DIR}/desktop/Framework-Info.plist.in)
+  elseif(SWIPL_SO_VERSIONS)
     set_target_properties(${lib} PROPERTIES
                           OUTPUT_NAME ${LIB_PREFIX}${outname}
                           VERSION ${SWIPL_VERSION_STRING}
@@ -586,6 +617,8 @@ endfunction()
 
 add_library(libswipl${PGO_SUFFIX} ${LIBSWIPL_TYPE} $<TARGET_OBJECTS:swiplobjs${PGO_SUFFIX}>)
 libswipl_properties(libswipl${PGO_SUFFIX} swipl${PGO_SUFFIX})
+add_dsym(libswipl${PGO_SUFFIX})		# after libswipl_properties: it
+					# sets FRAMEWORK, which we skip
 target_runtime_dependencies(libswipl)
 
 ###################################################################################
@@ -685,7 +718,14 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     COMMENT "Create TAGS file for main sources")
 
-# Build the MacOS icon file
+# Provide the MacOS icon file.
+#
+# swipl.icns is a committed, prebuilt asset (desktop/swipl.icns) derived from
+# desktop/swipl-256.png.  We copy it into the build tree rather than generating
+# it here, because iconutil (used by make_icns.sh) cannot run in restricted
+# environments (e.g. sandbox-exec / CI) and is macOS-only.  The icon changes
+# only when the source PNG does; regenerate it with the `regenerate_icns`
+# target below (macOS, outside any sandbox) and commit the result.
 if(EPILOG AND APPLE)
   set(desktop ${CMAKE_SOURCE_DIR}/desktop)
 
@@ -693,14 +733,24 @@ if(EPILOG AND APPLE)
 
   add_custom_command(
     OUTPUT ${ICNS_FILE}
-    COMMAND sh ${desktop}/make_icns.sh ${desktop}/swipl-256.png ${ICNS_FILE}
-    DEPENDS ${desktop}/make_icns.sh ${desktop}/swipl-256.png
-    COMMENT "Create MacOS icons"
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${desktop}/swipl.icns ${ICNS_FILE}
+    DEPENDS ${desktop}/swipl.icns
+    COMMENT "Copy MacOS icon (prebuilt desktop/swipl.icns)"
     VERBATIM
   )
 
   add_custom_target(generate_icns ALL DEPENDS ${ICNS_FILE})
   add_dependencies(${EPILOG_APP} generate_icns)
+
+  # Manual, opt-in regeneration of the committed icon from the source PNG.
+  # Not part of ALL: it requires iconutil and must run outside a sandbox.
+  add_custom_target(regenerate_icns
+    COMMAND sh ${desktop}/make_icns.sh ${desktop}/swipl-256.png ${desktop}/swipl.icns
+    DEPENDS ${desktop}/make_icns.sh ${desktop}/swipl-256.png
+    COMMENT "Regenerate committed desktop/swipl.icns from swipl-256.png (macOS, no sandbox)"
+    VERBATIM
+  )
 
   if(BUILD_MACOS_BUNDLE)
     install(FILES ${ICNS_FILE} DESTINATION ${SWIPL_INSTALL_RESOURCES})
@@ -735,9 +785,10 @@ if(NOT IS_DIRECTORY ${SWIPL_TMP_DIR} AND ANDROID)
 endif()
 
 install(TARGETS swipl ${SWIPL_INSTALLED_LIBRARIES} EXPORT SWIPL_EXPORT
-	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
-        LIBRARY DESTINATION ${LIBSWIPL_DIR}
-        ARCHIVE DESTINATION ${LIBSWIPL_DIR}
+	RUNTIME       DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
+        LIBRARY       DESTINATION ${LIBSWIPL_DIR}
+        ARCHIVE       DESTINATION ${LIBSWIPL_DIR}
+        FRAMEWORK     DESTINATION ${SWIPL_FRAMEWORK_INSTALL_DIR}
 )
 target_runtime_dependencies(swipl)
 install(FILES ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE}
@@ -745,7 +796,7 @@ install(FILES ${SWIPL_BOOT_FILE} ${SWIPL_ABI_FILE}
 )
 if(EPILOG)
   if(BUILD_MACOS_BUNDLE)
-    install(TARGETS ${EPILOG_APP} BUNDLE DESTINATION .)
+    install(TARGETS ${EPILOG_APP} BUNDLE DESTINATION ${SWIPL_BUNDLE_INSTALL_DIR})
   else()
     install(
       TARGETS ${EPILOG_APP}
@@ -767,25 +818,68 @@ foreach(d ${SWIPL_DATA_DIRS})
 		FILES ${files}
 		DESTINATION ${SWIPL_INSTALL_PREFIX}/${d})
 endforeach()
-install_src(core_headers
-	    FILES
-	    ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
-	    ${CMAKE_CURRENT_SOURCE_DIR}/os/SWI-Stream.h
-	    DESTINATION ${SWIPL_INSTALL_INCLUDE})
-install_src(core_compat_sicstus
-	    FILES
-	    ${CMAKE_CURRENT_SOURCE_DIR}/compat/sicstus.h
-	    DESTINATION ${SWIPL_INSTALL_INCLUDE}/sicstus)
-install_src(core_compat_yap
-	    FILES
-	    ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
-	    DESTINATION ${SWIPL_INSTALL_INCLUDE}/Yap)
+if(BUILD_MACOS_FRAMEWORK AND LIBSWIPL_TYPE STREQUAL "SHARED")
+  # For the framework, headers land in Versions/A/Headers/ (so that
+  # `-F <path> -framework swipl' works) AND in Resources/swipl/include/
+  # via install_src() so the build-tree shadow at home/include/ keeps
+  # working and consumers using the legacy `swi(include/...)' file
+  # alias still resolve correctly.
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/os/SWI-Stream.h
+          DESTINATION ${SWIPL_INSTALL_INCLUDE})
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/compat/sicstus.h
+          DESTINATION ${SWIPL_INSTALL_INCLUDE}/sicstus)
+  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
+          DESTINATION ${SWIPL_INSTALL_INCLUDE}/Yap)
+  install_src(core_headers
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
+	      ${CMAKE_CURRENT_SOURCE_DIR}/os/SWI-Stream.h
+	      DESTINATION ${SWIPL_INSTALL_PREFIX}/include)
+  install_src(core_compat_sicstus
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/compat/sicstus.h
+	      DESTINATION ${SWIPL_INSTALL_PREFIX}/include/sicstus)
+  install_src(core_compat_yap
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
+	      DESTINATION ${SWIPL_INSTALL_PREFIX}/include/Yap)
+else()
+  install_src(core_headers
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/SWI-Prolog.h
+	      ${CMAKE_CURRENT_SOURCE_DIR}/os/SWI-Stream.h
+	      DESTINATION ${SWIPL_INSTALL_INCLUDE})
+  install_src(core_compat_sicstus
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/compat/sicstus.h
+	      DESTINATION ${SWIPL_INSTALL_INCLUDE}/sicstus)
+  install_src(core_compat_yap
+	      FILES
+	      ${CMAKE_CURRENT_SOURCE_DIR}/compat/YapInterface.h
+	      DESTINATION ${SWIPL_INSTALL_INCLUDE}/Yap)
+endif()
 install(FILES ${SWIPL_BIN_ROOT}/dot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}
 	RENAME "swipl.home")
 install(FILES ${SWIPL_BIN_ROOT}/dotdot.txt
 	DESTINATION ${SWIPL_INSTALL_PREFIX}/bin
 	RENAME "swipl.home")
+if(BUILD_MACOS_FRAMEWORK AND NOT BUILD_MACOS_BUNDLE AND
+   LIBSWIPL_TYPE STREQUAL "SHARED")
+  # Standalone-framework layout only.  In that case the CLI swipl
+  # lives at framework/Versions/A/bin/swipl and walks one parent up
+  # to find swipl.home with content "Resources/swipl".  In the
+  # BUILD_MACOS_BUNDLE layout the CLI is at swipl-win.app/Contents/
+  # MacOS/swipl, can't reach this file, and the home is located via
+  # findHomeFromFramework() (dladdr) anyway.  Installing it here for
+  # the bundle case also breaks framework code-signing --- codesign
+  # rejects non-Mach-O files alongside the framework binary with
+  # "code object is not signed at all".
+  install(FILES ${SWIPL_BIN_ROOT}/framework_home.txt
+	  DESTINATION ${SWIPL_FRAMEWORK_ROOT}
+	  RENAME "swipl.home")
+endif()
 
 if(NOT STATIC_EXTENSIONS)
 # Install cmake config files
@@ -815,6 +909,25 @@ install(TARGETS swipl-ld
 	RUNTIME DESTINATION ${SWIPL_INSTALL_ARCH_EXE}
 )
 target_runtime_dependencies(swipl-ld)
+endif()
+
+if(BUILD_MACOS_FRAMEWORK AND LIBSWIPL_TYPE STREQUAL "SHARED")
+  # CMake creates the top-level symlinks for the framework binary and
+  # Resources, but leaves Headers/, PlugIns/ and Frameworks/ at
+  # Versions/Current/ only.  Apple convention is to expose them at the
+  # framework root so consumers can `-F <path> -framework swipl` and
+  # find swipl/swipl.h.  We unconditionally create the symlinks; the
+  # subdirectories may be populated by package install steps that run
+  # after this script, so the symlink can briefly be dangling.
+  install(CODE
+    "set(fw \"\${CMAKE_INSTALL_PREFIX}/${SWIPL_FRAMEWORK_INSTALL_DIR}/${SWIPL_FRAMEWORK_NAME}.framework\")
+     foreach(sub Headers PlugIns Frameworks)
+       if(NOT EXISTS \"\${fw}/\${sub}\")
+         execute_process(COMMAND \${CMAKE_COMMAND} -E create_symlink
+                         Versions/Current/\${sub} \${sub}
+                         WORKING_DIRECTORY \"\${fw}\")
+       endif()
+     endforeach()")
 endif()
 
 if(WIN32)

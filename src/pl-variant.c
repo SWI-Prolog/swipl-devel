@@ -42,14 +42,14 @@
 		*	     VARIANT		*
 		*********************************/
 
-#define consVar(w) (((word)(w)<<LMASK_BITS) | TAG_VAR | FIRST_MASK)
-#define valVar(w)  ((size_t)((word)(w) >> LMASK_BITS))
+#define consVar(w) (consTagged(w, TAGEX_VAR) | FIRST_MASK)
+#define valVar(w)  ((size_t)valTagged(w))
 
-#define TAG_COMPOUND_x    (STG_STATIC|TAG_COMPOUND)
+#define TAG_COMPOUND_x    TAGEX_VARIANT_COMPOUND
 #define isCompound_x(w) \
-	(( (word)(w) & (STG_MASK|TAG_MASK) ) == TAG_COMPOUND_x )
-#define valCompound_x(w)  ((size_t)((word)(w) >> LMASK_BITS))
-#define consCompound_x(i) (((word)(i)<<LMASK_BITS) | TAG_COMPOUND_x)
+	(tagex(w) == TAG_COMPOUND_x)
+#define valCompound_x(w)  ((size_t)valTagged(w))
+#define consCompound_x(i) consTagged(i, TAG_COMPOUND_x)
 
 #define node_bp(p)	((p)->bp)
 #define node_orig(p)	((p)->orig)
@@ -141,13 +141,13 @@ add_node_buffer(Buffer b, node *obj)
   return true;
 }
 
-static size_t
+static ssize_t
 var_id(Word p, Buffer buf)
 { word w = *p;
 
   if ( (w&FIRST_MASK) )
-  { return valVar(w);		/* node id truncated to int: */
-  } else				/* < 2^31 nodes */
+  { return valVar(w);
+  } else
   { size_t n = entriesBuffer(buf, node);
     node new = {p, w, 0, 0};
 
@@ -159,7 +159,7 @@ var_id(Word p, Buffer buf)
   }
 }
 
-static size_t
+static ssize_t
 term_id(Word p, Buffer buf)
 { word w = *p;
 
@@ -215,7 +215,7 @@ reset_terms(node *r)
 /* isomorphic (==) */
 
 #define isomorphic(a, i, j, buf) LDFUNC(isomorphic, a, i, j, buf)
-static bool
+static boolex_t
 isomorphic(DECL_LD argPairs *a, size_t i, size_t j, Buffer buf)
 { Word l = NULL, r = NULL, lm, ln;
   word dm, dn;
@@ -270,8 +270,8 @@ isomorphic(DECL_LD argPairs *a, size_t i, size_t j, Buffer buf)
     { case TAG_ATOM:
 	return false;
       case TAG_INTEGER:
-	if ( storage(wl) == STG_INLINE ||
-	     storage(wr) == STG_INLINE )
+	if ( isInlineInt(wl) ||
+	     isInlineInt(wr) )
 	  return false;
       case TAG_STRING:
       case TAG_FLOAT:
@@ -281,15 +281,19 @@ isomorphic(DECL_LD argPairs *a, size_t i, size_t j, Buffer buf)
       case TAG_COMPOUND:
       { Word lm, ln;
 	word dm, dn;
-	size_t i, j;
+	ssize_t i, j;
 	node  *m,  *n;
 
-	/*if ( (*/i = term_id(l, buf)/*) < 0 ) term_id returns size_t
-	  return MEMORY_OVERFLOW*/;
-	i = Root(i, &m, buf);
+	/* Number both cells before looking either of them up: term_id()
+	   may grow the node buffer, and growing it moves it, so no node
+	   pointer may be held across the second call.
+	*/
+	if ( (i = term_id(l, buf)) < 0 )
+	  return MEMORY_OVERFLOW;
+	if ( (j = term_id(r, buf)) < 0 )
+	  return MEMORY_OVERFLOW;
 
-	/*if ( (*/j = term_id(r, buf)/*) < 0 )
-	  return MEMORY_OVERFLOW*/;
+	i = Root(i, &m, buf);
 	j = Root(j, &n, buf);
 
 	if ( i==j )
@@ -323,7 +327,7 @@ isomorphic(DECL_LD argPairs *a, size_t i, size_t j, Buffer buf)
 /* returns true, false or MEMORY_OVERFLOW */
 
 #define variant(agenda, buf) LDFUNC(variant, agenda, buf)
-static bool
+static boolex_t
 variant(DECL_LD argPairs *agenda, Buffer buf)
 { Word l = NULL, r =NULL;
 
@@ -343,8 +347,8 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
       return false;
 
    if ( needsRef(wl) )		/* var or attvar */
-   { size_t i, j;
-     size_t m, n;
+   { ssize_t i, j;
+     ssize_t m, n;
      node *vl, *vr;
      Word al, ar;
 
@@ -394,8 +398,8 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
     { case TAG_ATOM:
 	return false;
       case TAG_INTEGER:
-	if ( storage(wl) == STG_INLINE ||
-	     storage(wr) == STG_INLINE )
+	if ( isInlineInt(wl) ||
+	     isInlineInt(wr) )
 	  return false;
       case TAG_STRING:
       case TAG_FLOAT:
@@ -404,7 +408,7 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
         return false;
       case TAG_COMPOUND:
       {   ssize_t i, j, k;
-	  bool h;
+	  boolex_t h;
 	  node *m;
 
 	  word dm, dn;			/* definition (= functor/arity) */
@@ -419,8 +423,8 @@ variant(DECL_LD argPairs *agenda, Buffer buf)
 	  k = node_variant(m);
 
 	  if ( 0 != k )
-	  { if ( ( h = isomorphic(agenda, k, j, buf) ) <= 0 )
-	      return  h;
+	  { if ( ( h = isomorphic(agenda, k, j, buf) ) != true )
+	      return h;
 	    continue;
 	  }
 
@@ -450,7 +454,7 @@ is_variant_ptr(DECL_LD Word p1, Word p2)
 { argPairs agenda;
   tmp_buffer buf;
   Buffer VARIANT_BUFFER = (Buffer)&buf;
-  int rval;
+  boolex_t rval;
   node *r;
   node new = {NULL, 0, 0, 0};   /* dummy node as 0-th element*/
 
@@ -526,7 +530,10 @@ static
 PRED_IMPL("\\=@=", 2, not_variant, 0)
 { PRED_LD
 
-  return !is_variant_ptr(valTermRef(A1), valTermRef(A2));
+  if ( is_variant_ptr(valTermRef(A1), valTermRef(A2)) )
+    return false;
+
+  return !PL_exception(0);		/* false: is_variant_ptr() raised */
 }
 
 		 /*******************************

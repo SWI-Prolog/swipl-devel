@@ -78,7 +78,8 @@ test_tabling :-
                 pathss,
 
                 bas,
-                push_ret
+                push_ret,
+                no_closure
 	      ]).
 
 		 /*******************************
@@ -1363,6 +1364,33 @@ test(push_ret, MaxSteps1 == MaxSteps2) :-
     i0_i_maxSteps0_maxSteps(1,2 000,0,MaxSteps2).
 
 :- end_tests(push_ret).
+
+		 /*******************************
+		 *	   NO CLOSURE		*
+		 *******************************/
+
+% start_tabling/3 allows passing 0 rather than the closure
+
+:- begin_tests(no_closure, [cleanup(abolish_all_tables)]).
+
+:- table nc/1.
+nc(1).
+nc(2).
+
+nc_all(L) :-
+    '$wrapped_implementation'(nc(X), table, Worker),
+    findall(X, '$tabling':start_tabling(0, test_tabling:nc(X), Worker), L0),
+    msort(L0, L).
+
+test(start_tabling, L1-L2 == [1,2]-[1,2]) :-
+    abolish_all_tables,
+    nc_all(L1),                         % fresh
+    nc_all(L2).                         % complete
+test(variant_table, Status == complete) :-
+    nc_all(_),
+    '$tbl_variant_table'(0, test_tabling:nc(_), _Trie, Status, _Skel, _Mono).
+
+:- end_tests(no_closure).
 
 
 		 /*******************************

@@ -51,4 +51,4 @@ int	is_variant_ptr(Word p1, Word p2);
 
 #undef LDFUNC_DECLARATIONS
 
-#endif /*_PL_VARIANT_H*/			
+#endif /*_PL_VARIANT_H*/

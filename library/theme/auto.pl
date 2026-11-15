@@ -45,9 +45,29 @@ at more, partly OS specific, clues.
 :- multifile
     prolog:theme/1.
 
-theme(dark) :-
-    ansi_get_color(background, rgb(R,G,B)),
-    R+B+G < 20000.
+%!  theme(-Theme) is semidet.
+%
+%   Theme that suits the environment.  Fails   if  we cannot tell, which
+%   leaves the default.  Note that the  default   is  a  light theme, so
+%   failing here is the right thing on a light background.
+
+theme(Theme) :-
+    ansi_get_color(background, RGB),
+    luminance(RGB, Y),
+    (   Y < 0.5                         % darker than mid grey
+    ->  Theme = dark
+    ;   Theme = light
+    ).
+
+%!  luminance(+RGB, -Luminance) is det.
+%
+%   Perceived brightness of RGB as a  float   in  0.0..1.0.  This is the
+%   luma of the sRGB encoded components  reported   by  the terminal, so
+%   green weighs a lot more than blue and adding up the components would
+%   call a saturated blue background light.
+
+luminance(rgb(R,G,B), Y) :-
+    Y is 0.299*R + 0.587*G + 0.114*B.
 
 load_theme :-
     prolog:theme(_),                            % a theme has been loaded

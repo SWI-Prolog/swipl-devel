@@ -37,6 +37,7 @@
 #ifndef _PL_TABLING_H
 #define _PL_TABLING_H
 #include "pl-trie.h"
+#include "pl-idgset.h"
 
 typedef enum
 { CLUSTER_ANSWERS,
@@ -76,6 +77,8 @@ typedef enum
 
 typedef struct tbl_component
 { int			magic;			/* COMPONENT_MAGIC */
+  word		handle;			/* Prolog handle (integer) or 0 */
+  struct PL_local_data *owner;			/* Thread that created me */
   scc_status		status;			/* SCC_* */
   scc_neg_status	neg_status;		/* SCC_NEG_* */
   size_t		simplifications;        /* # simplifications */
@@ -86,10 +89,18 @@ typedef struct tbl_component
   worklist_set         *created_worklists;	/* Worklists created */
   worklist_set	       *delay_worklists;	/* Worklists in need for delays */
   trie		       *leader;			/* Leading variant */
+  int64_t		inferences;		/* At creation; cost when complete */
+  struct					/* Dropping intermediate tables */
+  { atom_t		symbol;			/* Registered leader if droppable */
+    size_t		size;			/* Memory of the table */
+    uint64_t		gen_calls;		/* gen_call at completion */
+    int64_t		recompute;		/* Cost to recompute if dropped */
+  } drop;
 } tbl_component;
 
 typedef struct tbl_status
 { tbl_component *scc;				/* The SCC we are working on */
+  struct tbl_status *prev;			/* Older saved status */
   int		 hsc;				/* We have an active SCC */
   int		 iac;				/* We are in answer completion */
   int		 iap;				/* We are in assert propagation */
@@ -108,6 +119,9 @@ typedef struct cluster
   struct cluster *next;
   struct cluster *prev;
   buffer members;
+  struct sindex_table *sindex;		/* Suspensions by key paths, or NULL */
+  size_t sindex_tried;			/* Size at which no key split them */
+  bool paired;				/* Suspensions met an answer cluster */
 } cluster;
 
 typedef struct worklist
@@ -116,6 +130,8 @@ typedef struct worklist
   cluster      *riac;			/* rightmost inner answer cluster */
   cluster      *free_clusters;		/* clusters to reuse */
   int		magic;			/* WORKLIST_MAGIC */
+  word		handle;			/* Prolog handle (integer) or 0 */
+  struct PL_local_data *owner;		/* Thread completing my table */
   unsigned	ground : 1;		/* Ground call (early completion) */
   unsigned	executing : 1;		/* $tbl_wkl_work/3 in progress */
   unsigned	in_global_wl : 1;	/* already in global worklist */
@@ -191,12 +207,43 @@ typedef struct delay_info
 #define IDG_NODE_MAGIC 0x347e54d2
 #define IDG_MDEP_MAGIC 0x745af3b0
 
+/* The edges child->parent are in child->affected and parent->dependent.
+   For a monotonic dependency, child->mono->deps maps the parent to the
+   chain of idg_mdep structures of the edge.  The chain ends in the
+   child.  `concurrent` is set if other threads may modify the edge sets,
+   i.e., the node is shared or has an edge to a shared node.  See
+   pl-idgset.h.
+
+   There is an idg_node for each incremental table and each call to an
+   incremental dynamic predicate, so we keep it small: the fields for
+   monotonic dependencies are in idg_mono, which only nodes that have
+   monotonic dependencies allocate (idg_ensure_mono()).
+*/
+
+typedef struct idg_mono
+{ TablePP	deps;			/* parent -> idg_mdep chain */
+  trie	       *index;			/* Monotonic dependencies by skeleton */
+  TablePP	index_deps;		/* index leaf -> its dependencies */
+} idg_mono;
+
 typedef struct idg_node
 { int           magic;			/* IDG_NODE_MAGIC */
+  bool		concurrent;		/* Other threads modify the sets */
   trie	       *atrie;			/* answer trie */
-  TablePP	affected;		/* parent IDG nodes */
-  TablePP	dependent;		/* child IDG nodes */
-  size_t	answer_count;		/* #answers in previous complete state */
+  idg_set	affected;		/* parent IDG nodes */
+  idg_set	dependent;		/* child IDG nodes */
+  idg_set_block *lingering;		/* replaced blocks of both sets */
+  idg_mono     *mono;			/* monotonic dependencies or NULL */
+  struct idg_registry *registry;	/* registry we are in */
+  unsigned	registry_index;		/* our slot in it */
+  unsigned	answer_count;		/* #answers in previous complete state */
+  unsigned	falsecount;		/* Invalidate count */
+#ifdef O_TRIE_STATS
+  struct
+  { unsigned	invalidated;		/* # times it was invalidated */
+    unsigned	reevaluated;		/* # times it was re-evaluated */
+  } stats;
+#endif
   unsigned	new_answer : 1;		/* Update generated a new answer */
   unsigned	reevaluating : 1;	/* currently re-evaluating */
   unsigned	aborted : 1;		/* re-evaluation was aborted */
@@ -207,13 +254,7 @@ typedef struct idg_node
   unsigned	mono_reevaluating : 1;	/* Monotonic reevaluation in progress */
   unsigned	tt_notrail : 1;		/* Do not trail new monotonic answers */
   unsigned	tt_new_dep : 1;		/* New dependency on transition mod */
-  size_t	falsecount;		/* Invalidate count */
-#ifdef O_TRIE_STATS
-  struct
-  { uint64_t	invalidated;		/* # times it was invalidated */
-    uint64_t	reevaluated;		/* # times it was re-evaluated */
-  } stats;
-#endif
+  unsigned	mono_dep_seen : 1;	/* Has had a monotonic dependency */
 } idg_node;
 
 
@@ -232,6 +273,8 @@ typedef struct idg_mdep
     void *any;
   } next;
   Buffer	 queue;			/* Unprocessed answers */
+  trie_node     *index_node;		/* Leaf in the child's mono_index */
+  struct idg_mdep *same_key;		/* Next dependency on index_node */
 } idg_mdep;
 
 #define TRIE_ARRAY_PREALLOCATED 7
@@ -240,6 +283,11 @@ typedef struct trie_array
 { trie **blocks[MAX_BLOCKS];
   trie *preallocated[TRIE_ARRAY_PREALLOCATED];
 } trie_array;
+
+typedef struct node_array		/* table_props.start_id --> node */
+{ trie_node **blocks[MAX_BLOCKS];
+  trie_node *preallocated[TRIE_ARRAY_PREALLOCATED];
+} node_array;
 
 
 		 /*******************************
@@ -283,6 +331,7 @@ typedef struct tbl_trail_answer
 #define TP_OPAQUE	(0x0008)	/* Declared opaque */
 #define TP_LAZY		(0x0010)	/* Lazy (monotonic) */
 #define TP_INCREMENTAL	(0x0020)	/* Incremental tabling */
+#define TP_VARIANT	(0x0040)	/* Plain variant tabling (S_TABLED) */
 
 typedef struct table_props
 { unsigned int	flags;			/* TP_* flags */
@@ -291,6 +340,7 @@ typedef struct table_props
   size_t	answer_abstract;	/* Answer abstraction */
   size_t	max_answers;		/* Answer count limit */
   Buffer	lazy_queue;		/* Queued clauses for monotonic tabling */
+  unsigned int	start_id;		/* Index in the start node arrays */
 } table_props;
 
 
@@ -305,6 +355,11 @@ typedef struct table_props
 #define		idg_add_dyncall(def, ctrie, variant)	LDFUNC(idg_add_dyncall, def, ctrie, variant)
 #define		tbl_get_restraint_flag(t, key)		LDFUNC(tbl_get_restraint_flag, t, key)
 #define		tbl_set_restraint_flag(t, key)		LDFUNC(tbl_set_restraint_flag, t, key)
+#define		tbl_complete_answer_clause(def)		LDFUNC(tbl_complete_answer_clause, def)
+#define		put_supervisor_goal(t, def, abstract)	LDFUNC(put_supervisor_goal, t, def, abstract)
+#define		tbl_leader_finished(old, catcher, scc, wrapper) \
+		LDFUNC(tbl_leader_finished, old, catcher, scc, wrapper)
+#define		tbl_reset_add_answer(fr)		LDFUNC(tbl_reset_add_answer, fr)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -313,7 +368,7 @@ int	transaction_commit_tables(void);
 int	transaction_rollback_tables(void);
 void	merge_tabling_trail(tbl_trail *into, tbl_trail *from);
 
-void	clearThreadTablingData(PL_local_data_t *ld);
+void	clearThreadTablingData(PL_local_data_t *ld, bool exit);
 term_t	init_delay_list(void);
 void	tbl_push_delay(atom_t atrie, Word wrapper,
 		       trie_node *answer);
@@ -334,6 +389,13 @@ int	tbl_get_restraint_flag(term_t t, atom_t key);
 int	tbl_set_restraint_flag(term_t t, atom_t key);
 int	setMonotonicMode(atom_t a);
 void	tbl_set_incremental_predicate(Definition def, int val);
+atom_t	tbl_complete_answer_clause(Definition def);
+trie_node *tbl_single_answer(trie *atrie);
+void	tbl_release_node(trie *trie, trie_node *n);
+bool	tbl_leader_finished(term_t old, term_t catcher,
+			    term_t scc, term_t wrapper);
+bool	tbl_reset_add_answer(LocalFrame fr);
+bool	put_supervisor_goal(term_t t, Definition def, bool abstract);
 
 #undef LDFUNC_DECLARATIONS
 

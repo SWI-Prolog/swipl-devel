@@ -55,7 +55,8 @@
 :- autoload(library(error), [domain_error/2, is_of_type/2]).
 :- autoload(library(lists), [member/2, last/2, select/3, append/3, selectchk/3]).
 :- autoload(library(operators), [push_op/3, push_operators/1, pop_operators/0]).
-:- autoload(library(option), [select_option/4, option/3, option/2]).
+:- autoload(library(option),
+            [select_option/4, option/3, option/2, merge_options/3]).
 :- autoload(library(modules),[in_temporary_module/3]).
 
 
@@ -84,7 +85,8 @@ users of the library are:
 
 :- thread_local
     open_source/2,          % Stream, State
-    mode/2.                 % Stream, Data
+    mode/2,                 % Stream, Data
+    syntax_option/2.        % Stream, ReadOption
 
 :- multifile
     requires_library/2,
@@ -133,7 +135,11 @@ users of the library are:
 %   @see   read_source_term_at_location/3 for reading at an
 %          arbitrary location.
 
-prolog_read_source_term(In, Term, Expanded, Options) :-
+prolog_read_source_term(In, Term, Expanded, Options0) :-
+    add_syntax_options(In, Options0, Options),
+    read_source_term(In, Term, Expanded, Options).
+
+read_source_term(In, Term, Expanded, Options) :-
     maplist(read_clause_option, Options),
     !,
     select_option(subterm_positions(TermPos), Options,
@@ -145,7 +151,7 @@ prolog_read_source_term(In, Term, Expanded, Options) :-
     expand(Term, TermPos, In, Expanded),
     '$current_source_module'(M),
     update_state(Term, Expanded, M, In).
-prolog_read_source_term(In, Term, Expanded, Options) :-
+read_source_term(In, Term, Expanded, Options) :-
     '$current_source_module'(M),
     select_option(syntax_errors(SE), Options, RestOptions0, dec10),
     select_option(subterm_positions(TermPos), RestOptions0,
@@ -167,6 +173,18 @@ read_clause_option(syntax_errors(_)).
 read_clause_option(term_position(_)).
 read_clause_option(process_comment(_)).
 read_clause_option(comments(_)).
+read_clause_option(var_prefix(_)).
+read_clause_option(variable_names(_)).
+
+%!  add_syntax_options(+In, +Options0, -Options) is det.
+%
+%   Add read options for syntax flags set by  a directive in the source
+%   read from In.  We do not set the flag on the source module because
+%   this module may be `user`.
+
+add_syntax_options(In, Options0, Options) :-
+    findall(Opt, syntax_option(In, Opt), Opts),
+    merge_options(Options0, Opts, Options).
 
 :- public
     expand/3.                       % Used by Prolog colour
@@ -298,6 +316,11 @@ update_directive(op(P,T,N), SM, _) :-
     !,
     strip_module(SM:N, M, PN),
     push_op(P,T,M:PN).
+update_directive(set_prolog_flag(var_prefix, Prefix), _, In) :-
+    atom(Prefix),
+    !,
+    retractall(syntax_option(In, var_prefix(_))),
+    assertz(syntax_option(In, var_prefix(Prefix))).
 update_directive(style_check(Style), _, _) :-
     ground(Style),
     style_check(Style),
@@ -621,7 +644,7 @@ prolog:quasi_quotation_syntax(html,       library(http/html_write)).
 prolog:quasi_quotation_syntax(javascript, library(http/js_write)).
 
 
-%!  prolog_file_directives(+File, -Directives, +Options) is det.
+%!  prolog_file_directives(+Input, -Directives, +Options) is det.
 %
 %   True when Directives is a list  of   directives  that  appear in the
 %   source  file  File.  Reading   directives    stops   at   the  first
@@ -634,6 +657,8 @@ prolog:quasi_quotation_syntax(javascript, library(http/js_write)).
 %     - silent(+Boolean)
 %       If `true` (default `false`), do not report syntax errors and
 %       other errors.
+%
+%   @arg Input is a ground term acceptable by prolog_open_source/2.
 
 prolog_file_directives(File, Directives, Options) :-
     option(canonical_source(Path), Options, _),
@@ -649,15 +674,14 @@ read_directives(TempModule, Path, Directives, Options) :-
         phrase(read_directives(In, Options, [true]), Directives),
         read_directives_cleanup(In, State)).
 
-read_directives_setup(TempModule, Path, In, state(OldM, OldXref)) :-
+read_directives_setup(TempModule, Path, In, OldM) :-
     prolog_open_source(Path, In),
     '$set_source_module'(OldM, TempModule),
-    current_prolog_flag(xref, OldXref),
-    set_prolog_flag(xref, true).
+    push_prolog_flag(xref, true).
 
-read_directives_cleanup(In, state(OldM, OldXref)) :-
+read_directives_cleanup(In, OldM) :-
     '$set_source_module'(OldM),
-    set_prolog_flag(xref, OldXref),
+    pop_prolog_flag(xref),
     prolog_close_source(In).
 
 read_directives(In, Options, State) -->
@@ -707,10 +731,88 @@ terms(H, State, State) -->
     ;   []
     ).
 
+%   eval_cond(+Cond, -True) is det.
+%
+%   Evaluate the condition of  ``:- if(Cond)``   or  ``:- elif(Cond)``.
+%   Reading the directives of a file must not run its code: the file is
+%   often one that is merely  opened,   e.g.,  cross-referenced  by an
+%   editor.  We therefore only evaluate conditions  that use the  side
+%   effect free predicates of safe_cond_predicate/1.  Anything else is
+%   false, which is also what  a  call   to  a  predicate  of  the file
+%   itself evaluates to, as that is not defined while reading.
+
 eval_cond(Cond, true) :-
+    safe_cond(Cond),
     catch(Cond, error(_,_), fail),
     !.
 eval_cond(_, false).
+
+safe_cond(Var) :-
+    var(Var),
+    !,
+    fail.
+safe_cond((A,B)) :-
+    !,
+    safe_cond(A),
+    safe_cond(B).
+safe_cond((A;B)) :-
+    !,
+    safe_cond(A),
+    safe_cond(B).
+safe_cond((A->B)) :-
+    !,
+    safe_cond(A),
+    safe_cond(B).
+safe_cond((A*->B)) :-
+    !,
+    safe_cond(A),
+    safe_cond(B).
+safe_cond(\+(A)) :-
+    !,
+    safe_cond(A).
+safe_cond(Goal) :-
+    callable(Goal),
+    Goal \= _:_,
+    functor(Goal, Name, Arity),
+    safe_cond_predicate(Name/Arity).
+
+safe_cond_predicate(true/0).
+safe_cond_predicate(fail/0).
+safe_cond_predicate(false/0).
+safe_cond_predicate(current_prolog_flag/2).
+safe_cond_predicate(current_predicate/1).
+safe_cond_predicate(current_predicate/2).
+safe_cond_predicate(predicate_property/2).
+safe_cond_predicate(current_module/1).
+safe_cond_predicate(current_op/3).
+safe_cond_predicate(exists_source/1).
+safe_cond_predicate(exists_source/2).
+safe_cond_predicate(exists_file/1).
+safe_cond_predicate(exists_directory/1).
+safe_cond_predicate(absolute_file_name/2).
+safe_cond_predicate(absolute_file_name/3).
+safe_cond_predicate(getenv/2).
+safe_cond_predicate(statistics/2).
+safe_cond_predicate(debugging/1).
+safe_cond_predicate((=)/2).
+safe_cond_predicate((\=)/2).
+safe_cond_predicate((==)/2).
+safe_cond_predicate((\==)/2).
+safe_cond_predicate((@<)/2).
+safe_cond_predicate((@>)/2).
+safe_cond_predicate((@=<)/2).
+safe_cond_predicate((@>=)/2).
+safe_cond_predicate((<)/2).
+safe_cond_predicate((>)/2).
+safe_cond_predicate((=<)/2).
+safe_cond_predicate((>=)/2).
+safe_cond_predicate((=:=)/2).
+safe_cond_predicate((=\=)/2).
+safe_cond_predicate(var/1).
+safe_cond_predicate(nonvar/1).
+safe_cond_predicate(atom/1).
+safe_cond_predicate(integer/1).
+safe_cond_predicate(ground/1).
 
 elif(true,  _,    else_false) :- !.
 elif(false, true, true) :- !.
@@ -733,19 +835,21 @@ negate(else_false, else_false).
 %   this   skeleton,   operator   and    style-check   options   are
 %   automatically restored to the values before opening the source.
 %
-%   ==
+%   ```
 %   process_source(Src) :-
 %           prolog_open_source(Src, In),
 %           call_cleanup(process(Src), prolog_close_source(In)).
-%   ==
+%   ```
+%
+%   @arg   CanonicalId   is   one   of   (1)    a   term   accepted   by
+%   prolog:xref_open_source/2, (2) a file name or   (3)  an already open
+%   stream.  In  the  last  case,   the    stream   is   not  closed  by
+%   prolog_close_source/1.
 
 prolog_open_source(Src, Fd) :-
     '$push_input_context'(source),
-    catch((   prolog:xref_open_source(Src, Fd)
-          ->  Hooked = true
-          ;   open(Src, read, Fd),
-              Hooked = false
-          ), E,
+    catch(do_open_source(Src, Fd, Hooked),
+          E,
           (   '$pop_input_context',
               throw(E)
           )),
@@ -754,6 +858,17 @@ prolog_open_source(Src, Fd) :-
     '$current_source_module'(SM),
     '$save_lex_state'(LexState, []),
     asserta(open_source(Fd, state(Hooked, Src, LexState, SM))).
+
+do_open_source(Src, Stream, stream) :-
+    is_stream(Src),
+    !,
+    Stream = Src.
+do_open_source(Src, Stream, hooked) :-
+    prolog:xref_open_source(Src, Stream),
+    !.
+do_open_source(Src, Stream, opened) :-
+    open(Src, read, Stream).
+
 
 skip_hashbang(Fd) :-
     catch((   peek_char(Fd, #)              % Deal with #! script
@@ -786,11 +901,14 @@ prolog_close_source(In) :-
         restore_source_context(In, Hooked, Src),
         close_source(Hooked, Src, In)).
 
-close_source(true, Src, In) :-
+close_source(stream, _Src, _Stream) :-
+    !,
+    '$pop_input_context'.
+close_source(hooked, Src, In) :-
     catch(prolog:xref_close_source(Src, In), _, false),
     !,
     '$pop_input_context'.
-close_source(_, _Src, In) :-
+close_source(_, _Src, In) :-  % If hook fails we must do normal close
     close(In, [force(true)]),
     '$pop_input_context'.
 
@@ -801,6 +919,7 @@ restore_source_context(In, Hooked, Src) :-
     ),
     pop_operators,
     retractall(mode(In, _)),
+    retractall(syntax_option(In, _)),
     (   retract(open_source(In, state(Hooked, Src, LexState, SM)))
     ->  '$restore_lex_state'(LexState),
         '$set_source_module'(SM)
@@ -827,11 +946,15 @@ prolog_canonical_source(Source, Src) :-
 prolog_canonical_source(User, user) :-
     User == user,
     !.
+prolog_canonical_source(Stream, Src) :-
+    is_stream(Stream),
+    !,
+    Src = Stream.
 prolog_canonical_source(Src, Id) :-             % Call hook
     prolog:xref_source_identifier(Src, Id),
     !.
 prolog_canonical_source(Source, Src) :-
-    source_file(Source),
+    loaded_source_file(Source),
     !,
     Src = Source.
 prolog_canonical_source(Source, Src) :-
@@ -840,6 +963,19 @@ prolog_canonical_source(Source, Src) :-
                          access(read),
                          file_errors(fail)
                        ]),
+    !.
+
+%   loaded_source_file(+Source) is semidet.
+%
+%   True if Source is the name of a loaded source file.  Unlike
+%   source_file/1, Source is not resolved: a relative name or alias
+%   for a loaded file must canonicalise to its absolute name, the same
+%   as when the file is not loaded.
+
+loaded_source_file(Source) :-
+    atom(Source),
+    '$time_source_file'(Source, Time, _),
+    float(Time),
     !.
 
 

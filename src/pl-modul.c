@@ -60,7 +60,7 @@ the  global  module  for  the  user  and imports from `system' all other
 modules import from `user' (and indirect from `system').
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int	addSuperModule_no_lock(Module m, Module s, int where);
+static bool	addSuperModule_no_lock(Module m, Module s, int where);
 static void	unallocModule(Module m);
 static void	unlinkSourceFilesModule(Module m);
 
@@ -136,7 +136,7 @@ Module
 lookupModule(DECL_LD atom_t name)
 { Module m;
 
-  if ( (m = lookupHTableWP(GD->tables.modules, name)) )
+  if ( (m = isCurrentModule(name)) )
     return m;
 
   PL_LOCK(L_MODULE);
@@ -147,9 +147,31 @@ lookupModule(DECL_LD atom_t name)
 }
 
 
+/* Find an existing module.  As meta calls look up modules by name, each
+ * thread caches the most recent lookups.  The cache is flushed if a
+ * module is destroyed (see destroyModule()).
+ */
+
 Module
 isCurrentModule(DECL_LD atom_t name)
-{ return lookupHTableWP(GD->tables.modules, name);
+{ unsigned int i = (unsigned int)(indexAtom(name) & (MODULE_CACHE_SIZE-1));
+  unsigned int gen = GD->modules.generation;
+  Module m;
+
+  if ( likely(LD->modules.cache.generation == gen) )
+  { if ( LD->modules.cache.name[i] == name )
+      return LD->modules.cache.module[i];
+  } else
+  { memset(LD->modules.cache.name, 0, sizeof(LD->modules.cache.name));
+    LD->modules.cache.generation = gen;
+  }
+
+  if ( (m = lookupHTableWP(GD->tables.modules, name)) )
+  { LD->modules.cache.name[i]   = name;
+    LD->modules.cache.module[i] = m;
+  }
+
+  return m;
 }
 
 
@@ -403,7 +425,7 @@ unlinkSourceFilesModule(Module m)
 }
 
 
-static int
+static bool
 destroyModule(Module m)
 { GET_LD
 
@@ -415,6 +437,7 @@ destroyModule(Module m)
   PL_LOCK(L_MODULE);
   if ( deleteHTableWP(GD->tables.modules, m->name) == m )
     set(m, M_DESTROYED);
+  ATOMIC_INC(&GD->modules.generation);	/* flush lookupModule() caches */
   DEBUG(0, { GET_LD
 	     assert(!lookupHTableWP(GD->tables.modules, m->name));
            });
@@ -492,7 +515,7 @@ updateLevelModule(Module m)
 }
 
 
-static int
+static bool
 cannotSetSuperModule(Module m, Module s)
 { GET_LD
   term_t t = PL_new_term_ref();
@@ -508,7 +531,7 @@ cannotSetSuperModule(Module m, Module s)
 }
 
 
-static int
+static bool
 reachableModule(Module here, Module end)
 { if ( here != end )
   { ListCell c;
@@ -526,7 +549,7 @@ reachableModule(Module here, Module end)
 
 
 
-static int
+static bool
 addSuperModule_no_lock(Module m, Module s, int where)
 { ListCell c;
 
@@ -571,7 +594,7 @@ addSuperModule(Module m, Module s, int where)
 }
 
 
-static int
+static bool
 delSuperModule(Module m, Module s)
 { ListCell *p;
 
@@ -829,7 +852,7 @@ isPublicModule(Module module, Procedure proc)
 		*       PROLOG CONNECTION       *
 		*********************************/
 
-static int
+static bool
 get_module(term_t t, Module *m, int create)
 { GET_LD
   atom_t name;
@@ -927,7 +950,7 @@ PRED_IMPL("delete_import_module", 2, delete_import_module, 0)
 
 
 #define get_existing_source_file(file, sfp) LDFUNC(get_existing_source_file, file, sfp)
-static int
+static bool
 get_existing_source_file(DECL_LD term_t file, SourceFile *sfp)
 { SourceFile sf;
   atom_t a;
@@ -1140,7 +1163,7 @@ typedef struct defm_target
 
 
 #define find_modules_with_defs(m, count, targets, tmp, mlist, l) LDFUNC(find_modules_with_defs, m, count, targets, tmp, mlist, l)
-static int
+static bool
 find_modules_with_defs(DECL_LD Module m, int count, defm_target targets[],
 		       term_t tmp, term_t mlist,
 		       int l)
@@ -1263,7 +1286,7 @@ in it are abolished.
 int
 declareModule(atom_t name, atom_t class, atom_t super,
 	      SourceFile sf, int line,
-	      int allow_newfile)
+	      bool allow_newfile)
 { GET_LD
   Module module = lookupModule(name);
   term_t tmp = 0, rdef = 0, rtail = 0;
@@ -1354,7 +1377,8 @@ PRED_IMPL("$declare_module", 6, declare_module, 0)
 { PRED_LD
   SourceFile sf;
   atom_t mname, cname, sname, fname;
-  int line_no, rdef;
+  int line_no;
+  bool rdef;
 
   term_t module   = A1;
   term_t class    = A2;
@@ -1368,7 +1392,7 @@ PRED_IMPL("$declare_module", 6, declare_module, 0)
        !PL_get_atom_ex(super, &sname) ||
        !PL_get_atom_ex(file, &fname) ||
        !PL_get_integer_ex(line, &line_no) ||
-       !PL_get_bool_ex(redefine, &rdef) )
+       !PL_get_stdbool_ex(redefine, &rdef) )
     fail;
 
   sf = lookupSourceFile(fname, true);
@@ -1377,7 +1401,7 @@ PRED_IMPL("$declare_module", 6, declare_module, 0)
 
 
 #define unify_export_list(public, module) LDFUNC(unify_export_list, public, module)
-static int
+static bool
 unify_export_list(DECL_LD term_t public, Module module)
 { term_t head = PL_new_term_ref();
   term_t list = PL_copy_term_ref(public);

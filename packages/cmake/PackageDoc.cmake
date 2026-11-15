@@ -1,7 +1,7 @@
 include(Documentation)
 
 function(doc2tex file)
-  string(REPLACE ".doc" ".tex" tex ${file})
+  string(REPLACE ".plx" ".tex" tex ${file})
   add_custom_command(
       OUTPUT ${tex}
       COMMAND ${PROG_SWIPL} -f none --no-packs ${DOC2TEX} ${CMAKE_CURRENT_SOURCE_DIR}/${file} ${tex}
@@ -38,7 +38,7 @@ function(pldoc file)
   set(options)
 
   foreach(arg ${ARGN})
-    if(arg MATCHES ".*\\.tex")
+    if(arg MATCHES "\\.tex$")
       set(tex ${arg})
     elseif(arg MATCHES "library")
       set(lib "${arg}")
@@ -48,12 +48,12 @@ function(pldoc file)
   endforeach()
 
   if(NOT tex)
-    string(REGEX REPLACE "\\.(pl|md)" ".tex" tex ${file})
+    string(REGEX REPLACE "\\.(pl|md)$" ".tex" tex ${file})
     string(REPLACE "_" "" tex ${tex})
   endif()
 
   if(NOT lib)
-    if(file MATCHES "\\.md")
+    if(file MATCHES "\\.md$")
       set(lib ${CMAKE_CURRENT_SOURCE_DIR}/${file})
     else()
       get_filename_component(base ${file} NAME_WE)
@@ -85,7 +85,7 @@ endfunction()
 
 # pkg_doc(pkg
 #	  [ SOURCE file.pl [out.tex] [library(...)] ]*
-#	  [ SOURCES file.pl file.doc ... ])
+#	  [ SOURCES file.pl file.plx ... ])
 
 function(pkg_doc pkg)
   set(pldoc)
@@ -137,18 +137,18 @@ function(pkg_doc pkg)
     elseif(mode STREQUAL "m_depends")
       set(depends ${depends} ${arg})
     else()
-      if(arg MATCHES "\\.(pl|md)")
+      if(arg MATCHES "\\.(pl|md)$")
         pldoc(${arg})
-      elseif(arg MATCHES "\\.doc")
+      elseif(arg MATCHES "\\.plx$")
         doc2tex(${arg})
-      elseif(arg MATCHES "\\.txt")
+      elseif(arg MATCHES "\\.txt$")
         txt2tex(${arg})
-      elseif(arg MATCHES "\\.bib")
+      elseif(arg MATCHES "\\.bib$")
         set(bbl ${pkg}.bbl)
         copy_file(${arg})
-      elseif(arg MATCHES "\\.(gif|png|pdf|eps)")
+      elseif(arg MATCHES "\\.(gif|png|pdf|eps)$")
         copy_file(${arg})
-      elseif(arg MATCHES "\\.tex")
+      elseif(arg MATCHES "\\.tex$")
         set(texfiles ${texfiles} ${arg})
       endif()
     endif()
@@ -160,7 +160,7 @@ function(pkg_doc pkg)
     set(bbl ${pkg}.bbl)
   endif()
 
-  doc2tex(${pkg}.doc)
+  doc2tex(${pkg}.plx)
 
   tex_byproducts(${pkg} byproducts)
   SET_DIRECTORY_PROPERTIES(PROPERTIES ADDITIONAL_MAKE_CLEAN_FILES
@@ -171,6 +171,16 @@ function(pkg_doc pkg)
   if(NOT depends)
     set(depends ${pkg})
   endif()
+
+  # Forward the pkg_doc(DEPENDS ...) list to each generated .tex
+  # custom command.  The pldoc/doc2tex/txt2tex calls in the loop above
+  # do not see `depends' (it is only fully known after the foreach
+  # completes), so .tex generation could otherwise race with the
+  # swipl_plugin targets it needs in the build home (e.g. cqldoc.tex
+  # loads library(cql/cql), which in turn loads library(chr/...)).
+  foreach(tex ${texfiles})
+    add_custom_command(OUTPUT ${tex} APPEND DEPENDS ${depends})
+  endforeach()
 
   if(INSTALL_DOCUMENTATION)
     if(BUILD_PDF_DOCUMENTATION)

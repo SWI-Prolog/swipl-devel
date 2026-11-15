@@ -36,10 +36,41 @@
 
 /** <module> SWI-Prolog theme file -- light
 
-The `light` theme is default, so this is an empty file.
+The `light` theme is the default. It  only   defines  the parts that the
+default theme (see default_theme/2 in `boot/messages.pl`) leaves neutral
+because they require knowledge about  the   background  colour  of the
+terminal.
 */
 
 :- multifile
-    prolog:theme/1.
+    prolog:theme/1,
+    prolog:console_color/3.
 
 prolog:theme(light).                             % make ourselves known
+
+prolog:console_color(light, Class, Attributes) :-
+    console_color(Class, Attributes).
+
+
+		 /*******************************
+		 *       PROLOG MESSAGES	*
+		 *******************************/
+
+% interactive toplevel.  The command line (prompt and the text typed by
+% the user) has its own background.  The answers to a single query
+% alternate between two backgrounds, which separates the answers of a
+% non-deterministic query.
+console_color(prompt,        [bold, fg8(blue), bg8(123)]).
+console_color(input,         [bg8(123)]).
+console_color(answer(odd),   [bg8(255)]).
+console_color(answer(even),  [bg8(253)]).
+console_color(binding(name), [bold, fg8(magenta)]).
+% trace output.  The goal of successive steps alternates between two
+% backgrounds, which separates the steps of a trace.  The first argument
+% is the port, which allows for colouring the goal by port instead of
+% (or in addition to) striping.
+console_color(goal(_, odd),  [fg(blue), bg8(254)]).
+console_color(goal(_, even), [fg(blue), bg8(252)]).
+console_color(message(Level), Attrs) :-
+    nonvar(Level),
+    console_color(Level, Attrs).

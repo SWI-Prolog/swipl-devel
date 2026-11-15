@@ -52,8 +52,8 @@
 
 #if USE_LD_MACROS
 #if O_VALIDATE_API
-#define valid_term_t(t)				LDFUNC(valid_term_t, t)
-#define valid_user_term_t(t)			LDFUNC(valid_user_term_t, t)
+#define check_term_t(t)				LDFUNC(check_term_t, t)
+#define check_user_term_t(t)			LDFUNC(check_user_term_t, t)
 #endif
 #define	linkVal(p)				LDFUNC(linkVal, p)
 #define	linkValG(p)				LDFUNC(linkValG, p)
@@ -67,6 +67,8 @@
 #define	popTermRef(_)				LDFUNC(popTermRef, _)
 #define	_PL_get_arg(index, t, a)		LDFUNC(_PL_get_arg, index, t, a)
 #define PL_get_intptr(t, i)			LDFUNC(PL_get_intptr, t, i)
+#define PL_get_bool(t, i)			LDFUNC(PL_get_bool, t, i)
+#define PL_get_stdbool(t, i)			LDFUNC(PL_get_stdbool, t, i)
 #define	PL_new_term_ref(_)			LDFUNC(PL_new_term_ref, _)
 #define	PL_new_term_ref_noshift(_)		LDFUNC(PL_new_term_ref_noshift, _)
 #define	PL_new_term_refs(n)			LDFUNC(PL_new_term_refs, n)
@@ -99,6 +101,7 @@
 #define	PL_get_long(t, i)			LDFUNC(PL_get_long, t, i)
 #define	PL_get_int64(t, i)			LDFUNC(PL_get_int64, t, i)
 #define	PL_get_pointer(t, ptr)			LDFUNC(PL_get_pointer, t, ptr)
+#define	PL_get_blob(t, b, l, tp)		LDFUNC(PL_get_blob, t, b, l, tp)
 #define	PL_put_term(t1, t2)			LDFUNC(PL_put_term, t1, t2)
 #define	PL_get_functor(t, f)			LDFUNC(PL_get_functor, t, f)
 #define	PL_get_name_arity_sz(t, name, arity)	LDFUNC(PL_get_name_arity_sz, t, name, arity)
@@ -125,12 +128,31 @@
 #define LDFUNC_DECLARATIONS
 
 #if O_VALIDATE_API
-void		valid_term_t(term_t t);
-void		valid_atom_t(atom_t t);
-void		valid_functor_t(functor_t t);
-void		valid_dict_key(atom_t a);
+void		check_term_t(term_t t);
+void		check_user_term_t(term_t t);
+void		check_atom_t(atom_t t);
+void		check_functor_t(functor_t t);
+void		check_dict_key(atom_t a);
+
+/* The checks are enabled by the Prolog flag `validate_api`.  Atoms and
+   functors may be used from threads without a Prolog engine, where
+   there is no LD to hold the flag.  These are always checked.
+*/
+#define validateAPI() truePrologFlag(PLFLAG_VALIDATE_API)
+#define validateAPI_noLD() (!HAS_LD || validateAPI())
+#define valid_term_t(t) \
+	do { if ( validateAPI() ) check_term_t(t); } while(0)
+#define valid_user_term_t(t) \
+	do { if ( validateAPI() ) check_user_term_t(t); } while(0)
+#define valid_atom_t(a) \
+	do { if ( validateAPI_noLD() ) check_atom_t(a); } while(0)
+#define valid_functor_t(f) \
+	do { if ( validateAPI_noLD() ) check_functor_t(f); } while(0)
+#define valid_dict_key(a) \
+	do { if ( validateAPI_noLD() ) check_dict_key(a); } while(0)
 #else
 #define valid_term_t(t) (void)0
+#define valid_user_term_t(t) (void)0
 #define valid_atom_t(t) (void)0
 #define valid_functor_t(t) (void)0
 #define valid_dict_key(t) (void)0
@@ -156,6 +178,8 @@ term_t		pushWordAsTermRef(Word p);
 void		popTermRef(void);
 bool		_PL_get_arg(size_t index, term_t t, term_t a);
 bool		PL_get_intptr(term_t t, intptr_t *i);
+bool		PL_get_bool(term_t t, int *i);
+bool		PL_get_stdbool(term_t t, bool *i);
 term_t		PL_new_term_ref(void);
 term_t		PL_new_term_ref_noshift(void);
 term_t		PL_new_term_refs(size_t n);
@@ -193,6 +217,8 @@ bool		PL_get_long(term_t t, long *i);
 bool		PL_get_int64(term_t t, int64_t *i);
 /* PL_get_size_ex(term_t t, size_t *i) moved to pl-error.h */
 bool		PL_get_pointer(term_t t, void **ptr);
+bool		PL_get_blob(term_t t, void **blob, size_t *len,
+			    PL_blob_t **type);
 bool		PL_put_term(term_t t1, term_t t2)/* WUNUSED*/;
 bool		PL_get_functor(term_t t, functor_t *f);
 bool		PL_get_name_arity_sz(term_t t, atom_t *name,
@@ -214,6 +240,7 @@ bool		PL_is_list(term_t t);
 /* PL_same_term(term_t t1, term_t t2) moved to pl-prims.h */
 bool		isUCSAtom(Atom a);
 atom_t		lookupUCSAtom(const pl_wchar_t *s, size_t len);
+atom_t		lookupLocalUCSAtom(const pl_wchar_t *s, size_t len);
 int		charCode(word w);
 bool		isCallable(word w);
 bool		PL_unify_arg_sz(size_t index, term_t t, term_t a);
@@ -229,7 +256,7 @@ FLI_INLINE int	PL_pending(int sig);
 bool		PL_clearsig(int sig);
 void		cleanupCodeToAtom(void);
 void		PL_clear_foreign_exception(LocalFrame fr);
-bool		has_emergency_space(void *sv, size_t needed);
+COLD bool		has_emergency_space(void *sv, size_t needed);
 FLI_INLINE
 except_class	classify_exception(term_t ex);
 except_class    classify_exception_p(Word p);
@@ -327,7 +354,7 @@ PL_put_int64(DECL_LD term_t t, int64_t i)
 { word w = consInt(i);
 
   if ( valInt(w) != i &&
-       put_int64(&w, i, ALLOW_GC) != true )
+       !put_int64(&w, i) )
     return false;
 
   setHandle(t, w);

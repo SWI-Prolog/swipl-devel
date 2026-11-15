@@ -86,7 +86,11 @@ macro(configure_pgo pgo_tag)
   else()
     set(PGO_CFLAGS_EXTRA   -Wno-maybe-uninitialized "-fprofile-dir=${PGO_DIR}")
     set(PGO_GENERATE_FLAGS -fprofile-generate ${PGO_CFLAGS_EXTRA})
-    set(PGO_USE_FLAGS      -fprofile-use ${PGO_CFLAGS_EXTRA})
+    # With VMI_FUNCTIONS and musttail, GCC finds the profile of most VMI
+    # functions not flow-consistent and refuses it.  -fprofile-correction
+    # smooths the profile.
+    set(PGO_USE_FLAGS      -fprofile-use -fprofile-correction
+                           ${PGO_CFLAGS_EXTRA})
     if(PGO_TAG)
       set(PGO_OUTPUT_FILE ${PGO_RUN_STAMP})
       function(prepare_pgo_target t is_generate)

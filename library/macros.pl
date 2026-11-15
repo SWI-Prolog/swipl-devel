@@ -126,6 +126,8 @@ valid_macro(Macro), reserved_macro(Macro) =>
     domain_error(macro, Macro).
 valid_macro(Macro), callable(Macro) =>
     true.
+valid_macro(Macro), is_dict(Macro) =>
+    true.
 valid_macro(_Macro) =>
     fail.
 
@@ -137,7 +139,10 @@ reserved_macro(_) => fail.
     error:has_type/2.
 
 error:has_type(macro, Term) :-
-    callable(Term),
+    (   callable(Term)
+    ->  true
+    ;   is_dict(Term)
+    ),
     \+ reserved_macro(Term).
 
 prepare_module(Clause0, Clauses) :-

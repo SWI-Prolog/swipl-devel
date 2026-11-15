@@ -87,7 +87,7 @@ backSkipUTF8(const char *start, const char *s, int *chr)
 		 *******************************/
 
 #define unify_text(t, txt, type) LDFUNC(unify_text, t, txt, type)
-static int
+static bool
 unify_text(DECL_LD term_t t, PL_chars_t *txt, int type)
 { if ( PL_unify_text(t, 0, txt, type) )
   { return true;
@@ -95,7 +95,7 @@ unify_text(DECL_LD term_t t, PL_chars_t *txt, int type)
   { PL_chars_t tt;
 
     if ( PL_get_text(t, &tt, CVT_ALL) )
-    { int rc = ( txt->encoding == tt.encoding &&
+    { bool rc = ( txt->encoding == tt.encoding &&
 		 txt->length == tt.length &&
 		 PL_cmp_text(txt, 0, &tt, 0, tt.length) == CMP_EQUAL );
       PL_free_text(&tt);
@@ -133,23 +133,24 @@ PRED_IMPL("atom_string", 2, atom_string, 0)
 
 
 #define string_x(str, list, out_type) LDFUNC(string_x, str, list, out_type)
-static int
+static bool
 string_x(DECL_LD term_t str, term_t list, int out_type)
 { PL_chars_t t;
-  int rc;
 
   switch ( PL_get_text(str, &t, CVT_ALL|CVT_EXCEPTION|CVT_VARNOFAIL) )
-  { case true:
-      rc = unify_text(list, &t, out_type);
+  { case GT_TRUE:
+    { bool rc = unify_text(list, &t, out_type);
       PL_free_text(&t);
       return rc;
-    case false:
+    }
+    case GT_FALSE:
       return false;
-    /*case 2: str can bind */
+    case GT_ISVAR:
+      break;				/* Can bind */
   }
 
   if ( PL_get_text(list, &t, CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
-  { rc = unify_text(str, &t, PL_STRING);
+  { bool rc = unify_text(str, &t, PL_STRING);
     PL_free_text(&t);
     return rc;
   }
@@ -181,7 +182,7 @@ PRED_IMPL("text_to_string", 2, text_to_string, 0)
     return PL_unify(A1, A2);
 
   if ( PL_get_text(A1, &t, CVT_ATOM|CVT_LIST|CVT_EXCEPTION) )
-  { int rc = unify_text(A2, &t, PL_STRING);
+  { bool rc = unify_text(A2, &t, PL_STRING);
     PL_free_text(&t);
     return rc;
   }
@@ -217,8 +218,9 @@ PRED_IMPL("string_bytes", 3, string_bytes, 0)
     return PL_domain_error("encoding", A3);
 
   switch ( PL_get_text(A1, &t,
-		       CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION|CVT_VARNOFAIL) )
-  { case true:
+		       CVT_ATOM|CVT_STRING|CVT_LIST|
+		       CVT_EXCEPTION|CVT_VARNOFAIL) )
+  { case GT_TRUE:
       if ( !PL_text_recode(&t, enc) )
       { PL_free_text(&t);
 	return false;
@@ -228,10 +230,9 @@ PRED_IMPL("string_bytes", 3, string_bytes, 0)
 			  t.text.t);
       PL_free_text(&t);
       return rc;
-    case false:
+    case GT_FALSE:
       return false;
-    default:
-      /* 2: can unify */
+    case GT_ISVAR:			/* can unify */
       break;
   }
 
@@ -254,6 +255,21 @@ PRED_IMPL("string_bytes", 3, string_bytes, 0)
 }
 
 
+/* Index counts code points, while text_get_char() and the length of a
+ * text count units, which differ on Windows for a code point above
+ * 0xffff.  See text_next_code().
+ */
+
+static bool
+text_code_at(const PL_chars_t *t, size_t index, int *code)
+{ size_t u = PL_text_unit_offset(t, index);
+
+  if ( u == (size_t)-1 || u >= t->length )
+    return false;
+  *code = text_next_code(t, &u);
+  return true;
+}
+
 /** string_code(?Index, +String, ?Code)
 
 True when the Index'ed character of String has code Code.
@@ -263,21 +279,22 @@ static
 PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
 { PRED_LD
   PL_chars_t t;
-  size_t idx;
+  size_t idx, u;
   int tchar;
 
   switch( CTX_CNTRL )
   { case FRG_FIRST_CALL:
     { size_t i;
+      int c;
 
       if ( !PL_get_text(A2, &t, CVT_ATOM|CVT_STRING|CVT_LIST|CVT_EXCEPTION) )
 	return false;
       if ( !PL_is_variable(A1) )
       { if ( !PL_get_size_ex(A1, &i) )
 	  return false;
-	if ( i == 0 || i > t.length )
+	if ( i == 0 || !text_code_at(&t, i-1, &c) )
 	  return false;
-	return PL_unify_integer(A3, text_get_char(&t, i-1));
+	return PL_unify_integer(A3, c);
       } else
       { if ( !PL_is_variable(A3) )
 	{ if ( !PL_get_char_ex(A3, &tchar, false) )
@@ -301,10 +318,13 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
 	PL_get_char(A3, &tchar, false);
 
     gen:
+      if ( (u=PL_text_unit_offset(&t, idx)) == (size_t)-1 )
+	return false;
       if ( tchar == -1 )
-      { if ( PL_unify_integer(A1, idx+1) &&
-	     PL_unify_integer(A3, text_get_char(&t, idx)) )
-	{ if ( idx+1 < t.length )
+      { if ( u < t.length &&
+	     PL_unify_integer(A1, idx+1) &&
+	     PL_unify_integer(A3, text_next_code(&t, &u)) )
+	{ if ( u < t.length )
 	    ForeignRedoInt(idx+1);
 	  else
 	    return true;
@@ -312,11 +332,11 @@ PRED_IMPL("string_code", 3, string_code, PL_FA_NONDETERMINISTIC)
 	return false;
       }
 
-      for(; idx < t.length; idx++)
-      { if ( text_get_char(&t, idx) == tchar )
+      for(; u < t.length; idx++)
+      { if ( text_next_code(&t, &u) == tchar )
 	{ if ( PL_unify_integer(A1, idx+1) )
-	  { for(idx++; idx < t.length; idx++)
-	    { if ( text_get_char(&t, idx) == tchar )
+	  { for(idx++; u < t.length; idx++)
+	    { if ( text_next_code(&t, &u) == tchar )
 		ForeignRedoInt(idx);
 	    }
 	    return true;
@@ -343,22 +363,23 @@ PRED_IMPL("get_string_code", 3, get_string_code, 0)
 { PRED_LD
   PL_chars_t t;
   int64_t i;
+  int c;
 
   if ( !PL_get_text(A2, &t, CVT_ALL|CVT_EXCEPTION) ||
        !PL_get_int64_ex(A1, &i) )
     return false;
 
-  if ( i < 1 || i > (int64_t) t.length )
+  if ( i < 1 || !text_code_at(&t, (size_t)(i-1), &c) )
   { term_t av;
 
     return ( (av = PL_new_term_refs(2)) &&
 	     PL_put_int64(av+0, 1) &&
-	     PL_put_int64(av+1, t.length) &&
+	     PL_put_int64(av+1, PL_text_length(&t)) &&
 	     PL_error(NULL, 0, NULL, ERR_RANGE, av+0, av+1, A1)
 	   );
   }
 
-  return PL_unify_integer(A3, text_get_char(&t, (size_t)(i-1)));
+  return PL_unify_integer(A3, c);
 }
 
 
@@ -379,24 +400,26 @@ PRED_IMPL("split_string", 4, split_string, 0)
   if ( PL_get_text(A1, &input, flags) &&
        PL_get_text(A2, &sep,   flags) &&
        PL_get_text(A3, &pad,   flags) )
-  { size_t i, last;
+  { size_t i, last, n;			/* unit offsets, see text_next_code() */
     term_t tail = PL_copy_term_ref(A4);
     term_t head = PL_new_term_ref();
     size_t sep_at = (size_t)-1;
     size_t end;
 
 						/* back skip padding at end */
-    for(end=input.length;
-	end > 0 &&
-	text_chr(&pad, text_get_char(&input, end-1)) != (size_t)-1;
-	end--)
-      ;
+    for(end=input.length; end > 0; end=n)
+    { n = end;
+      if ( text_chr(&pad, text_prev_code(&input, &n)) == (size_t)-1 )
+	break;
+    }
 
     for(i=0;;)
     {					/* skip padding */
-      while( i<end &&
-	     text_chr(&pad, text_get_char(&input, i)) != (size_t)-1 )
-	i++;
+      for(; i<end; i=n)
+      { n = i;
+	if ( text_chr(&pad, text_next_code(&input, &n)) == (size_t)-1 )
+	  break;
+      }
 
       if ( i == end )
       { if ( !PL_unify_list_ex(tail, head, tail) ||
@@ -407,25 +430,32 @@ PRED_IMPL("split_string", 4, split_string, 0)
 
     no_skip_padding:
       last = i;				/* find sep */
-      while( i<end &&
-	     text_chr(&sep, text_get_char(&input, i)) == (size_t)-1 )
-	i++;
+      for(; i<end; i=n)
+      { n = i;
+	if ( text_chr(&sep, text_next_code(&input, &n)) != (size_t)-1 )
+	  break;
+      }
       sep_at = i;			/* back skip padding */
-      while( i>last &&
-	     text_chr(&pad, text_get_char(&input, i-1)) != (size_t)-1 )
-	i--;
+      for(; i>last; i=n)
+      { n = i;
+	if ( text_chr(&pad, text_prev_code(&input, &n)) == (size_t)-1 )
+	  break;
+      }
 
       if ( !PL_unify_list_ex(tail, head, tail) ||
-	   !PL_unify_text_range(head, &input, last, i-last, PL_STRING) )
+	   !PL_unify_text_units(head, &input, last, i-last, PL_STRING) )
 	goto error;
 
       if ( sep_at == end )
 	break;					/* no separator found */
 
-      i = sep_at+1;
+      i = sep_at;
+      int sep_chr = text_next_code(&input, &i);
+      n = i;
+      int next_chr = n < input.length ? text_next_code(&input, &n) : 0;
 
-      if ( text_chr(&pad, text_get_char(&input, sep_at)) == (size_t)-1 &&
-	   text_chr(&sep, text_get_char(&input, sep_at+1)) != (size_t)-1 )
+      if ( text_chr(&pad, sep_chr) == (size_t)-1 &&
+	   text_chr(&sep, next_chr) != (size_t)-1 )
 	goto no_skip_padding;
     }
 

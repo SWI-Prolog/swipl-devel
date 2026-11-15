@@ -1,10 +1,10 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  2018-2025, VU University Amsterdam
-			CWI, Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  2018-2026, VU University Amsterdam
+                              CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
     All rights reserved.
 
@@ -50,31 +50,52 @@ purposes:
 This file is normally installed in `CMAKE_BINARY_DIRECTORY/home`.
 */
 
-%!  cmake_binary_directory(-BinDir, -Config) is det.
-%!  cmake_source_directory(-SrcDir) is det.
+%!  cmake_binary_directory(-BinDir, -HostBinDir, -Config) is det.
 %
 %   Find    the    equivalent    of    ``CMAKE_BINARY_DIRECTORY``    and
-%   CMAKE_SOURCE_DIRECTORY.
+%   CMAKE_SOURCE_DIRECTORY.  The  first  call  sets    the  Prolog  flag
+%   `cmake_binary_directory` to BinDir.
+%
+%   @arg BinDir is the binary directory of the target
+%   @arg HostBinDir is the binary directory of the _native friend_, used
+%        for cross-compilation if we cannot run the cross-built
+%        executable on the build platform.
+%   @arg Config is the configuration for multi-config build systems. For
+%        single configuration systems this is `''` (empty atom)
 
 :- dynamic
-    cmake_bindir/2.             % Bindir, Config
+    cmake_bindir/3.             % TargetBindir, HostBinDir, Config
 
-cmake_binary_directory(BinDir, Config) :-
-    cmake_bindir(BinDir, Config),
+cmake_binary_directory(TargetBindir, HostBinDir, Config) :-
+    cmake_bindir(TargetBindir, HostBinDir, Config),
     !.
-cmake_binary_directory(BinDir, Config) :-
+cmake_binary_directory(TargetBindir, HostBinDir, Config) :-
+    target_cmake_binary_directory(TargetBindir, Config),
+    host_friend_cmake_binary_directory(HostBinDir),
+    asserta(cmake_bindir(TargetBindir, HostBinDir, Config)),
+    set_prolog_flag(cmake_binary_directory, TargetBindir).
+
+target_cmake_binary_directory(BinDir, Config) :-
+    current_prolog_flag(home, Home),
+    atom_concat(Home, '/boot.prc', BootFile),
+    exists_file(BootFile),
+    file_directory_name(Home, BinDir),
+    (   format(string(Pattern), '~w/src/swipl{,.exe,.js}', [BinDir]),
+        expand_file_name(Pattern, [_Exe])
+    ->  Config = ''
+    ;   format(string(Pattern), '~w/src/*/swipl{,.exe,.js}', [BinDir]),
+        expand_file_name(Pattern, [Exe])
+    ->  file_directory_name(Exe, ExeDir),
+        file_base_name(ExeDir, Config)
+    ),
+    !.
+
+host_friend_cmake_binary_directory(BinDir) :-
     exe_or_shared_object(Exe),
     parent_dir(Exe, BinDir),
     atom_concat(BinDir, '/home/boot.prc', BootFile),
     exists_file(BootFile),
-    !,
-    split_string(Exe, "/", "/", Segments),
-    '$append'(_, [Parent,_Exe], Segments),
-    (   Parent == "src"
-    ->  Config = ''
-    ;   atom_string(Config, Parent)
-    ),
-    asserta(cmake_bindir(BinDir, Config)).
+    !.
 
 exe_or_shared_object(File) :-	% only reliable when read-only
     '$current_prolog_flag'(libswipl, File, _Scope, read, atom),
@@ -105,10 +126,14 @@ exe_access(Access) :-
 %!  swipl_package(-Pkg, -PkgBuildDir, -PkgBinDir) is nondet.
 %
 %   True when Pkg is available in the build tree at the given location.
+%
+%   @arg Pkg is the package name (`xpce`, `clib`, ...)
+%   @arg PkgBuildDir is the target directory for the package
+%   @arg PkgBinDir hold the compatible `.so`,`.dll`,... modules.
 
 swipl_package(Pkg, PkgBuildDir, PkgBinDir) :-
-    cmake_binary_directory(CMakeBinDir, Config),
-    atomic_list_concat([CMakeBinDir, packages], /, PkgRoot),
+    cmake_binary_directory(TargetBinDir, HostBinDir, Config),
+    atomic_list_concat([TargetBinDir, packages], /, PkgRoot),
     exists_directory(PkgRoot),
     directory_files(PkgRoot, Candidates),
     '$member'(Pkg, Candidates),
@@ -117,8 +142,8 @@ swipl_package(Pkg, PkgBuildDir, PkgBinDir) :-
     atomic_list_concat([PkgBuildDir, 'CMakeFiles'], /, CMakeDir),
     exists_directory(CMakeDir),
     (   Config == ''
-    ->  PkgBinDir = PkgBuildDir
-    ;   atomic_list_concat([PkgBuildDir, /, Config], PkgBinDir)
+    ->  atomic_list_concat([HostBinDir, packages, Pkg], /, PkgBinDir)
+    ;   atomic_list_concat([HostBinDir, packages, Pkg, Config], /, PkgBinDir)
     ).
 
 special(.).
@@ -188,7 +213,7 @@ add_package_path(PkgBinDir) :-
 %   an installed version.
 
 set_version_info :-
-    (   cmake_binary_directory(BinDir, Config)
+    (   cmake_binary_directory(BinDir, _HostBinDir, Config)
     ->  (   Config == ''
         ->  version(format('    CMake built from "~w"', [BinDir]))
         ;   version(format('    CMake built from "~w" (~w)', [BinDir, Config]))
@@ -208,10 +233,10 @@ set_libswipl :-
     current_prolog_flag(shared_object_extension, SO),
     \+current_prolog_flag(windows, true),
     !,
-    cmake_binary_directory(BinDir, Config),
+    cmake_binary_directory(_BinDir, HostBinDir, Config),
     (   Config == ''
-    ->  format(atom(Value), '~w/src/libswipl.~w', [BinDir, SO])
-    ;   format(atom(Value), '~w/src/~w/libswipl.~w', [BinDir, Config, SO])
+    ->  format(atom(Value), '~w/src/libswipl.~w', [HostBinDir, SO])
+    ;   format(atom(Value), '~w/src/~w/libswipl.~w', [HostBinDir, Config, SO])
     ),
     set_prolog_flag(libswipl, Value).
 set_libswipl.
@@ -238,8 +263,8 @@ delete_host_java_home :-
 		 *******************************/
 
 user:file_search_path(swi_man_manual, ManDir) :-
-    cmake_binary_directory(BinDir, _Config),
-    atomic_list_concat([BinDir, 'man/Manual'], /, ManDir).
+    cmake_binary_directory(TargetBinDir, _HostBinDir, _Config),
+    atomic_list_concat([TargetBinDir, 'man/Manual'], /, ManDir).
 user:file_search_path(swi_man_packages, BuildDir) :-
     swipl_package(_, BuildDir, _BinDir).
 

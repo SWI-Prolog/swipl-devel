@@ -108,8 +108,6 @@ static const PL_extension foreigns[] = {
   FRG("break",			0, pl_break,			0),
 
   FRG("write_canonical",	1, pl_write_canonical,	      ISO),
-  FRG("write_term",		2, pl_write_term,	 META|ISO),
-  FRG("write_term",		3, pl_write_term3,	 META|ISO),
   FRG("write",			1, pl_write,		      ISO),
   FRG("writeq",			1, pl_writeq,		      ISO),
   FRG("writeln",		1, pl_writeln,			0),
@@ -361,6 +359,8 @@ setBuiltinPredicateProperties(void)
   LOOKUPPROC(dgarbage_collect1);
   LOOKUPPROC(catch3);
   LOOKUPPROC(reset3);
+  LOOKUPPROC(dtbl_reset6);
+  LOOKUPPROC(call_continuation1);
   LOOKUPPROC(dmeta_call1);
   LOOKUPPROC(true0);
   LOOKUPPROC(fail0);
@@ -471,6 +471,7 @@ DECL_PLIST(system);
 DECL_PLIST(op);
 DECL_PLIST(rec);
 DECL_PLIST(termhash);
+DECL_PLIST(bisim);
 DECL_PLIST(dde);
 DECL_PLIST(term);
 DECL_PLIST(debug);
@@ -536,6 +537,7 @@ initBuildIns(bool signonly)
   REG_PLIST(rec);
   REG_PLIST(term);
   REG_PLIST(termhash);
+  REG_PLIST(bisim);
 #ifdef O_ATTVAR
   REG_PLIST(attvar);
 #endif

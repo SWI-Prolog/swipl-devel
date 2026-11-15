@@ -48,6 +48,8 @@
 #include "pl-trie.h"
 #include "pl-tabling.h"
 #include "pl-undo.h"
+#include "pl-zip.h"
+#include "pl-wrap.h"
 #include "pl-event.h"
 #include "pl-fli.h"
 #include "pl-funct.h"
@@ -90,7 +92,7 @@ foreign language code or packages with which Prolog was linked together.
 #endif
 
 #define LDFUNC_DECLARATIONS
-static int allocStacks(void);
+static bool allocStacks(void);
 static void initSignals(void);
 static void gcPolicy(Stack s, int policy);
 #undef LDFUNC_DECLARATIONS
@@ -112,6 +114,7 @@ setupProlog(void)
 
   DEBUG(1, Sdprintf("wam_table ...\n"));
   initWamTable();
+  DEBUG(0, checkGCWalk());
   DEBUG(1, Sdprintf("character types ...\n"));
   initCharTypes();
   DEBUG(1, Sdprintf("foreign predicates ...\n"));
@@ -145,6 +148,9 @@ setupProlog(void)
   initRecords();
   DEBUG(1, Sdprintf("Tries ...\n"));
   initTries();
+  initZip();				/* register the remaining blob types */
+  initUndo();				/* so that they exist before the */
+  initWrap();				/* first one is created */
   DEBUG(1, Sdprintf("Tabling ...\n"));
   initTabling();
   DEBUG(1, Sdprintf("Flags ...\n"));
@@ -360,6 +366,7 @@ static struct signame
   { SIG_CLAUSE_GC,     "prolog:clause_gc",     0 },
   { SIG_PLABORT,       "prolog:abort",         0 },
   { SIG_PLHALT,        "prolog:halt",          0 },
+  { SIG_TRACE_GC,      "prolog:trace_gc",      0 },
 
   { -1,		NULL,     0}
 };
@@ -452,7 +459,7 @@ to the main thread.
 #undef LD
 #define LD LOCAL_LD
 
-static int
+static bool
 is_fatal_signal(int sig)
 { switch(sig)
   {
@@ -634,26 +641,9 @@ pl_signal_handler(int sig)
 { dispatch_signal(sig, false);
 }
 
-#ifndef SA_RESTART
-#define SA_RESTART 0
-#endif
-
 handler_t
 set_sighandler(int sig, handler_t func)
 {
-#ifdef HAVE_SIGACTION
-  struct sigaction old;
-  struct sigaction new;
-
-  memset(&new, 0, sizeof(new));	/* deal with other fields */
-  new.sa_handler = func;
-/*new.sa_flags   = SA_RESTART;  all blocking functions are restarted */
-
-  if ( sigaction(sig, &new, &old) == 0 )
-    return old.sa_handler;
-  else
-    return SIG_DFL;
-#elif defined(HAVE_SIGNAL)
 #ifdef __WINDOWS__
   switch( sig )				/* Current Windows versions crash */
   { case SIGABRT:			/* when given a non-supported value */
@@ -666,18 +656,27 @@ set_sighandler(int sig, handler_t func)
     default:
       return SIG_IGN;
   }
-#endif /*__WINDOWS__*/
   return signal(sig, func);
 #else
-  return NULL;
-#endif
+  struct sigaction old;
+  struct sigaction new;
+
+  memset(&new, 0, sizeof(new));	/* deal with other fields */
+  new.sa_handler = func;
+
+  if ( sigaction(sig, &new, &old) == 0 )
+    return old.sa_handler;
+  else
+    return SIG_DFL;
+#endif /*__WINDOWS__*/
 }
 
 static SigHandler
 prepareSignal(int sig, int plsig_flags)
 { SigHandler sh = &GD->signals.handlers[SIGNAL_INDEX(sig)];
   int current_state = sh->flags & PLSIG_STATEFLAGS;
-  int desired_state = (plsig_flags & PLSIG_IGNORE) ? PLSIG_IGNORED : PLSIG_PREPARED;
+  int desired_state = (plsig_flags & PLSIG_IGNORE) ? PLSIG_IGNORED
+						   : PLSIG_PREPARED;
 
   plsig_flags &= ~(PLSIG_STATEFLAGS | PLSIG_IGNORE);
 
@@ -685,7 +684,10 @@ prepareSignal(int sig, int plsig_flags)
   { clearFlags(sh);
     set(sh, desired_state | plsig_flags);
     if ( !IS_VSIG(sig) )
-    { handler_t old_handler = set_sighandler(sig, desired_state == PLSIG_IGNORED ? SIG_IGN : pl_signal_handler);
+    { handler_t old_handler =
+	set_sighandler(sig,
+		       desired_state == PLSIG_IGNORED ? SIG_IGN
+						      : pl_signal_handler);
       if ( current_state == 0 )
 	sh->saved_handler = old_handler;
     }
@@ -778,29 +780,14 @@ initTerminationSignals(void)
 }
 #endif /*O_SIGNALS*/
 
-#ifdef O_C_STACK_GUARDED
-static void
-alt_segv_handler(int sig)
-{ GET_LD
-  (void)sig;
-
-  DEBUG(MSG_SIGNAL,
-	Sdprintf("Got C-stack overflow; critical = %d\n",
-		 LD->signal.sig_critical));
-
-  if ( LD->signal.sig_critical )
-  { longjmp(LD->signal.context, true);
-    /*NORETURN*/
-  }
-
-  sigCrashHandler(sig);
-}
-#endif
+/* Handle SIGSEGV on an alternative signal stack, so a C-stack overflow
+   still gets us a crash report.  See O_ALTSIGSTACK.
+*/
 
 bool
-initGuardCStack(void)
+initAltSignalStack(void)
 {
-#ifdef O_C_STACK_GUARDED
+#ifdef O_ALTSIGSTACK
   GET_LD
   stack_t ss = {0};
 
@@ -816,7 +803,7 @@ initGuardCStack(void)
       { struct sigaction sa = {0};
 
 	sa.sa_flags = SA_ONSTACK;
-	sa.sa_handler = alt_segv_handler;
+	sa.sa_handler = sigCrashHandler;
 	sigemptyset(&sa.sa_mask);
 
 	if ( sigaction(SIGSEGV, &sa, NULL) == 0 )
@@ -831,14 +818,64 @@ initGuardCStack(void)
   return false;
 }
 
+#define localSweepWanted(_) LDFUNC(localSweepWanted, _)
+static inline bool
+localSweepWanted(DECL_LD)
+{ return ( LD->atoms.local.live >= LD->atoms.local.threshold ||
+	   LD->atoms.local.units_due );
+}
+
 static void
 agc_handler(int sig)
 { GET_LD
   (void)sig;
 
-  if ( GD->statistics.atoms >= GD->atoms.non_garbage + GD->atoms.margin &&
-       !gc_status.blocked )
-    pl_garbage_collect_atoms();
+  if ( gc_status.blocked )
+    return;
+  if ( AGC_wanted() && !gcByGCThread() )
+    pl_garbage_collect_atoms();		/* also does the local sweep */
+  else if ( localSweepWanted() )
+    considerLocalSweep();
+}
+
+/* SIG_ATOM_GC in a critical section such as sig_atomic/1, which notably
+ * runs load_files/2.  The local sweep calls no Prolog, so we do it now.
+ * Otherwise the signal remains pending until the section ends, which
+ * makes every call take the slow path and every new local atom raise
+ * the signal again.  Global AGC may print messages, so it must wait.
+ */
+
+/* SIG_CLAUSE_GC in a critical section.  The local clause GC calls no
+ * Prolog unless there is an event hook for erased clauses.  If it cannot
+ * run, we postpone it.  The global clause GC must wait, so without a gc
+ * thread the signal remains pending if there are dirty predicates.
+ */
+
+#define criticalClauseGC(_) LDFUNC(criticalClauseGC, _)
+static void
+criticalClauseGC(DECL_LD)
+{ if ( localClauseGCDue() )
+  { if ( *event_list_location(PLEV_ERASED_CLAUSE) )
+      postponeLocalClauseGC();
+    else
+      localClauseGC();
+  }
+  if ( gcByGCThread() || GD->procedures.dirty->size == 0 )
+  { WSIGMASK_CLEAR(LD->signal.pending, SIG_CLAUSE_GC);
+    updateAlerted(LD);
+  }
+}
+
+#define criticalAtomGC(_) LDFUNC(criticalAtomGC, _)
+static void
+criticalAtomGC(DECL_LD)
+{ if ( AGC_wanted() && !gcByGCThread() )
+    return;
+
+  WSIGMASK_CLEAR(LD->signal.pending, SIG_ATOM_GC);
+  if ( !gc_status.blocked && localSweepWanted() )
+    considerLocalSweep();
+  updateAlerted(LD);
 }
 
 
@@ -856,11 +893,36 @@ gc_tune_handler(int sig)
   call_tune_gc_hook();
 }
 
+/* SIG_TRACE_GC is synchronous.  If printing a message raises an
+ * exception, print_gc_trace() returns false with the exception
+ * pending and handleSignals() propagates it.
+ */
+
+static void
+gc_trace_handler(int sig)
+{ GET_LD
+  (void)sig;
+
+  if ( !print_gc_trace() )
+    assert(exception_term);
+}
+
+/* SIG_CLAUSE_GC reaches a thread that is not the gc thread to run the
+ * global clause GC if there is no gc thread, or to run the local clause
+ * GC for its thread-local predicates (see localClauseGC()).
+ */
+
 static void
 cgc_handler(int sig)
-{ (void)sig;
+{ GET_LD
+  (void)sig;
 
-  pl_garbage_collect_clauses();
+  if ( gcByGCThread() )
+  { if ( localClauseGCDue() )
+      localClauseGC();
+  } else
+  { pl_garbage_collect_clauses();	/* also does the local clause GC */
+  }
 }
 
 
@@ -913,7 +975,7 @@ initSignals(DECL_LD)
   { struct signame *sn = signames;
 #ifdef HAVE_OS_SIGNALS
     initTerminationSignals();
-    initGuardCStack();
+    initAltSignalStack();
 #endif /*HAVE_OS_SIGNALS*/
     initBackTrace();
     for( ; sn->name; sn++)
@@ -946,6 +1008,7 @@ initSignals(DECL_LD)
 
   PL_signal(SIG_GC|PL_SIGSYNC,		  gc_handler);
   PL_signal(SIG_TUNE_GC|PL_SIGSYNC,	  gc_tune_handler);
+  PL_signal(SIG_TRACE_GC|PL_SIGSYNC,	  gc_trace_handler);
   PL_signal(SIG_CLAUSE_GC|PL_SIGSYNC,     cgc_handler);
   PL_signal(SIG_PLABORT|PL_SIGSYNC,       abort_handler);
   PL_signal(SIG_PLHALT|PL_SIGSYNC,        halt_handler);
@@ -1083,12 +1146,29 @@ blockSignal(int sig)
   DEBUG(1, Sdprintf("signal %d\n", sig));
 }
 
+/* Give the child of a fork() a clean signal mask.  Only the main
+ * thread processes SIGINT (see start_thread()), so a thread that forks
+ * hands the child a mask with SIGINT blocked, and exec() keeps the
+ * mask where it resets the handlers: ^C would not reach the new
+ * process.  Called from PL_cleanup_fork(), so it may not lock: no
+ * DEBUG() here.
+ */
+
+void
+resetSignalMask(void)
+{ sigset_t set;
+
+  sigemptyset(&set);
+  sigprocmask(SIG_SETMASK, &set, NULL);
+}
+
 #else /*O_SIGNALS && defined(HAVE_SIGPROCMASK)*/
 
 void blockSignals(sigset_t *old) {}
 void unblockSignals(sigset_t *old) {}
 void unblockSignal(int sig) {}
 void blockSignal(int sig) {}
+void resetSignalMask(void) {}
 
 #endif
 
@@ -1186,7 +1266,9 @@ PL_signal(int sigandflags, handler_t func)
 }
 
 
-/* return: -1: exception in handler, otherwise number of handled signals
+/* return: -1: exception in handler, otherwise number of handled signals.
+   Signals are not handled while an exception is pending.  They remain
+   pending until the exception is processed.
 */
 
 int
@@ -1229,14 +1311,18 @@ handleSignals(DECL_LD)
     return 0;
   if ( !HAS_LD )
     return 0;
-  if ( exception_term )
-    return -1;
+  if ( exception_term )			/* Do not handle signals while */
+    return 0;				/* an exception is pending */
 #ifndef __unix__				/* on Unix we ask to signal twice */
   if ( (done=handleSigInt()) )
     return done;
 #endif
   if ( LD->critical )
-  { DEBUG(MSG_THREAD_SIGNAL,
+  { if ( WSIGMASK_ISSET(LD->signal.pending, SIG_ATOM_GC) )
+      criticalAtomGC();
+    if ( WSIGMASK_ISSET(LD->signal.pending, SIG_CLAUSE_GC) )
+      criticalClauseGC();
+    DEBUG(MSG_THREAD_SIGNAL,
 	  Sdprintf("[%d]: ignoring signal (critical = %d)\n",
 		   PL_thread_self(), LD->critical));
     return 0;
@@ -1281,8 +1367,10 @@ PRED_IMPL("prolog_alert_signal", 2, prolog_alert_signal, 0)
     rc = PL_unify_atom_chars(A1, sname);
 
   if ( rc )
-  { if ( PL_compare(A1,A2) == CMP_EQUAL )
+  { if ( (rc=PL_compare(A1,A2)) == CMP_EQUAL )
     { return true;
+    } else if ( rc == CMP_ERROR )
+    { return false;
     } else
     { int new;
 
@@ -1331,7 +1419,7 @@ We always support this even when compiled without OS-level signal support,
 because of internal virtual signal handling.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 get_meta_arg(term_t arg, term_t m, term_t t)
 { GET_LD
 
@@ -1346,7 +1434,7 @@ get_meta_arg(term_t arg, term_t m, term_t t)
 }
 
 
-static int
+static bool
 get_module(term_t t, Module *m)
 { GET_LD
   atom_t a;
@@ -1363,6 +1451,7 @@ static
 PRED_IMPL("$on_signal", 4, on_signal, 0)
 { PRED_LD
   int sign = -1;
+  int rc;
   SigHandler sh;
   char *sn;
   atom_t a;
@@ -1418,8 +1507,11 @@ PRED_IMPL("$on_signal", 4, on_signal, 0)
     }
   }
 
-  if ( PL_compare(old, new) == 0 &&
-       PL_compare(mold, mnew) == 0 )
+  if ( (rc=PL_compare(old, new)) == CMP_EQUAL )
+    rc = PL_compare(mold, mnew);
+  if ( rc == CMP_ERROR )
+    return false;
+  if ( rc == CMP_EQUAL )
     succeed;					/* no change */
 
   if ( PL_get_atom(new, &a) )
@@ -1531,6 +1623,7 @@ emptyStacks(void)
   emptyStack((Stack)&LD->stacks.argument);
 
   LD->mark_bar          = gTop;
+  LD->gen_bar           = gTop;
   if ( lTop && gTop )
   { int i;
 
@@ -1587,7 +1680,7 @@ init_stack(Stack s, char *name, size_t size, size_t spare, int gc)
 }
 
 
-static int
+static bool
 allocStacks(DECL_LD)
 { size_t minglobal = 8*SIZEOF_WORD K;
   size_t minlocal  = 4*SIZEOF_WORD K;
@@ -1652,6 +1745,12 @@ freeStacks(DECL_LD)
     aTop = NULL;
     aBase = NULL;
   }
+  if ( LD->gc.remembered.addrs )	/* see gen_remember() */
+  { free(LD->gc.remembered.addrs);
+    LD->gc.remembered.addrs = NULL;
+    LD->gc.remembered.size = 0;
+    LD->gc.remembered.count = 0;
+  }
 }
 
 
@@ -1663,10 +1762,10 @@ trim_stack(Stack s)
 
     DEBUG(MSG_SPARE_STACK, Sdprintf("Reset spare for %s (%zd->%zd)\n",
 				    s->name, s->spare, s->def_spare));
-    if ( room > 0 && room < reduce )
+    if ( room < reduce )
     { DEBUG(MSG_SPARE_STACK,
-	    Sdprintf("Only %d spare for %s-stack\n", room, s->name));
-      reduce = room;
+	    Sdprintf("Only %zd spare for %s-stack\n", room, s->name));
+      reduce = room > 0 ? room : 0;
     }
 
     s->max = addPointer(s->max, -reduce);
@@ -1798,11 +1897,11 @@ freePrologLocalData(PL_local_data_t *ld)
   if ( ld->qlf.getstr_buffer )
     free(ld->qlf.getstr_buffer);
 
-  clearThreadTablingData(ld);
+  clearThreadTablingData(ld, true);
   if ( ld->tabling.node_pool )
     free_alloc_pool(ld->tabling.node_pool);
 
-#ifdef O_C_STACK_GUARDED
+#ifdef O_ALTSIGSTACK
   if ( ld->signal.alt_stack )
     free(ld->signal.alt_stack);
 #endif

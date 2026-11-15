@@ -22,19 +22,75 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # and using VMI functions more then   doubles the performance. For Clang
 # the picture is less clear. The difference  is small, with a slight win
 # on either depending on  CPU  and   workload.  Using  Emscripten (WASM)
-# however, using a switch produces the fastest and smallest binary.
+# however, using a switch produces the fastest and smallest binary.  This
+# also holds for tail-calling VMI functions (WASM_TAIL_CALL), which are
+# 20-60% slower than the switch in V8 and SpiderMonkey once the code is
+# compiled by the optimizing tier.
+#
+# If the compiler supports musttail (Clang >= 13, GCC >= 15), the VMI
+# functions call each other using guaranteed tail calls (VMI_TAILCALL in
+# src/pl-incl.h).  With GCC 16 this is 3% faster than a single function
+# using computed goto, mostly due to fewer instruction cache misses.  See
+# doc/tabling/tailcall-vm.md.
 
 if(EMSCRIPTEN)
-  set(DEFAULT_VMI_FUNCTIONS OFF)
+  option(WASM_TAIL_CALL
+	 "Use -mtail-call (VMI functions use tail calls)"
+	 OFF)
+  set(DEFAULT_VMI_FUNCTIONS ${WASM_TAIL_CALL})
   set(O_LABEL_ADDRESSES OFF)
-elseif(MSVC OR CMAKE_C_COMPILER_ID STREQUAL Clang)
+elseif(MSVC OR
+       CMAKE_C_COMPILER_ID STREQUAL Clang OR
+       CMAKE_C_COMPILER_ID STREQUAL AppleClang)
   set(DEFAULT_VMI_FUNCTIONS ON)
+elseif(CMAKE_C_COMPILER_ID STREQUAL GNU)
+  include(CheckCSourceCompiles)
+# Mimic the VM: an indirect call through the code and five arguments,
+# the last one modified.  Some targets accept musttail but cannot
+# compile such calls: ppc64le (no indirect sibling calls) and s390x
+# (the fifth argument is in the callee-saved r6).  See #1553.
+  check_c_source_compiles("
+#if !defined(__has_attribute) || !__has_attribute(musttail)
+#error no musttail
+#endif
+#if __has_attribute(preserve_none)
+#define CC __attribute__((preserve_none))
+#else
+#define CC
+#endif
+typedef void *Code;
+typedef CC Code (*vmi_f)(void *ld, Code *pc, void *fr, void *regs, char *argp);
+static __attribute__((noinline)) CC Code
+helper(void *ld, Code *pc, void *fr, void *regs, char *argp)
+{ if ( !*pc ) return pc;
+  __attribute__((musttail)) return ((vmi_f)*pc)(ld, pc+1, fr, regs, argp+8);
+}
+static __attribute__((noinline)) CC Code
+instr(void *ld, Code *pc, void *fr, void *regs, char *argp)
+{ if ( !*pc ) return pc;
+  __attribute__((musttail)) return helper(ld, pc, fr, regs, argp+8);
+}
+int main(void)
+{ char args[64];
+  Code code[] = { (Code)instr, (Code)instr, 0 };
+  return instr(0, code, 0, 0, args) != &code[2];
+}" HAVE_C_MUSTTAIL)
+  if(HAVE_C_MUSTTAIL)
+    set(DEFAULT_VMI_FUNCTIONS ON)
+  else()
+    set(DEFAULT_VMI_FUNCTIONS OFF)
+  endif()
 else()
   set(DEFAULT_VMI_FUNCTIONS OFF)
 endif()
 
 if(APPLE)
 # tcmalloc breaks setlocale() on MacOS 12 (Monterey)
+  set(DEFAULT_USE_TCMALLOC OFF)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Sanitize")
+# tcmalloc interposes malloc/free and clashes with the sanitizer runtime,
+# causing crashes when third-party libraries (e.g. GLib) free memory that
+# was allocated through the sanitizer.
   set(DEFAULT_USE_TCMALLOC OFF)
 else()
   set(DEFAULT_USE_TCMALLOC ON)
@@ -69,6 +125,9 @@ option(USE_SIGNALS
 option(USE_GMP
        "Use GNU MP Bignum library (LGPL)"
        ON)
+option(USE_CRMATH
+       "Use correctly rounded CORE_MATH elementary functions"
+       OFF)
 option(USE_TCMALLOC
        "Use Google tcmalloc instead of default malloc"
        ${DEFAULT_USE_TCMALLOC})
@@ -99,12 +158,18 @@ option(INSTALL_DOCUMENTATION
 option(BUILD_PDF_DOCUMENTATION
        "Build the PDF manuals from source"
        OFF)
+option(CHANGELOG
+       "Install machine readable predicate changelog support"
+       OFF)
 option(MACOS_UNIVERSAL_BINARY
        "Build a universal binary for x86_64 and arm64"
        OFF)
 option(BUILD_MACOS_BUNDLE
        "Install for a MacOS bundle (SWI-Prolog.app)"
        OFF)
+option(BUILD_MACOS_FRAMEWORK
+       "Install libswipl as a macOS .framework bundle"
+       ${BUILD_MACOS_BUNDLE})
 option(BUILD_TESTING
        "Build test files and setup for ctest"
        ON)
@@ -162,6 +227,7 @@ set(CMAKE_C_STANDARD 11)
 
 include(Utils)
 include(BuildType)
+include(DSym)
 include(Version)
 include(PGO)
 include(Locations)
@@ -257,8 +323,6 @@ set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "Core_system")
 # Add the core Prolog system
 add_subdirectory(src)
 install(FILES LICENSE README.md DESTINATION ${SWIPL_INSTALL_PREFIX})
-install(FILES customize/edit customize/init.pl customize/README.md
-	DESTINATION ${SWIPL_INSTALL_PREFIX}/customize)
 
 if(INSTALL_DOCUMENTATION)
   include(Documentation)
@@ -280,6 +344,7 @@ if(INSTALL_DOCUMENTATION)
 			    -g "use_module(library(pldoc/man_index))"
 	                    -g save_man_index -t halt
       DEPENDS swipl core doc.html
+      ${SWIPL_RUN_JOB_POOL}
       VERBATIM)
   add_custom_target(
       man_index
@@ -302,8 +367,8 @@ endif(INSTALL_DOCUMENTATION)
 ################################################################
 # Testing
 
-set(SWIPL_TEST_DIRS unprotected core db attvar debug tabling library
-    compile charset eclipse clp GC save files transaction
+set(SWIPL_TEST_DIRS unprotected core_lang core_text db attvar debug tabling
+    library compile charset eclipse clp GC save files transaction
     xsb/basic_tests xsb/ai_tests xsb/ptq xsb/neg_tests xsb/delay_tests
     xsb/wfs_tests xsb/table_tests xsb/incremental_tests xsb/nonmt_tests
     xsb/sub_tests xsb/attv_tests)
@@ -373,6 +438,13 @@ include(Desktop)
 
 # Install all (DLL) dependencies
 install_target_runtime_dependencies()
+
+# MUST be the last add_subdirectory: this subdir's cmake_install.cmake
+# is included after every other subdir's, so its install(CODE) runs
+# the macOS bundle-fixup script after all foreign extensions are in
+# place.  CMake groups top-level install commands ahead of subdir
+# includes, so a bare install(CODE) here would run too early.
+add_subdirectory(cmake/macos_app_fixup)
 
 # Packaging
 include(Pack)

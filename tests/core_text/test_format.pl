@@ -1,0 +1,140 @@
+/*  Part of SWI-Prolog
+
+    Author:        Jan Wielemaker
+    E-mail:        J.Wielemaker@vu.nl
+    WWW:           http://www.swi-prolog.org
+    Copyright (c)  2008-2026, University of Amsterdam
+                              VU University Amsterdam
+			      SWI-Prolog Solutions b.v.
+    All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+
+    1. Redistributions of source code must retain the above copyright
+       notice, this list of conditions and the following disclaimer.
+
+    2. Redistributions in binary form must reproduce the above copyright
+       notice, this list of conditions and the following disclaimer in
+       the documentation and/or other materials provided with the
+       distribution.
+
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+    FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+    COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+    INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+    BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+    CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+    LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+*/
+
+:- module(test_format, [test_format/0]).
+:- use_module(library(plunit)).
+
+/** <module> Test Prolog text formatting primitives
+
+This module is a Unit test for  Prolog format/2, etc.
+
+@author	Jan Wielemaker
+*/
+
+test_format :-
+    run_tests([ format
+	      ]).
+
+:- begin_tests(format).
+
+test(fail, fail) :-
+    format('~@', [fail]).
+test(fail, throws(error(42))) :-
+    format('~@', [throw(error(42))]).
+test(no_stream, error(existence_error(stream, S))) :-
+    S = stream_dhfuweiu,
+    format(S, fmt, []).
+test(atom, A == 'a\n') :-
+    format(atom(A), 'a\n', []).
+test(atom, A == '--++') :-
+    format(atom(A), '~`-t~`+t~4+', []).
+test(radix, A == "101") :-
+    format(string(A), '~2r', [5]).
+test(radix, error(domain_error(radix, 1))) :-
+    format(string(_), '~1r', [5]).
+test(radix, error(domain_error(radix, 37))) :-
+    format(string(_), '~37r', [5]).
+test(gmp, S == "0") :-
+    format(string(S), '~d', [(2^63>>38)mod 2^24]).
+test(asterisk, error(format_argument_type(*, -1))) :-
+    format('~t~*|', [-1]).
+test(arg_overflow, error(format('argument overflow'))) :-
+    format(string(_), '~4294967306d', [1]).	% used to wrap to 10
+test(precision_too_large, error(format('precision too large'))) :-
+    format(string(_), '~1000001e', [1r3]).
+test(precision_too_large, error(format('precision too large'))) :-
+    format(string(_), '~1000001d', [1]).
+test(repeat_too_large, error(format('repeat count too large'))) :-
+    format(string(_), '~*c', [1000001, 0'a]).
+test(repeat_too_large, error(format('repeat count too large'))) :-
+    format(string(_), '~1000001n', []).
+test(column_too_large, error(format('column too large'))) :-
+    format(string(_), '~a~1000001|', [a]).
+test(column_too_large, error(format('column too large'))) :-
+    format(string(_), '~a~1000000+~1000000+', [a]).
+test(digit_group, X == '1_00000000000000000000') :-
+    format(atom(X), '~20I', [10^20]).
+test(digit_group, X == '1_000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000') :-
+    format(atom(X), '~126I', [10^126]).
+test(digit_group, error(format('invalid digit group size'))) :-
+    format(atom(_), '~259I', [1]).		% used to group by 3
+test(column_max, L == 1000000) :-
+    format(string(S), '~a~t~1000000|', [a]),
+    string_length(S, L).
+test(intD_1, X == '1,000') :-
+    format(atom(X), '~D', [1000]).
+test(intD_2, X == '10.00') :-
+    format(atom(X), '~2D', [1000]).
+test(intD_3, X == '1,000.00') :-
+    format(atom(X), '~2D', [100000]).
+test(intr_1, X == '3e8') :-
+    format(atom(X), '~16r', [1000]).
+test(intR_1, X == '3E8') :-
+    format(atom(X), '~16R', [1000]).
+test(large_float_1, Len == 108) :-
+    format(atom(X), '~6f', [1e100]),
+    atom_length(X, Len).                     % 1 with 100 0s + ".000000" = 108.
+test(oncodes_1) :-
+    format(codes(C), 'hello ~w', [world]),
+    atom_codes('hello world', C).
+test(oncodes_2, C-T =@= C2-T2) :-
+    format(codes(C,T), 'hello ~w', [world]),
+    atom_codes('hello world', HW),
+    append(HW, T2, C2).
+test(onstring_1) :-
+    format(string(S), 'hello ~w', [world]),
+    string(S),
+    atom_string('hello world', S).
+
+
+					% column stops count display columns
+test(column_plain, S == "ab        x") :-
+    format(string(S), 'ab~t~10|x', []).
+test(column_ansi, S == "\e[1mab\e[0m        x") :-
+    format(string(S), '\e[1mab\e[0m~t~10|x', []).
+test(column_ansi_arg, S == "\e[1mab\e[0m        x") :-
+    format(string(S), '~w~t~10|x', ['\e[1mab\e[0m']).
+test(column_tab, S == "ab\tc           x") :-
+    format(string(S), 'ab\tc~t~20|x', []).
+test(column_wide, S == "中中      x") :-
+    format(string(S), '~w~t~10|x', ['中中']).
+					% above 0xffff: a surrogate pair on Windows
+test(non_bmp, S == "\U0001D4311") :-
+    format(string(S), '\U0001D431~w', [1]).
+test(non_bmp_fill, S == "\U0001D431\U0001D431x") :-
+    format(string(S), '~`\U0001D431t~2|x', []).
+
+:- end_tests(format).

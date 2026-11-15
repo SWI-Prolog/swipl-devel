@@ -54,7 +54,7 @@ rm -f $tmp
 
 month=`LANG=POSIX date "+%B"`
 year=`date "+%Y"`
-f=man/main.doc
+f=man/main.plx
 sed -e "s@{\\\\vmajor}{[0-9]*}@{\\\\vmajor}{$major}@" \
     -e "s@{\\\\vminor}{[0-9]*}@{\\\\vminor}{$minor}@" \
     -e "s@{\\\\vpatch}{[0-9]*}@{\\\\vpatch}{$patch}@" \

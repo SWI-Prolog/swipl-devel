@@ -56,12 +56,20 @@ int		f_is_prolog_var_start(int c);
 int		f_is_prolog_atom_start(int c);
 int		f_is_prolog_identifier_continue(int c);
 int		f_is_prolog_symbol(int c);
+int		f_is_prolog_solo(int c);
+int		f_is_pattern_syntax(int c);
 int		f_is_decimal(int c);
+int		f_paren_close(int c);
+int		f_paren_open(int c);
+int		f_quote_close(int c);
+int		f_is_quote(int c);
+int		f_quote_open(int c);
+int		is_eol_char(int c);
 int		decimal_weight(int code);
 int		unicode_separator(int c);
-int		unicode_quoted_escape(int c);
-bool		atom_varnameW(const pl_wchar_t *s, size_t len);
 int		atom_is_named_var(atom_t name);
+int		var_prefix_code(atom_t a);
+bool		get_var_prefix_ex(term_t t, int *code);
 strnumstat	str_number(const unsigned char *string,
 			   unsigned char **end,
 			   Number value, int flags);

@@ -161,6 +161,97 @@ find_longopt(const char *opt, int argc, const char **argv)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+-D options are normally applied by  apply_defines/0 (see boot/toplevel.pl),
+which runs after the boot files have  been loaded.  That is too late for a
+flag the boot sequence itself depends on:  file_name_case_handling decides
+the normal form of every file name,  so  it must be set before initPaths()
+locates the home directory.
+
+Such flags are listed in  early_defines[].   setEarlyDefines() picks them
+straight from the raw argv (GD->options.defines  does not exist yet at that
+point) and parseCommandLineOptions() then  leaves  them out, so that Prolog
+does not try to set them a second time.  As they are set before Prolog
+starts, they can be read-only flags.
+
+To add one, give it an entry  in early_defines[] with a function that
+accepts the value as written on the command line.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static const struct early_define
+{ const char *name;
+  bool (*set)(const char *value);
+} early_defines[] =
+{ { "file_name_case_handling", setFileNameCaseHandlingName },
+  { NULL, NULL }
+};
+
+
+/* `def' is a -D argument, i.e. "name" or "name=value" */
+
+static const struct early_define *
+is_early_define(const char *def)
+{ const struct early_define *ed;
+
+  for(ed=early_defines; ed->name; ed++)
+  { if ( optcmp(def, ed->name) )
+      return ed;
+  }
+
+  return NULL;
+}
+
+
+/* Find -Dname[=value] in the raw argv.  Returns the value, "" if the
+   option carries no value and NULL if it is not present.  A repeated
+   option is resolved as it is by apply_defines/0: the last one wins.
+*/
+
+static const char *
+find_define(const char *name, int argc, const char **argv)
+{ const char *value = NULL;
+
+  for(; argc > 0; argc--, argv++)
+  { const char *a = argv[0];
+    const char *def = NULL;
+
+    if ( streq(a, "--") )		/* --: end of args */
+      break;
+
+    if ( a[0] == '-' && a[1] == 'D' )
+    { if ( a[2] )
+	def = a+2;
+      else if ( argc > 1 )		/* -D name=value */
+      { def = argv[1];
+	argc--, argv++;
+      }
+    }
+
+    if ( def )
+    { const char *v;
+
+      if ( (v=optcmp(def, name)) )
+	value = v;
+    }
+  }
+
+  return value;
+}
+
+
+static void
+setEarlyDefines(int argc, const char **argv)
+{ const struct early_define *ed;
+
+  for(ed=early_defines; ed->name; ed++)
+  { const char *value = find_define(ed->name, argc, argv);
+
+    if ( value && !(*ed->set)(value) )
+      fatalError("Invalid value for -D%s: %s", ed->name, value);
+  }
+}
+
+
 static const char *
 is_longopt(const char *optstring, const char *name)
 { const char *v;
@@ -377,7 +468,7 @@ findHomeFromExecutable(const char *symbols, char *buf, size_t size)
 
 #if O_XOS
 	char buf2[PATH_MAX];
-	_xos_canonical_filename(link, buf2, sizeof(buf2), 0);
+	_xos_canonical_filename(link, buf2, sizeof(buf2));
 	strcpy(link, buf2);
 #endif
 	if ( !IsAbsolutePath(link) )
@@ -405,6 +496,52 @@ findHomeFromExecutable(const char *symbols, char *buf, size_t size)
   return NULL;
 }
 #endif /*PLHOMEFILE*/
+
+/* Find the Prolog home by locating ourselves inside a macOS
+ * .framework bundle.  Uses dladdr() on a symbol of libswipl to
+ * get the framework binary path, then assumes
+ *
+ *    <prefix>/swipl.framework/Versions/<V>/swipl
+ *    <prefix>/swipl.framework/Versions/<V>/Resources/swipl/  (home)
+ *
+ * This works without any executable: a host application that just
+ * dlopen()s libswipl from the framework will still find the home.
+ */
+
+#if defined(__APPLE__) && defined(BUILD_MACOS_FRAMEWORK)
+#include <dlfcn.h>
+
+static char *
+findHomeFromFramework(char *buf, size_t size)
+{ Dl_info info;
+  char dylib[PATH_MAX];
+  char parent[PATH_MAX];
+  const char *vdir;
+
+  if ( !dladdr((void*)findHomeFromFramework, &info) || !info.dli_fname )
+    return NULL;
+  if ( strlen(info.dli_fname) >= sizeof(dylib) )
+    return NULL;
+  strcpy(dylib, info.dli_fname);
+
+  /* dylib = <prefix>/swipl.framework/Versions/<V>/swipl
+   * vdir  = <prefix>/swipl.framework/Versions/<V>
+   */
+  vdir = DirName(dylib, parent);
+  if ( !vdir || !strstr(vdir, ".framework/Versions/") )
+    return NULL;
+
+  char trial[PATH_MAX];
+  if ( Ssnprintf(trial, sizeof(trial), "%s/Resources/swipl", vdir) < 0 )
+    return NULL;
+  if ( !AbsoluteFile(trial, buf, size) )
+    return NULL;
+
+  DEBUG(MSG_INITIALISE,
+	Sdprintf("Trying home %s from framework %s\n", buf, dylib));
+  return buf;
+}
+#endif /*__APPLE__ && BUILD_MACOS_FRAMEWORK*/
 
 /* Find home is absoluteFile(dirName(symbols)+"/"+PLRELHOME)
  */
@@ -467,20 +604,26 @@ searchHome(const char *symbols, bool verbose)
 #endif
 	break;
       case 1:
+#if defined(__APPLE__) && defined(BUILD_MACOS_FRAMEWORK)
+	source = "macOS .framework bundle containing libswipl";
+	home = findHomeFromFramework(plp, sizeof(plp));
+#endif
+	break;
+      case 2:
 #ifdef PLHOMEFILE
 	source = "using \"" PLHOMEFILE "\" from";
 	ctx = symbols;
 	home = findHomeFromExecutable(symbols, plp, sizeof(plp));
 #endif
 	break;
-      case 2:
+      case 3:
 #ifdef PLRELHOME
 	source = PLRELHOME " relative relative to";
 	ctx = symbols;
 	home = findRelHome(symbols, plp, sizeof(plp));
 #endif
 	break;
-      case 3:
+      case 4:
 #ifdef PLHOME
 	source = "compiled in";
 	home = PrologPath(PLHOME, plp, sizeof(plp));
@@ -613,7 +756,7 @@ defaultSystemInitFile(const char *a0)
 }
 
 
-static int
+static bool
 is_hash_bang_file(const char *s)
 { char fb[PATH_MAX];
   char *fn;
@@ -665,7 +808,7 @@ memarea_limit(const char *s)
 }
 
 
-static int
+static bool
 on_error_style(const char *s)
 { return ( strcmp(s, "print") == 0 ||
 	   strcmp(s, "halt") == 0 ||
@@ -754,11 +897,19 @@ initPaths(int argc, const char **argv)
 
 #ifdef O_XOS
   if ( systemDefaults.home )
-  { char buf[PATH_MAX];
+  { GET_LD
+    char buf[PATH_MAX];
 
-    if ( !_xos_limited_os_filename(systemDefaults.home, buf, sizeof(buf)) )
-      fatalError("Home path too long");
-    systemDefaults.home = store_string(buf);
+    /* Normalise the case of the home directory.  Only case_insensitive
+       maps it to lower case; with case_preserving canonicalisePath() has
+       already put it in its on-disk case.
+    */
+    if ( !truePrologFlag(PLFLAG_FILE_CASE) &&
+	 !truePrologFlag(PLFLAG_FILE_CASE_PRESERVING) )
+    { if ( !_xos_limited_os_filename(systemDefaults.home, buf, sizeof(buf)) )
+	fatalError("Home path too long");
+      systemDefaults.home = store_string(buf);
+    }
   }
 #endif
 }
@@ -864,7 +1015,7 @@ This  file  is  parsed,  and  the    values  are  interpreted.  See  the
 if-then-else below for the defined values.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 getVarFromStream(IOSTREAM *s, tmp_buffer *name, tmp_buffer *value)
 { int c;
 
@@ -901,7 +1052,7 @@ do_value:
 }
 
 
-static int
+static bool
 loadStateOptions(IOSTREAM *opts)
 { int rc = false;
   tmp_buffer name;
@@ -1103,10 +1254,15 @@ parseCommandLineOptions(int argc0, char **argv0, char **argvleft)
     if ( *s == 'D' )
     { const char *def = s+1;
 
-      if ( *def )
+      if ( !*def )			/* -D name=value */
+      { if ( argc <= 1 )
+	  return -1;
+	def = argv[1];
+	argc--, argv++;
+      }
+					/* setEarlyDefines() did these */
+      if ( !is_early_define(def) )
 	opt_append(&GD->options.defines, def);
-      else
-	optionList(&GD->options.defines);
 
       continue;
     }
@@ -1348,6 +1504,7 @@ PL_initialise(int argc, char **argv)
 
   initOs();				/* Initialise OS bindings */
   initDefaults();			/* Initialise global defaults */
+  setEarlyDefines(argc, (const char**)argv); /* -D flags needed below */
   initPaths(argc, (const char**)argv);	/* fetch some useful paths */
 
   GET_LD
@@ -1825,7 +1982,8 @@ PL_cleanup(int status)
   emptyStacks();			/* no need for this and we may be */
 					/* out of stack */
 #ifdef O_PROFILE
-  resetProfiler();			/* don't do profiling anymore */
+  stopProfiler();			/* don't do profiling anymore */
+  resetProfiler();
 #endif
 #ifdef O_PLMT
   if ( !exitPrologThreads() )		/* reclaim memory while a thread */

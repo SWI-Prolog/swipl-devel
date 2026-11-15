@@ -457,7 +457,7 @@ extern PL_local_data_t* no_local_ld(void);
 # define PASS_AS_LD(_)
 #else
 /* For type-checking in static analysis */
-static inline int pass_as_ld_helper(PL_local_data_t *ld) {return 0;}
+static inline bool pass_as_ld_helper(PL_local_data_t *ld) {return 0;}
 # define WITH_LD(ld) for(PL_local_data_t *__ignore_ld=(ld), *__loopctr = NULL; !__loopctr; __loopctr++)
 # define PASS_AS_LD(ld) pass_as_ld_helper(ld) +
 #endif

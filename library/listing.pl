@@ -43,18 +43,18 @@
           portray_clause/2,             % +Stream, +Clause
           portray_clause/3              % +Stream, +Clause, +Options
         ]).
-:- use_module(library(settings),[setting/4,setting/2]).
-
-:- autoload(library(ansi_term),[ansi_format/3]).
-:- autoload(library(apply),[foldl/4]).
-:- use_module(library(debug),[debug/3]).
-:- autoload(library(error),[instantiation_error/1,must_be/2]).
-:- autoload(library(lists),[member/2, append/3]).
-:- autoload(library(option),[option/2,option/3,meta_options/3]).
-:- autoload(library(prolog_clause),[clause_info/5]).
-:- autoload(library(prolog_code), [most_general_goal/2]).
+:- use_module(library(settings), [setting/4, setting/2]).
+:- autoload(library(ansi_term), [ansi_format/3, ansi_hyperlink/2]).
+:- autoload(library(apply), [foldl/4, exclude/3]).
+:- use_module(library(debug), [debug/3]).
+:- autoload(library(error), [instantiation_error/1, must_be/2]).
+:- autoload(library(lists), [member/2, append/3]).
+:- autoload(library(option), [option/2, option/3, meta_options/3]).
+:- autoload(library(prolog_clause), [clause_info/5]).
+:- autoload(library(prolog_code), [most_general_goal/2, pi_head/2]).
 :- if(exists_source(library(thread))).
 :- autoload(library(thread), [call_in_thread/3]).
+
 :- endif.
 
 %:- set_prolog_flag(generate_debug_info, false).
@@ -68,6 +68,7 @@
 
 :- predicate_options(listing/2, 2,
                      [ thread(atom),
+                       source(boolean),
                        pass_to(portray_clause/3, 3)
                      ]).
 :- predicate_options(portray_clause/3, 3,
@@ -201,6 +202,16 @@ list_module(Module, Options) :-
 %      If a predicate is _thread local_, list the clauses as seen by
 %      the given ThreadId.  Ignored if the predicate is not thread
 %      local.
+%
+%      - module(+Module)
+%      Module whose operator table is used to write the clauses.
+%      Default is the module from which listing/2 is called.  This
+%      matters for a program listed in a module other than the one whose
+%      operators it is written with, e.g., a compiled representation
+%      kept in a temporary module.
+%
+%   Other options are passed to portray_clause/3 and from there to
+%   write_term/3.
 
 listing(Spec) :-
     listing(Spec, []).
@@ -289,14 +300,14 @@ list_predicate(Pred, Context, _) :-
     predicate_property(Pred, undefined),
     !,
     decl_term(Pred, Context, Decl),
-    comment('%   Undefined: ~q~n', [Decl]).
+    comment(['%   Undefined: ~q~n'-[Decl]]).
 list_predicate(Pred, Context, _) :-
     predicate_property(Pred, foreign),
     !,
     decl_term(Pred, Context, Decl),
-    comment('%   Foreign: ~q~n', [Decl]),
+    comment(['%   Foreign: ~q~n'-[Decl]]),
     (   '$foreign_predicate_source'(Pred, Source)
-    ->  comment('%   Implemented by ~w~n', [Source])
+    ->  comment(['%   Implemented by ~w~n'-[Source]])
     ;   true
     ).
 list_predicate(Pred, Context, Options) :-
@@ -334,7 +345,7 @@ declaration(Pred, Source, Decl) :-
     ->  decl_term(Pred, Source, Funct),
         table_options(Pred, Funct, TableDecl),
         Decl = table(TableDecl)
-    ;   comment('% tabled using answer subsumption~n', []),
+    ;   comment('[% tabled using answer subsumption~n]'),
         fail                                    % TBD
     ).
 declaration(Pred, Source, Decl) :-
@@ -435,13 +446,13 @@ list_clauses(Pred, Source, _Options) :-
     decl_term(Pred, Source, Decl),
     '$local_definitions'(Pred, Pairs),
     (   Pairs == []
-    ->  comment('%   No thread has clauses for ~p~n', [Decl])
+    ->  comment(['%   No thread has clauses for ~p~n'-[Decl]])
     ;   Top = 10,
         length(Pairs, Count),
         thread_self(Me),
         thread_name(Me, MyName),
-        comment('%   Calling thread (~p) has no clauses for ~p. \c
-                 Other threads have:~n', [MyName, Decl]),
+        comment(['%   Calling thread (~p) has no clauses for ~p. \c
+                  Other threads have:~n'-[MyName, Decl]]),
         sort(2, >=, Pairs, ByNumberOfClauses),
         (   Count > Top
         ->  length(Show, Top),
@@ -450,14 +461,14 @@ list_clauses(Pred, Source, _Options) :-
         ),
         (   member(Thread-ClauseCount, Show),
             thread_name(Thread, Name),
-            comment('%~t~D~8| clauses in thread ~p~n', [ClauseCount, Name]),
+            comment(['%~t~D~8| clauses in thread ~p~n'-[ClauseCount, Name]]),
             fail
         ;   true
         ),
         (   Count > Top
         ->  NotShown is Count-Top,
-            comment('%   ~D more threads have clauses for ~p~n',
-                    [NotShown, Decl])
+            comment(['%   ~D more threads have clauses for ~p~n'-
+                     [NotShown, Decl]])
         ;   true
         )
     ).
@@ -499,14 +510,14 @@ list_clause(_Rule, Ref, _Source, Options) :-
         debug(listing(source), 'Read ~w:~d: "~s"~n', [File, Line, String])
     ->  !,
         (   Repositioned == true
-        ->  comment('% From ~w:~d~n', [ File, Line ])
+        ->  comment(['% From ', url(File:Line), '~n'])
         ;   true
         ),
         writeln(String)
     ;   decompiled
     ->  fail
     ;   asserta(decompiled),
-        comment('% From database (decompiled)~n', []),
+        comment('[% From database (decompiled)~n]'),
         fail                                    % try next clause
     ).
 list_clause(Module:(Head:-Body), Ref, Source, Options) :-
@@ -522,7 +533,29 @@ list_clause(Module:Head, Body, Neck, Ref, Source, Options) :-
     restore_variable_names(Module, Head, Body, Ref, Options),
     write_module(Module, Source, Head),
     Rule =.. [Neck,Head,Body],
-    portray_clause(Rule).
+    write_options(Options, WriteOptions),
+    current_output(Out),
+    portray_clause(Out, Rule, WriteOptions).
+
+%!  write_options(+Options, -WriteOptions) is det.
+%
+%   Options of listing/2 meant for portray_clause/3 and, from there, for
+%   write_term/3.  This is the `pass_to(portray_clause/3, 3)` of the
+%   predicate_options/3 declaration above.  The options listing/2 handles
+%   itself are removed; variable_names/1 notably means something else
+%   here (`source` or `generated`) than it does to write_term/3.
+
+write_options(Options, WriteOptions) :-
+    exclude(listing_option, Options, WriteOptions).
+
+listing_option(Option) :-
+    functor(Option, Name, 1),
+    listing_option_name(Name).
+
+listing_option_name(variable_names).
+listing_option_name(source).
+listing_option_name(thread).
+listing_option_name(timeout).
 
 %!  restore_variable_names(+Module, +Head, +Body, +Ref, +Options) is det.
 %
@@ -606,8 +639,8 @@ notify_changed(Pred, Context) :-
     \+ predicate_property(Head, (dynamic)),
     !,
     decl_term(Pred, Context, Decl),
-    comment('%   NOTE: system definition has been overruled for ~q~n',
-            [Decl]).
+    comment(['%   NOTE: system definition has been overruled for ~q~n'-
+            [Decl]]).
 notify_changed(_, _).
 
 %!  source_clause_string(+File, +Line, -String, -Repositioned)
@@ -1177,7 +1210,7 @@ pprint(Out, Term, Pri, Options) :-
     \+ nowrap_term(Term),
     line_width(Width),
     Width > 0,
-    (   write_length(Term, Len, [max_length(Width)|Options])
+    (   write_size(Term, Len, _Height, [max_width(Width)|Options])
     ->  true
     ;   Len = Width
     ),
@@ -1336,18 +1369,35 @@ not_qualified(_:_) :- !, fail.
 not_qualified(_).
 
 
-%!  comment(+Format, +Args)
+%!  comment(+List)
 %
 %   Emit a comment.
 
-comment(Format, Args) :-
+comment(List) :-
     stream_property(current_output, tty(true)),
     setting(listing:comment_ansi_attributes, Attributes),
     Attributes \== [],
     !,
-    ansi_format(Attributes, Format, Args).
-comment(Format, Args) :-
-    format(Format, Args).
+    forall(member(X, List),
+           ansi_comment_element(Attributes, X)).
+comment(List) :-
+    forall(member(X, List),
+           comment_element(X)).
+
+ansi_comment_element(Attributes, Fmt-Args) =>
+    ansi_format(Attributes, Fmt, Args).
+ansi_comment_element(_, url(URL)) =>
+    ansi_hyperlink(current_output, URL).
+ansi_comment_element(Attributes, Fmt), atomic(Fmt) =>
+    ansi_format(Attributes, Fmt, []).
+
+comment_element(Fmt-Args) =>
+    format(Fmt, Args).
+comment_element(url(File:Line)) =>
+    format('~w:~d', [File, Line]).
+comment_element(Fmt), atomic(Fmt) =>
+    format(Fmt, []).
+
 
                 /*******************************
                 *           MESSAGES           *

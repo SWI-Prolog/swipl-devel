@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
+    E-mail:        jan@swi-prolog.org
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2011-2024, University of Amsterdam
+    Copyright (c)  2011-2026, University of Amsterdam
 			      CWI, Amsterdam
 			      SWI-Prolog Solutions b.v.
     All rights reserved.
@@ -66,6 +66,7 @@ typedef enum iri_op
 #define pushOutputContext(s)		LDFUNC(pushOutputContext, s)
 #define popOutputContext(_)		LDFUNC(popOutputContext, _)
 #define validUserStreams(_)		LDFUNC(validUserStreams, _)
+#define restoreStandardStream(i)	LDFUNC(restoreStandardStream, i)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -89,6 +90,7 @@ bool		reportStreamError(IOSTREAM *s);
 bool		streamStatus(IOSTREAM *s);
 int		setFileNameStream(IOSTREAM *s, atom_t name);
 atom_t		fileNameStream(IOSTREAM *s);
+atom_t		fileNameStreamLocked(IOSTREAM *s);
 int		getSingleChar(IOSTREAM *s, int signals);
 int		readLine(IOSTREAM *in, IOSTREAM *out, char *buffer);
 int		LockStream(void);
@@ -106,16 +108,17 @@ void		prompt1(atom_t prompt);
 atom_t		PrologPrompt(void);
 int		streamNo(term_t spec, int mode);
 void		release_stream_handle(term_t spec);
+IOSTREAM *	restoreStandardStream(int i);
 #ifdef __WINDOWS__
 word		pl_make_fat_filemap(term_t dir);
 #endif
 bool		PL_unify_stream_or_alias(term_t t, IOSTREAM *s);
 void		pushOutputContext(IOSTREAM *s);
 void		popOutputContext(void);
-int		setupOutputRedirect(term_t to,
+bool		setupOutputRedirect(term_t to,
 				    redir_context *ctx,
-				    int redir);
-int		closeOutputRedirect(redir_context *ctx);
+				    bool redir);
+bool		closeOutputRedirect(redir_context *ctx);
 void		discardOutputRedirect(redir_context *ctx);
 int		push_input_context(atom_t type);
 int		pop_input_context(void);

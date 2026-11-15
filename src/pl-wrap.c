@@ -45,6 +45,7 @@
 #include "pl-gc.h"
 #include "pl-fli.h"
 #include "pl-funct.h"
+#include "pl-tabling.h"
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Wrap and unwrap predicates. Wrapping  is   realised  by manipulating the
@@ -60,6 +61,12 @@ predicate _supervisor_:
     - A supervisor running S_WRAP.
   - I_CALLN picks up call(Closure, Arg ...) and sets up a
     call using the closure's copy.
+
+The supervisor holds a private clause reference to the wrapper clause in
+'$wrap$P'.  As this clause belongs to '$wrap$P' rather than P, changes
+to '$wrap$P' such as redefining or retracting it do not reset P's
+supervisor.  The private reference keeps the clause alive.  It is
+released with the supervisor in unregisterWrappedSupervisor().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
@@ -163,15 +170,46 @@ get_closure_predicate(DECL_LD term_t t, Definition *def)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+The supervisor installed for a wrapped predicate may carry a prefix of
+meta/determinism  qualification  instructions  (S_MQUAL,   S_LMQUAL,   S_DET,
+S_SSU_DET) prepended by chainPredicateSupervisor().  skipWrapperPrefix()
+returns the PC of the first non-prefix instruction, which is where the
+S_CALLWRAPPER lives if this is a wrapper supervisor.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+Code
+skipWrapperPrefix(Code PC)
+{ for(;;)
+  { code op = fetchop(PC);
+
+    if ( op == S_MQUAL || op == S_LMQUAL ||
+	 op == S_DET   || op == S_SSU_DET )
+      PC = stepPC(PC);
+    else
+      return PC;
+  }
+}
+
+
 void
 unregisterWrappedSupervisor(Code codes)
-{ if ( unlikely(codes[0] == encode(S_CALLWRAPPER)) )
+{ codes = skipWrapperPrefix(codes);
+
+  if ( unlikely(isCallWrapper(codes[0])) )
   { atom_t aref  = (atom_t)codes[2];
     atom_t wname = (atom_t)codes[3];
 
+    freeClauseRef(code2ptr(ClauseRef, codes[1]));
     PL_unregister_atom(aref);
     PL_unregister_atom(wname);
   }
+}
+
+
+static void
+free_wrapper_cref(void *ptr)
+{ freeClauseRef(ptr);
 }
 
 
@@ -185,12 +223,14 @@ void
 resetWrappedSupervisor(Definition def0, bool do_linger)
 { Definition def = def0;
   Code codes = def->codes;
+  Code cw    = skipWrapperPrefix(codes);
 
-  while ( codes[0] == encode(S_CALLWRAPPER) )
-  { closure *c = PL_blob_data(codes[2], NULL, NULL);
+  while ( isCallWrapper(cw[0]) )
+  { closure *c = PL_blob_data(cw[2], NULL, NULL);
 
     def   = &c->def;
     codes = c->def.impl.wrapped.supervisor;
+    cw    = skipWrapperPrefix(codes);
   }
 
   assert(def != def0);	/* def is the definition inside the closure */
@@ -201,16 +241,16 @@ resetWrappedSupervisor(Definition def0, bool do_linger)
 
 static Code
 find_wrapper(Definition def, atom_t name)
-{ Code codes = def->codes;
+{ Code codes = skipWrapperPrefix(def->codes);
 
-  while ( codes[0] == encode(S_CALLWRAPPER) )
+  while ( isCallWrapper(codes[0]) )
   { closure *c;
 
     if ( codes[3] == (code)name )
       return codes;
 
     c = PL_blob_data(codes[2], NULL, NULL);
-    codes = c->def.impl.wrapped.supervisor;
+    codes = skipWrapperPrefix(c->def.impl.wrapped.supervisor);
   }
 
   return NULL;
@@ -264,7 +304,7 @@ retry:
 
     if ( hasGlobalSpace(arity+1) )		/* ensure space for unify */
     { Word to = allocGlobalNoShift(arity+1);
-      word w  = consPtr(to, TAG_COMPOUND|STG_GLOBAL);
+      word w  = consCompound(to);
       Word f  = fd->arguments;
 
       *to++ = PL_new_functor(closure, arity);
@@ -285,6 +325,21 @@ retry:
 		 /*******************************
 		 *	      PROLOG		*
 		 *******************************/
+
+/* The `table` wrapper of a plain variant tabled predicate uses S_TABLED,
+ * which runs the compiled answer trie directly if the table is complete
+ * and falls back to S_CALLWRAPPER otherwise.
+ */
+
+static code
+wrapper_vmi(Definition def, atom_t wname)
+{ if ( wname == ATOM_table &&
+       def->tabling && ison(def->tabling, TP_VARIANT) )
+    return encode(S_TABLED);
+
+  return encode(S_CALLWRAPPER);
+}
+
 
 /** '$c_wrap_predicate'(:Head, +Name, -Closure, -Wrapped, +Body)
  *
@@ -315,10 +370,13 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
       return false;
 
     if ( (cref = assert_wrapper(A5)) )
-    { Clause cl = code2ptr(ClauseRef, codes[1])->value.clause;
+    { ClauseRef old = code2ptr(ClauseRef, codes[1]);
+      Clause cl = old->value.clause;
 
-      codes[1] = ptr2code(cref);
+      codes[1] = ptr2code(newClauseRef(cref->value.clause, 0));
+      codes[0] = wrapper_vmi(def, wname);
       retractClauseDefinition(cl->predicate, cl, false);
+      linger(&def->lingering, free_wrapper_cref, old);
 
       return true;
     }
@@ -336,10 +394,12 @@ PRED_IMPL("$c_wrap_predicate", 5, c_wrap_predicate, PL_FA_TRANSPARENT)
 	PL_register_atom(aref);
 	PL_register_atom(wname);
 
-	codes[0] = encode(S_CALLWRAPPER);
-	codes[1] = ptr2code(cref);
+	codes[0] = wrapper_vmi(def, wname);
+	codes[1] = ptr2code(newClauseRef(cref->value.clause, 0));
 	codes[2] = (code)aref;
 	codes[3] = (code)wname;
+
+	codes = chainPredicateSupervisor(def, codes);
 
 	def->codes = SUPERVISOR(virgin);
 	setSupervisor(def, codes);
@@ -364,9 +424,9 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
 
   if ( get_procedure(A1, &proc, 0, GP_RESOLVE) )
   { Definition def = proc->definition;
-    Code codes = def->codes;
+    Code codes = skipWrapperPrefix(def->codes);
 
-    if ( def->codes[0] == encode(S_CALLWRAPPER) )
+    if ( isCallWrapper(codes[0]) )
     { term_t tail = PL_copy_term_ref(A2);
       term_t head = PL_new_term_ref();
       term_t ct   = PL_new_term_ref();
@@ -383,8 +443,8 @@ PRED_IMPL("wrapped_predicate", 2, wrapped_predicate, PL_FA_TRANSPARENT)
 			      PL_TERM, ct) )
 	  return false;
 
-	codes = c->def.impl.wrapped.supervisor;
-	if ( codes[0] != encode(S_CALLWRAPPER) )
+	codes = skipWrapperPrefix(c->def.impl.wrapped.supervisor);
+	if ( !isCallWrapper(codes[0]) )
 	  return PL_unify_nil(tail);
       }
     }
@@ -430,7 +490,7 @@ PRED_IMPL("$wrapped_implementation", 3, wrapped_implementation,
 	p[0] = lookupFunctorDef(aref, arity);
 	for(i=0; i<arity; i++)
 	  p[i+1] = linkValI(&a[i]);
-	*valTermRef(impl) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+	*valTermRef(impl) = consCompound(p);
 	return PL_unify(A3, impl);
       }
     } else
@@ -458,17 +518,19 @@ PRED_IMPL("unwrap_predicate", 2, uwrap_predicate, PL_FA_TRANSPARENT)
   { Definition def = proc->definition;
     Code *cp = &def->codes;
     Code codes = *cp;
+    Code cw    = skipWrapperPrefix(codes);
 
-    while ( codes[0] == encode(S_CALLWRAPPER) )
-    { ClauseRef cref = code2ptr(ClauseRef, codes[1]);
+    while ( isCallWrapper(cw[0]) )
+    { ClauseRef cref = code2ptr(ClauseRef, cw[1]);
       Clause cl = cref->value.clause;
-      atom_t aref = (atom_t)codes[2];
-      atom_t wname = (atom_t)codes[3];
+      atom_t aref = (atom_t)cw[2];
+      atom_t wname = (atom_t)cw[3];
       closure *cls = PL_blob_data(aref, NULL, NULL);
 
       if ( !PL_unify_atom(A2, wname) )
-      { cp = &cls->def.impl.wrapped.supervisor;
+      { cp    = &cls->def.impl.wrapped.supervisor;
 	codes = *cp;
+	cw    = skipWrapperPrefix(codes);
 	continue;
       }
 
@@ -506,6 +568,12 @@ PRED_IMPL("$closure_predicate", 2, closure_predicate, 0)
 		 *******************************/
 
 #define META PL_FA_TRANSPARENT
+
+void
+initWrap(void)
+{ PL_register_blob_type(&_PL_closure_blob);
+}
+
 
 BeginPredDefs(wrap)
   PRED_DEF("$c_wrap_predicate",	      5, c_wrap_predicate,       META)

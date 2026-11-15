@@ -95,7 +95,7 @@ void	linger_always(linger_list** list, void (*func)(void *), void *obj);
 #define globalWString(len, s)			LDFUNC(globalWString, len, s)
 #define	getCharsString(w, len)			LDFUNC(getCharsString, w, len)
 #define	getCharsWString(w, len)			LDFUNC(getCharsWString, w, len)
-#define	put_double(p, f, flags)			LDFUNC(put_double, p, f, flags)
+#define	put_double(p, f)			LDFUNC(put_double, p, f)
 #define	VM_globalIndirectFromCode(pc)		LDFUNC(VM_globalIndirectFromCode, pc)
 #define	VM_equalIndirectFromCode(a, pc)		LDFUNC(VM_equalIndirectFromCode, a, pc)
 #endif /*USE_LD_MACROS*/
@@ -112,8 +112,8 @@ void		freeHeap(void *mem, size_t n);
 #endif /*DMALLOC*/
 bool		enableSpareStack(Stack s, bool always);
 void		enableSpareStacks(void);
-bool		outOfStack(void *stack, stack_overflow_action how);
-bool		raiseStackOverflow(boolex_t which);
+COLD bool		outOfStack(void *stack, stack_overflow_action how);
+COLD bool		raiseStackOverflow(boolex_t which);
 void		outOfCore(void) NORETURN;
 Word		allocGlobal(size_t words);
 Word		allocGlobalNoShift(size_t words);
@@ -125,7 +125,7 @@ word		globalWString(size_t len, const pl_wchar_t *s);
 char *		getCharsString(word w, size_t *len);
 pl_wchar_t *	getCharsWString(word w, size_t *len);
 Word		newTerm(void);
-bool		put_double(Word p, double f, int flags);
+bool		put_double(Word p, double f);
 bool		equalIndirect(word r1, word r2);
 ALLOC_INLINE
 size_t		gsizeIndirectFromCode(Code PC);
@@ -133,6 +133,8 @@ word		globalIndirectFromCode(Code *PC);
 void *		tmp_malloc(size_t req);
 void *		tmp_realloc(void *mem, size_t req);
 void		tmp_free(void *mem);
+void *		alloc_lazy_zeroed(size_t size);
+void		free_lazy_zeroed(void *mem, size_t size);
 size_t		tmp_nalloc(size_t req);
 size_t		tmp_nrealloc(void *mem, size_t req);
 void *		stack_malloc(size_t req);

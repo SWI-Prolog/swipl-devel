@@ -287,19 +287,16 @@ PRED_IMPL("$collect_findall_bag", 2, collect_findall_bag, 0)
     term_t list = PL_copy_term_ref(A2);
     term_t answer = PL_new_term_ref();
     Record *rp;
-    int rc;
 
-    if ( !hasGlobalSpace(space) )
-    { if ( (rc=ensureGlobalSpace(space, ALLOW_GC)) != true )
-	return raiseStackOverflow(rc);
-    }
+    if ( !ensureGlobalSpace(space, ALLOW_GC) )
+      return false;
 
     while ( (rp=topOfSegStack(&bag->answers)) )
     { Record r = *rp;
       DEBUG(MSG_NSOLS, Sdprintf("Retrieving answer\n"));
       copyRecordToGlobal(answer, r, ALLOW_GC);
       if (GD->atoms.gc_active)
-        markAtomsRecord(r);
+        markAtomsRecord(r, markAtom);
       PL_cons_list(list, answer, list);
 #ifdef O_ATOMGC
 		/* see comment with scanSegStack() for synchronization details */
@@ -399,12 +396,19 @@ static void
 markAtomsAnswers(void *data)
 { Record r = *((Record*)data);
 
-  markAtomsRecord(r);
+  markAtomsRecord(r, markAtom);
+}
+
+static void
+markLocalAtomsAnswers(void *data)
+{ Record r = *((Record*)data);
+
+  markAtomsRecord(r, markLocalAtom);
 }
 
 
 void
-markAtomsFindall(PL_local_data_t *ld)
+markAtomsFindall(PL_local_data_t *ld, atom_mark_func mark)
 { findall_state *state;
 
   if ( (state=ld->bags) )
@@ -413,7 +417,8 @@ markAtomsFindall(PL_local_data_t *ld)
     simpleMutexLock(&state->mutex);
     bag = state->bags;
     for( ; bag; bag = bag->parent )
-      scanSegStack(&bag->answers, markAtomsAnswers);
+      scanSegStack(&bag->answers, mark == markAtom ? markAtomsAnswers
+						   : markLocalAtomsAnswers);
     simpleMutexUnlock(&state->mutex);
   }
 }

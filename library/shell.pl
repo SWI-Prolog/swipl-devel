@@ -1,9 +1,9 @@
 /*  Part of SWI-Prolog
 
     Author:        Jan Wielemaker
-    E-mail:        J.Wielemaker@vu.nl
-    WWW:           http://www.swi-prolog.org
-    Copyright (c)  1985-2025, University of Amsterdam
+    E-mail:        jan@swi-prolog.org
+    WWW:           https://www.swi-prolog.org
+    Copyright (c)  1985-2026, University of Amsterdam
                               VU University Amsterdam
                               CWI, Amsterdam
                               SWI-Prolog Solutions b.v.
@@ -47,7 +47,10 @@
             pwd/0,
             popd/0,
             mv/2,                               % +File1, +File2
-            rm/1                                % +File1
+            rm/1,                               % +File1
+            cls/0,
+
+            shell_command/1                     % -Shell
           ]).
 :- autoload(library(apply),[maplist/3,maplist/2]).
 :- autoload(library(error),
@@ -64,39 +67,56 @@
 
 This library provides some  basic  (POSIX)   shell  commands  defined in
 Prolog, such as `pwd` and `ls` for   situations  where there is no shell
-available or the shell output cannot be captured.
+available or the shell output cannot be   captured.  Note that in recent
+versions (since 10.1.13)  the  GUI   frontend  `swipl-win`  can  capture
+process output on all supported platforms.
 */
 
 %!  shell
 %
-%   Execute an interactive shell. The  following   options  are tried to
-%   find a suitable shell command:
+%   Execute an interactive shell. Uses shell_command/1 to find a
+%   suitable shell.
+%
+%   The shell's exit status is  not   our  business, so shell/0 succeeds
+%   whatever it is. Note that if the   shell  cannot be executed shell/2
+%   raises an exception.
+
+shell :-
+    shell_command(Shell),
+    shell(Shell, _).
+
+%!  shell_command(-Shell:atom)
+%
+%   True  when  Shell  is  the  preferred   executable  for  running  an
+%   interactive shell. Used by shell/0. The  following options are tried
+%   to find a suitable shell command:
 %
 %     1. The Prolog flag `shell`
-%     2. The environment variable ``$SHELL``
-%     3. The Prolog flag `posix_shell`
-%     4. The environment variable ``%comspec%`` (Windows only)
+%     2. The environment variable ``%comspec%`` (Windows only)
+%     3. The environment variable ``$SHELL``
+%     4. The Prolog flag `posix_shell`
 %
 %   @error existence_error(config, shell) if no suitable shell can be
 %   found.
 
-shell :-
-    interective_shell(Shell),
+shell_command(Shell) :-
+    shell_command_(Shell),
     access_file(Shell, execute),
-    !,
-    shell(Shell).
-shell :-
+    !.
+shell_command(_) :-
     existence_error(config, shell).
 
-interective_shell(Shell) :-
+shell_command_(Shell) :-
     current_prolog_flag(shell, Shell).
-interective_shell(Shell) :-
+:- if(current_prolog_flag(windows, true)).
+shell_command_(Shell) :-
+    getenv(comspec, WinPath),
+    prolog_to_os_filename(Shell, WinPath).
+:- endif.
+shell_command_(Shell) :-
     getenv('SHELL', Shell).
-interective_shell(Shell) :-
+shell_command_(Shell) :-
     current_prolog_flag(posix_shell, Shell).
-interective_shell(Shell) :-
-    current_prolog_flag(windows, true),
-    getenv(comspec, Shell).             % Windows
 
 
 %!  cd.
@@ -189,7 +209,10 @@ dir_name(Path, Path).
 %!  ls.
 %!  ls(+Pattern).
 %
-%   Listing similar to Unix =ls -F=, flagging directories with =/=.
+%   Listing similar to Unix ``ls -F``, flagging directories with `/`. If
+%   the terminal supports it, Prolog source  files are rendered as links
+%   using the OSC 8  escape  sequence.   When  using  Epilog, clicking a
+%   Prolog file opens it in the editor.
 
 ls :-
     ls('.').
@@ -217,6 +240,9 @@ tagged_file_in_dir(File, Result) :-
     (   exists_directory(File)
     ->  atom_concat(Base, /, Label),
         Result = dir(File, Label)
+    ;   read_link(File, _, _)
+    ->  atom_concat(Base, '@', Label),
+        Result = file(File, Label)
     ;   Result = file(File, Base)
     ).
 
@@ -361,11 +387,11 @@ prolog:message(shell(directory(Path))) -->
 %   Produce a tabular layout to list all   elements of List on lines
 %   with a maximum width of Width. Elements are placed as =ls= does:
 %
-%      ==
+%      ```
 %      1  4  7
 %      2  5  8
 %      3  6
-%      ==
+%      ```
 
 table(List, Width) -->
     { table_layout(List, Width, Layout),
@@ -460,3 +486,11 @@ label_length(dir(_, Label), Len) =>
     atom_length(Label, Len).
 label_length(file(_, Label), Len) =>
     atom_length(Label, Len).
+
+%!  cls
+%
+%   CLear Screen.  Emits ANSI control characters to clear the terminal.
+
+cls :-
+    format(user_error, '\e[3J\e[H\e[2J', []),
+    format(user_error, '\e[3J\r', []).

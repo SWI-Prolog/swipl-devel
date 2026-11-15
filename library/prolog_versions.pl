@@ -84,8 +84,8 @@ application.
 %     - warning(Feature)
 %       Only print a warning instead of throwing an error.
 %     - library(Lib)
-%       Demand library(Lib) to be present.  Thde library not being
-%       there may indicate an incomplete installation.  For example
+%       Demand library(Lib) to be present.  The library not being
+%       there may indicate an incomplete installation.  For example,
 %       library(pce) to demand xpce graphics support.
 %     - Flag
 %       Demand current_prolog_flag(Flag, true) to be true.
@@ -203,7 +203,9 @@ cmp_git_version(<, -, -) => fail.
 cmp_git_version(>, -, -) => fail.
 cmp_git_version(=, -, -) => true.
 cmp_git_version(<, _, -) => true.
-cmp_git_version(>, -, _) => true.
+cmp_git_version(<, -, _) => fail.
+cmp_git_version(>, -, _) => fail.
+cmp_git_version(>, _, -) => true.
 cmp_git_version(=, -, _) => true.
 cmp_git_version(=, _, -) => true.
 cmp_git_version(=, git(V,-), git(V,_)) => true.

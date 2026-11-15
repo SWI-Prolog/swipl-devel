@@ -81,7 +81,7 @@ static void
 free_nb_linkval_value(word value)
 { if ( isAtom(value) )
     PL_unregister_atom(word2atom(value));
-  else if ( storage(value) == STG_GLOBAL )
+  else if ( isGlobalPtr(value) )
   { GET_LD
     LD->gvar.grefs--;
   }
@@ -106,7 +106,7 @@ new_gvar(DECL_LD atom_t name, atom_t value)
   }
 
   addNewHTable(LD->gvar.nb_vars, (table_key_t)name, (table_value_t)old);
-  PL_register_atom(name);
+  registerAtomLocally(name);		/* global variables are thread-local */
 
   return old;
 }
@@ -151,17 +151,26 @@ SHIFT-SAFE: TrailAssignment() takes at most g+t=1+2.  One more Trail and
 
 #define setval_duplicate(new, old) \
 	LDFUNC(setval_duplicate, new, old)
+#define word_is_attvar(t) \
+	LDFUNC(word_is_attvar, t)
+
+static inline bool
+word_is_attvar(DECL_LD word w)
+{ while(isRef(w))
+    w = *unRef(w);
+  return isAttVar(w);
+}
 
 static word
 setval_duplicate(DECL_LD word new, word old)
-{ if ( isTerm(new) )
+{ if ( isTerm(new) || word_is_attvar(new) )
   { term_t from = PL_new_term_ref();
     term_t copy = PL_new_term_ref();
     term_t shared = 0;
     size_t nshared = 0;
     *valTermRef(from) = new;
 
-    if ( isTerm(old) )
+    if ( isTerm(old) || word_is_attvar(old) )
     { shared = PL_new_term_ref();
       *valTermRef(shared) = old;
       nshared = 1;
@@ -190,12 +199,8 @@ setval(DECL_LD term_t var, term_t value, unsigned int flags)
   if ( !PL_get_atom_ex(var, &name) )
     return false;
 
-  if ( !hasGlobalSpace(3) )		/* also ensures trail for */
-  { int rc;				/* TrailAssignment() */
-
-    if ( (rc=ensureGlobalSpace(3, ALLOW_GC)) != true )
-      return raiseStackOverflow(rc);
-  }
+  if ( !ensureGlobalSpace(3, ALLOW_GC) ) /* also ensures trail for */
+    return false;			 /* TrailAssignment() */
 
   p = valTermRef(value);
   deRef(p);
@@ -230,7 +235,7 @@ setval(DECL_LD term_t var, term_t value, unsigned int flags)
     { p = allocGlobal(1);
       *p = old;
       freezeGlobal();		/* The value location must be */
-      if ( storage(old) != STG_GLOBAL )	/* preserved */
+      if ( !isGlobalPtr(old) )	/* preserved */
 	LD->gvar.grefs++;
       updateHTable(LD->gvar.nb_vars,
 		   (table_key_t)name, (table_value_t)makeRefG(p));
@@ -239,7 +244,7 @@ setval(DECL_LD term_t var, term_t value, unsigned int flags)
     TrailAssignment(p);
     *p = w;
   } else
-  { bool old_on_global = storage(old) == STG_GLOBAL;
+  { bool old_on_global = isGlobalPtr(old);
 
     if ( !(flags&SETVAL_LINK) )
     { if ( !(w = setval_duplicate(w, old)) )
@@ -250,11 +255,11 @@ setval(DECL_LD term_t var, term_t value, unsigned int flags)
 
     updateHTable(LD->gvar.nb_vars, (table_key_t)name, (table_value_t)w);
 
-    if ( storage(w) == STG_GLOBAL )
+    if ( isGlobalPtr(w) )
     { freezeGlobal();
       LD->gvar.grefs++;
     } else if ( isAtom(w) )
-      PL_register_atom(word2atom(w));
+      registerAtomLocally(word2atom(w));
   }
 
   return true;
@@ -498,8 +503,8 @@ PRED_IMPL("nb_current", 2, nb_current, PL_FA_NONDETERMINISTIC)
 
     if ( !is_gval(val) )
       continue;
-    if ( PL_unify_atom(A1, name) &&
-	 unify_ptrs(valTermRef(A2), &val, 0) )
+    if ( unify_ptrs(valTermRef(A2), &val, 0) && /* before val may move */
+	 PL_unify_atom(A1, name) )
     { PL_close_foreign_frame(fid);
       ForeignRedoPtr(e);
     } else

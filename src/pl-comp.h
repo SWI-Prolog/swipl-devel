@@ -54,7 +54,7 @@
 
 void		initWamTable(void);
 void		cleanupWamTable(void);
-void		separate_vmi(int nop);
+COLD void		separate_vmi(int nop);
 void		freeVarDefs(PL_local_data_t *ld);
 bool		get_head_and_body_clause(term_t clause,
 					 term_t head, term_t body,
@@ -67,17 +67,23 @@ Clause		assert_term(term_t term, Module m, ClauseRef where,
 			    atom_t owner, SourceLoc loc, int flags);
 bool		forAtomsInCodes(size_t size, Code PC,
 				int (func)(atom_t a, void*), void *ctx);
+void		register_clause_symbols(Clause clause, bool local);
+bool		forAtomsAndFunctorsInClause(Clause clause,
+				int (func)(atom_t a, void*), void *ctx,
+				void (*ffunc)(functor_t f));
 bool		forAtomsInClause(Clause clause,
 				 int (func)(atom_t a, void*), void *ctx);
 Code		stepDynPC(Code PC, const code_info *ci);
 bool		decompileHead(Clause clause, term_t head);
-bool		det_goal_error(LocalFrame fr, Code PC,
+COLD bool		det_goal_error(LocalFrame fr, Code PC,
 			       atom_t found);
 Code		skipArgs(Code PC, ssize_t skip, ssize_t *in_hvoid);
 bool		argKey(Code PC, size_t skip, word *key);
+functor_t	cmpFunctor(int cmp);
 bool		arg1Key(Code PC, word *key);
 const Code	prevPC(const Clause clause, const Code pc);
 bool		decompile(Clause clause, term_t term, term_t bindings);
+functor_t	clause_functor(unsigned int flags);
 word		pl_nth_clause(term_t p, term_t n, term_t ref,
 			      control_t h);
 void		wamListClause(Clause clause);

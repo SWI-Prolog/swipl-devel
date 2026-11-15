@@ -47,6 +47,7 @@
 #define LDFUNC_DECLARATIONS
 
 term_t	init_undo_list(void);
+void	initUndo(void);
 void	free_undo_data(PL_local_data_t *ld);
 void	push_undo(Word l);
 bool	run_undo_hooks(void);

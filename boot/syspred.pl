@@ -88,7 +88,9 @@
             undo/1,                             % :Goal
             set_prolog_gc_thread/1,		% +Status
 
-            '$wrap_predicate'/5                 % :Head, +Name, -Closure, -Wrapped, +Body
+            '$wrap_predicate'/5,                % :Head, +Name, -Closure, -Wrapped, +Body
+            '$predicate_source_location'/2,     % :Head, -File:Line
+            '$addr2line_location'/3             % +Description, -File, -Line
           ]).
 
 :- meta_predicate
@@ -350,6 +352,9 @@ property_source_file(load_count(Count), File) :-
 property_source_file(number_of_clauses(Count), File) :-
     source_file(File),
     '$source_file_property'(File, number_of_clauses, Count).
+property_source_file(loaded(Stamp), File) :-
+    source_file(File),
+    '$source_file_property'(File, loaded, Stamp).
 
 
 %!  canonical_source_file(+Spec, -File) is semidet.
@@ -460,16 +465,34 @@ input_file(File) :-
 
 %!  unload_file(+File) is det.
 %
-%   Remove all traces of loading file.
+%   Remove all traces of loading file. If the  file is a module file and
+%   used use_foreign_library/1,2 to load foreign   extensions, these are
+%   removed first.
+%
+%   @tbd Should we introduce a counterpart  for initialization/1 that is
+%   called when a file is unloaded?
 
 :- dynamic system:'$resolved_source_path'/2.
 
 unload_file(File) :-
     (   canonical_source_file(File, Path)
-    ->  '$unload_file'(Path),
-        retractall(system:'$resolved_source_path'(_, Path))
+    ->  unload_file_(Path),
+        '$clear_source_admin'(Path),
+        garbage_collect_clauses
     ;   true
     ).
+
+:- if(current_prolog_flag(open_shared_object, true)).
+unload_file_(Path) :-
+    source_file_property(Path, module(M)),
+    ensure_shlib,
+    !,
+    forall(shlib:foreign_library_property(Foreign, module(M)),
+           shlib:unload_foreign_library(Foreign)),
+    '$unload_file'(Path).
+:- endif.
+unload_file_(Path) :-
+    '$unload_file'(Path).
 
 :- if(current_prolog_flag(open_shared_object, true)).
 
@@ -881,6 +904,10 @@ define_or_generate(Pred) :-
     '$get_predicate_attribute'(Pred, abstract, N).
 '$predicate_property'(size(Bytes), Pred) :-
     '$get_predicate_attribute'(Pred, size, Bytes).
+'$predicate_property'(erased_clauses(Count), Pred) :-
+    '$get_predicate_attribute'(Pred, erased_clauses, Count).
+'$predicate_property'(erased_clause_space(Bytes), Pred) :-
+    '$get_predicate_attribute'(Pred, erased_clause_space, Bytes).
 '$predicate_property'(primary_index(Arg), Pred) :-
     '$get_predicate_attribute'(Pred, primary_index, Arg).
 
@@ -945,6 +972,100 @@ hidden_system_predicate(Head) :-
     atom(Name),                     % Avoid [].
     sub_atom(Name, 0, _, _, $),
     \+ current_prolog_flag(access_level, system).
+
+
+                /********************************
+                *      SOURCE LOCATION          *
+                *********************************/
+
+%!  '$predicate_source_location'(:Head, -Location) is semidet.
+%
+%   Location is File:Line, the place  where   the  predicate Head is
+%   defined.  Head is resolved to  its   _primary_  definition, i.e.,
+%   imported predicates are traced back to  the module that defines
+%   them.  For predicates defined in C, the location of the C function
+%   that implements it is used.  See '$foreign_predicate_source'/2.
+%
+%   This predicate provides the source location   for  both the message
+%   system (see predicate_reference//2 in `boot/messages.pl`) and
+%   library(edit).
+
+:- meta_predicate
+    '$predicate_source_location'(:, -).
+
+'$predicate_source_location'(Head, File:Line) :-
+    '$primary_predicate'(Head, Primary),
+    (   predicate_property(Primary, file(File)),
+        predicate_property(Primary, line_count(Line))
+    ->  true
+    ;   predicate_property(Primary, foreign),
+        '$foreign_source_location'(Primary, File, Line)
+    ).
+
+%!  '$primary_predicate'(:Head, -Primary) is det.
+%
+%   Primary is the module qualified Head in the module that _defines_
+%   the predicate rather than one that imports it.
+
+'$primary_predicate'(Pred, Primary) :-
+    (   predicate_property(Pred, imported_from(Module))
+    ->  strip_module(Pred, _, Head),
+        Primary = Module:Head
+    ;   Primary = Pred
+    ).
+
+%!  '$foreign_source_location'(:Head, -File, -Line) is semidet.
+%
+%   Source location of a foreign  (C  defined)   predicate.  As  this is
+%   resolved by running `addr2line` or `atos`  in a child process we can
+%   only afford to do this once per predicate.
+
+:- dynamic
+    '$foreign_source_cache'/2.              % PI, File:Line or `none`
+
+'$foreign_source_location'(Head, File, Line) :-
+    '$pi_head'(PI, Head),
+    (   '$foreign_source_cache'(PI, Cached)
+    ->  true
+    ;   (   '$foreign_predicate_source'(Head, Source),
+            '$addr2line_location'(Source, File0, Line0)
+        ->  Cached = File0:Line0
+        ;   Cached = none
+        ),
+        assertz('$foreign_source_cache'(PI, Cached))
+    ),
+    Cached = File:Line.
+
+%!  '$addr2line_location'(+Description, -File, -Line) is semidet.
+%
+%   Parse the ``Function() at File:Line``  description as produced by
+%   '$foreign_predicate_source'/2 and '$addr2line'/2.  Fails if the
+%   description does not carry a source location, which happens if the
+%   symbol lives in the main executable  or   the  file  has no debug
+%   information.
+
+'$addr2line_location'(Description, File, Line) :-
+    sub_string(Description, Before, _, After, " at "),
+    !,
+    Start is Before+4,
+    sub_string(Description, Start, After, 0, Rest),
+    '$split_file_line'(Rest, File, Line).
+
+'$split_file_line'(Rest, File, Line) :-
+    sub_string(Rest, BC, _, AC, ":"),
+    Start is BC+1,
+    sub_string(Rest, Start, AC, 0, Tail),
+    (   sub_string(Tail, BS, _, _, " ")      % e.g. " (discriminator 1)"
+    ->  sub_string(Tail, 0, BS, _, LineText)
+    ;   LineText = Tail
+    ),
+    number_string(Line, LineText),
+    integer(Line),
+    Line >= 1,                               % `addr2line` says 0 if unknown
+    !,
+    sub_string(Rest, 0, BC, _, FileText),
+    FileText \== "??",                       % and `??` for the file
+    atom_string(File, FileText).
 
 
 %!  clause_property(+ClauseRef, ?Property) is nondet.
@@ -1400,7 +1521,11 @@ numbervars(Term, From, To) :-
 
 %!  term_string(?Term, ?String, +Options)
 %
-%   Parse/write a term from/to a string using Options.
+%   Parse/write a term from/to a string using Options.  The predicate
+%   is module transparent, such that e.g., the portray_goal option is
+%   resolved in the context of the caller.
+
+:- module_transparent term_string/3.
 
 term_string(Term, String, Options) :-
     nonvar(String),

@@ -136,7 +136,7 @@ static void	addClauseToListIndexes(Definition def, ClauseList cl,
 static void	insertIntoSparseList(ClauseRef cref,
 				     ClauseRef *headp, ClauseRef *tailp,
 				     ClauseRef where);
-static ClauseRef first_clause_guarded(const Word argv, size_t argc,
+static HOT ClauseRef first_clause_guarded(const Word argv, size_t argc,
 				      ClauseList clist,
 				      const IndexContext ctx);
 static Code	skipToTerm(Clause clause, const iarg_t *position,
@@ -179,6 +179,7 @@ hashIndex(word key, unsigned int buckets)
   const word fib64 = 0x9E3779B97F4A7C15LL;
   const int  shift = key_bits-MSB(buckets);
 
+  key >>= CELL_VAL_SHIFT;		/* consecutive values step by 1 */
   key ^= key >> shift;
   return (unsigned int) ((fib64*key) >> shift);
 }
@@ -198,7 +199,7 @@ NOTE: Indirects should not collide  with   functor_t  to  allow for deep
 indexing.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static inline int
+static inline bool
 canIndex(word w)
 { for(;;)
   { switch(tag(w))
@@ -224,7 +225,7 @@ indexOfWord(word w)
       case TAG_ATOM:
 	break;				/* atom_t */
       case TAG_INTEGER:
-	if ( likely(storage(w) == STG_INLINE) )
+	if ( likely(isInlineInt(w)) )
 	  break;
 #if O_BIGNUM
 	return bignum_index(addressIndirect(w));
@@ -647,6 +648,8 @@ first_clause_guarded(DECL_LD const Word argv, size_t argc, ClauseList clist,
 { ClauseRef cref;
   ClauseIndex *cip;
   ClauseChoice chp = ctx->chp;
+  iarg_t pindex;
+  word pkey;
 
   /* If `clist->unindexed`, no primary index is possible. */
 
@@ -655,8 +658,40 @@ first_clause_guarded(DECL_LD const Word argv, size_t argc, ClauseList clist,
     return next_clause_unindexed(ctx);
   }
 
-  /* Deal with possible hashes */
 retry:
+  cref = NULL;
+
+  if ( unlikely(clist->number_of_clauses == 0) )
+    return NULL;
+
+  pindex = clist->primary_index;
+  pkey = indexOfWord(argv[pindex]);
+
+  /* Fast path (#1386): at the outermost call, if the primary-index
+   * argument is bound and the predicate is small, try the primary
+   * index before probing candidate hash indexes.  This prevents a
+   * candidate list index whose shallow key does not discriminate
+   * (e.g. all clauses share the same functor at the hashed arg)
+   * from preempting a deterministic primary dispatch.  When the
+   * primary key does not discriminate (duplicate keys) or is not
+   * available, we fall through to the hash lookup.
+   */
+
+  if ( pkey &&
+       ctx->depth == 0 &&
+       ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX ||
+	 STATIC_RELOADING(ctx->predicate) ) )
+  { chp->key  = pkey;
+    chp->cref = clist->first_clause;
+    cref = next_clause_primary_index(ctx);
+    if ( !cref ||
+	 !(chp->cref && chp->cref->d.key == pkey &&
+	   cref->d.key == pkey) )
+      return cref;
+    /* else duplicate primary key: fall through to try hash */
+  }
+
+  /* Deal with possible hashes */
   if ( (cip=clist->clause_indexes) )
   { ClauseIndex best_index;
 
@@ -693,15 +728,16 @@ retry:
 
       unsigned int hi = hashIndex(chp->key, best_index->buckets);
       const ClauseBucket bkt = &best_index->entries[hi];
-      if ( bkt->key && chp->key != bkt->key )
+				/* read once: an assert may reset it to 0 */
+      word bkey = ((volatile const struct clause_bucket *)bkt)->key;
+      if ( bkey && chp->key != bkey )
 	return NULL;
       chp->cref = bkt->head;
       return nextClauseFromBucket(best_index, argv, ctx);
     }
   }
 
-  iarg_t pindex = clist->primary_index;
-  chp->key = indexOfWord(argv[pindex]);
+  chp->key = pkey;		/* existing_hash may have overwritten it */
 
   if ( clist->fixed_indexes )	/* set_candidate_indexes() has been run */
   { chp->cref = clist->first_clause;
@@ -711,36 +747,12 @@ retry:
       return next_clause_unindexed(ctx);
   }
 
-  if ( unlikely(clist->number_of_clauses == 0) )
-    return NULL;
-
   if ( isoff(ctx->predicate,
 	     P_DYNAMIC|P_MULTIFILE|P_THREAD_LOCAL|P_FOREIGN) &&
        ctx->depth == 0 )
   { set_candidate_indexes(ctx->predicate, clist, 10, true);
     goto retry;
   }
-
-  /* Try the primary index if  the corresponding argument is bound and
-   * we have  less than  MIN_CLAUSES_FOR_INDEX clauses.  Accept  if we
-   * have no clause or the next candidate has a different key.  If the
-   * next candidate has the same key, deep indexing may help us, so we
-   * will search for other indexes.
-   */
-
-  if ( chp->key &&
-       ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX ||
-	 STATIC_RELOADING(ctx->predicate)) )
-  { chp->cref = clist->first_clause;
-    cref = next_clause_primary_index(ctx);
-    if ( !cref ||
-	 !(chp->cref && chp->cref->d.key == chp->key &&
-	   cref->d.key == chp->key) )
-      return cref;
-    /* else duplicate; see whether we can create a deep index */
-    /* TBD: Avoid trying this every goal */
-  } else
-    cref = NULL;
 
   if ( !STATIC_RELOADING(ctx->predicate) )
   { ClauseIndex ci;
@@ -757,7 +769,7 @@ retry:
     }
   }
 
-  if ( cref )			/* from next_clause_primary_index() call */
+  if ( cref )			/* from primary-first fast-path fallthrough */
     return cref;
 
   chp->cref = clist->first_clause;
@@ -1459,6 +1471,39 @@ clearTriedIndexes(Definition def)
 }
 
 
+/* Reset the JIT  indexing decisions  cached on `def`.  Called from the
+ * supervisor  machinery when  the  supervisor actually  changes: that
+ * signals  that the  predicate's  clause shape  (number of  clauses,
+ * dynamic/multifile flags, undef vs.  defined) has changed enough that
+ * memoized  indexing  verdicts (per-arg  assessments,  primary-index
+ * decision, `unindexed`/`fixed_indexes`) may  no longer be optimal.
+ * The clause-index  tables themselves are kept;  they remain valid as
+ * long as the clauses they reference are valid.
+ */
+
+void
+reconsiderIndexes(Definition def)
+{ ClauseList clist;
+
+  if ( ison(def, P_FOREIGN) )
+    return;
+
+  clist = &def->impl.clauses;
+
+  if ( clist->args )
+  { size_t arity = def->functor->arity;
+
+    for(size_t i=0; i<arity; i++)
+      clist->args[i].assessed = false;
+  }
+
+  clist->jiti_tried       = 0;
+  clist->pindex_verified  = false;
+  clist->fixed_indexes    = false;
+  clist->unindexed        = false;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Clear the ->tried_index  vector  occasionally   for  dynamic  predicates
 because evaluation may change. We  do  this   if  the  number of clauses
@@ -1468,7 +1513,7 @@ boundery  does  not  lead  to  repeated    re-evaluation  of  the  index
 capabilities.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 has_pow2_clauses(Definition def)
 { unsigned int nc = def->impl.clauses.number_of_clauses;
 
@@ -2057,7 +2102,7 @@ sortIndexes(ClauseIndex *cip)
 }
 
 
-static int
+static bool
 isSortedIndexes(ClauseIndex *cip)
 { if ( cip )
   { float speedup = (float)PLMAXINT;
@@ -2628,7 +2673,13 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
       a->space += a->size * SIZEOF_CREF_LIST;
     }
 
-    if ( (float)a->var_count/(float)a->size > MAX_VAR_FRAC )
+    /* Each clause with a variable is added to every bucket.  Avoid
+     * this if they are too many, unless the space this takes is at
+     * most that of the clauses, e.g., a catch-all clause at the end of
+     * a small table.  The speedup computed above includes their cost.
+     */
+    if ( (float)a->var_count/(float)a->size > MAX_VAR_FRAC &&
+	 (size_t)a->var_count*a->size > clause_count )
     { a->speedup = 0.0;
       return false;			/* not indexable */
     }
@@ -2638,7 +2689,7 @@ assess_remove_duplicates(hash_assessment *a, size_t clause_count)
 }
 
 
-static int
+static bool
 assessAddKey(hash_assessment *a, word key, int nvcomp)
 { if ( a->size > 0 && a->keys[a->size-1].key == key )
   { a->keys[a->size-1].count++;		/* TBD: Keep last-key? */
@@ -2775,8 +2826,15 @@ indexableCompound(Code pc)
 	    case H_VOID:
 	    case H_VOID_N:
 	      continue;		/* Try next argument */
-	    case H_POP:
-	      return false;		/* End of argument list */
+	    case H_POP:			/* End of argument list */
+	    case I_EXITCATCH:		/* idem for an H_R* last argument */
+	    case I_EXITRESET:
+	    case I_EXITFACT:
+	    case I_EXIT:
+	    case I_ENTER:
+	    case I_SSU_COMMIT:
+	    case I_SSU_CHOICE:
+	      return false;
 	    default:
 	      return true;		/* Indexable */
 	  }
@@ -3300,29 +3358,34 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
     return true;
   }
 
-  if ( nassessments >= 2 )	/* Add least two candidates */
-  { int f=0, t=nassessments;
-    iarg_t ia[MAX_MULTI_INDEX] = {0};
+  /* Assess combinations of two of the remaining arguments.  If there
+   * are too many, only combine the middle ones as these are the most
+   * promising.  We need at least two for a combination.
+   */
+  assessment_set aset;
+  init_assessment_set(&aset);
+  hash_assessment **alist = NULL;
+  hash_assessment **ap = NULL;
 
-    for(;;)			/* If far too many, take the middle ones */
-    { int l1 = t-f;		/* as these are the most promising */
+  int f=0, t=nassessments;
+  for(;;)
+  { int l1 = t-f;
 
-      if ( l1 < 2 )
-      { *nphints = nhints;
-	return true;
-      }
-      l1--;
-      if ( l1*l1 > max_hints-nhints )
-      { if ( f%2 == 0 )
-	  f++;
-	else
-	  t--;
-      } else
-	break;
-    }
+    if ( l1 < 2 )
+      break;
+    l1--;
+    if ( l1*l1 > max_hints-nhints )
+    { if ( f%2 == 0 )
+	f++;
+      else
+	t--;
+    } else
+      break;
+  }
 
-    assessment_set aset;
-    init_assessment_set(&aset);
+  if ( t-f >= 2 )
+  { iarg_t ia[MAX_MULTI_INDEX] = {0};
+
     for(int m=f+1; m<t; m++)
     { ia[1] = assessments[m]+1;
       for(int n=f; n<m; n++)
@@ -3331,8 +3394,8 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
       }
     }
     assess_scan_clauses(clist, ac, aset.assessments, aset.count, ctx);
-    hash_assessment **alist = alloca(sizeof(*alist)*aset.count);
-    hash_assessment **ap = alist;
+    alist = alloca(sizeof(*alist)*aset.count);
+    ap = alist;
     for(int i=0; i<aset.count; i++)
     { bool poor = false;
       hash_assessment *a = aset.assessments+i;
@@ -3349,37 +3412,43 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
 	*ap++ = a;
     }
     qsort(alist, ap-alist, sizeof(*alist), cmp_assessment);
+  }
 
-    /* merge single and multiple argument indexes by speedup */
-    hash_assessment **a = alist;
-    int single = 0;
-    while( nhints < max_hints )
-    { if ( single < nassessments )
-      { iarg_t si = assessments[single];
+  /* Merge the remaining single argument indexes and the combinations by
+   * speedup.  This must also be done if there is only one remaining
+   * single argument index.
+   */
+  hash_assessment **a = alist;
+  int single = 0;
+  while( nhints < max_hints )
+  { if ( single < nassessments )
+    { iarg_t si = assessments[single];
 				/* skip the primary index */
-	if ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX &&
-	     clist->primary_index == si )
-	{ single++;
-	  continue;
-	}
-	const arg_info *ai = &clist->args[si];
-	if ( a < ap )
-	{ if ( (*a)->speedup > ai->speedup )
-	  { cp_hints_from_assessment(&hints[nhints++], *a++);
-	  } else
-	  { cp_hints_from_arg_info(&hints[nhints++], si, ai);
-	    single++;
-	  }
+      if ( clist->number_of_clauses <= MIN_CLAUSES_FOR_INDEX &&
+	   clist->primary_index == si )
+      { single++;
+	continue;
+      }
+      const arg_info *ai = &clist->args[si];
+      if ( a < ap )
+      { if ( (*a)->speedup > ai->speedup )
+	{ cp_hints_from_assessment(&hints[nhints++], *a++);
 	} else
 	{ cp_hints_from_arg_info(&hints[nhints++], si, ai);
 	  single++;
 	}
-      } else if ( a < ap )
-      { cp_hints_from_assessment(&hints[nhints++], *a++);
       } else
-	break;
-    }
+      { cp_hints_from_arg_info(&hints[nhints++], si, ai);
+	single++;
+      }
+    } else if ( a < ap )
+    { cp_hints_from_assessment(&hints[nhints++], *a++);
+    } else
+      break;
   }
+
+  free_keys_in_assessment_set(&aset);
+  free_assessment_set(&aset);
 
   *nphints = nhints;
   return true;
@@ -3390,22 +3459,39 @@ candidate_indexes(iarg_t ac, ClauseList clist, hash_hints *hints, int *nphints,
  */
 
 static ClauseIndex
-get_existing_index(ClauseIndex **from, const hash_hints *hints)
-{ ClauseIndex *cip = *from;
-
-  if ( cip )
+get_existing_index(ClauseIndex *cip, const hash_hints *hints)
+{ if ( cip )
   { for(; *cip; cip++)
     { ClauseIndex ci = *cip;
       if ( !ISDEADCI(ci) )
       { if ( memcmp(ci->args, hints->args, sizeof(ci->args)) == 0 )
-	{ *from = cip+1;
 	  return ci;
-	}
       }
     }
   }
 
   return NULL;
+}
+
+/* Sort the indexes of set_candidate_indexes() by decreasing speedup.
+ * candidate_indexes() returns the good ones first, then the deep
+ * ones for poor arguments and then combinations, while existing_hash()
+ * uses the first index that applies, so the array must be sorted (see
+ * isSortedIndexes()).  The sort is stable, so equal ones keep the order
+ * of candidate_indexes().  There are at most a few, so insertion sort
+ * is fine.
+ */
+
+static void
+sort_indexes(ClauseIndex *cip, int count)
+{ for(int i=1; i<count; i++)
+  { ClauseIndex ci = cip[i];
+    int j = i;
+
+    for(; j > 0 && cip[j-1]->speedup < ci->speedup; j--)
+      cip[j] = cip[j-1];
+    cip[j] = ci;
+  }
 }
 
 static bool
@@ -3423,13 +3509,15 @@ set_candidate_indexes(Definition def, ClauseList clist, int max, bool lock)
       LOCKDEF(def);
     ClauseIndex *org = clist->clause_indexes;
     for(int i=0; i<max; i++)
-    { ClauseIndex ei = get_existing_index(&org, &hints[i]);
+    { ClauseIndex ei = get_existing_index(org, &hints[i]);
       if ( ei )
 	cip[i] = ei;
       else
 	cip[i] = newClauseIndexTable(&hints[i], false, &ctx);
     }
+    sort_indexes(cip, max);
     cip[max] = NULL;
+    DEBUG(0, assert(isSortedIndexes(cip)));
     setIndexes(def, clist, cip);
     clist->fixed_indexes = true;
     if ( lock )

@@ -527,14 +527,10 @@ exports(File, Module, Exports) :-
     exports(File, Module, Exports, _Meta, _Public).
 
 exports(File, Module, Exports, Meta, Public) :-
-    (   current_prolog_flag(xref, Old)
-    ->  true
-    ;   Old = false
-    ),
     setup_call_cleanup(
-        set_prolog_flag(xref, true),
+        push_prolog_flag(xref, true),
         snapshot(exports_(File, Module, Exports, Meta, Public)),
-        set_prolog_flag(xref, Old)).
+        pop_prolog_flag(xref)).
 
 exports_(File, Module, Exports, Meta, Public) :-
     State = state(true, _, [], [], []),
@@ -692,7 +688,8 @@ autoload_from(Module:PI, LoadModule, FullFile) :-
     autoload_in(Module, explicit),
     current_autoload(Module:File, Ctx, import(Imports)),
     memberchk(PI, Imports),
-    library_info(File, Ctx, FullFile, LoadModule, Exports),
+    in_module_dialect(Module,
+                      library_info(File, Ctx, FullFile, LoadModule, Exports)),
     (   pi_in_exports(PI, Exports)
     ->  !
     ;   autoload_error(Ctx, not_exported(PI, File, FullFile, Exports)),
@@ -702,11 +699,36 @@ autoload_from(Module:Name/Arity, LoadModule, FullFile) :-
     autoload_in(Module, explicit),
     PI = Name/Arity,
     current_autoload(Module:File, Ctx, all),
-    library_info(File, Ctx, FullFile, LoadModule, Exports),
+    in_module_dialect(Module,
+                      library_info(File, Ctx, FullFile, LoadModule, Exports)),
     pi_in_exports(PI, Exports).
 autoload_from(Module:Name/Arity, LoadModule, Library) :-
     autoload_in(Module, general),
     '$find_library'(Module, Name, Arity, LoadModule, Library).
+
+%!  in_module_dialect(+Module, :Goal) is semidet.
+%
+%   Run Goal in the dialect of Module.  System and library modules are
+%   written for SWI-Prolog, so their autoload/1,2 declarations must be
+%   resolved in the `swi` dialect, also if the application has called
+%   expects_dialect/1.  Otherwise, e.g., library(lists) resolves to
+%   library(dialect/sicstus/lists) if the SICStus dialect is active.
+
+in_module_dialect(Module, Goal) :-
+    current_prolog_flag(emulated_dialect, Dialect),
+    Dialect \== swi,
+    '$module_property'(Module, class(Class)),
+    swi_module_class(Class),
+    !,
+    setup_call_cleanup(
+        set_prolog_flag(emulated_dialect, swi),
+        once(Goal),
+        set_prolog_flag(emulated_dialect, Dialect)).
+in_module_dialect(_, Goal) :-
+    once(Goal).
+
+swi_module_class(system).
+swi_module_class(library).
 
 :- public autoload_in/2.                        % used in syspred
 

@@ -53,7 +53,7 @@
 #define LD LOCAL_LD
 
 static bool text_representation_error(PL_chars_t *text, IOENC enc);
-static int text_error(PL_chars_t *text, int rc);
+static bool text_error(PL_chars_t *text, int rc);
 
 		 /*******************************
 		 *	UNIFIED TEXT STUFF	*
@@ -84,7 +84,7 @@ bufsize_text(PL_chars_t *text, size_t len)
 }
 
 
-int
+bool /* Fails if malloc() fails.  No Prolog exception is raised. */
 PL_save_text(PL_chars_t *text, int flags)
 { if ( (flags & BUF_MALLOC) && text->storage != PL_CHARS_MALLOC )
   { size_t bl = bufsize_text(text, text->length+1);
@@ -125,7 +125,7 @@ PL_from_stack_text() moves a string from  the   stack,  so  it won't get
 corrupted if GC/shift comes along.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 PL_from_stack_text(PL_chars_t *text, int flags)
 { if ( !(flags&BUF_ALLOW_STACK) )
   { if ( text->storage == PL_CHARS_PROLOG_STACK )
@@ -207,7 +207,7 @@ i64toa(int64_t val, char *out, int base)
 }
 
 
-int
+get_text_t
 PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
 { word w = valHandle(l);
 
@@ -315,7 +315,7 @@ PL_get_text(DECL_LD term_t l, PL_chars_t *text, int flags)
     { goto case_write;
     } else
     { if ( (flags & CVT_VARNOFAIL) && result.status == CVT_partial )
-	return 2;
+	return GT_ISVAR;
 
       if ( (flags & CVT_EXCEPTION) )
       { switch(result.status)
@@ -442,13 +442,15 @@ maybe_write:
 
 error:
   if ( canBind(w) && (flags & CVT_VARNOFAIL) )
-    return 2;
+    return GT_ISVAR;
 
   if ( (flags & CVT_EXCEPTION) )
   { atom_t expected;
 
     if ( (flags & CVT_LIST) && !(flags&(CVT_ATOM|CVT_NUMBER)) )
       expected = ATOM_list;		/* List and/or string object */
+    else if ( flags & CVT_STRING )
+      expected = ATOM_string;
     else if ( flags & CVT_LIST )
       expected = ATOM_text;
     else if ( (flags & CVT_ATOM) && w == ATOM_nil )
@@ -461,7 +463,7 @@ error:
     return PL_error(NULL, 0, NULL, ERR_TYPE, expected, l);
   }
 
-  fail;
+  return false;
 }
 
 
@@ -476,6 +478,32 @@ textToAtom(DECL_LD PL_chars_t *text)
       a = lookupAtom(text->text.t, text->length);
     else
       a = lookupUCSAtom(text->text.w, text->length);
+  } else
+  { text_error(text, rc);
+    a = 0;
+  }
+  PL_STRINGS_RELEASE();
+
+  return a;
+}
+
+
+/* As textToAtom(), but a new atom is local to the calling thread.  The
+ * reference does not promote it: the caller must drop it or keep it in
+ * data of this thread (see lookupBlobEx()).
+ */
+
+atom_t
+textToLocalAtom(DECL_LD PL_chars_t *text)
+{ atom_t a;
+  int rc;
+
+  PL_STRINGS_MARK();
+  if ( (rc=PL_canonicalise_text(text)) == true )
+  { if ( text->encoding == ENC_ISO_LATIN_1 )
+      a = lookupLocalAtom(text->text.t, text->length);
+    else
+      a = lookupLocalUCSAtom(text->text.w, text->length);
   } else
   { text_error(text, rc);
     a = 0;
@@ -529,7 +557,7 @@ static bool
 unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 { switch(type)
   { case PL_ATOM:
-    { atom_t a = textToAtom(text);
+    { atom_t a = textToLocalAtom(text);
 
       if ( a )
       { bool rval = PL_unify_atomic(term, a);
@@ -651,7 +679,8 @@ unify_text(DECL_LD term_t term, term_t tail, PL_chars_t *text, int type)
 
 	    memset(&mbs, 0, sizeof(mbs));
 	    while( n > 0 )
-	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0 )
+	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 ||
+		   rc == (size_t)-2 || rc == 0 )
 		return PL_error(NULL, 0, "cannot represent text in current locale",
 				ERR_REPRESENTATION, ATOM_encoding);
 
@@ -791,7 +820,15 @@ PL_seek_text_rev(const PL_chars_t *t, size_t offset)
 }
 
 
-int
+static bool unify_text_between(term_t term, const PL_chars_t *text,
+			       const void *as, const void *ae, int type);
+
+/* PL_unify_text_range() unifies term with len code points of text,
+ * starting at code point offset.  PL_unify_text_units() does the same
+ * using units (see text_next_code()).
+ */
+
+bool
 PL_unify_text_range(term_t term, const PL_chars_t *text,
 		    size_t offset, size_t len, int type)
 { const void *as = PL_seek_text(text, offset);
@@ -801,6 +838,48 @@ PL_unify_text_range(term_t term, const PL_chars_t *text,
 
   if ( !as || !ae )
     return false;			/* offset > length */
+
+  return unify_text_between(term, text, as, ae, type);
+}
+
+bool
+PL_unify_text_units(term_t term, const PL_chars_t *text,
+		    size_t offset, size_t len, int type)
+{ assert(text->canonical);
+
+  if ( offset+len > text->length )
+    return false;
+
+  if ( text->encoding == ENC_ISO_LATIN_1 )
+    return unify_text_between(term, text, &text->text.t[offset],
+			      &text->text.t[offset+len], type);
+  else
+    return unify_text_between(term, text, &text->text.w[offset],
+			      &text->text.w[offset+len], type);
+}
+
+/* The unit offset of the code point at index in text, or (size_t)-1 if
+ * index is beyond the end.  index may be the length of the text.
+ */
+
+size_t
+PL_text_unit_offset(const PL_chars_t *text, size_t index)
+{ const void *p = PL_seek_text(text, index);
+
+  if ( !p )
+    return (size_t)-1;
+  if ( text->encoding == ENC_ISO_LATIN_1 )
+    return (const char*)p - text->text.t;
+  else
+    return (const wchar_t*)p - text->text.w;
+}
+
+static bool
+unify_text_between(term_t term, const PL_chars_t *text,
+		   const void *as, const void *ae, int type)
+{ size_t len = ( text->encoding == ENC_ISO_LATIN_1
+		   ? (size_t)((const char*)ae - (const char*)as)
+		   : (size_t)((const wchar_t*)ae - (const wchar_t*)as) );
 
   if ( len == 1 && type == PL_ATOM && ae > as )
   { GET_LD
@@ -831,7 +910,7 @@ PL_unify_text_range(term_t term, const PL_chars_t *text,
     sub.canonical = false;
   }
 
-  int rc = PL_unify_text(term, 0, &sub, type);
+  bool rc = PL_unify_text(term, 0, &sub, type);
   PL_free_text(&sub);
   return rc;
 }
@@ -843,7 +922,7 @@ int PL_promote_text(PL_chars_t *text)
 Promote a text to USC if it is currently 8-bit text.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+bool
 PL_promote_text(PL_chars_t *text)
 { if ( text->encoding != ENC_WCHAR )
   { if ( text->storage == PL_CHARS_MALLOC )
@@ -889,7 +968,7 @@ PL_promote_text(PL_chars_t *text)
     }
   }
 
-  succeed;
+  return true;
 }
 
 
@@ -957,7 +1036,7 @@ PL_demote_text(PL_chars_t *text, int flags)
 }
 
 
-static int
+static bool
 can_demote(PL_chars_t *text)
 { if ( text->encoding != ENC_ISO_LATIN_1 )
   { const pl_wchar_t *w = (const pl_wchar_t*)text->text.w;
@@ -980,7 +1059,7 @@ convert to ISO Latin-1. This predicate can   fail  of the text cannot be
 represented.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-static int
+static bool
 wctobuffer(wchar_t c, mbstate_t *mbs, Buffer buf)
 { char b[PL_MB_LEN_MAX];
   size_t n;
@@ -1014,7 +1093,7 @@ utf8tobuffer(int c, Buffer buf)
 }
 
 
-int
+bool
 PL_mb_text(PL_chars_t *text, int flags)
 { int norep = -1;
   IOENC target = ((flags&REP_UTF8) ? ENC_UTF8 :
@@ -1082,7 +1161,7 @@ PL_mb_text(PL_chars_t *text, int flags)
       }
       default:
       { assert(0);
-	fail;
+	return false;
       }
     }
 
@@ -1095,7 +1174,7 @@ PL_mb_text(PL_chars_t *text, int flags)
     text->storage   = PL_CHARS_STACK;
   }
 
-  succeed;
+  return true;
 
 rep_error:
   if ( (flags & CVT_EXCEPTION) )
@@ -1110,7 +1189,7 @@ rep_error:
     return PL_error(NULL, 0, msg, ERR_REPRESENTATION, ATOM_encoding);
   }
 
-  fail;
+  return false;
 }
 
 
@@ -1126,7 +1205,7 @@ flip_shorts(unsigned char *s, size_t len)
 }
 
 
-static int
+static bool
 native_byte_order(IOENC enc)
 {
 #ifdef WORDS_BIGENDIAN
@@ -1144,7 +1223,7 @@ we also make sure it  consists  of   valid  Unicode  code points and, if
 sizeof(wchar_t) == 2 (Windows) UTF-16 surrogate pairs are valid.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+int /* returns bool or ERR_TEXT_*  */
 PL_canonicalise_text(PL_chars_t *text)
 { if ( !text->canonical )
   { switch(text->encoding )
@@ -1347,6 +1426,8 @@ PL_canonicalise_text(PL_chars_t *text)
 	while( n > 0 )
 	{ if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0)
 	    return ERR_TEXT_ILLEGAL_MULTIBYTE_SEQUENCE;
+	  if ( rc == (size_t)-2 )
+	    return ERR_TEXT_INCOMPLETE_MULTIBYTE_SEQUENCE;
 
 	  if ( wc > 0xff )
 	    wide = true;
@@ -1449,7 +1530,7 @@ text_representation_error(PL_chars_t *text, IOENC enc)
 }
 
 
-static int
+static bool
 text_error(PL_chars_t *text, int rc)
 { (void)text;
 
@@ -1470,7 +1551,7 @@ text_error(PL_chars_t *text, int rc)
   }
 }
 
-int
+bool
 PL_canonicalise_text_ex(PL_chars_t *text)
 { int rc;
 
@@ -1525,7 +1606,7 @@ addUTF16Buffer(Buffer b, int c, IOENC enc)
 }
 
 
-int
+bool
 PL_text_recode(PL_chars_t *text, IOENC encoding)
 { if ( text->encoding != encoding )
   { switch(encoding)
@@ -1586,7 +1667,8 @@ PL_text_recode(PL_chars_t *text, IOENC encoding)
 	    b = findBuffer(BUF_STACK);
 	    memset(&mbs, 0, sizeof(mbs));
 	    while( n > 0 )
-	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 || rc == 0)
+	    { if ( (rc=mbrtowc(&wc, s, n, &mbs)) == (size_t)-1 ||
+		   rc == (size_t)-2 || rc == 0 )
 		return false;		/* encoding error */
 
 	      utf8tobuffer(wc, b);
@@ -1690,7 +1772,7 @@ PL_cmp_text(PL_chars_t *t1, size_t o1,
 Compares two substrings of two text representations.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-int
+cmp_t
 PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 	    size_t len)
 { const void *s1 = PL_seek_text(t1, o1);
@@ -1767,13 +1849,12 @@ PL_cmp_text(PL_chars_t *t1, size_t o1, PL_chars_t *t2, size_t o2,
 }
 
 
-int
-PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
+bool
+PL_concat_text(size_t n, PL_chars_t **text, PL_chars_t *result)
 { size_t total_length = 0;
-  int latin = true;
-  int i;
+  bool latin = true;
 
-  for(i=0; i<n; i++)
+  for(size_t i=0; i<n; i++)
   { if ( latin && !can_demote(text[i]) )
       latin = false;
     total_length += text[i]->length;
@@ -1794,6 +1875,7 @@ PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
       result->storage = PL_CHARS_MALLOC;
     }
 
+    size_t i;
     for(to=result->text.t, i=0; i<n; i++)
     { memcpy(to, text[i]->text.t, text[i]->length);
       to += text[i]->length;
@@ -1811,6 +1893,7 @@ PL_concat_text(int n, PL_chars_t **text, PL_chars_t *result)
       result->storage = PL_CHARS_MALLOC;
     }
 
+    size_t i;
     for(to=result->text.w, i=0; i<n; i++)
     { if ( text[i]->encoding == ENC_WCHAR )
       { memcpy(to, text[i]->text.w, text[i]->length*sizeof(pl_wchar_t));

@@ -44,4 +44,4 @@
 
 void		cleanupTerm(void);
 
-#endif /*_PL_TERM_H*/			
+#endif /*_PL_TERM_H*/

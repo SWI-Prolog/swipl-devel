@@ -12,11 +12,20 @@ implementation of the Prolog programming language. SWI-Prolog targets at
 developing real-world applications. To achieve this, in concentrates on
 libraries that facilitate interfacing to other software components,
 networking and multi-threading. SWI-Prolog can be used from
-<b>Terminal.app</b> as well as as an standard Mac application started
+<b>Terminal.app</b> as well as a standard Mac application started
 from <b>Finder</b>. The commandline application can also run under
 several development environments such as GNU-Emacs (see <a
 href="https://eshelyaron.com/sweep.html"> Sweep</a>), Eclipse, VSCode,
 etc. </p>
+
+<p>
+The installer places the application <b>swipl-win.app</b> in
+<code>/Applications</code> and the runtime, libraries and development
+files as <code>swipl.framework</code> in <code>/Library/Frameworks</code>.
+Keeping the runtime in a framework allows other applications to embed
+SWI-Prolog by linking against <code>swipl.framework</code>.  The
+<code>.pkg</code> installer is signed with a Developer&nbsp;ID and
+notarized by Apple. </p>
 
 <h2>Supported MacOSX versions</h2>
 
@@ -37,7 +46,7 @@ run on MacOS 14.  Please report the status for intermediate versions.
 <p>
 The SWI-Prolog development tools, such as the source-level debugger, are
 based on xpce, SWI-Prolog's native graphics toolkit.  Some of the tools
-can be started from the <b>SWI-Prolog.app</b> menus.  Others are started
+can be started from the <b>swipl-win.app</b> menus.  Others are started
 from the Prolog commandline.   Notably, to use the source level debugger,
 use <code>gtrace/0</code> instead of the traditional <code>trace/0</code>
 as below.
@@ -47,11 +56,10 @@ as below.
 </pre>
 
 <p>
-The <b>SWI-Prolog.app</b> can be executed directly from the disk image, can be
-installed in <code>/Applications</code> or in any other location, i.e.,
-it is <i>relocatable</i>. The app advertises itself to the launcher as
-<em>shell</em> for files with extensions <code>.pl</code> and
-<code>.prolog</code>
+<b>swipl-win.app</b> may be moved to a different location, provided
+<code>swipl.framework</code> remains in <code>/Library/Frameworks</code>.
+The app advertises itself to the launcher as <em>shell</em> for files
+with extensions <code>.pl</code> and <code>.prolog</code>
 </p>
 
 <h2 name="cmdline">Using the commandline tools</h2>
@@ -59,7 +67,7 @@ it is <i>relocatable</i>. The app advertises itself to the launcher as
 <p>
 The traditional command line tools are included in the app. To access
 them from <b>Terminal.app</b>, add the directory
-<code>/Applications/SWI-Prolog.app/Contents/MacOS</code> to
+<code>/Applications/swipl-win.app/Contents/MacOS</code> to
 <code>$PATH</code> (replace with the actual location if you installed
 the app in a different location).  This provides
 </p>
@@ -67,7 +75,8 @@ the app in a different location).  This provides
 <ul>
 <li><code>swipl</code> The non-gui commandline version of SWI-Prolog.  This version
 can start GUI development tools.  If you do not want that, use the option <code>--nopce</code>
-<li><code>swipl-win</code> This is the same as lauching <b>SWI-Prolog.app</b>, but you can start it from <b>Terminal.app</b> and pass it commandline options.
+<li><code>swipl-win</code> This is the same as launching <b>swipl-win.app</b>, but you can start it from <b>Terminal.app</b> and pass it commandline options.
+<li><code>swipl-ld</code> Helper to link embedded SWI-Prolog executables and extensions against <code>swipl.framework</code>.
 </ul>
 
 

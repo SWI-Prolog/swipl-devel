@@ -214,3 +214,53 @@ MurmurHashWord(word v, unsigned int seed)
 
   return h;
 }
+
+
+/* MurmurHashWide() hashes wide text of `len` bytes as little-endian
+ * 32-bit code points, so the hash does not depend on the byte order or
+ * on the size of wchar_t (UTF-16 on Windows).
+ */
+
+unsigned int
+MurmurHashWide(const wchar_t *s, size_t len, unsigned int seed)
+{
+#if !WORDS_BIGENDIAN && SIZEOF_WCHAR_T == 4
+  return MurmurHashAligned2(s, len, seed);
+#else
+  const unsigned int m = 0x5bd1e995;
+  const int r = 24;
+  const wchar_t *e = (const wchar_t *)((const char *)s + len);
+  size_t n = 0;
+  unsigned int h;
+
+  for(const wchar_t *q=s; q<e; q++)	/* count code points */
+  {
+#if SIZEOF_WCHAR_T == 2
+    if ( *q >= 0xd800 && *q < 0xdc00 && q+1 < e &&
+	 q[1] >= 0xdc00 && q[1] < 0xe000 )
+      q++;
+#endif
+    n++;
+  }
+
+  /* MurmurHashAligned2() of the little-endian code points.  Each code
+   * point is a 4-byte block whose little-endian value is the code point,
+   * so there is no tail and no byte swapping.
+   */
+  h = seed ^ (unsigned int)(n*4);
+  while(s < e)
+  { unsigned int k = (unsigned int)*s++;
+#if SIZEOF_WCHAR_T == 2
+    if ( k >= 0xd800 && k < 0xdc00 && s < e &&
+	 (unsigned int)*s >= 0xdc00 && (unsigned int)*s < 0xe000 )
+      k = 0x10000 + ((k-0xd800)<<10) + ((unsigned int)*s++ - 0xdc00);
+#endif
+    MIX(h,k,m);
+  }
+  h ^= h >> 13;
+  h *= m;
+  h ^= h >> 15;
+
+  return h;
+#endif
+}

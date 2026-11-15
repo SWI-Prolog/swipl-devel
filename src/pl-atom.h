@@ -42,6 +42,11 @@
 #if USE_LD_MACROS
 #define lookupBlob(s, len, type, new) LDFUNC(lookupBlob, s, len, type, new)
 #define lookupAtom(s, len) LDFUNC(lookupAtom, s, len)
+#define lookupLocalAtom(s, len) LDFUNC(lookupLocalAtom, s, len)
+#define lookupBlobEx(s, len, type, new, local) \
+	LDFUNC(lookupBlobEx, s, len, type, new, local)
+#define newLocalBlob(data, length, type) LDFUNC(newLocalBlob, data, length, type)
+#define newSharedBlob(data, length, type) LDFUNC(newSharedBlob, data, length, type)
 #endif
 
 
@@ -52,21 +57,44 @@
 #define LDFUNC_DECLARATIONS
 #define checkAtoms()	checkAtoms_src(__FILE__, __LINE__)
 atom_t		lookupAtom(const char *s, size_t len);
+atom_t		lookupLocalAtom(const char *s, size_t len);
+atom_t		lookupBlobEx(const char *s, size_t len, PL_blob_t *type,
+			     bool *new, bool local);
 atom_t		lookupBlob(const char *s, size_t len,
-			   PL_blob_t *type, int *new);
+			   PL_blob_t *type, bool *new);
 foreign_t	pl_atom_hashstat(term_t i, term_t n);
 void		do_init_atoms(void);
 int		resetListAtoms(void);
 void		cleanupAtoms(void);
+void		releaseReservedAtoms(PL_local_data_t *ld);
 void		markAtom(atom_t a);
+void		markLocalAtom(atom_t a);
+size_t		collectLocalAtoms(void);
+void		considerLocalSweep(void);
+void		idleLocalSweep(void);
+void		releaseLocalAtoms(PL_local_data_t *ld);
+void		discardBlob(atom_t a);
+void		disownBlob(atom_t a);
+bool		shareLocalBlob(atom_t a, PL_blob_t *type, const void *data);
+bool		registerAtomIfLive(atom_t a);
+void		registerAtomLocally(atom_t a);
+bool		promoteLocalAtom(Atom a);
+void		promoteAtomIfLocal(atom_t a);
+PL_local_data_t *localAtomOwner(atom_t a);
+atom_t		newLocalBlob(void *data, size_t length, PL_blob_t *type);
+atom_t		newSharedBlob(void *data, size_t length, PL_blob_t *type);
 foreign_t	pl_garbage_collect_atoms(void);
-void		resetAtoms(void);
 int		checkAtoms_src(const char *file, int line);
 int		is_volatile_atom(atom_t a);
 size_t		atom_space(void);
+atom_t		newDeadBlob(atom_t type_name, const char *text,
+			    size_t len, bool resolve);
+atom_t		deadBlobType(atom_t a);
+void		PL_blob_gc_released(Atom a);
+bool		AGC_wanted(void);
 #undef LDFUNC_DECLARATIONS
 
-static inline int
+static inline bool
 isBuiltInAtom(atom_t a)
 { size_t index = indexAtom(a);
   return index < GD->atoms.builtin;

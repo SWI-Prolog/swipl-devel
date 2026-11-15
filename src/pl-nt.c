@@ -35,10 +35,18 @@
 */
 
 #ifdef __WINDOWS__
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0A00		/* Windows 10 */
+#undef NTDDI_VERSION			/* Windows 10 1809: pseudo console. */
+#define NTDDI_VERSION 0x0A000006	/* PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE */
 #define SWIPL_WINDOWS_NATIVE_ACCESS 1
 #include <winsock2.h>			/* Needed on VC8 */
 #include <windows.h>
 #include <psapi.h>
+
+#ifndef PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE	/* older SDK */
+#define PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE 0x00020016
+#endif
 
 #ifdef __MINGW32__
 #ifndef _WIN32_IE
@@ -397,7 +405,7 @@ typedef struct
   UINT        id;
 } showtype;
 
-static int
+static bool
 get_showCmd(term_t show, UINT *cmd)
 { char *s;
   showtype *st;
@@ -440,7 +448,7 @@ get_showCmd(term_t show, UINT *cmd)
 
 
 
-static int
+static bool
 win_exec(size_t len, const wchar_t *cmd, UINT show)
 { GET_LD
   STARTUPINFOW startup;
@@ -496,16 +504,137 @@ utf8towcs_buffer(Buffer b, const char *src)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Where the child gets its terminal from, in order of preference.
+
+ 1. The pseudo console of an Epilog window, which gives the child a
+    terminal of its own making: it echoes, edits its command line, writes
+    VT, has a size and takes ^C.
+ 2. A console we can share.  A console application gets a console of its
+    own unless it is created to share ours, and CREATE_NO_WINDOW hides
+    that console: shell/0 then ran a shell reading from a keyboard buffer
+    nobody fills, and shell/1 wrote where nobody looks.
+ 3. Neither: hand over the streams and hide the console the child makes.
+    CREATE_NO_WINDOW is what a GUI process needs, as there a console child
+    pops up a window of its own.
+
+The streams come from the calling thread rather than from the process: a
+thread need not run on the terminal  the process was started from.  This
+is what System() in pl-os.c dups onto the child's 0/1/2.  That is also why
+case 1 comes first: having a console is a fact about the process, being on
+an Epilog window is a fact about this thread, and the thread wins.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static bool
+have_console(void)
+{ return GetConsoleWindow() != NULL;
+}
+
+
+/* Attribute list that puts a child on the pseudo console `hpcon', for
+ * CreateProcess() with EXTENDED_STARTUPINFO_PRESENT.  Public because
+ * process_create/3 lives in a foreign library (packages/clib/process.c)
+ * and must put its children on an Epilog window the same way.
+ */
+
+void *
+Swinpseudoconsole_attributes(HANDLE hpcon)
+{ LPPROC_THREAD_ATTRIBUTE_LIST list;
+  SIZE_T size = 0;
+
+  InitializeProcThreadAttributeList(NULL, 1, 0, &size);
+  if ( !(list=PL_malloc(size)) )
+    return NULL;
+
+  if ( InitializeProcThreadAttributeList(list, 1, 0, &size) &&
+       UpdateProcThreadAttribute(list, 0,
+				 PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
+				 hpcon, sizeof(hpcon), NULL, NULL) )
+    return list;
+
+  PL_free(list);
+  return NULL;
+}
+
+
+void
+Swinfree_pseudoconsole_attributes(void *attributes)
+{ if ( attributes )
+  { DeleteProcThreadAttributeList(attributes);
+    PL_free(attributes);
+  }
+}
+
+
+static HANDLE
+inheritable_stream_handle(IOSTREAM *s)
+{ HANDLE h;
+
+  if ( s &&
+       (h=Swinhandle(s)) &&
+       h != INVALID_HANDLE_VALUE &&
+       SetHandleInformation(h, HANDLE_FLAG_INHERIT, HANDLE_FLAG_INHERIT) )
+    return h;
+
+  return NULL;
+}
+
 int
 System(char *command)			/* command is a UTF-8 string */
-{ STARTUPINFOW sinfo;
+{ GET_LD
+  STARTUPINFOEXW sinfoEx;
+  STARTUPINFOW *sinfo = &sinfoEx.StartupInfo;
   PROCESS_INFORMATION pinfo;
   int shell_rval;
   tmp_buffer buf;
   wchar_t *wcmd;
+  HANDLE hin, hout, herr;
+  LPPROC_THREAD_ATTRIBUTE_LIST attrs = NULL;
+  HANDLE hpc = Swinpseudoconsole(Suser_input);
+  bool console = !hpc && have_console();
+  DWORD flags = console ? 0		     /* share our console */
+			: CREATE_NO_WINDOW;  /* we have none to share */
+  BOOL inherit = false;
 
-  memset(&sinfo, 0, sizeof(sinfo));
-  sinfo.cb = sizeof(sinfo);
+  memset(&sinfoEx, 0, sizeof(sinfoEx));
+  sinfo->cb = sizeof(*sinfo);
+
+  if ( hpc )
+  { /* Put the child on the terminal's own console, as
+     * terminal_image->launch does.  Only EXTENDED_STARTUPINFO_PRESENT:
+     * CREATE_NO_WINDOW asks for a console of the child's own, which is
+     * the opposite of what the attribute says and wins.
+     *
+     * Nothing of ours may touch the terminal's streams until the child
+     * is done -- the console is reading and writing the very same pipe
+     * ends -- and nothing does: this thread sits in the wait below, and
+     * the line editor has no read outstanding between lines.
+     */
+    if ( (attrs=Swinpseudoconsole_attributes(hpc)) )
+    { sinfoEx.lpAttributeList = attrs;
+      sinfo->cb		      = sizeof(sinfoEx);
+      flags		      = EXTENDED_STARTUPINFO_PRESENT;
+      inherit		      = true;
+      Sflush(Suser_output);		/* or it lands after the child's */
+      Sflush(Suser_error);
+    } else
+    { Swinrelease_pseudoconsole(Suser_input);
+      hpc = NULL;
+      console = have_console();
+      flags = console ? 0 : CREATE_NO_WINDOW;
+    }
+  }
+
+  if ( !hpc &&
+       (hin =inheritable_stream_handle(Suser_input))  &&
+       (hout=inheritable_stream_handle(Suser_output)) &&
+       (herr=inheritable_stream_handle(Suser_error)) )
+  { sinfo->dwFlags    = STARTF_USESTDHANDLES;
+    sinfo->hStdInput  = hin;
+    sinfo->hStdOutput = hout;
+    sinfo->hStdError  = herr;
+    inherit = true;
+  }
 
   initBuffer(&buf);
   utf8towcs_buffer((Buffer)&buf, command);
@@ -515,35 +644,66 @@ System(char *command)			/* command is a UTF-8 string */
 		      wcmd,			/* command line */
 		      NULL,			/* Security stuff */
 		      NULL,			/* Thread security stuff */
-		      false,			/* Inherit handles */
-		      CREATE_NO_WINDOW,		/* flags */
+		      inherit,			/* Inherit handles */
+		      flags,			/* flags */
 		      NULL,			/* environment */
 		      NULL,			/* CWD */
-		      &sinfo,			/* startup info */
+		      sinfo,			/* startup info */
 		      &pinfo) )			/* process into */
-  { BOOL rval;
-    DWORD code;
+  { DWORD code;
 
     CloseHandle(pinfo.hThread);			/* don't need this */
     discardBuffer(&buf);
 
-    do
-    { MSG msg;
+    /* ^C belongs to the child while it runs, as it does for shell/1 on
+     * POSIX.  Set this after CreateProcessW(): the attribute is
+     * inherited, and the child must not ignore ^C.
+     */
+    if ( console )
+      SetConsoleCtrlHandler(NULL, true);
 
-      if ( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
-      { TranslateMessage(&msg);
-	DispatchMessage(&msg);
-      } else
-	Sleep(50);
+    /* Wait on the process rather than poll its exit code.  A shell that
+     * sits there waiting for a command has no exit code to report, and
+     * asking for one told us nothing about whether it is still there.
+     * Messages are dispatched while we wait: a GUI process that stops
+     * answering them looks hung to Windows.
+     */
+    for(;;)
+    { DWORD rc = MsgWaitForMultipleObjects(1, &pinfo.hProcess, false,
+					   INFINITE, QS_ALLINPUT);
 
-      rval = GetExitCodeProcess(pinfo.hProcess, &code);
-    } while(rval == true && code == STILL_ACTIVE);
+      if ( rc == WAIT_OBJECT_0 )		/* the child is gone */
+	break;
+      if ( rc == WAIT_OBJECT_0+1 )		/* messages are waiting */
+      { MSG msg;
 
-    shell_rval = (rval == true ? code : -1);
+	while( PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) )
+	{ TranslateMessage(&msg);
+	  DispatchMessage(&msg);
+	}
+      } else					/* WAIT_FAILED */
+	break;
+    }
+
+    shell_rval = GetExitCodeProcess(pinfo.hProcess, &code) ? (int)code : -1;
+
+    if ( console )
+      SetConsoleCtrlHandler(NULL, false);
+
     CloseHandle(pinfo.hProcess);
   } else
-  { discardBuffer(&buf);
-    return shell_rval = -1;
+  { term_t tmp;
+
+    discardBuffer(&buf);
+    shell_rval = -1;
+    if ( (tmp=PL_new_term_ref()) &&
+	 PL_put_chars(tmp, PL_ATOM|REP_UTF8, (size_t)-1, command) )
+      PL_error(NULL, 0, WinError(), ERR_SHELL_FAILED, tmp);
+  }
+
+  if ( hpc )				/* the terminal takes it back */
+  { Swinfree_pseudoconsole_attributes(attrs);
+    Swinrelease_pseudoconsole(Suser_input);
   }
 
   return shell_rval;
@@ -588,7 +748,7 @@ static const shell_error se_errors[] =
 };
 
 
-static int
+static bool
 win_shell(term_t op, term_t file, term_t how)
 { size_t lo, lf;
   wchar_t *o, *f;
@@ -718,6 +878,24 @@ load_library_search_flags(void)
 }
 
 
+/* LoadLibraryExW() and AddDllDirectoryW() do not accept extended-length
+ * "\\?\" prefixes.  Strip a "\\?\" prefix in place; convert "\\?\UNC\"
+ * into its plain UNC form "\\".  Returns a pointer into buf.
+ */
+
+static wchar_t *
+strip_win_prefix(wchar_t *buf)
+{ if ( wcsncmp(buf, L"\\\\?\\UNC\\", 8) == 0 )
+  { buf[6] = L'\\';			/* overwrite 'C' of "UNC" */
+    return buf + 6;			/* now begins with "\\host\..." */
+  }
+  if ( wcsncmp(buf, L"\\\\?\\", 4) == 0 )
+    return buf + 4;
+
+  return buf;
+}
+
+
 static
 PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
 { PRED_LD
@@ -733,11 +911,11 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
     { int eno;
 
       /* AddDllDirectoryW() cannot handle "\\?\" */
-      if ( (cookie = (*f_AddDllDirectoryW)(dirw + _xos_win_prefix_length(dirw))) )
+      if ( (cookie = (*f_AddDllDirectoryW)(strip_win_prefix(dirw))) )
       { DEBUG(MSG_WIN_API,
 	      SdprintfX("AddDllDirectory(%Ws) ok\n", dirw));
 
-	return PL_unify_int64(A2, (int64_t)(uintptr_t)cookie);
+	return PL_unify_pointer(A2, cookie);
       }
 
       switch((eno=GetLastError()))
@@ -756,11 +934,11 @@ PRED_IMPL("win_add_dll_directory", 2, win_add_dll_directory, 0)
 
 static
 PRED_IMPL("win_remove_dll_directory", 1, win_remove_dll_directory, 0)
-{ int64_t icookie;
+{ void *cookie;
 
-  if ( PL_get_int64_ex(A1, &icookie) )
+  if ( PL_get_pointer_ex(A1, &cookie) )
   { if ( f_RemoveDllDirectory )
-    { if ( (*f_RemoveDllDirectory)((DLL_DIRECTORY_COOKIE)(uintptr_t)icookie) )
+    { if ( (*f_RemoveDllDirectory)(cookie) )
 	return true;
 
       return PL_error(NULL, 0, WinError(), ERR_SYSCALL, "RemoveDllDirectory()");
@@ -771,7 +949,7 @@ PRED_IMPL("win_remove_dll_directory", 1, win_remove_dll_directory, 0)
 }
 
 
-static int
+static bool
 is_windows_abs_path(const wchar_t *path)
 { if ( path[1] == ':' && path[0] < 0x80 && iswalpha(path[0]) )
     return true;			/* drive */
@@ -786,12 +964,17 @@ PL_dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
 { HINSTANCE h;
   DWORD llflags = 0;
   wchar_t wfile[PATH_MAX];
+  wchar_t *load_path = wfile;
 
   if ( strchr(file, '/') || strchr(file, '\\' ) )
   { if ( _xos_os_filenameW(file, wfile, PATH_MAX) == NULL )
     { dlmsg = "Name too long";
       return NULL;
     }
+    /* LoadLibraryExW() rejects "\\?\"-prefixed paths, especially in
+     * combination with LOAD_LIBRARY_SEARCH_* flags.
+     */
+    load_path = strip_win_prefix(wfile);
   } else
   { wchar_t *w = wfile;
     wchar_t *e = &w[PATH_MAX-1];
@@ -809,12 +992,12 @@ PL_dlopen(const char *file, int flags)	/* file is in UTF-8, POSIX path */
     *w = 0;
   }
 
-  DEBUG(MSG_WIN_API, SdprintfX("dlopen(%Ws)\n", wfile));
+  DEBUG(MSG_WIN_API, SdprintfX("dlopen(%Ws)\n", load_path));
 
-  if ( is_windows_abs_path(wfile) )
+  if ( is_windows_abs_path(load_path) )
     llflags |= load_library_search_flags();
 
-  if ( (h = LoadLibraryExW(wfile, NULL, llflags)) )
+  if ( (h = LoadLibraryExW(load_path, NULL, llflags)) )
   { dlmsg = "No Error";
     return (void *)h;
   }
@@ -884,7 +1067,7 @@ PRED_IMPL("win_process_modules", 1, win_process_modules, 0)
 	    char name_utf8[PATH_MAX*2];
 	    char pname[PATH_MAX*2];
 
-	    if ( _xos_canonical_filenameW(name, name_utf8, sizeof(name_utf8), XOS_DOWNCASE) &&
+	    if ( _xos_canonical_filenameW(name, name_utf8, sizeof(name_utf8)) &&
 		 PrologPath(name_utf8, pname, sizeof(pname)) )
 	    { if ( !PL_unify_list(tail, head, tail) ||
 		   !PL_unify_chars(head, PL_ATOM|REP_FN, (size_t)-1, pname)  )
@@ -1009,7 +1192,7 @@ static const folderid folderids[] =
 };
 
 
-static int
+static bool
 unify_csidl_path(term_t t, int csidl)
 { wchar_t buf[PATH_MAX];
 

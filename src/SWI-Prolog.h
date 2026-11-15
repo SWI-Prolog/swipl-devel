@@ -79,7 +79,7 @@ numbers are atomic type.
 #define PL_FLI_VERSION      2		/* PL_*() functions */
 #define	PL_REC_VERSION      3		/* PL_record_external(), fastrw */
 #define PL_QLF_LOADVERSION 68		/* load all versions later >= X */
-#define PL_QLF_VERSION     71		/* save version number */
+#define PL_QLF_VERSION     73		/* save version number */
 
 
 		 /*******************************
@@ -219,8 +219,8 @@ typedef struct io_stream IOSTREAM;	/* fully defined in SWI-Stream.h */
 
 					/* values for PL_get_term_value() */
 typedef union
-{ int64_t i;				/* PL_INTEGER */
-  double f;				/* PL_FLOAT */
+{ int64_t i;				/* PL_INT64 */
+  double f;				/* PL_FLOAT, PL_INTEGER, PL_RATIONAL */
   char * s;				/* PL_STRING */
   atom_t a;				/* PL_ATOM */
   struct				/* PL_TERM */
@@ -228,6 +228,19 @@ typedef union
     size_t arity;
   } t;
 } term_value_t;
+
+					/* values for PL_get_arg_values() */
+typedef struct pl_value
+{ uint64_t type   : 8;			/* PL_VARIABLE, PL_ATOM, ... */
+  uint64_t length : 56;			/* length of value.s */
+  union
+  { int64_t   i;			/* PL_INT64 */
+    double    f;			/* PL_FLOAT; numbers if PL_AS_FLOAT */
+    atom_t    a;			/* PL_ATOM, PL_NIL, PL_BLOB */
+    functor_t t;			/* PL_TERM, PL_LIST_PAIR, PL_DICT */
+    char     *s;			/* text (see CVT_*, REP_*, BUF_*) */
+  } value;
+} pl_value_t;
 
 
 #ifndef TRUE
@@ -532,6 +545,8 @@ PL_EXPORT(void)		_PL_debug_unregister_atom(atom_t a,
 #endif
 PL_EXPORT(functor_t)	PL_new_functor_sz(atom_t f, size_t a);
 PL_EXPORT(functor_t)	PL_new_functor(atom_t f, int a);
+PL_EXPORT(void)		PL_register_functor(functor_t f);
+PL_EXPORT(void)		PL_unregister_functor(functor_t f);
 PL_EXPORT(atom_t)	PL_functor_name(functor_t f);
 PL_EXPORT(int)		PL_functor_arity(functor_t f);
 PL_EXPORT(size_t)	PL_functor_arity_sz(functor_t f);
@@ -539,6 +554,7 @@ PL_EXPORT(size_t)	PL_functor_arity_sz(functor_t f);
 			/* Get C-values from Prolog terms */
 PL_EXPORT(bool)		PL_get_atom(term_t t, atom_t *a) WUNUSED;
 PL_EXPORT(bool)		PL_get_bool(term_t t, int *value) WUNUSED;
+PL_EXPORT(bool)		PL_get_stdbool(term_t t, bool *value) WUNUSED;
 PL_EXPORT(bool)		PL_get_atom_chars(term_t t, char **a) WUNUSED;
 #define PL_get_string_chars(t, s, l) PL_get_string(t,s,l)
 PL_EXPORT(bool)		PL_get_string(term_t t, char **s, size_t *len) WUNUSED; /* WDEPRECATED */
@@ -574,7 +590,16 @@ PL_EXPORT(bool)		PL_get_list(term_t l, term_t h, term_t t) WUNUSED;
 PL_EXPORT(bool)		PL_get_head(term_t l, term_t h) WUNUSED;
 PL_EXPORT(bool)		PL_get_tail(term_t l, term_t t) WUNUSED;
 PL_EXPORT(bool)		PL_get_nil(term_t l) WUNUSED;
-PL_EXPORT(int)		PL_get_term_value(term_t t, term_value_t *v) WUNUSED; /* deprecated - doesn't handle big ints, rationals, etc */
+PL_EXPORT(bool)		PL_get_arg_values(term_t t, size_t from, size_t count,
+					  pl_value_t *values,
+					  unsigned int flags) WUNUSED;
+typedef int (*pl_list_slice_f)(term_t elem, size_t index, void *closure);
+PL_EXPORT(bool)		PL_get_list_slice(term_t list, size_t start,
+					  size_t length,
+					  pl_list_slice_f func, void *closure,
+					  size_t *count,
+					  unsigned int flags) WUNUSED;
+PL_EXPORT(int)		PL_get_term_value(term_t t, term_value_t *v) WUNUSED; /* deprecated; PL_INT64 fills v->i, PL_INTEGER/PL_RATIONAL/PL_FLOAT fill v->f; returns 0 with exception on float-conversion overflow */
 PL_EXPORT(char *)	PL_quote(int chr, const char *data);
 #define PL_FOR_DICT_SORTED	0x1
 PL_EXPORT(int)		PL_for_dict(term_t dict,
@@ -680,6 +705,62 @@ PL_EXPORT(bool)		PL_get_wchars(term_t l,
 				      size_t *length, pl_wchar_t **s,
 				      unsigned flags) WUNUSED;
 PL_EXPORT(size_t)	PL_utf8_strlen(const char *s, size_t len) WUNUSED;
+PL_EXPORT(int)		_PL_utf8_code_point(const char **in, const char *end,
+					    int *cp);
+
+/* PL_utf8_code_point() decodes the UTF-8 sequence at *in, not reading
+   from end (NULL: a 0-terminated string).  See the manual.  ASCII is
+   decoded inline.
+*/
+
+#ifndef PL_KERNEL			/* the kernel has its own (pl-utf8.h) */
+#if defined(__cplusplus) || (defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L) || defined(_MSC_VER)
+static inline int
+PL_utf8_code_point(const char **in, const char *end, int *cp)
+{ unsigned char c = (unsigned char)**in;
+
+  if ( c < 0x80 )
+  { ++(*in);
+    *cp = c;
+    return 1;
+  }
+
+  return _PL_utf8_code_point(in, end, cp);
+}
+#else
+#define PL_utf8_code_point(in, end, cp) _PL_utf8_code_point(in, end, cp)
+#endif
+#endif /*PL_KERNEL*/
+
+PL_EXPORT(int)		PL_wcwidth(int chr);
+PL_EXPORT(bool)		PL_is_id_start(int chr);
+PL_EXPORT(bool)		PL_is_id_continue(int chr);
+PL_EXPORT(bool)		PL_is_uppercase(int chr);
+PL_EXPORT(bool)		PL_is_decimal(int chr);
+PL_EXPORT(bool)		PL_is_layout(int chr);
+
+					/* POSIX character classes.  These
+					   values must match the generated
+					   UC_* bits in src/pl-umap.c */
+#define PL_CTYPE_ALNUM	0x0001		/* alpha or numeric */
+#define PL_CTYPE_ALPHA	0x0002		/* Unicode Alphabetic */
+#define PL_CTYPE_BLANK	0x0004		/* space, but within a line */
+#define PL_CTYPE_CNTRL	0x0008		/* control or format character */
+#define PL_CTYPE_DIGIT	0x0010		/* ASCII 0-9, as POSIX demands */
+#define PL_CTYPE_EOL	0x0020		/* Unicode line terminator */
+#define PL_CTYPE_GRAPH	0x0040		/* printable, not white space */
+#define PL_CTYPE_LOWER	0x0080		/* Unicode Lowercase */
+#define PL_CTYPE_PRINT	0x0100		/* graph or white space */
+#define PL_CTYPE_PUNCT	0x0200		/* printable, not alnum or space */
+#define PL_CTYPE_SPACE	0x0400		/* Unicode White_Space; the
+					   disjoint union of BLANK and EOL */
+#define PL_CTYPE_STERM	0x0800		/* Unicode Sentence_Terminal */
+#define PL_CTYPE_UPPER	0x1000		/* Unicode Uppercase */
+
+PL_EXPORT(unsigned int)	PL_ctype_flags(int chr);
+PL_EXPORT(int)		PL_toupper(int chr);
+PL_EXPORT(int)		PL_tolower(int chr);
+PL_EXPORT(int)		PL_totitle(int chr);
 
 
 		 /*******************************
@@ -722,6 +803,7 @@ PL_EXPORT(bool)		PL_get_uint64_ex(term_t t, uint64_t *i);
 PL_EXPORT(bool)		PL_get_intptr_ex(term_t t, intptr_t *i);
 PL_EXPORT(bool)		PL_get_size_ex(term_t t, size_t *i);
 PL_EXPORT(bool)		PL_get_bool_ex(term_t t, int *i);
+PL_EXPORT(bool)		PL_get_stdbool_ex(term_t t, bool *i);
 PL_EXPORT(bool)		PL_get_float_ex(term_t t, double *f);
 PL_EXPORT(bool)		PL_get_char_ex(term_t t, int *p, int eof);
 PL_EXPORT(bool)		PL_unify_bool_ex(term_t t, int val);
@@ -734,6 +816,8 @@ PL_EXPORT(bool)		PL_get_nil_ex(term_t l);
 PL_EXPORT(bool)		PL_instantiation_error(term_t culprit);
 PL_EXPORT(bool)		PL_uninstantiation_error(term_t culprit);
 PL_EXPORT(bool)		PL_representation_error(const char *resource);
+PL_EXPORT(bool)		PL_representation_error_culprit(const char *resource,
+							term_t culprit);
 PL_EXPORT(bool)		PL_type_error(const char *expected, term_t culprit);
 PL_EXPORT(bool)		PL_domain_error(const char *expected, term_t culprit);
 PL_EXPORT(bool)		PL_existence_error(const char *type, term_t culprit);
@@ -754,6 +838,7 @@ PL_EXPORT(bool)		PL_syntax_error(const char *msg, IOSTREAM *in);
 #define PL_BLOB_TEXT	0x02		/* blob contains text */
 #define PL_BLOB_NOCOPY	0x04		/* do not copy the data */
 #define PL_BLOB_WCHAR	0x08		/* wide character string */
+#define PL_BLOB_LOCAL	0x100		/* starts owned by the creating thread */
 
 typedef struct PL_blob_t
 { uintptr_t		magic;		/* PL_BLOB_MAGIC */
@@ -766,8 +851,16 @@ typedef struct PL_blob_t
   int			(*save)(atom_t a, IOSTREAM *s);
   atom_t		(*load)(IOSTREAM *s);
   size_t		padding;	/* Required 0-padding */
+  size_t		gc_margin;	/* Consider AGC after this many units
+					   of this type became candidates.
+					   A blob contributes its `len'.
+					   0: only the global agc_margin. */
 					/* private */
-  void *		reserved[8];	/* for future extension */
+  size_t		unregistered;	/* Units with no registrations */
+  size_t		non_garbage;	/* Units that survived the last AGC */
+  size_t		live;		/* # blobs of this type */
+  size_t		space;		/* Units held by them */
+  void *		reserved[3];	/* for future extension */
   int			(*write_ex)(atom_t a, void *context);
   bool			registered;	/* Already registered? */
   int			rank;		/* Rank for ordering atoms */
@@ -913,6 +1006,8 @@ PL_EXPORT(record_t)	PL_duplicate_record(record_t r);
 
 PL_EXPORT(char *)	PL_record_external(term_t t, size_t *size);
 PL_EXPORT(bool)		PL_recorded_external(const char *rec, term_t term);
+PL_EXPORT(bool)		PL_recorded_external_len(const char *rec, size_t len,
+						 term_t term);
 PL_EXPORT(bool)		PL_erase_external(char *rec);
 
 		 /*******************************
@@ -953,6 +1048,7 @@ PL_EXPORT(bool)		_PL_get_arg(int index, term_t t, term_t a);
 #define CVT_ALL		    (CVT_ATOMIC|CVT_LIST)
 #define CVT_XINTEGER	   (0x00000400|CVT_INTEGER)
 #define CVT_MASK	    0x00000fff
+#define PL_AS_FLOAT	    CVT_FLOAT	/* PL_get_arg_values(): numbers as double */
 
 #define CVT_EXCEPTION	    0x00001000	/* throw exception on error */
 #define CVT_VARNOFAIL	    0x00002000	/* return 2 if argument is unbound */
@@ -1058,6 +1154,8 @@ PL_EXPORT(IOSTREAM *) _PL_stream(int which);
 #define PL_WRT_PARTIAL		  0x1000000 /* Partial output */
 #define PL_WRT_NO_CHARESCAPES	  0x2000000 /* Do not Output ISO escapes */
 #define PL_WRT_INFIX_COMMA	  0x4000000 /* Write (a,b), with PL_WRT_IGNOREOPS */
+#define PL_WRT_PATTERN_SYNTAX_SOLO 0x8000000 /* Quote single-char solo atoms outside
+					      * the Pattern_Syntax set (UAX #31). */
 
 #define PL_WRT_PORTABLE (PL_WRT_IGNOREOPS|PL_WRT_INFIX_COMMA)
 
@@ -1129,6 +1227,7 @@ PL_EXPORT(void)		PL_add_to_protocol(const char *buf, size_t count);
 PL_EXPORT(char *)	PL_prompt_string(IOSTREAM *in);
 PL_EXPORT(void)		PL_write_prompt(bool dowrite);
 PL_EXPORT(void)		PL_prompt_next(IOSTREAM *in);
+PL_EXPORT(bool)		PL_prompt_is_continuation(IOSTREAM *in);
 PL_EXPORT(char *)	PL_atom_generator(const char *prefix, int state);
 PL_EXPORT(pl_wchar_t*)	PL_atom_generator_w(const pl_wchar_t *pref,
 					    pl_wchar_t *buffer,
@@ -1168,12 +1267,26 @@ typedef void (*PL_abort_hook_t)(void);
 typedef void (*PL_initialise_hook_t)(int argc, char **argv);
 typedef int  (*PL_agc_hook_t)(atom_t a);
 
+/* Normalise the UTF-8 text `in` of `len` bytes to a canonical form
+ * (NFC, as registered by library(unicode)), writing the result to
+ * `out`.  `out` may be `in` for in-place normalisation, but the
+ * buffers may not otherwise overlap.  On entry, `*size` is the capacity
+ * of `out` in bytes.  On return, `*size` holds the length of the
+ * normalised text.  If this exceeds the capacity, nothing is written
+ * and the caller may call again with a buffer of at least `*size`
+ * bytes.  Note that NFC may be longer than its input.  Returns 0 on
+ * success, -1 on error.
+ */
+typedef int (*PL_atom_normalize_t)(const unsigned char *in, size_t len,
+				   unsigned char *out, size_t *size);
+
 PL_EXPORT(bool)			PL_dispatch(IOSTREAM *fd, int wait);
 PL_EXPORT(PL_dispatch_hook_t)	PL_dispatch_hook(PL_dispatch_hook_t);
 PL_EXPORT(void)			PL_abort_hook(PL_abort_hook_t);
 PL_EXPORT(void)			PL_initialise_hook(PL_initialise_hook_t);
 PL_EXPORT(bool)			PL_abort_unhook(PL_abort_hook_t);
 PL_EXPORT(PL_agc_hook_t)	PL_agc_hook(PL_agc_hook_t);
+PL_EXPORT(PL_atom_normalize_t)	PL_atom_normalize_hook(PL_atom_normalize_t);
 
 
 		 /*******************************
@@ -1191,7 +1304,8 @@ typedef enum
   OPT_STRING,				/* char* (UTF-8) */
   OPT_ATOM,				/* atom_t */
   OPT_TERM,				/* term_t */
-  OPT_LOCALE				/* void* */
+  OPT_LOCALE,				/* void* */
+  OPT_STDBOOL				/* bool */
 } _PL_opt_enum_t;
 
 #define OPT_TYPE_MASK	0xff

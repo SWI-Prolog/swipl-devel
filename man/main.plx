@@ -1,0 +1,182 @@
+#ifdef BOOK
+\documentclass[9pt,b5thesispaper]{swipl}
+\setlength\voffset        {-15mm}
+\setlength\paperheight    {220mm}
+\setlength\textheight     {170mm}
+\setlength\textwidth      {130mm}
+\setlength\paperwidth     {170mm}
+\setlength\oddsidemargin  {0mm}
+\setlength\evensidemargin {-10mm}
+\def\setuphyperref{\relax}
+#else
+\documentclass[11pt,twoside]{report}
+\def\setuphyperref{\usepackage[colorlinks=true,urlcolor=blue]{hyperref}}
+#endif
+\usepackage{pl}
+\usepackage{html}
+\usepackage{logo}
+\usepackage{plpage}
+%\onefile
+\sloppy
+\makeindex
+
+% Configure latex2html
+
+\htmloutput{Manual}				% Output directory
+\htmlmainfile{index}				% Main document file
+\bodycolor{white}				% Page colour
+\linkimage{home}{home.gif}			% Images for links
+\linkimage{index}{yellow_pages.gif}
+\linkimage{contents}{index.gif}
+\linkimage{up}{up.gif}
+\linkimage{previous}{prev.gif}
+\linkimage{next}{next.gif}
+\linkimage{summary}{info.gif}
+
+%\includeonly{ide}
+
+#ifdef ONLINE
+\usepackage{txt}
+\usepackage{plonline}
+\setcounter{secnumdepth}{3}
+\sloppy
+#else
+\usepackage{fancyheadings}
+\renewcommand{\runningtitle}{SWI-Prolog \versionshort{} Reference Manual}
+\headheight 14pt
+\renewcommand{\chaptermark}[1]{\markboth{#1}{#1}} % remember chapter title
+\renewcommand{\sectionmark}[1]{\markright{\thesection\ #1}}
+                                                % section number and title
+\lhead[\fancyplain{}{\bf\thepage}]{\fancyplain{}{\bf\rightmark}}
+\rhead[\fancyplain{}{\bf\leftmark}]{\fancyplain{}{\bf\thepage}}
+\footrulewidth 0.2pt
+\lfoot[\tiny \runningtitle]{}
+\rfoot[]{\tiny \runningtitle}
+\cfoot{}
+\pagestyle{fancyplain}
+#endif
+
+\newcommand{\vmajor}{10}
+\newcommand{\vminor}{0}
+\newcommand{\vpatch}{2}
+\newcommand{\vtag}{}
+\newcommand{\vmonth}{October}
+\newcommand{\vyear}{2026}
+
+#ifdef BOOK
+\newcommand{\versionshort}{\vmajor}
+\newcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}
+#else
+\newcommand{\versionshort}{\vmajor.\vminor}
+\newcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}
+\ifthenelse{\equal{}{\vtag}}{%
+  \renewcommand{\versionlong}{\vmajor.\vminor.\vpatch, \vmonth~\vyear}}{%
+  \renewcommand{\versionlong}{\vmajor.\vminor, \vmonth~\vyear}}
+#endif
+\renewcommand{\arabicday}{\versionshort}
+
+\title{SWI-Prolog \versionshort{} Reference Manual}
+\author{SWI-Prolog development team}
+
+\begin{htmlonly}
+\maketitle
+
+\begin{abstract}
+\input{abstract.tex}
+\end{abstract}
+
+\subsection*{About this document}
+
+This manual is written and maintained using \LaTeX{}. The \LaTeX{}
+source is included in the source distribution of SWI-Prolog. The manual
+is converted into HTML using a converter distributed with the SWI-Prolog
+sources. From the same source we generate the PDF version. Sources,
+binaries and documentation can be downloaded from the
+\href{https://www.swi-prolog.org/Download.html}{SWI-Prolog download
+page}.
+
+
+The SWI-Prolog project {\bf home page} is
+\href{https://www.swi-prolog.org}{https://www.swi-prolog.org}
+
+\includegraphics[width=4cm]{figs/by-sa}\\[0mm]
+This work is licensed under the Creative Commons Attribution-ShareAlike
+3.0 Unported License. To view a copy of this license, visit
+\url{http://creativecommons.org/licenses/by-sa/3.0/} or send a letter to
+Creative Commons, 444 Castro Street, Suite 900, Mountain View,
+California, 94041, USA.
+\end{htmlonly}
+
+
+\begin{document}
+
+\begin{titlepage}
+
+\mbox{~}
+\begin{center}
+\mbox{~}
+\vfil\vfil\vfil
+#ifdef ONLINE
+	{\Huge SWI-Prolog \versionshort}	      \\[0mm]
+#else
+	\includegraphics[width=5cm]{figs/swipl} \\[0mm]
+#endif
+	{\LARGE Reference Manual}		      \\[0mm]
+        {\it Updated for version \versionlong}	      \\[10mm]
+	{\large \it SWI-Prolog developers}	      \\[0mm]
+	{\large	\href{https://www.swi-prolog.org}{https://www.swi-prolog.org}}
+\end{center}
+
+\vfil
+
+\begin{quote}
+\input{abstract.tex}
+\end{quote}
+\vfil
+\vfil
+\newpage
+\thispagestyle{empty}
+
+\mbox{~}
+\vfill
+\begin{quote}
+\hspace{-8mm}\includegraphics[width=4cm]{figs/by-sa}\\[0mm]
+This work is licensed under the Creative Commons Attribution-ShareAlike
+3.0 Unported License. To view a copy of this license, visit
+\url{http://creativecommons.org/licenses/by-sa/3.0/} or send a letter to
+Creative Commons, 444 Castro Street, Suite 900, Mountain View,
+California, 94041, USA.
+\end{quote}
+\end{titlepage}
+
+\setcounter{page}{1}
+\tableofcontents
+
+\include{intro}
+\include{overview}
+\include{ide}
+\include{builtin}
+\include{extensions}
+\include{module}
+\include{tabling}
+\include{attvar}
+\include{chr}
+\include{threads}
+\include{engines}
+\include{foreign}
+\include{wasm}
+\include{runtime}
+\include{packs}
+\appendix
+\include{lib/library}
+\include{hack}
+\include{dialect}
+\include{glossary}
+\include{license}
+\include{summary}
+
+\bibliographystyle{name}
+\bibliography{pl}
+\printindex
+
+\end{document}

@@ -185,6 +185,32 @@ p1(a(b(c(d(e(f(g(2)))))))).
 p2(a(b(c(d(e(f(g(h(1))))))))).
 p2(a(b(c(d(e(f(g(h(2))))))))).
 
+% Issue #1537: an argument right after a run of void head arguments
+% (H_VOID_N) must be indexable.
+
+:- dynamic
+    hv3/3,
+    hv4/4.
+
+test(h_void_n_1) :-
+    retractall(hv3(_,_,_)),
+    forall(between(1, 100, I),
+           (   atom_concat(a, I, A),
+               assertz(hv3(_,_,A))
+           )),
+    hv3(_,_,a50),
+    assertion(has_hashes(hv3(_,_,_), [3])).
+test(h_void_n_2) :-
+    retractall(hv4(_,_,_,_)),
+    forall(between(1, 100, I),
+           (   atom_concat(a, I, A),
+               atom_concat(b, I, B),
+               assertz(hv4(_,_,A,B))
+           )),
+    hv4(_,_,a50,b50),
+    hv4(_,_,_,b50),
+    assertion(has_hashes(hv4(_,_,_,_), [3,4])).
+
 test(depth) :-
     p1(a(b(c(d(e(f(g(1)))))))),
     p1(a(b(c(d(e(f(g(2)))))))).
@@ -212,6 +238,46 @@ b(_,_,_,[_|_],_).
 pa(_, _).
 pa(_, x).
 
+ix1386(real,    (-1.0e+16, 1.0e+16)).
+ix1386(boolean, (0, 1)).
+
+term_expansion(bintree(Depth), Clauses) :-
+    Max is 2^Depth-1,
+    findall(bintree(P, I), (between(2, Max, I), P is I//2), Clauses).
+
+bintree(10).                            % bintree(Parent, Child)
+
+%   word_frame(Word, Frame, Score) is like Alpino's z_f2/3: the word is
+%   a poor index (10 clauses per key), but much better than the frame,
+%   which becomes a deep list index as most frames are verb(_).
+
+term_expansion(word_frames(N), Clauses) :-
+    findall(word_frame(W, F, S),
+            ( between(1, N, I),
+              W is I mod (N//10),
+              frame(I, F),
+              S is I mod (N//5)
+            ), Clauses).
+
+frame(I, F) :-
+    K is I mod 5,
+    (   K == 0
+    ->  F = adj
+    ;   K == 1
+    ->  F = noun
+    ;   X is K mod 3,
+        F = verb(X)
+    ).
+
+word_frames(2000).
+
+%   A small table with a catch-all last clause, looked up on argument 2.
+%   One clause with a variable among 7 keys used to make argument 2
+%   unindexable (`max_var_fraction`).
+
+catch_all(1,a). catch_all(2,b). catch_all(3,c). catch_all(4,d).
+catch_all(5,e). catch_all(6,f). catch_all(7,g). catch_all(8,_).
+
 test(x) :-				% must use S_LIST
     x(_,_,_,_,[]).
 test(a) :-				% must use S_LIST (test H_VOID_N)
@@ -220,11 +286,45 @@ test(b) :-				% may not use S_LIST (test H_VOID_N)
     call_cleanup(b(_,_,_,_,[]), Det=true),
     assertion(var(Det)),
     !.
+test(b_primary) :-			% Issue #1537: must find an index
+    call_cleanup(b(_,_,_,_,[]), true),
+    !,
+    '$get_predicate_attribute'(b(_,_,_,_,_), primary_index, _).
 test(m) :-				% may not use S_LIST (test mode/1)
     call_cleanup(m(_,_,_,_,[]), Det=true),
     assertion(var(Det)),
     !.
 test(pa) :-                             % primary index should be on arg 2
     pa(_,y).
+test(bintree, Realised == [1]) :-     % arg 1 is a candidate if arg 2 is
+    bintree(100, X), !,                 % a better one
+    assertion(X == 200),
+    predicate_property(bintree(_,_), indexed(Indexes)),
+    findall(A, ( member(I, Indexes),
+                 I.realised == true,
+                 I.arguments = [A]
+               ), Realised).
+test(word_frame, Realised == [1]) :-  % the frame index came first, so
+    word_frame(5, adj, S), !,           % the word index was never used
+    assertion(S == 5),
+    predicate_property(word_frame(_,_,_), indexed(Indexes)),
+    findall(A, ( member(I, Indexes),
+                 I.realised == true,
+                 I.position == [],
+                 I.arguments = [A],
+                 A \== 2
+               ), Realised).
+test(catch_all, Realised == [2]) :-
+    catch_all(X, g), !,
+    assertion(X == 7),
+    predicate_property(catch_all(_,_), indexed(Indexes)),
+    findall(A, ( member(I, Indexes),
+                 I.realised == true,
+                 I.arguments = [A]
+               ), Realised).
+test(ix1386) :-                         % Issue #1386: primary must win over
+    call_cleanup(ix1386(real, (_,_)),   % a shallow-useless deep list index
+                 Det=true),
+    assertion(Det == true).
 
 :- end_tests(jit_static).

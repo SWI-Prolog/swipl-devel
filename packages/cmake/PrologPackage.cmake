@@ -20,6 +20,7 @@ include(CheckIncludeFile)
 include(CheckFunctionExists)
 include(CheckSymbolExists)
 include(LibIndex)
+include(DSym)
 
 if(MULTI_THREADED)
   set(O_PLMT 1)
@@ -74,8 +75,9 @@ function(add_index dir)
     set(plfiles)
     foreach(f ${ARGN})
       get_filename_component(ext ${f} EXT)
-      if(ext STREQUAL .pl AND NOT f MATCHES "/")
-        list(APPEND plfiles ${f})
+      get_filename_component(base ${f} NAME)
+      if(ext STREQUAL .pl)
+        list(APPEND plfiles ${base})
       endif()
     endforeach()
     if(plfiles)
@@ -210,6 +212,7 @@ endif()
 			    ${v_c_libs} ${SWIPL_LIBRARIES})
       set_property(TARGET ${foreign_target} PROPERTY
 		   C_VISIBILITY_PRESET hidden)
+      add_dsym(${foreign_target})
     endif()
     add_dependencies(library_index_library ${foreign_target})
     if(v_c_include_dirs)
@@ -313,6 +316,12 @@ if(WIN32 AND NOT MSYS2 AND NOT MSVC)
     endif()
   endforeach()
 
+  # The DLLs may depend on further DLLs from MINGW_ROOT, e.g., MSYS2's
+  # libarchive needs liblzma, libzstd, ...
+  if(MINGW_ROOT AND dlls)
+    add_mingw_indirect_deps(dlls ${dlls})
+  endif()
+
   file(COPY ${dlls}
        DESTINATION ${CMAKE_BINARY_DIR}/src)
   install(FILES ${dlls}
@@ -372,7 +381,8 @@ endfunction()
 #	   [PACKAGES ...]
 #	   [PARENT_LIB]
 #	   [TEST_FILES ...]
-#          [TEST_DIRS ...])
+#          [TEST_DIRS ...]
+#          [OPTIONS ...])
 #
 # Run test_${name} in test_${name}.pl
 #
@@ -380,6 +390,11 @@ endfunction()
 # directory named test[s] or Test[s]. It is one regular expression
 # which will be matched against the full path of the package source
 # and build directories.
+#
+# OPTIONS are commandline options for swipl itself, handed to it before
+# the test is loaded: -D flags a test needs set before its libraries are,
+# a -p that only it wants, and the like.  They are recorded with the test
+# as well, so that INSTALL_TESTS runs it the way ctest does.
 
 if(NOT SWIPL_PATH_SEP)
   set(SWIPL_PATH_SEP ":")
@@ -387,7 +402,7 @@ endif()
 
 function(test_lib name)
   cmake_parse_arguments(my "PARENT_LIB" "NAME"
-			"TEST_FILES;TEST_DIRS;PACKAGES" ${ARGN})
+			"TEST_FILES;TEST_DIRS;PACKAGES;OPTIONS" ${ARGN})
   set(test_goal "test_${name}")
   set(test_source_basename "test_${name}.pl")
   set(test_source "${CMAKE_CURRENT_SOURCE_DIR}/${test_source_basename}")
@@ -406,7 +421,9 @@ function(test_lib name)
 
   add_test(NAME "${SWIPL_PKG}:${test_name}"
 	   COMMAND ${PROG_SWIPL} -p "foreign=${pforeign}"
-			 -f none --no-packs --on-error=status -s ${test_source}
+			 -f none --no-packs --on-error=status
+			 ${my_OPTIONS}
+			 -s ${test_source}
 			 -g "${test_goal}"
 			 -t halt)
   # Write db with lists of tests to be used with -DINSTALL_TESTS
@@ -414,11 +431,23 @@ function(test_lib name)
     set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Tests)
     file(RELATIVE_PATH rel_test_dir
 	 ${CMAKE_CURRENT_SOURCE_DIR}/../.. ${CMAKE_CURRENT_SOURCE_DIR})
+    # The options go into the db as a Prolog list, so that a test run
+    # from an installed tree is given the same ones as ctest gives it.
+    set(test_options)
+    foreach(opt ${my_OPTIONS})
+      if(test_options)
+	set(test_options "${test_options},'${opt}'")
+      else()
+	set(test_options "'${opt}'")
+      endif()
+    endforeach()
+
     file(APPEND ${INSTALL_TESTS_DB}
 	 "cmake_test('${SWIPL_PKG}', '${test_name}',
 	   test_goal('${rel_test_dir}',
 		     '${test_source_basename}',
-		     '${test_goal}')).\n")
+		     '${test_goal}',
+		     [${test_options}])).\n")
 
     install(FILES ${test_source} DESTINATION
 	    ${INSTALL_TESTS_DIR}/packages/${SWIPL_PKG})
@@ -448,6 +477,7 @@ function(test_libs)
   set(extra)
   set(test_dirs)
   set(test_files)
+  set(options)
 
   foreach(arg ${ARGN})
     if(arg STREQUAL "PACKAGES")
@@ -458,6 +488,8 @@ function(test_libs)
       set(mode "test_dirs")
     elseif(arg STREQUAL "TEST_FILES")
       set(mode "test_files")
+    elseif(arg STREQUAL "OPTIONS")
+      set(mode "options")
     else()
       set(${mode} ${${mode}} ${arg})
     endif()
@@ -468,6 +500,7 @@ function(test_libs)
              PACKAGES ${packages}
 	     TEST_DIRS ${test_dirs}
 	     TEST_FILES ${test_files}
+	     OPTIONS ${options}
              ${extra})
   endforeach()
 endfunction(test_libs)

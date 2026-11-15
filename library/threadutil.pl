@@ -342,7 +342,7 @@ tdebug_(Class, Mode),
     print_message(informational, tdebug(Class, Mode, Matching, Set)).
 
 tnodebug :-
-    forall(debug_target(Id), set_thread(Id, set_thread(false))).
+    forall(debug_target(Id), set_thread(Id, debug_mode(false))).
 
 tnodebug(ThreadOrClass) :-
     tdebug_(ThreadOrClass, false).
@@ -522,9 +522,9 @@ thread_list(Threads) -->
     sequence(thread_info(LeftColWidth, ClassColWidth), [nl], Threads).
 
 th_id_len(Thread, IdLen) :-
-    write_length(Thread.id, IdLen, [quoted(true)]).
+    write_size(Thread.id, IdLen, _Height, [quoted(true)]).
 th_class_len(Thread, ClassLen) :-
-    write_length(Thread.get(class,''), ClassLen, [quoted(true)]).
+    write_size(Thread.get(class,''), ClassLen, _Height, [quoted(true)]).
 
 thread_list_header(Thread, NW, CW) -->
     { _{id:_, status:_, time:_, stacks:_} :< Thread,

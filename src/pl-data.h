@@ -61,8 +61,7 @@ The latter was used to indicate the   memory  area of the (old) relative
 pointer, but still keeps its role  as   type  indication. For example, a
 string is represented as `TAG_STRING|STG_GLOBAL`   as Prolog data, while
 the string itself is stored on the  global stack guarded by an _indirect
-guard_ tagged as `TAG_STRING|STG_LOCAL`. Future   versions  will combine
-these and reorganise the tag space.
+guard_ tagged as `TAG_STRING|STG_LOCAL`.
 
 Types:
 ======
@@ -92,15 +91,31 @@ Reference	7      LG
 Bit layout
 ==========
 
- - Value are the top-bits, so extracting the value is just a
+```
+ 63                                     8 7 6 5 4 3 2 1 0
++----------------------------------------+-+-+-+---+-----+
+|                 value                  |F|M|V|stg| tag |
++----------------------------------------+-+-+-+---+-----+
+```
+
+ - The value is in the top 56 bits, so extracting it is just a
    shift.
 
- - GC masks follow, so, as they are normally both 0, shifting
-   suffices for this too.
+ - Type is the low 3-bits, so a simple mask yields the coarse type.
 
- - Type is the low 3-bits, so a simple mask yields the type.
+ - Storage in bits 3 and 4 and the variant bit (V) in bit 5.  Together
+   with the tag these form the kind of the cell, tagex().  The variant
+   bit tells kinds apart that share tag and storage: KIND_MPQ marks
+   rationals.
 
- - Storage in bits 4 and 5
+ - GC masks (M: mark, F: first) in bits 6 and 7.  As they are normally
+   both 0, shifting suffices for this too.
+
+ - An aligned pointer has 000 in the tag, which no atom or functor has,
+   so raw pointers on the stacks never look like atoms.
+
+ - Keeping the kind in the top byte instead was implemented and
+   measured; it is slower on x86-64 and ARM64 (doc/tagging/top-tags.md).
 
 Variables
 =========
@@ -149,7 +164,7 @@ be kept consistent.
 
 #include "os/pl-buffer.h"
 
-#define LMASK_BITS	7		/* total # mask bits */
+#define LMASK_BITS	8		/* total # mask bits */
 
 #define TAG_MASK	0x00000007L	/* mask for tag */
 #define TAG_VAR		0x00000000L	/* tag for variable (= 0L) */
@@ -180,8 +195,22 @@ be kept consistent.
 #define STG_INLINE	STG_STATIC
 #define STG_TRAIL	STG_STATIC
 
-#define MARK_MASK	(0x1<<5)	/* GC mark */
-#define FIRST_MASK	(0x2<<5)	/* GC first mark */
+/* The variant bit distinguishes kinds that share a tag and storage, such
+   as integers and rationals.  tagex() includes it.
+*/
+#define VARIANT_BIT	(0x1<<5)
+#define TAGEX_MASK	(TAG_MASK|STG_MASK|VARIANT_BIT)
+
+/* The kind of an indirect is its tagex() without the storage: the
+   tag or, for rationals, KIND_MPQ.  consIndirect() and mkIndHdr() take
+   a kind and indKind() returns it for a cell or a header, so the kind
+   survives copying an indirect.
+*/
+#define KIND_MPQ	(TAG_INTEGER|VARIANT_BIT)
+#define indKind(w)	((word)tagex(w) & ~(word)STG_MASK)
+
+#define MARK_MASK	(0x1<<6)	/* GC mark */
+#define FIRST_MASK	(0x2<<6)	/* GC first mark */
 
 #define set_marked(p)	do { *(p) |= MARK_MASK; } while(0)
 #define set_first(p)	do { *(p) |= FIRST_MASK; } while(0)
@@ -194,24 +223,106 @@ be kept consistent.
 
 #define tag(w)		((w) & TAG_MASK)
 #define storage(w)	((w) & STG_MASK)
+#define hasTag(w, t)	(tag(w) == (t))
 #define valInt(w)	((sword)(w) >> LMASK_BITS)
 #define valUInt(w)	((word)(w) >> LMASK_BITS)
+#define CELL_VAL_SHIFT	LMASK_BITS
+/* CELL_VAL_SHIFT is the lowest bit of the value of a small integer or
+   index cell.  Multiplicative hashes of cells shift it out first, so
+   consecutive values step by 1 (see child_hash() in pl-trie.c).
+*/
 
 		 /*******************************
 		 *	  EXTENDED TAG		*
 		 *******************************/
 
-#define EXBIT(w)	(1<<(w))
+#define EXBIT(w)	((word)1<<(w))
 #define INDIRECT_BM	( EXBIT(STG_GLOBAL|TAG_INTEGER) | \
 			  EXBIT(STG_LOCAL|TAG_INTEGER) | \
+			  EXBIT(STG_GLOBAL|KIND_MPQ) | \
+			  EXBIT(STG_LOCAL|KIND_MPQ) | \
 			  EXBIT(STG_GLOBAL|TAG_FLOAT) | \
 			  EXBIT(STG_LOCAL|TAG_FLOAT) | \
 			  EXBIT(STG_GLOBAL|TAG_STRING) | \
 			  EXBIT(STG_LOCAL|TAG_STRING) \
 			)
 
-#define tagex(w)	((w) & (TAG_MASK|STG_MASK))
+#define tagex(w)	((w) & TAGEX_MASK)
 #define isIndirect(w)	(EXBIT(tagex(w)) & INDIRECT_BM)
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Code outside this file must not depend on   the bit layout of a cell. It
+uses the tagex() values below, the  constructors   and  tests  below and
+consPtr()/valPtr() from pl-inline.h rather   than  LMASK_BITS, STG_* and
+storage().
+
+The TAGEX_* values are what tagex()  returns   and  may  be used as case
+labels. The second group are cells   that  never appear as Prolog data:
+private markers of the compiler, read/1, tries and variant/2.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define TAGEX_COUNT		64	/* tagex() is in 0..TAGEX_COUNT-1 */
+
+#define TAGEX_VAR		(TAG_VAR|STG_STATIC)
+#define TAGEX_ATTVAR		(TAG_ATTVAR|STG_GLOBAL)
+#define TAGEX_INDIRECT_FLOAT	(TAG_FLOAT|STG_GLOBAL)
+#define TAGEX_TAGGED_INT	(TAG_INTEGER|STG_INLINE)
+#define TAGEX_INDIRECT_INT	(TAG_INTEGER|STG_GLOBAL)	/* MPZ (int64) */
+#define TAGEX_INDIRECT_MPQ	(KIND_MPQ|STG_GLOBAL)
+#define TAGEX_PTRINT		(TAG_INTEGER|STG_INLINE|VARIANT_BIT)
+#define TAGEX_INDIRECT_STRING	(TAG_STRING|STG_GLOBAL)
+#define TAGEX_ATOM		(TAG_ATOM|STG_STATIC)
+#define TAGEX_FUNCTOR		(TAG_ATOM|STG_GLOBAL)
+#define TAGEX_COMPOUND		(TAG_COMPOUND|STG_GLOBAL)
+#define TAGEX_REF		(TAG_REFERENCE|STG_GLOBAL)
+#define TAGEX_REF_LOCAL		(TAG_REFERENCE|STG_LOCAL)
+
+#define TAGEX_VARINFO		(TAG_VAR|STG_RESERVED)	  /* compiler, read/1 */
+#define TAGEX_TRIE_RESERVED	(TAG_VAR|STG_LOCAL)	  /* trie special keys */
+#define TAGEX_TRIE_ATTVAR	(TAG_ATTVAR|STG_STATIC)	  /* <begin_attvar N> */
+#define TAGEX_TRIE_ATTVAR_END	(TAG_ATTVAR|STG_RESERVED) /* <end_attvar N> */
+#define TAGEX_VARIANT_COMPOUND	(TAG_COMPOUND|STG_STATIC) /* variant/2 */
+#define TAGEX_VARREF		(TAG_REFERENCE|STG_STATIC) /* decompiler */
+
+/* Cells holding a number (index, counter) rather than an address.
+   consTagged(n, tx) is a cell with tagex() tx and value n.
+*/
+#define consTagged(n, tx)	(((word)(n)<<LMASK_BITS)|(tx))
+#define valTagged(w)		((word)(w)>>LMASK_BITS)
+
+/* Cells holding an address.  The address is a word; consPtr() and
+   valPtr() in pl-inline.h are the typed versions.  Adding
+   addrDelta(d) to a pointer cell moves its address by d bytes.
+*/
+#define consAddr(a, tx)		(((word)(a)<<LMASK_BITS)|(tx))
+#define valAddr(w)		((word)(w)>>LMASK_BITS)
+#define addrDelta(d)		((word)(d)<<LMASK_BITS)
+
+/* Storage tests.  The current layout uses the same bits for different
+   purposes depending on where the cell lives.
+
+     - isGlobalPtr(w) is true if w points into the global stack.  It is
+       also true for a functor_t, so callers that may see a functor
+       must test isFunctor() first.
+     - isIndirectHdr(w) is true if a cell _on the global stack_ is the
+       guard of an indirect.  isMarkedOrIndHdr(w) is true if the cell
+       has a GC bit set or is such a guard; GC uses it to scan the
+       global stack downward.
+     - isLocalPtr(w) is true if a cell _outside the global stack_ points
+       into the local stack.  Such cells only exist during GC and stack
+       shifts and in PushPtr()/PopPtr() references.
+*/
+#define isGlobalPtr(w)		(storage(w) == STG_GLOBAL)
+#define INDHDR_BIT		STG_LOCAL
+#define isIndirectHdr(w)	(storage(w) == STG_LOCAL)
+#define isMarkedOrIndHdr(w)	((w) & (MARK_MASK|FIRST_MASK|INDHDR_BIT))
+#define isLocalPtr(w)		(storage(w) == STG_LOCAL)
+#define isLocalRef(w)		(tagex(w) == TAGEX_REF_LOCAL)
+
+/* nonFunctorKey(k) modifies a hash key such that it differs from any
+   functor_t.  Used for clause index keys of indirect data.
+*/
+#define nonFunctorKey(k)	((k) & ~consTagged(0, STG_GLOBAL))
 
 
 		 /*******************************
@@ -231,15 +342,15 @@ and while loading .wic files.  It comes at no price.
 #define isFunctor(w)	(tagex(w) == (TAG_ATOM|STG_GLOBAL))
 #define isTextAtom(w)	(isAtom(w) && ison(atomValue(w)->type, PL_BLOB_TEXT))
 #define isCallableAtom(w) (isTextAtom(w) || (w == ATOM_nil))
-#define isRational(w)	(tag(w)   == TAG_INTEGER)
-#define isFloat(w)	(tag(w)   == TAG_FLOAT)
-#define isString(w)	(tag(w)   == TAG_STRING)
-#define isTerm(w)	(tag(w)   == TAG_COMPOUND)
+#define isRational(w)	hasTag(w, TAG_INTEGER)
+#define isFloat(w)	hasTag(w, TAG_FLOAT)
+#define isString(w)	hasTag(w, TAG_STRING)
+#define isTerm(w)	hasTag(w, TAG_COMPOUND)
 #define isConst(w)	(isAtom(w) || isTaggedInt(w)) /* H_ATOM, B_ATOM, H_SMALLINT, B_SMALLINT */
 
 #if O_BIGNUM
 #define isInteger(w)	( isTaggedInt(w) || \
-			  ((tag(w) == TAG_INTEGER) && !isMPQNum(w)) )
+			  tagex(w) == TAGEX_INDIRECT_INT )
 #else
 #define isInteger(w)	isRational(w)
 #endif
@@ -248,7 +359,7 @@ and while loading .wic files.  It comes at no price.
 		 *	    REFERENCES		*
 		 *******************************/
 
-#define isRef(w)	(tag(w) == TAG_REFERENCE)
+#define isRef(w)	hasTag(w, TAG_REFERENCE)
 #define unRef(w)	valPtr(w)
 #define deRef(p)	{ while(isRef(*(p))) (p) = unRef(*(p)); }
 #define deRef2(p, d)	{ (d) = (p); deRef(d); }
@@ -262,6 +373,15 @@ and while loading .wic files.  It comes at no price.
 /* We use local references during GC and shift */
 #define makeRefLok(p)	consPtr(p, TAG_REFERENCE|STG_LOCAL)
 #define makeRefLG(p)	((void*)(p) >= (void*)lBase ? makeRefLok(p) : makeRefG(p))
+
+		 /*******************************
+		 *	 POINTER CELLS		*
+		 *******************************/
+
+#define consCompound(p)	consPtr(p, TAGEX_COMPOUND)
+#define consAttVar(p)	consPtr(p, TAGEX_ATTVAR)
+/* kind is TAG_FLOAT, TAG_INTEGER, KIND_MPQ or TAG_STRING */
+#define consIndirect(p, kind) consPtr(p, (kind)|STG_GLOBAL)
 
 
 		 /*******************************
@@ -282,7 +402,7 @@ and while loading .wic files.  It comes at no price.
 		 *     ATTRIBUTED VARIABLES	*
 		 *******************************/
 
-#define isAttVar(w)	(tag(w) == TAG_ATTVAR)
+#define isAttVar(w)	hasTag(w, TAG_ATTVAR)
 #define valPAttVar(w)	valPtr(w)
 
 #define canBind(w)	needsRef(w)
@@ -301,27 +421,51 @@ and while loading .wic files.  It comes at no price.
 
 static inline word
 mkIndHdr(size_t size, int tag)
-{ word w = size;
-  return (w<<(LMASK_BITS+PADBITS))|tag|STG_LOCAL;
+{ return consTagged((word)size<<PADBITS, tag|STG_LOCAL);
 }
 
 static inline size_t
 wsizeofInd(word w)
-{ return (size_t)(w>>(LMASK_BITS+PADBITS));
+{ return (size_t)(valTagged(w)>>PADBITS);
 }
 
 #define addressIndirect(w)	valPtr(w)		/* Pointer to start guard */
 #define valIndirectP(w)		(((Word)valPtr(w))+1)	/* Pointer to the blob data */
 
-#define padHdr(iw)		((size_t)(((iw)>>LMASK_BITS & PADMASK) ?	\
-					  ((iw)>>LMASK_BITS & PADMASK) : sizeof(word)))
-#define mkPadHdr(n)		(((n)&PADMASK) << LMASK_BITS)
+#define padHdr(iw)		((size_t)((valTagged(iw) & PADMASK) ?	\
+					  (valTagged(iw) & PADMASK) : sizeof(word)))
+#define mkPadHdr(n)		consTagged((n)&PADMASK, 0)
 #define mkBlobHdr(n,pad,tag)	(mkIndHdr(n, tag)|mkPadHdr(pad))
 #define wsizeofIndirect(w)	(wsizeofInd(*addressIndirect(w)))
 
-#define isTaggedInt(w)	(tagex(w) == (TAG_INTEGER|STG_INLINE))
+/* isTaggedInt() is true for small integers and pointer integers: both
+   hold their value as a small integer.  A pointer integer (TAGEX_PTRINT,
+   with the variant bit) holds a C pointer created by PL_put_pointer() and
+   friends.  It is an integer to Prolog, but never identical to a plain
+   integer: unification fails and compare/3 orders it directly after the
+   plain integer with the same value.  Prolog code cannot create one.
+*/
+#define isTaggedInt(w)	(((w) & (TAG_MASK|STG_MASK)) == (TAG_INTEGER|STG_INLINE))
+#define isPtrInt(w)	(tagex(w) == TAGEX_PTRINT)
+#define consPtrInt(i)	(consInt(i)|VARIANT_BIT)
+/* O_BIG_ADDRESS: pointers may not fit a small integer.  64-bit Android
+   tags heap pointers in the top byte.  PL_put_pointer() then creates a
+   plain (big) integer and PL_get_pointer() accepts integers that are not
+   small.  Elsewhere such a pointer raises a representation error.
+*/
+#ifndef O_BIG_ADDRESS
+#if SIZEOF_VOIDP == 8 && defined(__ANDROID__)
+#define O_BIG_ADDRESS 1
+#else
+#define O_BIG_ADDRESS 0
+#endif
+#endif
+/* isInlineInt(w) is isTaggedInt(w) for a w that is known to be an
+   integer (tag(w) == TAG_INTEGER), i.e., it tells a tagged integer from
+   an indirect one.  It is cheaper than isTaggedInt().
+*/
+#define isInlineInt(w)	(storage(w) == STG_INLINE)
 
-#define MP_RAT_MASK	(0x1)
 
 /* valFloat(w) moved to pl-inline.h */
 #define isBString(w)	(isString(w) && ((char *)valIndirectP(w))[0] == 'B')
@@ -334,7 +478,7 @@ wsizeofInd(word w)
 /* TODO: putting a prototype here to satisfy the compiler, but fetchAtomArray()
  * may want to be moved somewhere else.  */
 static inline Atom	fetchAtomArray(size_t index);
-#define indexAtom(w)	((size_t)((w)>>LMASK_BITS))
+#define indexAtom(w)	((size_t)valTagged(w))
 #define atomValue(w)	fetchAtomArray(indexAtom(w))
 #define stringAtom(w)	(atomValue(w)->name)
 
@@ -344,12 +488,12 @@ static inline Atom	fetchAtomArray(size_t index);
 
 #define F_ARITY_BITS	5		/* upto 32 inlined arity */
 #define F_ARITY_MASK	((1<<F_ARITY_BITS)-1)
-#define MK_FUNCTOR(n, a) (functor_t)(((((n)<<F_ARITY_BITS)|(a))<<LMASK_BITS) | \
-			  TAG_ATOM|STG_GLOBAL)
-#define functorHashValue(f, n)	((f)>>(LMASK_BITS) & ((n)-1))
-#define indexFunctor(w)	((size_t)((w)>>(LMASK_BITS+F_ARITY_BITS)))
+#define MK_FUNCTOR(n, a) (functor_t)consTagged(((word)(n)<<F_ARITY_BITS)|(a), \
+					       TAG_ATOM|STG_GLOBAL)
+#define functorHashValue(f, n)	(valTagged(f) & ((n)-1))
+#define indexFunctor(w)	((size_t)(valTagged(w)>>F_ARITY_BITS))
 #define valueFunctor(w) fetchFunctorArray(indexFunctor(w))
-#define _arityFunc_(w)	((size_t)(((w) >> LMASK_BITS) & F_ARITY_MASK))
+#define _arityFunc_(w)	((size_t)(valTagged(w) & F_ARITY_MASK))
 #define arityFunctor(w) (unlikely(_arityFunc_(w) == F_ARITY_MASK) \
 				? valueFunctor(w)->arity \
 				: _arityFunc_(w) )
@@ -373,3 +517,4 @@ static inline Atom	fetchAtomArray(size_t index);
 
 #define consInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
 #define consUInt(n)	(((word)(n)<<LMASK_BITS) | TAG_INTEGER)
+#define TAGGED_INT_BITS	(WORDBITSIZE-LMASK_BITS) /* bits in a tagged int */

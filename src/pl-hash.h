@@ -14,5 +14,7 @@
 
 COMMON(unsigned int) MurmurHashAligned2(const void *key, size_t len, unsigned int seed);
 COMMON(unsigned int) MurmurHashWord(word v, unsigned int seed);
+COMMON(unsigned int) MurmurHashWide(const wchar_t *s, size_t len,
+				    unsigned int seed);
 
 #endif /*PL_HASH_H_INCLUDED*/

@@ -69,19 +69,17 @@ PRED_IMPL("$length", 2, dlength, 0)
     { Word p;
       term_t list = PL_new_term_ref();
 
-      if ( !hasGlobalSpace(len*3) )
-      { int rc;
-
-	if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != true )
-	  return raiseStackOverflow(rc);
-      }
+      if ( (size_t)len > SIZE_MAX/(3*sizeof(word)) ) /* len*3 overflows */
+	return outOfStack((Stack)&LD->stacks.global, STACK_OVERFLOW_RAISE);
+      if ( !ensureGlobalSpace(len*3, ALLOW_GC) )
+	return false;
 
       p = gTop;
-      *valTermRef(list) = consPtr(p, TAG_COMPOUND|STG_GLOBAL);
+      *valTermRef(list) = consCompound(p);
       while(len-- > 0)
       { p[0] = FUNCTOR_dot2;
 	setVar(p[1]);
-	p[2] = consPtr(&p[3], TAG_COMPOUND|STG_GLOBAL);
+	p[2] = consCompound(&p[3]);
 	p += 3;
       }
       p[-1] = ATOM_nil;
@@ -226,9 +224,14 @@ typedef struct
   m64_kv key;
 } ITEM;
 
-					/* TBD: handle CMP_ERROR */
+/* COMPARE_KEY() may return CMP_ERROR (exception pending) or
+   CMP_INCOMPARABLE (terms in culprit[]).  As the sort list lives above
+   gTop, we must not raise an exception while sorting.
+*/
 #ifndef COMPARE_KEY
-#define COMPARE_KEY(x,y) compareStandard((x)->key.as_ptr, (y)->key.as_ptr, false)
+#define COMPARE_KEY(x,y) compareStandardOrder((x)->key.as_ptr, \
+					      (y)->key.as_ptr, \
+					      &culprit[0], &culprit[1])
 #endif
 #ifndef FREE
 /* FREE() leaves the struct as three variables on the global stack */
@@ -254,11 +257,20 @@ struct List_Record
 
 #define compare(c, x, y) \
 	int c = COMPARE_KEY(&(x)->item, &(y)->item); \
+	if ( c < CMPEX_LESS || c > CMPEX_GREATER ) \
+	{ *err = c; \
+	  return NIL; \
+	} \
 	if ( order == SORT_DESC ) c = -c
 
 
+/* nat_sort() returns the sorted list.  If a comparison fails, it sets
+   *err to CMP_ERROR or CMP_INCOMPARABLE and returns NIL.
+*/
+
 static list
-nat_sort(list data, int remove_dups, sort_order order)
+nat_sort(list data, int remove_dups, sort_order order,
+	 Word culprit[2], cmpex_t *err)
 { GET_LD
   list stack[64];			/* enough for biggest machine */
   list *sp = stack;
@@ -451,7 +463,6 @@ prolog_list_to_sort_list(DECL_LD term_t t,		/* input list */
 { Word l, tail;
   list p;
   intptr_t len;
-  int rc;
 
   l = valTermRef(t);
   len = skip_list(l, &tail);
@@ -471,10 +482,8 @@ prolog_list_to_sort_list(DECL_LD term_t t,		/* input list */
     return SORT_NOSORT;
 
   if ( !hasGlobalSpace(len*3) )
-  { if ( (rc=ensureGlobalSpace(len*3, ALLOW_GC)) != true )
-    { raiseStackOverflow(rc);
+  { if ( !ensureGlobalSpace(len*3, ALLOW_GC) )
       return SORT_ERR;
-    }
     l = valTermRef(t);			/* may be shifted */
   }
 
@@ -511,7 +520,7 @@ put_sort_list(term_t l, list sl)
 { GET_LD
 
   IS_WORD_ALIGNED(sl);
-  *valTermRef(l) = consPtr(sl, TAG_COMPOUND|STG_GLOBAL);
+  *valTermRef(l) = consCompound(sl);
 
   for(;;)
   { list n = sl->next.as_ptr;
@@ -523,7 +532,7 @@ put_sort_list(term_t l, list sl)
 					    : *sl->item.term.as_ptr);
     p[0] = FUNCTOR_dot2;
     if ( n )
-    { p[2] = consPtr(n, TAG_COMPOUND|STG_GLOBAL);
+    { p[2] = consCompound(n);
       sl = n;
     } else
     { p[2] = ATOM_nil;
@@ -561,7 +570,15 @@ pl_nat_sort(DECL_LD term_t in, term_t out,
     case SORT_SORT:
     default:
     { term_t tmp = PL_new_term_ref();
-      l = nat_sort(l, remove_dups, order);
+      Word culprit[2];
+      cmpex_t err = CMPEX_EQUAL;
+
+      l = nat_sort(l, remove_dups, order, culprit, &err);
+      if ( err != CMPEX_EQUAL )
+      { if ( err == CMP_INCOMPARABLE )
+	  raiseIncomparable(culprit[0], culprit[1]);
+	return false;
+      }
       put_sort_list(tmp, l);
       gTop = top;
       DEBUG(CHK_SECURE, checkStacks(NULL));

@@ -146,6 +146,8 @@ const debug_topic debug_topics[] =
   DEBUG_TOPIC(MSG_GC_RELOC),
   DEBUG_TOPIC(MSG_GC_HOLE),
   DEBUG_TOPIC(MSG_GC_SWEEP),
+  DEBUG_TOPIC(MSG_GC_GEN_VERIFY),
+  DEBUG_TOPIC(MSG_GC_STRESS),
   DEBUG_TOPIC(MSG_GC_CHECK),
   DEBUG_TOPIC(MSG_SHIFT),
   DEBUG_TOPIC(MSG_SHIFT_PROGRESS),
@@ -291,7 +293,7 @@ debug_high_code(void)
 }
 
 
-static int
+static bool
 prolog_debug_topic(const char *topic, int flag)
 { int level;
   char *end;
@@ -398,7 +400,7 @@ PL_prolog_nodebug(const char *topic)
 }
 
 
-static int
+static bool
 prolog_debug(term_t t, int flag)
 { char *topic;
 

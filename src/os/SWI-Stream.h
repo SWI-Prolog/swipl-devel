@@ -192,7 +192,10 @@ typedef struct io_position
   int64_t		charno;		/* character position in file */
   int			lineno;		/* lineno in file */
   int			linepos;	/* position in line */
-  intptr_t		reserved[2];	/* future extensions */
+  intptr_t		esc_state;	/* ANSI escape sequence state.  Claims
+					   what was reserved[0]; see
+					   Supdatepos() and Sresetesc() */
+  intptr_t		reserved[1];	/* future extensions */
 } IOPOS;
 
 					/* NOTE: check with encoding_names */
@@ -209,6 +212,18 @@ typedef enum
   ENC_UTF16LE,				/* little endian UTF-16 file */
   ENC_WCHAR				/* wchar_t */
 } IOENC;
+
+/* Per-stream Unicode-atom policy.  See the `unicode_atoms` field of
+ * IOSTREAM and the matching Prolog flag, set_stream/2 property and
+ * read_term/2,3 option.  S_UATOMS_ACCEPT == 0 keeps zero-initialised
+ * streams in the byte-faithful default.
+ */
+typedef enum
+{ S_UATOMS_ACCEPT = 0,			/* byte-faithful */
+  S_UATOMS_NFC,				/* NFC-normalise unquoted atoms */
+  S_UATOMS_ERROR,			/* error on non-NFC unquoted atoms */
+  S_UATOMS_REJECT			/* error on non-ASCII unquoted atoms */
+} Sunicode_atoms_t;
 
 #define ENC_UNICODE_BE ENC_UTF16BE
 #define ENC_UNICODE_LE ENC_UTF16LE
@@ -244,6 +259,7 @@ typedef struct io_stream
   struct io_stream *	downstream;	/* stream providing our output */
   unsigned		newline : 2;	/* Newline mode */
   unsigned		erased : 1;	/* Stream was erased */
+  unsigned		encoding_errors : 1; /* Decoding errors raise an exception */
   int			io_errno;	/* Save errno value */
   char *		message;	/* error/warning message */
   void *		exception;	/* pending exception (record_t) */
@@ -251,7 +267,12 @@ typedef struct io_stream
   struct PL_locale *	locale;		/* Locale associated to stream */
   intptr_t		fileno;		/* File number if this is associated to a file */
   uintptr_t		tty_size;	/* Size of terminal (2 shorts) */
-  intptr_t		reserved[2];	/* reserved for extension */
+  unsigned char		unicode_atoms;	/* Sunicode_atoms_t: per-stream atom-
+					   content policy.  Claims 1 byte of
+					   what was reserved[0]; the compiler
+					   inserts (sizeof(intptr_t)-1) bytes
+					   of padding to align the next field. */
+  intptr_t		reserved[1];	/* reserved for extension */
 } IOSTREAM;
 
 
@@ -339,6 +360,8 @@ PL_EXPORT_DATA(IOSTREAM)	S__iob[3];		/* Libs standard streams */
 #define SIO_GETREPOSITION (8)		/* Test if stream is repositionable */
 #ifdef __WINDOWS__
 #define SIO_GETWINHANDLE  (9)		/* Get underlying handle */
+#define SIO_GETWINPSEUDOCONSOLE (10)	/* Claim the HPCON the stream runs on */
+#define SIO_RELWINPSEUDOCONSOLE (11)	/* Hand it back */
 #endif
 
 /* Sread_pending() */
@@ -494,6 +517,10 @@ PL_EXPORT(int)		Sfileno(IOSTREAM *s);
 PL_EXPORT(int)		Swin_open_osfhandle(HANDLE h, int flags);
 PL_EXPORT(IOSTREAM *)	Swin_open_handle(HANDLE h, const char *mode);
 PL_EXPORT(HANDLE)	Swinhandle(IOSTREAM *s);
+PL_EXPORT(HANDLE)	Swinpseudoconsole(IOSTREAM *s);
+PL_EXPORT(void)		Swinrelease_pseudoconsole(IOSTREAM *s);
+PL_EXPORT(void *)	Swinpseudoconsole_attributes(HANDLE hpcon);
+PL_EXPORT(void)		Swinfree_pseudoconsole_attributes(void *attributes);
 #if defined(_WINSOCKAPI_) || defined(NEEDS_SWINSOCK) /* have SOCKET */
 PL_EXPORT(SOCKET)	Swinsock(IOSTREAM *s);
 #endif
