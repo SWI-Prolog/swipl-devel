@@ -901,6 +901,7 @@ gc_tune_handler(int sig)
 static void
 gc_trace_handler(int sig)
 { GET_LD
+  IGNORE_LD				/* only used by assert() */
   (void)sig;
 
   if ( !print_gc_trace() )
