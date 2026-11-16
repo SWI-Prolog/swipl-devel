@@ -21,6 +21,15 @@ endif()
 
 set(CMAKE_FIND_ROOT_PATH ${MINGW_ROOT})
 
+# MSYS2 installs a Windows pkg-config in ${MINGW_ROOT}/bin, which
+# find_program() finds first and cannot run.  Use the host's pkg-config
+# on the .pc files in ${MINGW_ROOT}.
+find_program(PKG_CONFIG_EXECUTABLE NAMES pkg-config pkgconf
+	     NO_CMAKE_FIND_ROOT_PATH)
+if(NOT DEFINED ENV{PKG_CONFIG_LIBDIR})
+  set(ENV{PKG_CONFIG_LIBDIR} ${MINGW_ROOT}/lib/pkgconfig)
+endif()
+
 if(CMAKE_TOOLCHAIN_FILE)
   # Avoid "Manually-specified variables were not used by the project"
 endif()
