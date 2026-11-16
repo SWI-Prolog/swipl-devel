@@ -2377,7 +2377,9 @@ returnLocalChunk(local_atom_chunk *c, size_t chunk)
 }
 
 
-/* Return empty chunks while we keep at least `keep` slots */
+/* Return empty chunks while we keep at least `keep` slots.  An empty
+ * chunk without slots adds nothing, so it always goes.
+ */
 
 #define returnEmptyLocalChunks(keep) LDFUNC(returnEmptyLocalChunks, keep)
 static void
@@ -2392,7 +2394,7 @@ returnEmptyLocalChunks(DECL_LD size_t keep)
     local_atom_chunk *c = localChunk(chunk);
     size_t slots = POPCOUNT64(c->avail);
 
-    if ( !c->used && capacity-slots >= keep )
+    if ( !c->used && (slots == 0 || capacity-slots >= keep) )
     { returnLocalChunk(c, chunk);
       capacity -= slots;
       LD->atoms.local.chunks[i] =
@@ -3615,10 +3617,11 @@ PRED_IMPL("blob_released", 1, blob_released, 0)
 #ifdef O_ATOMGC
 /* '$local_test_blob'(-Blob) creates a thread-local blob for testing the
  * local sweep.  '$local_atoms'(+Key, -Value) provides statistics: `live`,
- * `collected`, `sweeps`, `chunks` and `units` (of types with a gc_margin)
- * for the calling thread, `pool`, the
- * number of chunks in the global pool, and `highest`, the size of the
- * atom array.
+ * `collected`, `sweeps`, `chunks`, `units` (of types with a gc_margin),
+ * `slots` (the slots of its chunks), `empty` (chunks without local
+ * atoms) and `empty_slots` (the slots of these) for the calling thread,
+ * `pool`, the number of chunks in the global pool, and `highest`, the
+ * size of the atom array.
  */
 
 static PL_blob_t local_test_blob =
@@ -3696,11 +3699,35 @@ PRED_IMPL("$local_atom", 1, local_atom, 0)
   return false;
 }
 
+typedef struct local_slots
+{ size_t slots;				/* slots of all chunks */
+  size_t empty;				/* chunks without local atoms */
+  size_t empty_slots;			/* slots of the empty chunks */
+} local_slots;
+
+#define countLocalSlots(ls) LDFUNC(countLocalSlots, ls)
+static void
+countLocalSlots(DECL_LD local_slots *ls)
+{ memset(ls, 0, sizeof(*ls));
+
+  for(size_t i=0; i<LD->atoms.local.count; i++)
+  { local_atom_chunk *c = localChunk(LD->atoms.local.chunks[i]);
+    size_t slots = POPCOUNT64(c->avail);
+
+    ls->slots += slots;
+    if ( !c->used )
+    { ls->empty++;
+      ls->empty_slots += slots;
+    }
+  }
+}
+
 static
 PRED_IMPL("$local_atoms", 2, local_atoms, 0)
 { PRED_LD
   char *key;
   size_t v;
+  local_slots ls;
 
   if ( !PL_get_chars(A1, &key, CVT_ATOM|CVT_EXCEPTION) )
     return false;
@@ -3714,6 +3741,18 @@ PRED_IMPL("$local_atoms", 2, local_atoms, 0)
     v = LD->atoms.local.count;
   else if ( streq(key, "units") )
     v = LD->atoms.local.units;
+  else if ( streq(key, "slots") )
+  { countLocalSlots(&ls);
+    v = ls.slots;
+  }
+  else if ( streq(key, "empty") )
+  { countLocalSlots(&ls);
+    v = ls.empty;
+  }
+  else if ( streq(key, "empty_slots") )
+  { countLocalSlots(&ls);
+    v = ls.empty_slots;
+  }
   else if ( streq(key, "pool") )
     v = GD->atoms.local_pool.count;
   else if ( streq(key, "highest") )

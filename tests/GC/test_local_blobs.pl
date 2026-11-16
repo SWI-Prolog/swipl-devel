@@ -148,15 +148,25 @@ test(global_agc_skips, true(Collected > 400)) :-
 %   make room for max(2*Live, LOCAL_AGC_MIN=1024) blobs (64 per chunk).
 %   How many blobs survive depends on the earlier tests and what the
 %   stacks still refer to, so we do not bound the number of chunks as
-%   such.
+%   such.  If there are more chunks, Result reports how many slots they
+%   have, as the bound assumes all 64 slots of a chunk are available.
 
-test(empty_chunks_returned, [true(Held > 300), true(Chunks =< Max)]) :-
+test(empty_chunks_returned, [true(Held > 300), true(Result == ok)]) :-
     held_chunks(20_000, Held),		% about 313 chunks
     garbage_collect,			% remove the list from the stack
     garbage_collect_atoms,
     '$local_atoms'(chunks, Chunks),
     '$local_atoms'(live, Live),
-    Max is Live + max(2*Live, 1024)//64 + 1.
+    Max is Live + max(2*Live, 1024)//64 + 1,
+    (   Chunks =< Max
+    ->  Result = ok
+    ;   '$local_atoms'(slots, Slots),
+        '$local_atoms'(empty, Empty),
+        '$local_atoms'(empty_slots, EmptySlots),
+        Result = too_many_chunks{chunks:Chunks, max:Max, live:Live,
+                                 slots:Slots, empty:Empty,
+                                 empty_slots:EmptySlots}
+    ).
 test(exit_releases, true(Grown < 100)) :-
     statistics(atoms, A0),
     in_thread(churn(500)),		% below the threshold: no sweep
