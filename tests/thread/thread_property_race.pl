@@ -39,8 +39,8 @@
 
 /** <module> Enumerate thread properties while threads come and go
 
-thread_property/2 enumerating all threads used to crash on engines that
-were created or destroyed concurrently.
+thread_property/2 enumerating all threads used to crash on engines and
+detached threads that were created or destroyed concurrently.
 */
 
 thread_property_race :-
@@ -49,6 +49,13 @@ thread_property_race :-
 
 :- begin_tests(thread_property_race).
 
+test(detached) :-
+	thread_create(forall(between(1, 20000, _),
+			     thread_create(true, _, [detached(true)])),
+		      C, []),
+	enum(4000, _),
+	thread_join(C, Status),
+	assertion(Status == true).
 test(engines) :-
 	thread_create(enum(1000, thread(_)), E, []),
 	forall(between(1, 5000, _),

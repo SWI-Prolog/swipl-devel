@@ -544,9 +544,10 @@ static bool will_exec;			/* process will exec soon */
 	LDFUNC(get_message_queue_unlocked, t, queue)
 #define	get_message_queue(t, queue) \
 	LDFUNC(get_message_queue, t, queue)
-#define create_thread_handle(info) \
-	LDFUNC(create_thread_handle, info)
+#define create_thread_handle_(info, owner) \
+	LDFUNC(create_thread_handle_, info, owner)
 #endif /*USE_LD_MACROS*/
+#define create_thread_handle(info) create_thread_handle_(info, true)
 
 #define LDFUNC_DECLARATIONS
 
@@ -562,7 +563,8 @@ static size_t	sizeof_message_queue(message_queue *queue);
 static size_t	sizeof_local_definitions(PL_local_data_t *ld);
 static PL_thread_info_t *alloc_thread(void);
 static void	freeThreadSignals(PL_local_data_t *ld);
-static thread_handle *create_thread_handle(PL_thread_info_t *info);
+static thread_handle *create_thread_handle_(PL_thread_info_t *info,
+					    bool owner);
 static void	free_thread_info(PL_thread_info_t *info);
 static void	set_system_thread_id(PL_thread_info_t *info);
 static thread_handle *symbol_thread_handle(atom_t a);
@@ -2766,6 +2768,12 @@ current_thread_handle(PL_thread_info_t *info)
  * handle's symbol is registered and the caller must unregister it.  A
  * detached thread holds a registration of its symbol, which is dropped
  * by free_thread_info().
+ *
+ * Only the `owner`, the code that creates the thread, may create the
+ * handle of a thread that is still PL_THREAD_RESERVED.  thread_property/2
+ * may hold `info` of a thread that terminated, after it was reused for
+ * a new thread.  If it created the handle before thread_create/3 set
+ * info->detached, the detached registration would be missing.
  */
 
 #ifdef O_PLMT
@@ -2784,7 +2792,7 @@ init_interactor_mutex(thread_handle *th)
 #endif
 
 static thread_handle *
-create_thread_handle(DECL_LD PL_thread_info_t *info)
+create_thread_handle_(DECL_LD PL_thread_info_t *info, bool owner)
 { thread_handle *th;
   thread_handle *ref;
 
@@ -2815,7 +2823,8 @@ create_thread_handle(DECL_LD PL_thread_info_t *info)
 
     simpleMutexLock(&handle_mutex);
     if ( (th=current_thread_handle(info)) ||
-	 info->status == PL_THREAD_UNUSED )
+	 info->status == PL_THREAD_UNUSED ||
+	 (!owner && info->status == PL_THREAD_RESERVED) )
     { simpleMutexUnlock(&handle_mutex);	/* another thread was faster */
       PL_unregister_atom(ref->symbol);	/* or the thread is gone. */
       return th;			/* ref->info is NULL: release */
@@ -2835,7 +2844,7 @@ bool
 unify_thread_id(DECL_LD term_t id, PL_thread_info_t *info)
 { thread_handle *th;
 
-  if ( (th = create_thread_handle(info)) )
+  if ( (th = create_thread_handle_(info, false)) )
   { atom_t name = th->alias ? th->alias : th->symbol;
     bool rc = PL_unify_atom(id, name);
 
