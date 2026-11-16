@@ -238,6 +238,44 @@ test(nul, [condition(current_prolog_flag(windows,true))]) :-
 	    format(Out, 'Sending to NUL', []),
 	    close(Out)).
 
+% seen/0 restored user_input as current input without counting the
+% reference that set_input/1 took from it.  After a few iterations its
+% reference count dropped to zero while its stream handle was alive.
+
+test(set_input_seen, Mode == read) :-
+	cycle_current_input(set_input_seen),
+	garbage_collect_atoms,
+	stream_property(user_input, mode(Mode)).
+test(see_seen, Mode == read) :-
+	cycle_current_input(see_seen),
+	garbage_collect_atoms,
+	stream_property(user_input, mode(Mode)).
+
+cycle_current_input(How) :-
+	tmp_file_stream(text, File, Out),
+	close(Out),
+	current_input(Old),
+	setup_call_cleanup(
+	    true,
+	    forall(between(1, 20, _),
+		   ( switch_input(How, File),
+		     seen,
+		     stream_property(S, alias(user_input)),
+		     (   stream_property(S, file_name(_))
+		     ->  true
+		     ;   true
+		     )
+		   )),
+	    ( set_input(Old),
+	      delete_file(File)
+	    )).
+
+switch_input(set_input_seen, File) :-
+	open(File, read, In),
+	set_input(In).
+switch_input(see_seen, File) :-
+	see(File).
+
 long_segment(N, Seg) :-
 	length(L, N),
 	maplist(=('a'), L),
