@@ -133,6 +133,7 @@ size_t		localClauseGC(void);
 bool		localClauseGCDue(void);
 void		postponeLocalClauseGC(void);
 bool		setDynamicDefinition(Definition def, bool isdyn);
+bool		implicitDynamicProcedure(Procedure proc);
 bool		setThreadLocalDefinition(Definition def, bool isdyn);
 bool		setAttrDefinition(Definition def, uint64_t attr, bool val);
 bool		PL_meta_predicate(predicate_t def, const char*);
