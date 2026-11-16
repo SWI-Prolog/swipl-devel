@@ -49,6 +49,8 @@
 #define	get_head_functor(head, fdef, flags)	LDFUNC(get_head_functor, head, fdef, flags)
 #define	assertDefinition(def, clause, where)	LDFUNC(assertDefinition, def, clause, where)
 #define	assertProcedure(proc, clause, where)	LDFUNC(assertProcedure, proc, clause, where)
+#define	assertDynamicProcedure(proc, clause, where) \
+	LDFUNC(assertDynamicProcedure, proc, clause, where)
 #define	retract_clause(clause, gen)		LDFUNC(retract_clause, clause, gen)
 #define	reconsultFinalizePredicate(rl, def, r)	LDFUNC(reconsultFinalizePredicate, rl, def, r)
 #define	resolveProcedure(f, module)		LDFUNC(resolveProcedure, f, module)
@@ -90,6 +92,8 @@ bool		isTransparentMetamask(Definition def, const arg_info *args);
 ClauseRef	assertDefinition(Definition def, Clause clause,
 				 ClauseRef where);
 ClauseRef	assertProcedure(Procedure proc, Clause clause,
+				ClauseRef where);
+ClauseRef	assertDynamicProcedure(Procedure proc, Clause clause,
 				ClauseRef where);
 bool		abolishProcedure(Procedure proc, Module module);
 bool		retract_clause(Clause clause, gen_t gen);

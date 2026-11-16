@@ -41,7 +41,9 @@
 /** <module> Assert clauses while the predicate is abolished
 
 abolish/1 could erase a clause that assert/1 was adding such that it
-remained visible and was never reclaimed.
+remained visible and was never reclaimed.  Also, assert/1 could add its
+clause to a predicate that abolish/1 made static, after which assert/1
+raised a permission error.
 */
 
 assert_abolish_race :-
@@ -53,6 +55,10 @@ assert_abolish_race :-
 test(erased, fail) :-
 	race(q, true),
 	predicate_property(assert_abolish_race:q(_), defined).
+test(dynamic, Status == true) :-
+	race(p, false),
+	thread_create(assert_n(p, 1000, false), T, []),
+	thread_join(T, Status).
 
 :- end_tests(assert_abolish_race).
 
