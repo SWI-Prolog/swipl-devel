@@ -1823,6 +1823,11 @@ protocol(const char *str, size_t n)
 		 *******************************/
 
 
+/* The current input is reference counted (see setStandardStream()).
+ * So is the stream an input context saves: it may be closed before the
+ * context is popped.  pop_input_context() then restores user_input.
+ */
+
 int
 push_input_context(atom_t type)
 { GET_LD
@@ -1831,6 +1836,8 @@ push_input_context(atom_t type)
   PL_register_atom(type);
 
   c->stream           = Scurin;
+  if ( c->stream )
+    Sacquire(c->stream);
   c->type	      = type;
   c->term_file        = source_file_name;
   c->term_line        = source_line_no;
@@ -1847,7 +1854,12 @@ pop_input_context(void)
   InputContext c = input_context_stack;
 
   if ( c )
-  { Scurin              = c->stream;
+  { IOSTREAM *s = c->stream;
+
+    setStandardStream(SNO_CURRENT_INPUT,
+		      s && s->magic == SIO_MAGIC ? s : Suser_input);
+    if ( s )
+      Srelease(s);
     source_file_name    = c->term_file;
     source_line_no      = c->term_line;
     input_context_stack = c->previous;
@@ -1856,7 +1868,7 @@ pop_input_context(void)
 
     return true;
   } else
-  { Scurin		= Sinput;
+  { setStandardStream(SNO_CURRENT_INPUT, Sinput);
     return false;
   }
 }
@@ -4732,15 +4744,15 @@ pl_see(term_t f)
 
   PL_LOCK(L_SEETELL);
   if ( get_stream_handle(a, &s, SH_ALIAS|SH_UNLOCKED) )
-  { Scurin = s;
+  { setStandardStream(SNO_CURRENT_INPUT, s);
     goto ok;
   }
   if ( a == ATOM_user )
-  { Scurin = Suser_input;
+  { setStandardStream(SNO_CURRENT_INPUT, Suser_input);
     goto ok;
   }
   if ( (s = findStreamFromFile(a, IO_SEE)) )
-  { Scurin = s;
+  { setStandardStream(SNO_CURRENT_INPUT, s);
     goto ok;
   }
 
@@ -4753,7 +4765,7 @@ pl_see(term_t f)
 
   set(getStreamContext(s), IO_SEE);
   push_input_context(ATOM_see);
-  Scurin = s;
+  setStandardStream(SNO_CURRENT_INPUT, s);
 
 ok:
   PL_UNLOCK(L_SEETELL);
