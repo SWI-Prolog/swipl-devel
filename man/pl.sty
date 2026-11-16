@@ -294,11 +294,19 @@
 %
 %	Terms used in running text.
 
+%	The emptiness test must not expand #2: \equal{}{#2} breaks if #2
+%	contains a nested \term{}{\term{}{}} (the inner \ifthenelse is not
+%	expandable).  Comparing an unexpanded \def using \ifx is safe.
+
 \def\term{}
+\def\plemptyarg{}
 \renewcommand{\term}[2]{%
-	\ifthenelse{\equal{\protect}{\protect#2}}{%
-	    {\reffont #1}}{%
-	    {\reffont #1}({\it #2})}}
+	\def\pltermarg{#2}%
+	\ifx\pltermarg\plemptyarg
+	    {\reffont #1}%
+	\else
+	    {\reffont #1}({\it #2})%
+	\fi}
 \newcommand{\infixterm}[3]{{\it #2}\infixopsep{#1}{\it #3}}
 \newcommand{\prefixterm}[2]{#1 {\it #2}}
 \newcommand{\postfixterm}[2]{{\it #2} #1}
