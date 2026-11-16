@@ -5830,15 +5830,10 @@ mode, the predicate is still undefined and is not dynamic or multifile.
 
   /* assert[az]/1 */
 
-  if ( isoff(def, P_DYNAMIC) )
-  { if ( isDefinedProcedure(proc) )
-    { PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
-    derror:
-      freeClause(clause);
-      return NULL;
-    }
-    if ( !setDynamicDefinition(def, true) )
-      goto derror;
+  if ( isoff(def, P_DYNAMIC) && !implicitDynamicProcedure(proc) )
+  { derror:
+    freeClause(clause);
+    return NULL;
   }
 
   if ( ref && !PL_unify_clref(ref, clause) )

@@ -43,7 +43,11 @@
 abolish/1 could erase a clause that assert/1 was adding such that it
 remained visible and was never reclaimed.  Also, assert/1 could add its
 clause to a predicate that abolish/1 made static, after which assert/1
-raised a permission error.
+raised a permission error.  Finally, assert/1, retract/1 and
+retractall/1 could raise a permission error if they found the predicate
+static and another thread made it dynamic or abolished it.  Under ASAN,
+the retract test also found assert/1 and retract/1 accessing clauses
+that were reclaimed by clause GC.
 */
 
 assert_abolish_race :-
@@ -59,6 +63,8 @@ test(dynamic, Status == true) :-
 	race(p, false),
 	thread_create(assert_n(p, 1000, false), T, []),
 	thread_join(T, Status).
+test(retract, Status == [true,true,true,true]) :-
+	retract_race(r, Status).
 
 :- end_tests(assert_abolish_race).
 
@@ -88,3 +94,28 @@ assert_n(Name, N, Catch) :-
 
 abolish_n(Name, N) :-
 	forall(between(1, N, _), abolish(Name/1)).
+
+%   retract_race(+Name, -Status)
+%
+%   Run assert/1, abolish/1, retract/1 and retractall/1 concurrently on
+%   Name/1.  None of these may raise an error.
+
+retract_race(Name, Status) :-
+	N = 20000,
+	thread_create(assert_n(Name, N, false), A, []),
+	thread_create(abolish_n(Name, N), B, []),
+	thread_create(retract_n(Name, N), C, []),
+	thread_create(retractall_n(Name, N), D, []),
+	maplist(thread_join, [A,B,C,D], Status).
+
+retract_n(Name, N) :-
+	G =.. [Name, _],
+	forall(between(1, N, _), ignore(retract(G))).
+
+retractall_n(Name, N) :-
+	G =.. [Name, _],
+	forall(between(1, N, I),
+	       (   I mod 10 =:= 0
+	       ->  retractall(G)
+	       ;   true
+	       )).

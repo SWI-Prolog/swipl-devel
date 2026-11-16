@@ -431,11 +431,21 @@ isCurrentProcedure(DECL_LD functor_t f, Module m)
 }
 
 
+/* hasClausesDefinition() returns the first visible clause of `def`.
+   If a static predicate is not registered as dirty, all its clauses
+   are visible.  This does not hold if it has erased clauses that are
+   not yet registered.  This happens if abolish/1 runs after retract/1
+   erased the last clause and before retract/1 registered the predicate
+   as dirty: as abolish/1 erases no clauses, it does not register the
+   predicate either.
+*/
+
 ClauseRef
 hasClausesDefinition(DECL_LD Definition def)
 { if ( isoff(def, P_FOREIGN|P_THREAD_LOCAL) &&
        def->impl.clauses.first_clause )
   { if ( isoff(def, P_DIRTYREG) && isoff(def, P_DYNAMIC) &&
+	 def->impl.clauses.erased_clauses == 0 &&
 	 LD->reload.generation == GEN_INVALID )
     { return def->impl.clauses.first_clause;
     } else
@@ -1699,6 +1709,11 @@ retract/1 and retractall/1. Returns false  if   the  clause  was already
 retracted or retract is vetoed by  the   update  event handling. This is
 also used by  trie_gen_compiled/3  to  get   rid  of  the  clauses  that
 represent tries.
+
+(*) If the clause was erased at the current generation, e.g., by a
+concurrent abolish/1, it is already invisible.  Moving its erased
+generation to the next generation would make it visible again until we
+update the global generation.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 bool
@@ -1720,8 +1735,8 @@ retract_clause(DECL_LD Clause clause, gen_t generation)
     { return PL_representation_error("transaction_generations");
     }
   } else
-  { PL_LOCK(L_GENERATION);
-    if ( clause->generation.erased >= GD->_generation )
+  { PL_LOCK(L_GENERATION);			/* See (*) */
+    if ( clause->generation.erased > GD->_generation )
     { gen_t egen = GD->_generation+1;
       clause->generation.erased = egen;
       MEMORY_RELEASE();
@@ -3455,9 +3470,8 @@ PRED_IMPL("retract", 1, retract,
       if ( ison(def, P_FOREIGN) )
 	return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
       if ( isoff(def, P_DYNAMIC) )
-      { if ( isDefinedProcedure(proc) )
-	  return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
-	setDynamicDefinition(def, true); /* implicit */
+      { if ( !implicitDynamicProcedure(proc) )
+	  return false;
 	fail;				/* no clauses */
       }
 
@@ -3591,12 +3605,7 @@ PRED_IMPL("retractall", 1, retractall, PL_FA_NONDETERMINISTIC|PL_FA_ISO)
   if ( ison(def, P_FOREIGN) )
     return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
   if ( isoff(def, P_DYNAMIC) )
-  { if ( isDefinedProcedure(proc) )
-      return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
-    if ( !setDynamicDefinition(def, true) )
-      return false;
-    return true;			/* nothing to retract */
-  }
+    return implicitDynamicProcedure(proc); /* nothing to retract */
 
   if ( !retractall_event(def, thehead, FUNCTOR_start1) )
     return false;
@@ -4065,6 +4074,38 @@ setDynamicDefinition_unlocked(Definition def, bool isdyn)
   { clear(def, P_DYNAMIC|P_TRANSACT);
     freeCodesDefinition(def, true);	/* reset to S_VIRGIN */
   }
+
+  return true;
+}
+
+
+/* assert/1, retract/1 and retractall/1 make an undefined predicate
+   dynamic and raise a permission error on a static one.  We decide
+   holding the lock that abolish/1 and assert/1 use.  Otherwise, a
+   concurrent assert/1 may make the predicate dynamic after we found it
+   static, after which isDefinedProcedure() is true and we would raise
+   the permission error for a dynamic predicate.
+*/
+
+bool
+implicitDynamicProcedure(Procedure proc)
+{ GET_LD
+  Definition def = proc->definition;
+  bool rc = true;
+
+  LOCKDEF(def);
+  if ( isoff(def, P_DYNAMIC) )
+  { if ( isDefinedProcedure(proc) )
+      rc = false;
+    else if ( !setDynamicDefinition_unlocked(def, true) )
+    { UNLOCKDEF(def);
+      return false;
+    }
+  }
+  UNLOCKDEF(def);
+
+  if ( !rc )
+    return PL_error(NULL, 0, NULL, ERR_MODIFY_STATIC_PROC, proc);
 
   return true;
 }
