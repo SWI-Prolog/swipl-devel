@@ -3392,6 +3392,12 @@ head_arguments(DECL_LD term_t head)
 }
 
 
+/* (*) If retract/1 lost the race for the first matching clause, it
+   continues at the current generation.  Clause GC protects the clauses
+   visible at the generation of our predicate access, so we must update
+   that as well.  Otherwise clause GC may reclaim clauses that we see.
+*/
+
 static
 PRED_IMPL("retract", 1, retract,
 	  PL_FA_TRANSPARENT|PL_FA_NONDETERMINISTIC|PL_FA_ISO)
@@ -3511,8 +3517,11 @@ PRED_IMPL("retract", 1, retract,
 
 	  PL_close_foreign_frame(fid);
 	  ForeignRedoPtr(ctx);
-	} else
-	{ setGenerationFrame(environment_frame);
+	} else				/* See (*) */
+	{ do
+	  { dref->generation = current_generation(ctx->def);
+	  } while ( dref->generation != current_generation(ctx->def) );
+	  setGenerationFrameVal(environment_frame, dref->generation);
 	  DEBUG(MSG_CGC_RETRACT,
 		Sdprintf("Retract: first clause deleted; set gen to %lld\n",
 			 generationFrame(environment_frame)));
