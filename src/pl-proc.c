@@ -1412,11 +1412,11 @@ the event notification vetoed the assert. In   this  case the clause has
 become part of the predicate. The caller should not call freeClause() if
 this function failed.
 
-(**) Once the clause is visible, another thread may retract it and
-clause GC may reclaim the clause and `cref`.  We hold a reference to the
-clause while calling the event hook and do not access it otherwise.
-Note that the caller may not access the returned `cref` if the clause
-may be retracted concurrently.
+(**) Once the clause is linked, another thread may erase it, e.g.,
+using abolish/1, and clause GC may reclaim the clause and `cref`.  We
+hold a reference to the clause until we are done with it.  Note that
+the caller may not access the returned `cref` if the clause may be
+retracted concurrently.
 
 (***) Once the clause is linked, removeClausesPredicate(), e.g., from
 abolish/1, may erase it before we set its generations.  It does so
@@ -1448,7 +1448,6 @@ assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
 { word key;
   ClauseRef cref;
   gen_t created;
-  bool hold;
 
   if ( !add_ssu_clause(def, clause) )
   { freeClause(clause);
@@ -1461,8 +1460,7 @@ assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
     return PL_no_memory(),NULL;
   }
 					/* See (**) */
-  if ( (hold = (def->events != NULL)) )
-    acquire_clause(clause);
+  acquire_clause(clause);
 
   clause->generation.created = max_generation(def);
   clause->generation.erased  = 1;
@@ -1526,7 +1524,7 @@ assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
     PL_UNLOCK(L_GENERATION);
   }
 					/* clause is visible; see (**) */
-  if ( ( hold &&
+  if ( ( def->events &&
 	 !(LD->transaction.flags&TR_BULK) &&
 	 !predicate_update_event(def,
 				 where == CL_START ? ATOM_asserta : ATOM_assertz,
@@ -1544,8 +1542,7 @@ assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
     transaction_assert_clause(clause, where); /* only visible to us */
 
 out:
-  if ( hold )
-    release_clause(clause);
+  release_clause(clause);
 
   return cref;
 }
