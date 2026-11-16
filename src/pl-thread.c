@@ -2768,6 +2768,21 @@ current_thread_handle(PL_thread_info_t *info)
  * by free_thread_info().
  */
 
+#ifdef O_PLMT
+/* Engines need a mutex.  Handles have room for it, as thread_property/2
+ * may create the handle of an engine before '$engine_create'/3 sets
+ * info->is_engine.
+ */
+
+static void
+init_interactor_mutex(thread_handle *th)
+{ if ( !th->interactor.mutex )
+  { th->interactor.mutex = (simpleMutex*)(th+1);
+    simpleMutexInit(th->interactor.mutex);
+  }
+}
+#endif
+
 static thread_handle *
 create_thread_handle(DECL_LD PL_thread_info_t *info)
 { thread_handle *th;
@@ -2779,12 +2794,11 @@ create_thread_handle(DECL_LD PL_thread_info_t *info)
   if ( th )
     return th;
 
-#ifdef O_PLMT
-  if ( info->is_engine )
-    ref = PL_malloc(sizeof(*ref)+sizeof(simpleMutex));
-  else
+#ifdef O_PLMT				/* see init_interactor_mutex() */
+  ref = PL_malloc(sizeof(*ref)+sizeof(simpleMutex));
+#else
+  ref = PL_malloc(sizeof(*ref));
 #endif
-    ref = PL_malloc(sizeof(*ref));
 
   if ( ref )
   { bool new;
@@ -2792,9 +2806,7 @@ create_thread_handle(DECL_LD PL_thread_info_t *info)
     memset(ref, 0, sizeof(*ref));
 #ifdef O_PLMT
     if ( info->is_engine )
-    { ref->interactor.mutex = (simpleMutex*)(ref+1);
-      simpleMutexInit(ref->interactor.mutex);
-    }
+      init_interactor_mutex(ref);
 #endif
 
     ref->engine_id = info->pl_tid;
@@ -3465,15 +3477,29 @@ thread_engine_property(DECL_LD void *ctx, term_t prop)
 static bool
 thread_thread_property(DECL_LD void *ctx, term_t prop)
 { PL_thread_info_t *info = ctx;
+  atom_t thread = NULL_ATOM;
 
   if ( info->is_engine )
-  { thread_handle *th = symbol_thread_handle(info->symbol);
+  { thread_handle *th;
 
-    if ( th->interactor.thread )
-    { atom_t alias = symbol_alias(th->interactor.thread);
+    simpleMutexLock(&handle_mutex);	/* see info_alias() */
+    if ( info->symbol && (th=symbol_thread_handle(info->symbol)) &&
+	 (thread=th->interactor.thread) )
+    { atom_t alias = symbol_alias(thread);
 
-      return PL_unify_atom(prop, alias ? alias : th->interactor.thread);
+      if ( alias )
+	thread = alias;
+      if ( !registerAtomIfLive(thread) )
+	thread = NULL_ATOM;
     }
+    simpleMutexUnlock(&handle_mutex);
+  }
+
+  if ( thread )
+  { bool rc = PL_unify_atom(prop, thread);
+
+    PL_unregister_atom(thread);
+    return rc;
   }
 
   return false;
@@ -4303,6 +4329,7 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
 
     new->thread.info->is_engine = true;
     th = create_thread_handle(new->thread.info);
+    init_interactor_mutex(th);		/* may be created without */
     set(th, TH_IS_INTERACTOR);
     ATOMIC_INC(&GD->statistics.engines_created);
 
