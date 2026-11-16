@@ -1417,6 +1417,12 @@ clause GC may reclaim the clause and `cref`.  We hold a reference to the
 clause while calling the event hook and do not access it otherwise.
 Note that the caller may not access the returned `cref` if the clause
 may be retracted concurrently.
+
+(***) Once the clause is linked, removeClausesPredicate(), e.g., from
+abolish/1, may erase it before we set its generations.  It does so
+holding L_GENERATION.  If we would overwrite the erased generation, the
+clause is erased (CL_ERASED), but remains visible and is never
+reclaimed.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 ClauseRef
@@ -1485,7 +1491,8 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
   if ( unlikely(!!LD->transaction.generation) && def && ison(def, P_TRANSACT) )
   { if ( LD->transaction.generation < LD->transaction.gen_max )
     { clause->generation.created = created = ++LD->transaction.generation;
-      clause->generation.erased  = max_generation(def);
+      if ( isoff(clause, CL_ERASED) )	/* See (***) */
+	clause->generation.erased  = max_generation(def);
     } else
     { PL_representation_error("transaction_generations");
       goto error;
@@ -1493,7 +1500,8 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
   } else
   { PL_LOCK(L_GENERATION);
     clause->generation.created = created = ++GD->_generation;
-    clause->generation.erased  = max_generation(def);
+    if ( isoff(clause, CL_ERASED) )	/* See (***) */
+      clause->generation.erased  = max_generation(def);
     PL_UNLOCK(L_GENERATION);
   }
 					/* clause is visible; see (**) */
