@@ -5844,7 +5844,7 @@ mode, the predicate is still undefined and is not dynamic or multifile.
   if ( ref && !PL_unify_clref(ref, clause) )
     goto derror;
 
-  if ( assertProcedure(proc, clause, where) )
+  if ( assertDynamicProcedure(proc, clause, where) )
     return clause;			/* do not access; see above */
 
   return NULL;

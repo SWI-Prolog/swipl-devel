@@ -1423,10 +1423,28 @@ abolish/1, may erase it before we set its generations.  It does so
 holding L_GENERATION.  If we would overwrite the erased generation, the
 clause is erased (CL_ERASED), but remains visible and is never
 reclaimed.
+
+(****) assert/1 makes the predicate dynamic before compiling the clause.
+If abolish/1 made it static in the meanwhile, we would add the clause to
+a static predicate.  As if abolish/1 came first, we make it dynamic
+again while holding the lock that abolish/1 uses.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define AD_DYNAMIC 0x1			/* assert/1: make dynamic */
+
+#define assertDefinition_(def, clause, where, flags) \
+	LDFUNC(assertDefinition_, def, clause, where, flags)
+static ClauseRef assertDefinition_(DECL_LD Definition def, Clause clause,
+				   ClauseRef where, int flags);
 
 ClauseRef
 assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
+{ return assertDefinition_(def, clause, where, 0);
+}
+
+static ClauseRef
+assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
+		  int flags)
 { word key;
   ClauseRef cref;
   gen_t created;
@@ -1450,6 +1468,9 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
   clause->generation.erased  = 1;
 
   LOCKDEF(def);
+  if ( (flags&AD_DYNAMIC) && isoff(def, P_DYNAMIC) &&	/* See (****) */
+       def->impl.clauses.number_of_clauses == 0 )
+    setDynamicDefinition_unlocked(def, true);
   acquire_def(def);
   if ( !def->impl.clauses.last_clause )
   { def->impl.clauses.first_clause = def->impl.clauses.last_clause = cref;
@@ -1535,6 +1556,15 @@ assertProcedure(DECL_LD Procedure proc, Clause clause, ClauseRef where)
 { Definition def = getProcDefinition(proc);
 
   return assertDefinition(def, clause, where);
+}
+
+/* As assertProcedure(), for assert/1: the predicate is dynamic */
+
+ClauseRef
+assertDynamicProcedure(DECL_LD Procedure proc, Clause clause, ClauseRef where)
+{ Definition def = getProcDefinition(proc);
+
+  return assertDefinition_(def, clause, where, AD_DYNAMIC);
 }
 
 
