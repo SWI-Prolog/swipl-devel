@@ -2377,28 +2377,53 @@ returnLocalChunk(local_atom_chunk *c, size_t chunk)
 }
 
 
-/* Return empty chunks while we keep at least `keep` slots.  An empty
- * chunk without slots adds nothing, so it always goes.
+/* Return empty chunks while we keep at least `keep` slots.  Chunks lose
+ * the slots of atoms that are promoted, so chunks reused from the pool
+ * may have few slots.  We keep the empty chunks with the most slots,
+ * which keeps the fewest chunks.  An empty chunk without slots adds
+ * nothing, so it always goes.
  */
 
 #define returnEmptyLocalChunks(keep) LDFUNC(returnEmptyLocalChunks, keep)
 static void
 returnEmptyLocalChunks(DECL_LD size_t keep)
-{ size_t capacity = 0;
+{ size_t capacity = 0;			/* slots of the chunks in use */
+  size_t empty[LOCAL_CHUNK_SIZE+1] = {0}; /* empty chunks by #slots */
 
   for(size_t i=0; i<LD->atoms.local.count; i++)
-    capacity += POPCOUNT64(localChunk(LD->atoms.local.chunks[i])->avail);
+  { local_atom_chunk *c = localChunk(LD->atoms.local.chunks[i]);
+    size_t slots = POPCOUNT64(c->avail);
+
+    if ( c->used )
+      capacity += slots;
+    else
+      empty[slots]++;
+  }
+
+  /* empty[s] becomes the number of empty chunks with s slots we keep */
+  for(size_t s=LOCAL_CHUNK_SIZE; s > 0; s--)
+  { size_t need = capacity < keep ? (keep-capacity+s-1)/s : 0;
+
+    if ( empty[s] > need )
+      empty[s] = need;
+    capacity += empty[s]*s;
+  }
+  empty[0] = 0;
 
   for(size_t i=LD->atoms.local.count; i-- > 0; )
   { size_t chunk = LD->atoms.local.chunks[i];
     local_atom_chunk *c = localChunk(chunk);
-    size_t slots = POPCOUNT64(c->avail);
 
-    if ( !c->used && (slots == 0 || capacity-slots >= keep) )
-    { returnLocalChunk(c, chunk);
-      capacity -= slots;
-      LD->atoms.local.chunks[i] =
-	LD->atoms.local.chunks[--LD->atoms.local.count];
+    if ( !c->used )
+    { size_t slots = POPCOUNT64(c->avail);
+
+      if ( empty[slots] )
+      { empty[slots]--;
+      } else
+      { returnLocalChunk(c, chunk);
+	LD->atoms.local.chunks[i] =
+	  LD->atoms.local.chunks[--LD->atoms.local.count];
+      }
     }
   }
 }
