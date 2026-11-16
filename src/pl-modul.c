@@ -636,18 +636,27 @@ clearSupersModule(Module m)
 }
 
 
+/* Make `s` the only import module of `m`.  Caller holds L_MODULE.
+
+   (*) Other threads walk m->supers without locking, e.g., to resolve
+   an undefined predicate.  If `m` has a single import module, we
+   update it in place rather than freeing the cell, notably if `s` is
+   already the import module, which happens for each (re)load of a
+   module file.
+*/
+
 int
 setSuperModule(Module m, Module s)
 { if ( s == m )
     return cannotSetSuperModule(m, s);
 
-  if ( m->supers && !m->supers->next )
+  if ( m->supers && !m->supers->next )	/* See (*) */
   { if ( (Module)m->supers->value != s )
     { m->supers->value = s;
       m->level = s->level+1;
-
-      succeed;
     }
+
+    succeed;
   }
   clearSupersModule_no_lock(m);
 
