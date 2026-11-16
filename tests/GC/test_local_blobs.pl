@@ -95,6 +95,38 @@ held_chunks(N, Chunks) :-
     '$local_atoms'(chunks, Chunks),
     length(L, N).			% keep L alive
 
+%   Create about N chunks that keep 4 of their 64 slots: assert/1
+%   promotes the other blobs, after which their slots leave the chunk.
+
+sparse_chunks(N) :-
+    garbage_collect_atoms,
+    End is N*64,
+    forall(between(1, End, I),
+           (   '$local_test_blob'(B),
+               (   I mod 16 =:= 0
+               ->  true
+               ;   assertz(kept(B))
+               )
+           )),
+    garbage_collect_atoms.
+
+%   Check the number of chunks we kept after a sweep (see
+%   local_blobs:empty_chunks_returned).
+
+chunks_kept(Result) :-
+    '$local_atoms'(chunks, Chunks),
+    '$local_atoms'(live, Live),
+    Max is Live + max(2*Live, 1024)//64 + 1,
+    (   Chunks =< Max
+    ->  Result = ok
+    ;   '$local_atoms'(slots, Slots),
+        '$local_atoms'(empty, Empty),
+        '$local_atoms'(empty_slots, EmptySlots),
+        Result = too_many_chunks{chunks:Chunks, max:Max, live:Live,
+                                 slots:Slots, empty:Empty,
+                                 empty_slots:EmptySlots}
+    ).
+
 %   Run Goal in a new thread, which has fresh sweep statistics.
 
 :- meta_predicate in_thread(0).
@@ -145,28 +177,29 @@ test(global_agc_skips, true(Collected > 400)) :-
     '$local_atoms'(collected, C1),
     Collected is C1-C0.
 %   A chunk that holds a live blob stays, as do the empty chunks that
-%   make room for max(2*Live, LOCAL_AGC_MIN=1024) blobs (64 per chunk).
-%   How many blobs survive depends on the earlier tests and what the
-%   stacks still refer to, so we do not bound the number of chunks as
-%   such.  If there are more chunks, Result reports how many slots they
-%   have, as the bound assumes all 64 slots of a chunk are available.
+%   make room for max(2*Live, LOCAL_AGC_MIN=1024) blobs.  The sweep
+%   keeps the empty chunks with the most slots, so if there are chunks
+%   with all 64 slots, this is at most max(2*Live, 1024)//64 + 1
+%   chunks.  How many blobs survive depends on the earlier tests and
+%   what the stacks still refer to, so we do not bound the number of
+%   chunks as such.  If there are more chunks, Result reports how many
+%   slots they have.
 
 test(empty_chunks_returned, [true(Held > 300), true(Result == ok)]) :-
     held_chunks(20_000, Held),		% about 313 chunks
     garbage_collect,			% remove the list from the stack
     garbage_collect_atoms,
-    '$local_atoms'(chunks, Chunks),
-    '$local_atoms'(live, Live),
-    Max is Live + max(2*Live, 1024)//64 + 1,
-    (   Chunks =< Max
-    ->  Result = ok
-    ;   '$local_atoms'(slots, Slots),
-        '$local_atoms'(empty, Empty),
-        '$local_atoms'(empty_slots, EmptySlots),
-        Result = too_many_chunks{chunks:Chunks, max:Max, live:Live,
-                                 slots:Slots, empty:Empty,
-                                 empty_slots:EmptySlots}
-    ).
+    chunks_kept(Result).
+%   Chunks lose the slots of promoted atoms.  The sweep must keep the
+%   new chunks rather than these sparse ones.
+test(sparse_chunks_returned, [ cleanup(retractall(kept(_))),
+                               true(Result == ok)
+                             ]) :-
+    sparse_chunks(200),
+    held_chunks(20_000, _),
+    garbage_collect,
+    garbage_collect_atoms,
+    chunks_kept(Result).
 test(exit_releases, true(Grown < 100)) :-
     statistics(atoms, A0),
     in_thread(churn(500)),		% below the threshold: no sweep
