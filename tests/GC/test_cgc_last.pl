@@ -43,13 +43,20 @@ Clause garbage collection did not reclaim a clause that was erased at
 the generation at which it started, i.e., the last database update
 before garbage_collect_clauses/0.  This clause was only reclaimed after
 some other database update.
+
+garbage_collect_clauses/0 returns immediately if another thread, notably
+the gc thread, is running clause GC.  That run may have started before
+our clause was erased, so we stop the gc thread during these tests.
 */
 
 test_cgc_last :-
     run_tests([ cgc_last
               ]).
 
-:- begin_tests(cgc_last).
+:- begin_tests(cgc_last,
+                [ setup(stop_gc_thread(Old)),
+                  cleanup(set_prolog_gc_thread(Old))
+                ]).
 
 :- dynamic fact/1, rule/1.
 
@@ -69,3 +76,7 @@ test(rule, S == S0) :-
 :- end_tests(cgc_last).
 
 succ_or_zero(_, _).
+
+stop_gc_thread(Old) :-
+    current_prolog_flag(gc_thread, Old),
+    set_prolog_gc_thread(false).
