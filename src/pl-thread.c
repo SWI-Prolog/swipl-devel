@@ -849,7 +849,9 @@ freePrologThread(PL_local_data_t *ld, int after_fork)
     info->thread_data = NULL;		/* avoid a loop */
     info->has_tid = false;		/* needed? */
     info->c_stack = NULL;
+#ifdef O_PLMT
     bool detached = info->detached;	/* see thread_detach/1 */
+#endif
     if ( !after_fork )
       PL_UNLOCK(L_THREAD);
 
@@ -4338,7 +4340,9 @@ PRED_IMPL("$engine_create", 3, engine_create, 0)
 
     new->thread.info->is_engine = true;
     th = create_thread_handle(new->thread.info);
+#ifdef O_PLMT
     init_interactor_mutex(th);		/* may be created without */
+#endif
     set(th, TH_IS_INTERACTOR);
     ATOMIC_INC(&GD->statistics.engines_created);
 
