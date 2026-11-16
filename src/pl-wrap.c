@@ -262,7 +262,7 @@ static ClauseRef
 assert_wrapper(DECL_LD term_t clause)
 { Clause cl;
 
-  if ( (cl = assert_term(clause, NULL, CL_END, NULL_ATOM, NULL, 0)) )
+  if ( (cl = assert_term(clause, NULL, CL_END, NULL_ATOM, NULL, 0, 0)) )
   { Definition def = cl->predicate;
     definition_ref *dref = pushPredicateAccessObj(def);
     ClauseRef cref;

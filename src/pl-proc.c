@@ -1411,12 +1411,20 @@ This function returns NULL on failure. One  of the failure cases is that
 the event notification vetoed the assert. In   this  case the clause has
 become part of the predicate. The caller should not call freeClause() if
 this function failed.
+
+(**) Once the clause is visible, another thread may retract it and
+clause GC may reclaim the clause and `cref`.  We hold a reference to the
+clause while calling the event hook and do not access it otherwise.
+Note that the caller may not access the returned `cref` if the clause
+may be retracted concurrently.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 ClauseRef
 assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
 { word key;
   ClauseRef cref;
+  gen_t created;
+  bool hold;
 
   if ( !add_ssu_clause(def, clause) )
   { freeClause(clause);
@@ -1428,6 +1436,9 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
   { freeClause(clause);
     return PL_no_memory(),NULL;
   }
+					/* See (**) */
+  if ( (hold = (def->events != NULL)) )
+    acquire_clause(clause);
 
   clause->generation.created = max_generation(def);
   clause->generation.erased  = 1;
@@ -1473,7 +1484,7 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
 
   if ( unlikely(!!LD->transaction.generation) && def && ison(def, P_TRANSACT) )
   { if ( LD->transaction.generation < LD->transaction.gen_max )
-    { clause->generation.created = ++LD->transaction.generation;
+    { clause->generation.created = created = ++LD->transaction.generation;
       clause->generation.erased  = max_generation(def);
     } else
     { PL_representation_error("transaction_generations");
@@ -1481,26 +1492,31 @@ assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
     }
   } else
   { PL_LOCK(L_GENERATION);
-    clause->generation.created = ++GD->_generation;
+    clause->generation.created = created = ++GD->_generation;
     clause->generation.erased  = max_generation(def);
     PL_UNLOCK(L_GENERATION);
   }
-
-  if ( ( def->events &&
+					/* clause is visible; see (**) */
+  if ( ( hold &&
 	 !(LD->transaction.flags&TR_BULK) &&
 	 !predicate_update_event(def,
 				 where == CL_START ? ATOM_asserta : ATOM_assertz,
 				 clause, 0) ) )
   { error:
     retractClauseDefinition(def, clause, false);
-    return NULL;
+    cref = NULL;
+    goto out;
   }
 
-  setLastModifiedPredicate(def, clause->generation.created, TWF_ASSERT);
+  setLastModifiedPredicate(def, created, TWF_ASSERT);
 
   if ( LD->transaction.generation &&
-       clause->generation.created >= LD->transaction.gen_base )
-    transaction_assert_clause(clause, where);
+       created >= LD->transaction.gen_base )
+    transaction_assert_clause(clause, where); /* only visible to us */
+
+out:
+  if ( hold )
+    release_clause(clause);
 
   return cref;
 }

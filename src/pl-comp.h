@@ -44,8 +44,8 @@
 	LDFUNC(get_head_and_body_clause, clause, head, body, m, flags)
 #define	compileClause(cp, head, body, proc, module, warnings, flags) \
 	LDFUNC(compileClause, cp, head, body, proc, module, warnings, flags)
-#define	assert_term(term, m, where, owner, loc, flags) \
-	LDFUNC(assert_term, term, m, where, owner, loc, flags)
+#define	assert_term(term, m, where, owner, loc, flags, ref) \
+	LDFUNC(assert_term, term, m, where, owner, loc, flags, ref)
 #define	det_goal_error(fr, PC, found) LDFUNC(det_goal_error, fr, PC, found)
 #define unify_functor(t, fd, how) LDFUNC(unify_functor, t, fd, how)
 #endif /*USE_LD_MACROS*/
@@ -64,7 +64,8 @@ ssize_t		compileClause(Clause *cp, Word head, Word body,
 			      Procedure proc, Module module,
 			      term_t warnings, int flags);
 Clause		assert_term(term_t term, Module m, ClauseRef where,
-			    atom_t owner, SourceLoc loc, int flags);
+			    atom_t owner, SourceLoc loc, int flags,
+			    term_t ref);
 bool		forAtomsInCodes(size_t size, Code PC,
 				int (func)(atom_t a, void*), void *ctx);
 void		register_clause_symbols(Clause clause, bool local);

@@ -5645,12 +5645,20 @@ the  end  of  the predicate and if a file is present, updates the source
 administration, checks for reconsults, etc.
 
 The warnings should help explain what is going on here.
+
+If `ref` is not 0, assert[az]/2 is asserting a dynamic clause and `ref`
+is unified with a reference to the new clause.  Once the clause is
+visible, another thread may retract it and clause GC may reclaim it, so
+we must not access it after adding it.  The clause reference blob keeps
+the clause alive, so we create it before adding the clause.  The
+returned clause may only be compared against NULL, except for the
+source (`owner`) case.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Clause
 assert_term(DECL_LD term_t term, Module module, ClauseRef where,
 	    atom_t owner, SourceLoc loc,
-	    int flags)
+	    int flags, term_t ref)
 { Clause clause;
   ClauseRef cref;
   Procedure proc;
@@ -5833,8 +5841,11 @@ mode, the predicate is still undefined and is not dynamic or multifile.
       goto derror;
   }
 
-  if ( (cref=assertProcedure(proc, clause, where)) )
-    return cref->value.clause;
+  if ( ref && !PL_unify_clref(ref, clause) )
+    goto derror;
+
+  if ( assertProcedure(proc, clause, where) )
+    return clause;			/* do not access; see above */
 
   return NULL;
 }
@@ -5844,7 +5855,7 @@ static
 PRED_IMPL("assertz", 1, assertz1, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return assert_term(A1, NULL, CL_END, NULL_ATOM, NULL, 0) != NULL;
+  return assert_term(A1, NULL, CL_END, NULL_ATOM, NULL, 0, 0) != NULL;
 }
 
 
@@ -5852,7 +5863,7 @@ static
 PRED_IMPL("asserta", 1, asserta1, PL_FA_TRANSPARENT)
 { PRED_LD
 
-  return assert_term(A1, NULL, CL_START, NULL_ATOM, NULL, 0) != NULL;
+  return assert_term(A1, NULL, CL_START, NULL_ATOM, NULL, 0, 0) != NULL;
 }
 
 
@@ -5869,28 +5880,20 @@ mustBeVar(DECL_LD term_t t)
 static
 PRED_IMPL("assertz", 2, assertz2, PL_FA_TRANSPARENT)
 { PRED_LD
-  Clause clause;
 
   if ( !mustBeVar(A2) )
     fail;
-  if ( !(clause = assert_term(A1, NULL, CL_END, NULL_ATOM, NULL, 0)) )
-    fail;
-
-  return PL_unify_clref(A2, clause);
+  return assert_term(A1, NULL, CL_END, NULL_ATOM, NULL, 0, A2) != NULL;
 }
 
 
 static
 PRED_IMPL("asserta", 2, asserta2, PL_FA_TRANSPARENT)
 { PRED_LD
-  Clause clause;
 
   if ( !mustBeVar(A2) )
     fail;
-  if ( !(clause = assert_term(A1, NULL, CL_START, NULL_ATOM, NULL, 0)) )
-    fail;
-
-  return PL_unify_clref(A2, clause);
+  return assert_term(A1, NULL, CL_START, NULL_ATOM, NULL, 0, A2) != NULL;
 }
 
 
@@ -5930,7 +5933,7 @@ record_clause(DECL_LD term_t term, term_t owner, term_t source, term_t ref)
   { return PL_type_error("source-location", source);
   }
 
-  if ( (clause = assert_term(term, NULL, CL_END, a_owner, &loc, 0)) )
+  if ( (clause = assert_term(term, NULL, CL_END, a_owner, &loc, 0, 0)) )
   { if ( ref )
     { assert(isoff(clause, CL_ERASED));
       return PL_unify_clref(ref, clause);
@@ -10190,7 +10193,7 @@ PL_assert(term_t term, module_t module, int flags)
     where = CL_START;
   flags &= (PL_CREATE_THREAD_LOCAL|PL_CREATE_INCREMENTAL);
 
-  return assert_term(term, module, where, 0, NULL, flags) != NULL;
+  return assert_term(term, module, where, 0, NULL, flags, 0) != NULL;
 }
 
 
