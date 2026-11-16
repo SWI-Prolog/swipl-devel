@@ -193,6 +193,27 @@ defOperator(Module m, atom_t name, unsigned char type, short priority, int force
 }
 
 
+/* Remove the local operators of `m` (abolish_module/1).  As readers
+   do not lock, we make the entries inherit rather than deleting them.
+*/
+
+void
+clearOperatorsModule(Module m)
+{ PL_LOCK(L_OP);
+  if ( m->operators )
+  { FOR_TABLE(m->operators, name, value)
+    { operator *op = val2ptr(value);
+
+      for(int kind = OP_PREFIX; kind <= OP_POSTFIX; kind++)
+      { op->priority[kind] = -1;
+	op->type[kind]     = OP_INHERIT;
+      }
+    }
+  }
+  PL_UNLOCK(L_OP);
+}
+
+
 		 /*******************************
 		 *	  QUERY OPERATORS	*
 		 *******************************/

@@ -59,6 +59,7 @@
             current_module/1,                   % ?Module
             module_property/2,                  % ?Module, ?Property
             module/1,                           % +Module
+            abolish_module/1,                   % +Module
             current_trie/1,                     % ?Trie
             trie_property/2,                    % ?Trie, ?Property
             working_directory/2,                % -OldDir, +NewDir
@@ -1243,6 +1244,25 @@ module(Module) :-
 module(Module) :-
     '$set_typein_module'(Module),
     print_message(warning, no_current_module(Module)).
+
+%!  abolish_module(+Module) is det.
+%
+%   Reset Module to a new empty module.  If  Module was loaded from a
+%   file, this file is unloaded.  See '$abolish_module'/1.
+
+abolish_module(Module) :-
+    (   atom(Module),
+        '$current_module'(Module, File),
+        File \== []
+    ->  true
+    ;   File = []
+    ),
+    '$abolish_module'(Module),
+    retractall(system:'$load_context_module'(_, Module, _)),
+    (   File == []
+    ->  true
+    ;   unload_file(File)
+    ).
 
 %!  working_directory(-Old, +New)
 %

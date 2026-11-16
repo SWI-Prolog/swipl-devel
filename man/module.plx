@@ -720,6 +720,27 @@ import/1 and export/1 or by specifying the import module as described in
 ?- world_c:import(world_b:solve/2).  % and import it to world_c
 \end{code}
 
+A world that is no longer needed can be emptied using abolish_module/1.
+
+\begin{description}
+    \predicate[det]{abolish_module}{1}{+Module}
+Reset \arg{Module} to a new, empty module. All predicates of
+\arg{Module} are abolished and their clauses are reclaimed by clause
+garbage collection (see garbage_collect_clauses/0). Exports and local
+operators are removed, the import module is reset to \const{user} and
+the module class and flags are reset to their defaults. If
+\arg{Module} was loaded from a file, this file is unloaded (see
+unload_file/1). Predicates imported from \arg{Module} into other
+modules become undefined.
+
+The module itself remains as an empty module, so clauses that call
+predicates of \arg{Module} keep working if these predicates are
+defined again. This predicate is safe to use while other threads are
+running code of \arg{Module}. Succeeds silently if \arg{Module} does not
+exist and raises a permission error for the modules \const{user} and
+\const{system} and other system modules.
+\end{description}
+
 
 \section{Transparent predicates: definition and context module}
 \label{sec:ctxmodule}

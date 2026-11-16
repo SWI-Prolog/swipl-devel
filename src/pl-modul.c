@@ -44,6 +44,7 @@
 #include "pl-fli.h"
 #include "pl-prims.h"
 #include "pl-wam.h"
+#include "pl-op.h"
 #undef LD
 #define LD LOCAL_LD
 
@@ -448,6 +449,78 @@ destroyModule(Module m)
 
   releaseModule(m);
   return true;
+}
+
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+abolishModule() implements abolish_module/1.  It resets the module to
+the state of a new module:
+
+  - All predicates are abolished.  Their clauses are reclaimed by clause
+    GC, and unpinned procedures by procedure GC.  Predicates imported
+    into other modules become undefined.
+  - Exports and local operators are removed.
+  - The import modules are reset to `user`.
+  - Links from source files are removed.
+  - Class and flags are reset.
+
+The module keeps its identity.  Unlike destroyModule(), this is safe
+while code of the module is running and if clauses of other modules
+refer to its predicates.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define abolishProceduresModule(m) LDFUNC(abolishProceduresModule, m)
+static void
+abolishProceduresModule(DECL_LD Module m)
+{ TableEnum e = newTableEnumWP(m->procedures);
+  table_key_t name;
+  table_value_t value;
+
+  while( advanceTableEnum(e, &name, &value) )
+  { Procedure proc = val2ptr(value);
+
+    if ( isVolatileProcedure(proc) ||
+	 !acquireTableProcedure(m, (functor_t)name, proc) )
+      continue;
+    if ( !(proc->definition->module == m &&
+	   ison(proc->definition, P_THREAD_LOCAL)) )
+      abolishProcedure(proc, m);
+    releaseProcedureRef(proc);
+  }
+  freeTableEnum(e);
+}
+
+
+#define MODULE_RESET_FLAGS (M_WAITED_FOR)
+
+#define abolishModule(m) LDFUNC(abolishModule, m)
+static bool
+abolishModule(DECL_LD Module m)
+{ DEBUG(MSG_DESTROY_MODULE,
+	Sdprintf("Abolishing module %s at %p\n", PL_atom_chars(m->name), m));
+
+  abolishProceduresModule(m);
+  clearHTableWP(m->public);
+  clearOperatorsModule(m);
+  unlinkSourceFilesModule(m);
+
+  PL_LOCK(L_MODULE);
+  m->line_no = 0;
+  if ( m->class != ATOM_temporary )
+    m->class = ATOM_user;
+  unsigned int flags = (m->flags&MODULE_RESET_FLAGS)|M_CHARESCAPE;
+  if ( !GD->options.traditional )
+    flags |= DBLQ_STRING|BQ_CODES|O_RATIONAL_SYNTAX;
+  m->flags = flags;
+  m->var_prefix = 0;
+#ifdef O_PROLOG_HOOK
+  m->hook = NULL;
+#endif
+  bool rc = setSuperModule(m, MODULE_user);
+  m->last_modified = global_generation();
+  PL_UNLOCK(L_MODULE);
+
+  return rc;
 }
 
 
@@ -1870,6 +1943,30 @@ PRED_IMPL("$destroy_module", 1, destroy_module, 0)
   return false;
 }
 
+/** '$abolish_module'(+Module) is det.
+ *
+ * Abolish Module.  See abolishModule().  Does nothing if Module does
+ * not exist.
+ */
+
+static
+PRED_IMPL("$abolish_module", 1, abolish_module, 0)
+{ PRED_LD
+  atom_t name;
+  Module m;
+
+  if ( !PL_get_atom_ex(A1, &name) )
+    return false;
+  if ( !(m=isCurrentModule(name)) )
+    return true;
+  if ( name == ATOM_user || name == ATOM_system ||
+       ison(m, M_SYSTEM) || m->class == ATOM_system )
+    return PL_error("abolish_module", 1, "system module",
+		    ERR_PERMISSION, ATOM_abolish, ATOM_module, A1);
+
+  return abolishModule(m);
+}
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -1890,6 +1987,7 @@ BeginPredDefs(module)
   PRED_DEF("export", 1, export, PL_FA_TRANSPARENT)
   PRED_DEF("$undefined_export", 2, undefined_export, 0)
   PRED_DEF("$destroy_module", 1, destroy_module, 0)
+  PRED_DEF("$abolish_module", 1, abolish_module, 0)
   PRED_DEF("$current_source_module", 1, current_source_module, 0)
   PRED_DEF("$set_source_module", 1, set_source_module, 0)
   PRED_DEF("$current_typein_module", 1, current_typein_module, 0)
