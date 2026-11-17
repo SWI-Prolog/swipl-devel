@@ -268,11 +268,16 @@ next_clause_static(DECL_LD const ClauseChoice chp, Definition def,
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 firstClause() and nextClause() try the static fast path and fall back
 to first_clause_search() / next_clause_search() in pl-index.c.
+
+firstClauseVM() is for S_STATIC, where the frame sits above lTop.
+The common cases need no lTop; set it only before first_clause_search().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #if USE_LD_MACROS
 #define	firstClause(av, fr, def, next) \
 	LDFUNC(firstClause, av, fr, def, next)
+#define	firstClauseVM(av, fr, def, next) \
+	LDFUNC(firstClauseVM, av, fr, def, next)
 #define	nextClause(chp, argv, fr, def) \
 	LDFUNC(nextClause, chp, argv, fr, def)
 #endif /*USE_LD_MACROS*/
@@ -286,6 +291,22 @@ firstClause(DECL_LD Word argv, LocalFrame fr, Definition def,
     return cref;
 
   { struct clause_choice gchp = {0};	/* (*) */
+    cref = LDFUNC_NAME(first_clause_search)(LD, argv, fr, def, &gchp);
+    *chp = gchp;
+    return cref;
+  }
+}
+
+static inline ClauseRef
+firstClauseVM(DECL_LD Word argv, LocalFrame fr, Definition def,
+	      ClauseChoice chp)
+{ ClauseRef cref;
+
+  if ( first_clause_static(argv, def, chp, &cref) )
+    return cref;
+
+  { struct clause_choice gchp = {0};	/* (*) */
+    lTop = (LocalFrame)(argv + def->functor->arity);
     cref = LDFUNC_NAME(first_clause_search)(LD, argv, fr, def, &gchp);
     *chp = gchp;
     return cref;

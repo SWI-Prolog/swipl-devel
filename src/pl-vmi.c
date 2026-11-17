@@ -3460,21 +3460,26 @@ END_VMI
 Generic calling code.  This needs to be specialised.
 
 Note that FR->clause is still NULL. We need to keep that while doing the
-possible stack-expansion in ENSURE_LOCAL_SPACE(), which   is  why we use
-the temporary variable `cl' for storing the clause.
+possible stack-expansion,  which is  why we  use the  temporary variable
+`cl' for storing the clause.
+
+The frame is above lTop.   firstClauseVM() only sets lTop if it needs to
+call  the general  clause selection.   We set  lTop if  there is  no
+clause, we must grow the stack and finally to the top of the frame.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(S_STATIC, 0, 0, ())
 { ClauseRef cl;
   struct clause_choice chp;
+  Word ltop;
 
   ARGP = argFrameP(FR, 0);
-  lTop = (LocalFrame)ARGP+DEF->functor->arity;
 
   DEBUG(9, Sdprintf("Searching clause ... "));
 
-  if ( !(cl = firstClause(ARGP, FR, DEF, &chp)) )
+  if ( !(cl = firstClauseVM(ARGP, FR, DEF, &chp)) )
   { DEBUG(9, Sdprintf("No clause matching index.\n"));
+    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
     if ( debugstatus.debugging ||
 	 ison(FR, FR_SSU_DET|FR_DET|FR_DETGUARD) )
       newChoice(CHP_DEBUG, FR);
@@ -3484,10 +3489,24 @@ VMI(S_STATIC, 0, 0, ())
   DEBUG(9, Sdprintf("Clauses found.\n"));
 
   PC = cl->value.clause->codes;
-  ENSURE_LOCAL_SPACE(LOCAL_MARGIN+cl->value.clause->variables*sizeof(word),
-		     THROW_EXCEPTION);
-  lTop = (LocalFrame)(ARGP + cl->value.clause->variables);
+  ltop = ARGP + cl->value.clause->variables;
+  if ( unlikely(ltop > (Word)lMax ||
+		!hasSpace((char*)ltop, (char*)lMax, LOCAL_MARGIN)) )
+  { boolex_t rc;
+
+    lTop = (LocalFrame)argFrameP(FR, DEF->functor->arity);
+    SAVE_REGISTERS(QID);
+    rc = growLocalSpace(LOCAL_MARGIN+cl->value.clause->variables*sizeof(word),
+			ALLOW_SHIFT);
+    LOAD_REGISTERS(QID);
+    if ( rc != true )
+    { raiseStackOverflow(rc);
+      THROW_EXCEPTION;
+    }
+    ltop = ARGP + cl->value.clause->variables;
+  }
   CL = cl;
+  lTop = (LocalFrame)ltop;
 
   if ( chp.cref )
   { Choice ch = newChoice(CHP_CLAUSE, FR);
