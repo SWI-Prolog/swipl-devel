@@ -1438,23 +1438,30 @@ reclaimed.
 If abolish/1 made it static in the meanwhile, we would add the clause to
 a static predicate.  As if abolish/1 came first, we make it dynamic
 again while holding the lock that abolish/1 uses.
+
+(*****) The definition of `proc` may have been replaced since the caller
+fetched `def`, e.g., by autoImport() importing the predicate.  Adding the
+clause would add it to a definition that is no longer used or, if `def`
+was fetched after the replacement, to the imported definition.  As if
+the import came first, we raise a permission error.  See autoImport().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define AD_DYNAMIC 0x1			/* assert/1: make dynamic */
 
-#define assertDefinition_(def, clause, where, flags) \
-	LDFUNC(assertDefinition_, def, clause, where, flags)
+#define assertDefinition_(def, clause, where, flags, proc) \
+	LDFUNC(assertDefinition_, def, clause, where, flags, proc)
 static ClauseRef assertDefinition_(DECL_LD Definition def, Clause clause,
-				   ClauseRef where, int flags);
+				   ClauseRef where, int flags,
+				   Procedure proc);
 
 ClauseRef
 assertDefinition(DECL_LD Definition def, Clause clause, ClauseRef where)
-{ return assertDefinition_(def, clause, where, 0);
+{ return assertDefinition_(def, clause, where, 0, NULL);
 }
 
 static ClauseRef
 assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
-		  int flags)
+		  int flags, Procedure proc)
 { word key;
   ClauseRef cref;
   gen_t created;
@@ -1476,6 +1483,15 @@ assertDefinition_(DECL_LD Definition def, Clause clause, ClauseRef where,
   clause->generation.erased  = 1;
 
   LOCKDEF(def);
+  if ( proc && unlikely(def != proc->definition) &&	/* See (*****) */
+       isoff(def, P_LOCALISED) )
+  { UNLOCKDEF(def);
+    freeHeap(cref, SIZEOF_CREF_CLAUSE);
+    freeClause(clause);
+    PL_error(NULL, 0, NULL, ERR_PERMISSION_PROC,
+	     ATOM_redefine, ATOM_imported_procedure, proc);
+    return NULL;
+  }
   if ( (flags&AD_DYNAMIC) && isoff(def, P_DYNAMIC) &&	/* See (****) */
        def->impl.clauses.number_of_clauses == 0 )
     setDynamicDefinition_unlocked(def, true);
@@ -1562,7 +1578,7 @@ ClauseRef
 assertProcedure(DECL_LD Procedure proc, Clause clause, ClauseRef where)
 { Definition def = getProcDefinition(proc);
 
-  return assertDefinition(def, clause, where);
+  return assertDefinition_(def, clause, where, 0, proc);
 }
 
 /* As assertProcedure(), for assert/1: the predicate is dynamic */
@@ -1571,7 +1587,7 @@ ClauseRef
 assertDynamicProcedure(DECL_LD Procedure proc, Clause clause, ClauseRef where)
 { Definition def = getProcDefinition(proc);
 
-  return assertDefinition_(def, clause, where, AD_DYNAMIC);
+  return assertDefinition_(def, clause, where, AD_DYNAMIC, proc);
 }
 
 
@@ -3152,6 +3168,13 @@ decided its not save, but can't recall why ...)
 Its definitely not safe in MT context as   others  may be racing for the
 definition.  How  do  we  get   this    working   without   locking  the
 proc->definition fetch?
+
+(*) Another thread may define the procedure concurrently, e.g., assert/1
+makes it dynamic using implicitDynamicProcedure() and adds a clause.
+Both happen under LOCKDEF() of its definition.  We therefore check that
+the procedure is still undefined while holding LOCKDEF() of the old
+definition.  If it was defined, we leave it alone.  See also
+assertDefinition_().  We do not call Prolog while holding the locks.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Definition
@@ -3187,8 +3210,16 @@ found:
 					/* done the job for us. */
   LOCKMODULE(m);
   if ( (odef=proc->definition) != def )	/* Nope, we must link the def */
-  { shareDefinition(def);
+  { LOCKDEF(odef);			/* See (*) */
+    if ( proc->definition != odef || isDefinedProcedure(proc) )
+    { def = proc->definition;		/* defined concurrently */
+      UNLOCKDEF(odef);
+      UNLOCKMODULE(m);
+      return def;
+    }
+    shareDefinition(def);
     proc->definition = def;
+    UNLOCKDEF(odef);
 
     if ( unshareDefinition(odef) == 0 )
     {
