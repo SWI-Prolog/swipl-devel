@@ -71,7 +71,8 @@ bool		forAtomsInCodes(size_t size, Code PC,
 void		register_clause_symbols(Clause clause, bool local);
 bool		forAtomsAndFunctorsInClause(Clause clause,
 				int (func)(atom_t a, void*), void *ctx,
-				void (*ffunc)(functor_t f));
+				void (*ffunc)(functor_t f),
+				void (*pfunc)(Procedure proc));
 bool		forAtomsInClause(Clause clause,
 				 int (func)(atom_t a, void*), void *ctx);
 Code		stepDynPC(Code PC, const code_info *ci);

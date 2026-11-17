@@ -201,6 +201,7 @@ pl_dwim_predicate(term_t pred, term_t dwim, control_t h)
 { GET_LD
   functor_t fdef;
   Module module = (Module) NULL;
+  table_key_t key;
   table_value_t val;
   term_t head = PL_new_term_ref();
   TableEnum e;
@@ -221,22 +222,24 @@ pl_dwim_predicate(term_t pred, term_t dwim, control_t h)
   else
     e = ForeignContextPtr(h);
 
-  while( advanceTableEnum(e, NULL, &val) )
+  while( advanceTableEnum(e, &key, &val) )
   { Procedure proc = val2ptr(val);
     Definition def;
     char *name;
 
+    if ( isVolatileProcedure(proc) ||
+	 !acquireTableProcedure(module, (functor_t)key, proc) )
+      continue;
     def  = proc->definition;
     name = stringAtom(def->functor->name);
 
-    if ( dwimMatch(stringAtom(nameFunctor(fdef)), name) &&
-         isDefinedProcedure(proc) &&
-         (name[0] != '$' || SYSTEM_MODE) )
-    { if ( !PL_unify_functor(dwim, def->functor->functor) )
-	continue;
-
+    bool found = ( dwimMatch(stringAtom(nameFunctor(fdef)), name) &&
+		   isDefinedProcedure(proc) &&
+		   (name[0] != '$' || SYSTEM_MODE) &&
+		   PL_unify_functor(dwim, def->functor->functor) );
+    releaseProcedureRef(proc);
+    if ( found )
       ForeignRedoPtr(e);
-    }
   }
 
   freeTableEnum(e);

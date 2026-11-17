@@ -621,6 +621,9 @@ activateProfiler(DECL_LD prof_status active)
     return PL_error(NULL, 0, why, ERR_NOT_IMPLEMENTED,
 		    "exact_cputime");
 
+  if ( active )
+    disableProcedureGC();		/* we keep Definition pointers */
+
   PL_LOCK(L_THREAD);
 
   if ( active && (profiling=GD->profile.thread) )

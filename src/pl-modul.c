@@ -362,7 +362,10 @@ unallocModule(Module m)
   }
 
   if ( m->public )     destroyHTableWP(m->public);
-  if ( m->procedures ) destroyHTableWP(m->procedures);
+  if ( m->procedures )
+  { purgeProcedureCandidates(m);
+    destroyHTableWP(m->procedures);
+  }
   if ( m->operators )  destroyHTableWP(m->operators);
   if ( m->supers )     unallocList(m->supers);
 #ifdef O_PLMT
@@ -1330,8 +1333,12 @@ declareModule(atom_t name, atom_t class, atom_t super,
   } else
   { FOR_TABLE(module->procedures, name, value)
     { Procedure proc = val2ptr(value);
-      Definition def = proc->definition;
+      Definition def;
 
+      if ( isVolatileProcedure(proc) ||
+	   !acquireTableProcedure(module, (functor_t)name, proc) )
+	continue;
+      def = proc->definition;
       if ( !ison(def, P_DYNAMIC|P_MULTIFILE|P_FOREIGN) )
       { if ( def->module == module &&
 	     hasClausesDefinition(def) )
@@ -1346,6 +1353,7 @@ declareModule(atom_t name, atom_t class, atom_t super,
 	}
 	abolishProcedure(proc, module);
       }
+      releaseProcedureRef(proc);
     }
     clearHTableWP(module->public);
   }
@@ -1441,14 +1449,19 @@ sizeof_module(Module m)
 
   FOR_TABLE(m->procedures, name, value)
   { Procedure proc = val2ptr(value);
-    Definition def = proc->definition;
+    Definition def;
 
     size += sizeof(*proc);
+    if ( isVolatileProcedure(proc) ||
+	 !acquireTableProcedure(m, (functor_t)name, proc) )
+      continue;
+    def = proc->definition;
 
     if ( def->module == m && isoff(def, P_FOREIGN) )
     { Definition def = getProcDefinition(proc);
       size += sizeof_predicate(def);
     }
+    releaseProcedureRef(proc);
   }
 
   return size;
@@ -1707,7 +1720,7 @@ import(DECL_LD term_t pred, term_t strength)
     autoImport(proc->definition->functor->functor, proc->definition->module);
 
 retry:
-  if ( (old = isCurrentProcedure(proc->definition->functor->functor,
+  if ( (old = pinCurrentProcedure(proc->definition->functor->functor,
 				 destination)) )
   { LOCKMODULE(destination);
     if ( old->definition == proc->definition )
@@ -1788,7 +1801,8 @@ retry:
   { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
     Procedure old;
 
-    nproc->flags = pflags;
+    nproc->flags = pflags|PROC_PINNED;
+    nproc->references = 0;
     nproc->source_no = 0;
     shareDefinition(proc->definition);
     nproc->definition = proc->definition;

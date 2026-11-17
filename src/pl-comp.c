@@ -494,6 +494,8 @@ typedef struct
   int		an_cur;			/* Current an_node */
   bool		an_valid;		/* Slot sets are available */
   tmp_buffer	codes;			/* scratch code table */
+  tmp_buffer	procs;			/* Referenced procedures; see */
+					/* release_compile_procs() */
 } compileInfo, *CompileInfo;
 
 /* Add the references of a new clause to its atoms and functors.  The
@@ -521,7 +523,7 @@ register_clause_symbols(Clause clause, bool local)
 { forAtomsAndFunctorsInClause(clause,
 			      local ? register_local_clause_atom
 				    : register_clause_atom,
-			      NULL, acquireFunctor);
+			      NULL, acquireFunctor, acquireProcedureRef);
 }
 
 
@@ -2551,6 +2553,24 @@ goal-term and therefore initialised. This implies   there  is no need to
 play around with variable tables.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+/* The compiler holds a reference to each procedure it calls (see
+   lookupBodyProcedureRef()) until the clause is registered, which adds
+   a reference for each call (register_clause_symbols()).  Local clauses
+   are not registered.  Their code lives on the local stack, which
+   procedure GC cannot safely scan, so they call permanent procedures
+   (lookupBodyProcedure()).
+*/
+
+static void
+release_compile_procs(CompileInfo ci)
+{ Procedure *p = baseBuffer(&ci->procs, Procedure);
+  Procedure *e = topBuffer(&ci->procs, Procedure);
+
+  for(; p < e; p++)
+    releaseProcedureRef(*p);
+  discardBuffer(&ci->procs);
+}
+
 ssize_t
 compileClause(DECL_LD Clause *cp, Word head, Word body,
 	      Procedure proc, Module module, term_t warnings,
@@ -2565,6 +2585,7 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
 
   ci->progress = 0;
   initBuffer(&ci->codes);
+  initBuffer(&ci->procs);
 
   if ( head )
   { ci->islocal       = false;
@@ -2636,6 +2657,7 @@ compileClause(DECL_LD Clause *cp, Word head, Word body,
     { resetVars();
       discard_branch_info(ci);
       discardBuffer(&ci->codes);
+      discardBuffer(&ci->procs);
       return PL_error(NULL, 0, NULL, ERR_NOMEM);
     }
     clearVarTable(ci);
@@ -2841,6 +2863,7 @@ Finish up the clause.
 		    == (Word)lTop));
   }
 
+  release_compile_procs(ci);		/* after registering or pushing cl */
   discardBuffer(&ci->codes);
   discard_branch_info(ci);
   if ( used_var_heap )
@@ -2852,6 +2875,7 @@ Finish up the clause.
 exit_fail:
   resetVars();
   discard_branch_info(ci);
+  release_compile_procs(ci);
   discardBuffer(&ci->codes);
   if ( used_var_heap )
     tmp_free(used_var_heap);
@@ -4265,7 +4289,12 @@ appropriate calling instruction.
 
   tm = (ci->colon_context.type == TM_MODULE ? ci->colon_context.module
 					    : ci->module);
-  proc = lookupBodyProcedure(functor, tm);
+  if ( ci->islocal )			/* see release_compile_procs() */
+  { proc = lookupBodyProcedure(functor, tm);
+  } else
+  { proc = lookupBodyProcedureRef(functor, tm);
+    addBuffer(&ci->procs, proc, Procedure);
+  }
 
 #ifdef O_CALL_AT_MODULE
   if ( ci->at_context.type != TM_NONE )
@@ -5531,7 +5560,8 @@ output_indirect(DECL_LD compileInfo *ci, code op, Word p)
 
 static bool
 for_atoms_in_codes(size_t size, Code PC, int (func)(atom_t a, void*),
-		   void *ctx, void (*ffunc)(functor_t f))
+		   void *ctx, void (*ffunc)(functor_t f),
+		   void (*pfunc)(Procedure proc))
 { Code ep = PC + size;
 
   for( ; PC < ep; PC = stepPC(PC) )
@@ -5553,6 +5583,11 @@ for_atoms_in_codes(size_t size, Code PC, int (func)(atom_t a, void*),
 	  if ( ffunc )
 	    (*ffunc)((functor_t)PC[an+1]);
 	  break;
+	case CA1_PROC:
+	case CA1_LPROC:
+	  if ( pfunc )
+	    (*pfunc)(code2ptr(Procedure, PC[an+1]));
+	  break;
       }
     }
   }
@@ -5562,7 +5597,7 @@ for_atoms_in_codes(size_t size, Code PC, int (func)(atom_t a, void*),
 
 bool
 forAtomsInCodes(size_t size, Code PC, int (func)(atom_t a, void*), void *ctx)
-{ return for_atoms_in_codes(size, PC, func, ctx, NULL);
+{ return for_atoms_in_codes(size, PC, func, ctx, NULL, NULL);
 }
 
 bool
@@ -5570,14 +5605,17 @@ forAtomsInClause(Clause clause, int (func)(atom_t a, void*), void *ctx)
 { return forAtomsInCodes(clause->code_size, clause->codes, func, ctx);
 }
 
-/* As forAtomsInClause(), also calling ffunc() on the functors */
+/* As forAtomsInClause(), also calling ffunc() on the functors and
+   pfunc() on the procedures.
+*/
 
 bool
 forAtomsAndFunctorsInClause(Clause clause,
 			    int (func)(atom_t a, void*), void *ctx,
-			    void (*ffunc)(functor_t f))
+			    void (*ffunc)(functor_t f),
+			    void (*pfunc)(Procedure proc))
 { return for_atoms_in_codes(clause->code_size, clause->codes,
-			    func, ctx, ffunc);
+			    func, ctx, ffunc, pfunc);
 }
 
 #endif /*O_ATOMGC*/
@@ -5655,21 +5693,32 @@ returned clause may only be compared against NULL, except for the
 source (`owner`) case.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+#define assert_proc(proc, mhead, module, head, body, where, owner, \
+		    loc, flags, ref, warnings, hflags) \
+	LDFUNC(assert_proc, proc, mhead, module, head, body, where, owner, \
+	       loc, flags, ref, warnings, hflags)
+static Clause assert_proc(DECL_LD Procedure proc, Module mhead, Module module,
+			  term_t head, term_t body, ClauseRef where,
+			  atom_t owner, SourceLoc loc, int flags,
+			  term_t ref, term_t warnings, int hflags);
+
+/* Loading a file (`loc`) pins the procedure: the source administration
+   keeps it.  Otherwise we use a counted reference, such that abolishing
+   the predicate allows reclaiming it.  See procedure GC in pl-proc.c.
+*/
+
 Clause
 assert_term(DECL_LD term_t term, Module module, ClauseRef where,
 	    atom_t owner, SourceLoc loc,
 	    int flags, term_t ref)
 { Clause clause;
-  ClauseRef cref;
   Procedure proc;
-  Definition def;
   Module source_module = (loc ? LD->modules.source : (Module) NULL);
   Module mhead;
   term_t tmp      = PL_new_term_refs(4);
   term_t head     = tmp+1;
   term_t body     = tmp+2;
   term_t warnings = (owner ? tmp+3 : 0);
-  Word h, b;
   functor_t fdef;
   int hflags = 0;
 
@@ -5683,12 +5732,41 @@ assert_term(DECL_LD term_t term, Module module, ClauseRef where,
     return NULL;
   if ( !get_head_functor(head, &fdef, 0) )
     return NULL;			/* not callable, arity too high */
-  if ( !(proc = isCurrentProcedure(fdef, mhead)) )
-  { if ( checkModifySystemProc(fdef) )
-      proc = lookupProcedure(fdef, mhead);
-    if ( !proc )
-      return NULL;
+  if ( loc )
+  { if ( !(proc = isCurrentProcedure(fdef, mhead)) )
+    { if ( checkModifySystemProc(fdef) )
+	proc = lookupProcedure(fdef, mhead);
+      if ( !proc )
+	return NULL;
+    }
+  } else
+  { if ( !(proc = isCurrentProcedureRef(fdef, mhead)) )
+    { if ( checkModifySystemProc(fdef) )
+	proc = lookupProcedureRef(fdef, mhead);
+      if ( !proc )
+	return NULL;
+    }
   }
+
+  clause = assert_proc(proc, mhead, module, head, body, where, owner,
+		       loc, flags, ref, warnings, hflags);
+  if ( !loc )
+    releaseProcedureRef(proc);
+
+  return clause;
+}
+
+
+static Clause
+assert_proc(DECL_LD Procedure proc, Module mhead, Module module,
+	    term_t head, term_t body, ClauseRef where,
+	    atom_t owner, SourceLoc loc, int flags,
+	    term_t ref, term_t warnings, int hflags)
+{ Clause clause;
+  ClauseRef cref;
+  Definition def;
+  Word h, b;
+
   if ( flags && !isDefinedProcedure(proc) )
   { if ( (flags&PL_CREATE_INCREMENTAL) )
       tbl_set_incremental_predicate(proc->definition, true);
@@ -5756,6 +5834,13 @@ assert_term(DECL_LD term_t term, Module module, ClauseRef where,
   }
   DEBUG(2, Sdprintf("ok\n"));
   def = getProcDefinition(proc);
+  if ( !loc &&				/* see releaseDefinition() */
+       !(LOAD_SEQ_CST(proc->flags)&PROC_PINNED) &&
+       def == proc->definition &&
+       LOAD_SEQ_CST(def->clause_refs) > 0 )
+  { ATOMIC_INC(&def->clause_refs);
+    set(clause, CL_DEF_REF);
+  }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 If loc is defined, we  are   called  from  '$record_clause'/2. This code
@@ -8353,16 +8438,18 @@ clause(term_t head, term_t body, term_t ref, term_t bindings, int flags,
 
 	return false;
       }
-      if ( !get_procedure(head, &proc, 0, GP_FIND) )
+      if ( !get_procedure(head, &proc, 0, GP_FIND|GP_REF) )
 	return false;
       def = getProcDefinition(proc);
       if ( !isDefinedProcedure(proc) && ison(def, P_AUTOLOAD) )
 	def = trapUndefined(def);
 
-      if ( protected_predicate(def) )
+      if ( protected_predicate(def) ||
+	   !(dref=pushPredicateAccessObj(def)) )
+      { releaseProcedureRef(proc);
 	return false;
-      if ( !(dref=pushPredicateAccessObj(def)) )
-	return false;
+      }
+      releaseProcedureRef(proc);	/* def is now accessed */
 
       chp = NULL;
       setGenerationFrameVal(environment_frame, dref->generation);
