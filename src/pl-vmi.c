@@ -1104,40 +1104,47 @@ not needed as we are writing above the stack.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 VMI(B_VAR0, VIF_LCO, 0, ())
-{ VMH_GOTO(bvar_cont, VAROFFSET(0));
+{ if ( put_bound_var(FR, VAROFFSET(0), ARGP) )
+  { ARGP++;
+    NEXT_INSTRUCTION;
+  }
+  VMH_GOTO(bvar_globalise, VAROFFSET(0));
 }
 END_VMI
 
 VMI(B_VAR1, VIF_LCO, 0, ())
-{ VMH_GOTO(bvar_cont, VAROFFSET(1));
+{ if ( put_bound_var(FR, VAROFFSET(1), ARGP) )
+  { ARGP++;
+    NEXT_INSTRUCTION;
+  }
+  VMH_GOTO(bvar_globalise, VAROFFSET(1));
 }
 END_VMI
 
 VMI(B_VAR2, VIF_LCO, 0, ())
-{ VMH_GOTO(bvar_cont, VAROFFSET(2));
+{ if ( put_bound_var(FR, VAROFFSET(2), ARGP) )
+  { ARGP++;
+    NEXT_INSTRUCTION;
+  }
+  VMH_GOTO(bvar_globalise, VAROFFSET(2));
 }
 END_VMI
 
 VMI(B_VAR, VIF_LCO, 1, (CA1_VAR))
-{ VMH_GOTO(bvar_cont, (int)*PC++);
+{ int voffset = (int)*PC++;
+
+  if ( put_bound_var(FR, voffset, ARGP) )
+  { ARGP++;
+    NEXT_INSTRUCTION;
+  }
+  VMH_GOTO(bvar_globalise, voffset);
 }
 END_VMI
 
-/* The slow paths of hot instructions are separate VMH helpers, so the
- * fast path of the tail-calling VMI functions needs no stack frame
- * (GCC does not shrink-wrap preserve_none functions).  See
- * doc/tabling/tailcall-vm.md.
+/* The slow path is a separate VMH helper, so the fast path of the
+ * tail-calling VMI functions needs no stack frame (GCC does not
+ * shrink-wrap preserve_none functions).  See doc/tabling/tailcall-vm.md.
  */
-
-VMH(bvar_cont, 1, (int), (voffset))
-{ Word p;
-  p = varFrameP(FR, voffset);
-  if ( unlikely(isVar(*p)) )
-    VMH_GOTO(bvar_globalise, voffset);
-  *ARGP++ = linkValI(p);
-  NEXT_INSTRUCTION;
-}
-END_VMH
 
 VMH(bvar_globalise, 1, (int), (voffset))
 { Word p;
@@ -1884,11 +1891,17 @@ execution can continue at `next_instruction'
 
 VMI(I_CALL, VIF_BREAK, 1, (CA1_LPROC))
 { Procedure proc = code2ptr(Procedure, *PC++);
+  LocalFrame nfr = lTop;		/* local: avoid NFR in memory */
 
-  NFR = lTop;
-  setNextFrameFlags(NFR, FR);
+  setNextFrameFlags(nfr, FR);
   DEF = proc->definition;
-  VMH_GOTO(normal_call);
+  open_call_frame(nfr, FR, DEF, PC);
+  environment_frame = FR = nfr;		/* open the frame */
+
+  if ( unlikely(!hasLocalSpace(LOCAL_MARGIN)) )
+    VMH_GOTO(normal_call_grow);
+
+  VMH_GOTO(depart_or_retry_continue);
 }
 END_VMI
 
@@ -1916,11 +1929,10 @@ possible to be able to call-back to Prolog.
 (*) If we do not resolve here,  the handleSignals() may resolve the same
 procedure and deallocate our temporary version if threading is not used.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
-{ NFR->parent         = FR;
-  setFramePredicate(NFR, DEF);		/* TBD */
-  NFR->programPointer = PC;		/* save PC in child */
-  NFR->clause         = NULL;		/* for save atom-gc */
-  environment_frame = FR = NFR;		/* open the frame */
+{ LocalFrame nfr = NFR;			/* avoid reloading NFR */
+
+  open_call_frame(nfr, FR, DEF, PC);
+  environment_frame = FR = nfr;		/* open the frame */
 
   if ( unlikely(!hasLocalSpace(LOCAL_MARGIN)) )
     VMH_GOTO(normal_call_grow);
