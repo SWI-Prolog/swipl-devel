@@ -5727,6 +5727,15 @@ assert_term(DECL_LD term_t term, Module module, ClauseRef where,
 	PL_write_term(Serror, term, 1200, PL_WRT_QUOTED);
 	Sdprintf(" ... "););
 
+/* (*) A clause loaded from a file may define a local version of an
+   imported predicate.  This replaces the definition of `proc`, so we
+   must do so before compiling the clause, which records the definition
+   in clause->predicate and decides on I_CONTEXT based on it.
+*/
+
+  if ( loc && !overruleImportedProcedure(proc, mhead) )	/* See (*) */
+    return NULL;
+
   for(;;)
   { ssize_t rc;
 
@@ -5771,17 +5780,12 @@ takes care of reconsult, redefinition, etc.
     }
     clause->owner_no  = of->index;
 
-    if ( !overruleImportedProcedure(proc, mhead) )
-    { error:
-      freeClause(clause);
-      return NULL;
-    }
-    def = getProcDefinition(proc);	/* may be changed */
-
     if ( proc != of->current_procedure )
     { if ( def->impl.any.defined )
       { if ( !redefineProcedure(proc, of, 0) )
-	  goto error;
+	{ freeClause(clause);
+	  return NULL;
+	}
       }
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
