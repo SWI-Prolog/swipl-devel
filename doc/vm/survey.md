@@ -3,8 +3,9 @@
 Status: **in progress** on branch `vm-perf`.  Done: the candidate-index
 ordering bug found with Alpino (d6f978478), 1b (4508feeda) and the
 frameless simple unification of 4 (cfd9974e5).  Measured and shelved:
-1a, inlining the `B_VARn` fast path and avoiding `memset()` in
-`H_RFUNCTOR`/`B_RFUNCTOR`.  See [Results](#results).
+1a and inlining the `B_VARn` fast path.  Avoiding `memset()` in
+`H_RFUNCTOR`/`B_RFUNCTOR` was shelved here, but landed later as
+6752b79cc.  See [Results](#results).
 
 A survey of low-hanging fruit in the virtual machine: clause selection
 for small static predicates, the cost of a call and exit, last-call
@@ -120,11 +121,15 @@ disappeared with repetitions.
     reload of the variable offset through the register file and makes
     the instructions frameless.  0.1-0.6% fewer instructions, cycles
     within ±1-3% without a direction (`perf stat -r 5`).
-  - **No `memset()` in `H_RFUNCTOR`/`B_RFUNCTOR`, shelved.**  A switch
-    for arity 1-4 and a loop GCC cannot turn into `memset()` remove the
-    call, but both keep a stack frame for other reasons
-    (`bind_attvar_const()`, spills).  log10 2.4% and poly_10 1% faster,
-    chat_parser 2-4% slower.
+  - **No `memset()` in `H_RFUNCTOR`/`B_RFUNCTOR`, shelved, later
+    landed.**  A switch for arity 1-4 and a loop GCC cannot turn into
+    `memset()` remove the call, but both keep a stack frame for other
+    reasons (`bind_attvar_const()`, spills).  log10 2.4% and poly_10 1%
+    faster, chat_parser 2-4% slower.  Re-measured (2026-11-17) as
+    6752b79cc (PR #1565, `clearWordsScalar()`, also used by `T_FUNCTOR`
+    and `C_VAR_N`) on the then master: full `bench/` suite, cycles
+    -1.6% (GCC 16), +0.2% (GCC 16 PGO) and -3.3% (Clang 22); chat_parser
+    -2% to +1%.
 
 These agree with `doc/tabling/tailcall-vm.md`: removing a few
 instructions from a VMI does not show unless it breaks a dependency
@@ -385,7 +390,8 @@ Removing instructions (each about 1%, guess):
     turns clearing the arguments into `call memset` even for arity 1–3,
     which also forces a stack frame.  memset is 1.1% of `bench/`.  The
     clearing must stay (GC may run before all arguments are filled);
-    use an explicit loop for small arities.  Effort S.
+    use an explicit loop for small arities.  Effort S.  Done in
+    6752b79cc.
   - **Cold slow paths out of hot VMIs.**  GCC does not shrink-wrap
     `preserve_none` functions, so a call on the slow path gives the fast
     path a stack frame: `B_ATOM`/`H_ATOM` (`markAtom()`), `H_NIL`,
