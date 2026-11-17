@@ -2602,6 +2602,38 @@ leaveFrame(LocalFrame fr)
 }
 
 
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Helpers for the VM instructions.  They do the work; the instruction does
+the control transfer.  Inlining keeps the values in registers rather
+than passing them through the register file to a VMH helper.
+
+put_bound_var() stores the value of the variable at `voffset` in `argp`
+for B_VAR<N>.  It returns false, writing nothing, if the variable is
+unbound and must be globalised.
+
+open_call_frame() fills the slots of the new frame `nfr` common to all
+calls.  The caller makes `nfr` the current frame.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+static inline bool
+put_bound_var(LocalFrame fr, int voffset, Word argp)
+{ Word p = varFrameP(fr, voffset);
+
+  if ( unlikely(isVar(*p)) )
+    return false;
+  *argp = linkValI(p);
+  return true;
+}
+
+static inline void
+open_call_frame(LocalFrame nfr, LocalFrame fr, Definition def, Code pc)
+{ nfr->parent         = fr;
+  setFramePredicate(nfr, def);		/* TBD */
+  nfr->programPointer = pc;		/* save PC in child */
+  nfr->clause         = NULL;		/* for save atom-gc */
+}
+
+
 #define discardFrame(fr) LDFUNC(discardFrame, fr)
 static void
 discardFrame(DECL_LD LocalFrame fr)
