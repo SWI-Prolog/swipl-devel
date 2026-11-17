@@ -750,8 +750,8 @@ apropos_uri_goal(URI, apropos(Query, [offset(Offset)])) :-
 
 :- multifile epilog:tty_link_hook/5.
 
-epilog:tty_link_hook(Terminal, URL, Label, help:follow_link(Terminal, Goal),
-                     _Options) :-
+epilog:tty_link_hook(Terminal, URL, Label,
+                     prolog_help:follow_link(Terminal, Goal), _Options) :-
     link_goal(URL, Goal, Label).
 
 link_goal(URL, help(Object), Label) :-
