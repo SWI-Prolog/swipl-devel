@@ -633,6 +633,12 @@ error_foreign_return_code(intptr_t rc)
     } \
   }
 
+/* Call the foreign predicate running in `fr` with FRG_CUTTED, after
+   which its context is invalid.  We clear fr->clause, such that the
+   frame is not discarded again, e.g., when the debugger handles the
+   redo port of a foreign predicate and an exception unwinds the frame.
+*/
+
 #define discardForeignFrame(fr) LDFUNC(discardForeignFrame, fr)
 static void
 discardForeignFrame(DECL_LD LocalFrame fr)
@@ -668,6 +674,7 @@ discardForeignFrame(DECL_LD LocalFrame fr)
   { CALL_FCUTTED(argc, function, &context);
   }
   PL_close_foreign_frame(fid);
+  fr->clause = NULL;
 }
 
 
@@ -2584,7 +2591,8 @@ choice_type last_choice;
      Exit from a frame.  leaveFrame() is used for normal leaving due to
      failure.  discardFrame() is used for frames that have
      been cut.  If such frames are running a foreign predicate, the
-     functions should be called again using FRG_CUTTED context.
+     functions should be called again using FRG_CUTTED context.  See
+     discardForeignFrame().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static inline void
@@ -2605,9 +2613,7 @@ discardFrame(DECL_LD LocalFrame fr)
 
   if ( ison(def, P_FOREIGN) )
   { if ( fr->clause )
-    { discardForeignFrame(fr);
-      fr->clause = NULL;
-    }
+      discardForeignFrame(fr);
   } else
   { fr->clause = NULL;	/* leaveDefinition() may destroy clauses (no more) */
     leaveDefinition(def);
