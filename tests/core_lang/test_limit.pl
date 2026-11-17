@@ -59,7 +59,7 @@ test(retract, Size == Size0) :-
 	assertz(program_space_limit:test),
 	retract(program_space_limit:test),
 	module_property(program_space_limit, program_size(Size)).
-test(abolish, Size == Size0) :-
+test(abolish, true(Size =< Size0)) :-	% may collect the procedure
 	set_module(program_space_limit:program_space(0)),
 	module_property(program_space_limit, program_size(Size0)),
 	assertz(program_space_limit:test),
@@ -76,17 +76,21 @@ test(overflow, [ cleanup(abolish(program_space_limit:test/1)),
 	set_module(program_space_limit:program_space(1000)),
 	forall(between(1, 100, X),
 	       assertz(program_space_limit:test(X))).
-test(repeat, [ cleanup(abolish(program_space_limit:test/1))
+test(repeat, [ cleanup(abolish(program_space_repeat:test/1))
 	     ]) :-
-	set_module(program_space_limit:program_space(100000)),
-	module_property(program_space_limit, program_size(Size0)),
+	set_module(program_space_repeat:program_space(100000)),
+	assert_retractall,		% create test/1
+	module_property(program_space_repeat, program_size(Size0)),
 	forall(between(1, 100, _),
-	       ( forall(between(1, 100, X),
-			assertz(program_space_limit:test(X))),
-		 retractall(program_space_limit:test(_)),
-		 module_property(program_space_limit, program_size(Size)),
+	       ( assert_retractall,
+		 module_property(program_space_repeat, program_size(Size)),
 		 assertion(Size0 == Size),
 		 Size0 == Size		% no warning if optimized away
 	       )).
+
+assert_retractall :-
+	forall(between(1, 100, X),
+	       assertz(program_space_repeat:test(X))),
+	retractall(program_space_repeat:test(_)).
 
 :- end_tests(program_space).

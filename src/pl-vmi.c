@@ -5797,7 +5797,7 @@ environment before we can call trapUndefined() to make shift/GC happy.
   if ( clsp )
   { DEF = &clsp->def;
   } else
-  { DEF = resolveProcedure(functor, module)->definition;
+  { DEF = resolveVolatileProcedure(functor, module)->definition;
   }
 
   VMH_GOTO(mcall_cont, module);

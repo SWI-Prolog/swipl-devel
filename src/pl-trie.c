@@ -5199,7 +5199,7 @@ create_trie_clause(Definition def, Clause *cp, trie_compile_state *state)
   cref->d.key        = 0;
   cref->value.clause = cl;
   forAtomsAndFunctorsInClause(cl, register_trie_clause_atom, NULL,
-			      acquireFunctor);
+			      acquireFunctor, NULL); /* unit clause: no procs */
   *cp = cl;
 
   ATOMIC_ADD(&GD->statistics.codes, cl->code_size);

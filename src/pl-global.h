@@ -400,6 +400,16 @@ struct PL_global_data
 #ifdef O_CLAUSEGC
     TablePP	dirty;			/* Table of dirty procedures */
 #endif
+    struct
+    { struct proc_candidate *candidates; /* PROC_VOLATILE procedures */
+      Procedure free;			/* Collected, for reuse */
+      Procedure pending;		/* Collected, reuse after next GC */
+      TablePP	marking;		/* Definition -> Procedure */
+      simpleMutex mutex;		/* Sync with lookups */
+      size_t	created;		/* Volatile created since last GC */
+      int64_t	collected;		/* Total collected */
+      int	disabled;		/* Do not collect (profiler) */
+    } gc;				/* See procedure GC in pl-proc.c */
   } procedures;
 
   struct				/* see raiseInferenceLimitException() */
@@ -706,6 +716,7 @@ struct PL_local_data
   { intptr_t	generator;		/* See PL_atom_generator() */
     atom_t	unregistering;		/* See PL_unregister_atom() */
     functor_t	volatile_functor;	/* See lookupVolatileFunctor() */
+    Procedure	volatile_procedure;	/* See resolveVolatileProcedure() */
     unsigned int functor_hide;		/* See startHideFunctors() */
     int		gc_active;		/* Thread is running atom-gc */
     struct

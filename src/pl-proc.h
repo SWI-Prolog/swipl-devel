@@ -46,6 +46,7 @@
 
 #if USE_LD_MACROS
 #define	isCurrentProcedure(f, m)		LDFUNC(isCurrentProcedure, f, m)
+#define	pinCurrentProcedure(f, m)		LDFUNC(pinCurrentProcedure, f, m)
 #define	get_head_functor(head, fdef, flags)	LDFUNC(get_head_functor, head, fdef, flags)
 #define	assertDefinition(def, clause, where)	LDFUNC(assertDefinition, def, clause, where)
 #define	assertProcedure(proc, clause, where)	LDFUNC(assertProcedure, proc, clause, where)
@@ -54,6 +55,11 @@
 #define	retract_clause(clause, gen)		LDFUNC(retract_clause, clause, gen)
 #define	reconsultFinalizePredicate(rl, def, r)	LDFUNC(reconsultFinalizePredicate, rl, def, r)
 #define	resolveProcedure(f, module)		LDFUNC(resolveProcedure, f, module)
+#define	resolveVolatileProcedure(f, module)	LDFUNC(resolveVolatileProcedure, f, module)
+#define	lookupBodyProcedureRef(f, module)	LDFUNC(lookupBodyProcedureRef, f, module)
+#define	isCurrentProcedureRef(f, m)		LDFUNC(isCurrentProcedureRef, f, m)
+#define	lookupProcedureRef(f, m)		LDFUNC(lookupProcedureRef, f, m)
+#define	lookupProcedureToDefineRef(f, m)	LDFUNC(lookupProcedureToDefineRef, f, m)
 #define	trapUndefined(undef)			LDFUNC(trapUndefined, undef)
 #define isDefinedProcedure(def)			LDFUNC(isDefinedProcedure, def)
 #define hasClausesDefinition(def)		LDFUNC(hasClausesDefinition, def)
@@ -67,6 +73,7 @@
 Procedure	lookupProcedure(functor_t f, Module m) WUNUSED;
 void		unallocProcedure(Procedure proc);
 Procedure	isCurrentProcedure(functor_t f, Module m);
+Procedure	pinCurrentProcedure(functor_t f, Module m);
 bool		importDefinitionModule(Module m,
 				       Definition def, int flags);
 Procedure	lookupProcedureToDefine(functor_t def, Module m);
@@ -112,9 +119,23 @@ void		reconsultFinalizePredicate(sf_reload *rl, Definition def,
 					   p_reload *r);
 void		destroyDefinition(Definition def);
 void		unallocDefinition(Definition def);
+void		releaseDefinition(Definition def);
+void		releaseDefinitionClause(Definition def);
 void		initProcedures(void);
 void		cleanupProcedures(void);
 Procedure	resolveProcedure(functor_t f, Module module);
+Procedure	resolveVolatileProcedure(functor_t f, Module module);
+Procedure	lookupBodyProcedureRef(functor_t f, Module module);
+Procedure	isCurrentProcedureRef(functor_t f, Module m);
+Procedure	lookupProcedureRef(functor_t f, Module m);
+Procedure	lookupProcedureToDefineRef(functor_t f, Module m);
+bool		acquireTableProcedure(Module m, functor_t f, Procedure proc);
+void		pinProcedureRef(Procedure proc);
+void		acquireProcedureRef(Procedure proc);
+void		releaseProcedureRef(Procedure proc);
+size_t		collectVolatileProcedures(void);
+void		purgeProcedureCandidates(Module m);
+void		disableProcedureGC(void);
 COLD Definition	trapUndefined(Definition undef);
 foreign_t	pl_abolish(term_t atom, term_t arity);
 foreign_t	pl_abolish1(term_t pred);
@@ -145,6 +166,18 @@ bool		ddi_is_garbage(DirtyDefInfo ddi,
 size_t		sizeof_predicate(Definition def);
 
 #undef LDFUNC_DECLARATIONS
+
+/* True if `proc`, found by enumerating a module's procedure table, is
+   a volatile procedure that may be collected.  Such procedures are
+   undefined.  Code that enumerates the table must skip them and must
+   use acquireTableProcedure() to access other unpinned procedures.
+   See procedure GC in pl-proc.c.
+*/
+
+static inline bool
+isVolatileProcedure(Procedure proc)
+{ return (LOAD_SEQ_CST(proc->flags)&(PROC_VOLATILE|PROC_DESTROY)) != 0;
+}
 
 		 /*******************************
 		 *	INLINE DEFINITIONS	*

@@ -1025,6 +1025,7 @@ typedef enum
 #define GP_EXISTENCE_ERROR 0x800	/* throw error if proc is not found */
 #define GP_QUALIFY	0x1000		/* Always module-qualify */
 #define GP_NOT_QUALIFIED 0x2000		/* Demand unqualified name/arity */
+#define GP_REF		0x4000		/* Counted, see releaseProcedureRef() */
 
 					/* get_functor() */
 #define GF_EXISTING	0x1
@@ -1155,6 +1156,7 @@ with one operation, it turns out to be faster as well.
 #define SSU_CHOICE_CLAUSE	(0x0200) /* Head ?=> Body */
 #define CL_HEAD_TERMS		(0x0400) /* Head contains terms used in body */
 #define CL_SHARED_SLOTS		(0x0800) /* Branch-local variables share slots */
+#define CL_DEF_REF		(0x1000) /* Counted in predicate->clause_refs */
 
 #define CLAUSE_TYPE_MASK (UNIT_CLAUSE|SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
 #define CLAUSE_SSU_FLAGS (SSU_COMMIT_CLAUSE|SSU_CHOICE_CLAUSE)
@@ -1845,6 +1847,8 @@ struct definition
   } impl;
   uint64_t	flags;			/* booleans (P_*) */
   unsigned int  shared;			/* #procedures sharing this def */
+  unsigned int  clause_refs;		/* 1 + #CL_DEF_REF clauses */
+  bool		functor_ref;		/* Holds a counted functor reference */
   Module	module;			/* module of the predicate */
   struct linger_list  *lingering;	/* Assocated lingering objects */
   gen_t		last_modified;		/* Generation I was last modified */
@@ -1883,10 +1887,17 @@ typedef struct definition_refs
 #define	PROC_WEAK	 (0x0001)	/* implicit import */
 #define	PROC_MULTISOURCE (0x0002)	/* Assigned to multiple sources */
 #define PROC_IMPORTED	 (0x0004)	/* Procedure is imported */
+#define PROC_VOLATILE	 (0x0008)	/* Undefined, may be collected */
+#define PROC_DESTROY	 (0x0010)	/* Being collected; see pl-proc.c */
+#define PROC_ORPHAN	 (0x0020)	/* Module freed; see unallocProcedure() */
+#define PROC_FREED	 (0x0040)	/* Orphan is being freed */
+#define PROC_PINNED	 (0x0080)	/* Never collected; see pl-proc.c */
+#define PROC_CANDIDATE	 (0x0100)	/* In GD->procedures.gc.candidates */
 
 struct procedure
 { Definition	definition;		/* definition of procedure */
   unsigned int  flags;			/* PROC_WEAK */
+  unsigned int  references;		/* # counted references */
   size_t	source_no;		/* Source I'm assigned to */
 };
 
