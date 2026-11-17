@@ -39,7 +39,9 @@
 :- use_module(library(debug)).
 :- use_module(library(lists)).
 :- use_module(library(apply)).
+:- if(exists_source(library(thread))).
 :- use_module(library(thread)).
+:- endif.
 
 /** <module> Test garbage collection of procedures
 
@@ -60,8 +62,8 @@ test_proc_gc :-
     in_module(:).
 
 :- begin_tests(proc_gc,
-                [ setup(stop_gc_thread(Old)),
-                  cleanup(set_prolog_gc_thread(Old))
+                [ setup(gc_setup(Old)),
+                  cleanup(gc_cleanup(Old))
                 ]).
 
 test(fail) :-
@@ -138,7 +140,7 @@ test(clause_ref_error, error(existence_error(procedure, _))) :-
 test(no_current, fail) :-
     \+ in_module(pgc_fail:pgc_nc),
     current_predicate(pgc_fail:pgc_nc/0).
-test(threads, true) :-
+test(threads, [true, condition(current_prolog_flag(threads, true))]) :-
     Names = 200,
     numlist(1, Names, L),
     maplist([I,N]>>atom_concat(pgc_mt_, I, N), L, Pool),
@@ -203,7 +205,7 @@ test(abolish_clause_ref, PI == pgc_ab:pgc_abcr/1) :-
     clause_property(Ref, erased),
     clause_property(Ref, predicate(PI)),
     \+ clause(_, _, Ref).
-test(abolish_threads, true) :-
+test(abolish_threads, [true, condition(current_prolog_flag(threads, true))]) :-
     Names = 100,
     numlist(1, Names, L),
     maplist([I,N]>>atom_concat(pgc_abt_, I, N), L, Pool),
@@ -260,10 +262,6 @@ abolish_op(7, G, _) :-
     ;   true
     ).
 
-stop_gc_thread(Old) :-
-    current_prolog_flag(gc_thread, Old),
-    set_prolog_gc_thread(false).
-
 gc_loop :-
     catch(gc_loop_, stop, true).
 
@@ -273,3 +271,15 @@ gc_loop_ :-
 
 :- set_prolog_flag(pgc_fail:unknown, fail).
 :- set_prolog_flag(pgc_abt:unknown, fail).
+
+%   Procedure and module GC require the flag gc_code to be `module`.
+
+gc_setup(GCThread-GCCode) :-
+    current_prolog_flag(gc_thread, GCThread),
+    current_prolog_flag(gc_code, GCCode),
+    set_prolog_gc_thread(false),
+    set_prolog_flag(gc_code, module).
+
+gc_cleanup(GCThread-GCCode) :-
+    set_prolog_flag(gc_code, GCCode),
+    set_prolog_gc_thread(GCThread).

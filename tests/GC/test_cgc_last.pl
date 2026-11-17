@@ -47,6 +47,9 @@ some other database update.
 garbage_collect_clauses/0 returns immediately if another thread, notably
 the gc thread, is running clause GC.  That run may have started before
 our clause was erased, so we stop the gc thread during these tests.
+Without a gc thread, any thread may run clause GC when it receives the
+clause GC signal, e.g., the detached threads of test_cgc_1.pl, so we
+retry.
 */
 
 test_cgc_last :-
@@ -64,14 +67,27 @@ test(fact, S == S0) :-
     predicate_property(fact(_), size(S0)),
     assertz(fact(1)),
     retract(fact(1)),
-    garbage_collect_clauses,
-    predicate_property(fact(_), size(S)).
+    gc_to_size(fact(_), S0, 100, S).
 test(rule, S == S0) :-
     predicate_property(rule(_), size(S0)),
     assertz((rule(X) :- succ_or_zero(X, a))),
     retract((rule(_) :- _)),
+    gc_to_size(rule(_), S0, 100, S).
+
+%   gc_to_size(+Head, +Expected, +Tries, -Size)
+%
+%   Run clause GC until the size of Head is Expected or we tried Tries
+%   times.
+
+gc_to_size(Head, Expected, Tries, Size) :-
     garbage_collect_clauses,
-    predicate_property(rule(_), size(S)).
+    predicate_property(Head, size(Size0)),
+    (   ( Size0 == Expected ; Tries =< 1 )
+    ->  Size = Size0
+    ;   sleep(0.01),
+        Tries1 is Tries - 1,
+        gc_to_size(Head, Expected, Tries1, Size)
+    ).
 
 :- end_tests(cgc_last).
 

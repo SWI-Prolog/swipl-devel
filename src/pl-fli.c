@@ -4735,6 +4735,20 @@ PL_unify_output(DECL_LD term_t t1, term_t t2)
 		 *	       MODULES		*
 		 *******************************/
 
+/* The context module of `fr`, pinned as foreign code may keep it (see
+   module GC).
+*/
+
+static Module
+pinnedContextModule(LocalFrame fr)
+{ Module m = fr ? contextModule(fr) : MODULE_user;
+
+  if ( unlikely(!(m->gc_flags&MG_PINNED)) )
+    m = pinModulePtr(m);
+
+  return m;
+}
+
 bool
 PL_strip_module_flags(DECL_LD term_t raw, module_t *m, term_t plain, int flags)
 { Word p = valTermRef(raw);
@@ -4742,6 +4756,37 @@ PL_strip_module_flags(DECL_LD term_t raw, module_t *m, term_t plain, int flags)
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
   { if ( !(p = stripModule(p, m, flags)) )
+      return false;
+    setHandle(plain, linkValI(p));
+  } else
+  { if ( *m == NULL )
+      *m = pinnedContextModule(environment_frame);
+    if ( raw != plain )
+    { word w = linkValG(p);
+
+      if ( w )
+	setHandle(plain, w);
+      else
+	return false;
+    }
+  }
+
+  return true;
+}
+
+/* As PL_strip_module_flags(), but do not pin the module.  See
+   stripModuleRef().  Internal use only.
+*/
+
+bool
+PL_strip_module_ref(DECL_LD term_t raw, module_t *m, term_t plain,
+		    Module *ref, int flags)
+{ Word p = valTermRef(raw);
+
+  *ref = NULL;
+  deRef(p);
+  if ( hasFunctor(*p, FUNCTOR_colon2) )
+  { if ( !(p = stripModuleRef(p, m, ref, flags)) )
       return false;
     setHandle(plain, linkValI(p));
   } else
@@ -4773,20 +4818,34 @@ PL_strip_module_ex() is similar to  PL_strip_module(),   but  returns an
 error if it encounters a term <m>:<t>, where <m> is not an atom.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-bool
-PL_strip_module_ex(DECL_LD term_t raw, module_t *m, term_t plain)
+/* If `ref` is not NULL, do not pin the module.  See stripModuleRef() */
+
+#define strip_module_ex(raw, m, plain, ref) \
+	LDFUNC(strip_module_ex, raw, m, plain, ref)
+
+static bool
+strip_module_ex(DECL_LD term_t raw, module_t *m, term_t plain, Module *ref)
 { Word p;
 
   globalizeTermRef(raw);
   p = valTermRef(raw);
   deRef(p);
   if ( hasFunctor(*p, FUNCTOR_colon2) )
-  { if ( !(p = stripModule(p, m, 0)) )
-      return false;
+  { if ( ref )
+    { if ( !(p = stripModuleRef(p, m, ref, 0)) )
+	return false;
+    } else
+    { if ( !(p = stripModule(p, m, 0)) )
+	return false;
+    }
     if ( hasFunctor(*p, FUNCTOR_colon2) )
     { Word a1 = argTermP(*p, 0);
       deRef(a1);
       setHandle(plain, needsRef(*a1) ? makeRefG(a1) : *a1);
+      if ( ref )
+      { releaseModuleRef(*ref);
+	*ref = NULL;
+      }
       return PL_type_error("module", plain);
     }
     setHandle(plain, linkValI(p));
@@ -4794,8 +4853,9 @@ PL_strip_module_ex(DECL_LD term_t raw, module_t *m, term_t plain)
   { word w;
 
     if ( *m == NULL )
-      *m = environment_frame ? contextModule(environment_frame)
-			     : MODULE_user;
+      *m = ( ref ? (environment_frame ? contextModule(environment_frame)
+				      : MODULE_user)
+		 : pinnedContextModule(environment_frame) );
     if ( (w=linkValG(p)) )
       setHandle(plain, w);
     else
@@ -4805,11 +4865,26 @@ PL_strip_module_ex(DECL_LD term_t raw, module_t *m, term_t plain)
   return true;
 }
 
+bool
+PL_strip_module_ex(DECL_LD term_t raw, module_t *m, term_t plain)
+{ return strip_module_ex(raw, m, plain, NULL);
+}
+
+/* As PL_strip_module_ex(), but do not pin the module.  The caller must
+   call releaseModuleRef(*ref).  Internal use only.
+*/
+
+bool
+PL_strip_module_ex_ref(DECL_LD term_t raw, module_t *m, term_t plain,
+		       Module *ref)
+{ *ref = NULL;
+  return strip_module_ex(raw, m, plain, ref);
+}
+
 module_t
 PL_context(void)
 { GET_LD
-  return environment_frame ? contextModule(environment_frame)
-			   : MODULE_user;
+  return pinnedContextModule(environment_frame);
 }
 
 atom_t
@@ -5293,8 +5368,7 @@ resolveModule(const char *module)
     return PL_new_module(PL_new_atom(module));
   else
   { GET_LD
-    return (HAS_LD && environment_frame ? contextModule(environment_frame)
-					: MODULE_user);
+    return HAS_LD ? pinnedContextModule(environment_frame) : MODULE_user;
   }
 }
 

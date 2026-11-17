@@ -97,6 +97,10 @@
 #define	PL_is_attvar(t)				LDFUNC(PL_is_attvar, t)
 #define	PL_strip_module_flags(q, m, t, flags)	LDFUNC(PL_strip_module_flags, q, m, t, flags)
 #define	PL_strip_module_ex(raw, m, plain)	LDFUNC(PL_strip_module_ex, raw, m, plain)
+#define	PL_strip_module_ex_ref(raw, m, plain, ref) \
+	LDFUNC(PL_strip_module_ex_ref, raw, m, plain, ref)
+#define	PL_strip_module_ref(raw, m, plain, ref, flags) \
+	LDFUNC(PL_strip_module_ref, raw, m, plain, ref, flags)
 #define	PL_get_integer(t, i)			LDFUNC(PL_get_integer, t, i)
 #define	PL_get_long(t, i)			LDFUNC(PL_get_long, t, i)
 #define	PL_get_int64(t, i)			LDFUNC(PL_get_int64, t, i)
@@ -211,6 +215,10 @@ bool		PL_strip_module_flags(term_t q, module_t *m,
 				      term_t t, int flags) WUNUSED;
 bool		PL_strip_module_ex(term_t raw, module_t *m,
 				   term_t plain) WUNUSED;
+bool		PL_strip_module_ref(term_t raw, module_t *m, term_t plain,
+				    Module *ref, int flags);
+bool		PL_strip_module_ex_ref(term_t raw, module_t *m, term_t plain,
+				       Module *ref);
 bool		PL_qualify(term_t raw, term_t qualified);
 bool		PL_get_integer(term_t t, int *i);
 bool		PL_get_long(term_t t, long *i);

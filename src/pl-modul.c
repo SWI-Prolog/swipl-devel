@@ -73,16 +73,377 @@ unallocProcedureSymbol(table_key_t name, table_value_t value)
 }
 
 
-#define _lookupModule(name) LDFUNC(_lookupModule, name)
-static Module
-_lookupModule(DECL_LD atom_t name)
-{ Module m, super;
+		 /*******************************
+		 *	      MODULE GC		*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Module garbage collection
+
+Modules created at runtime, e.g., by call(M:G) for some new M, are never
+removed.  Module GC reclaims modules that are empty and unreferenced.
+It is modelled after procedure GC (see pl-proc.c):
+
+  - Kernel code may keep a module pointer it found, as it always could.
+    Lookups that do not count the reference, such as lookupModule() and
+    isCurrentModule(), therefore pin the module (MG_PINNED): it is
+    never collected.  So do PL_context(), stripModule() for the context
+    module, the compiler if it needs the module in the code and all
+    other ways for foreign code to get a module.
+  - Code that only needs a module for a while uses a counted reference
+    (module->gc_references) using acquireModuleRef() and
+    releaseModuleRef().  Module enumeration (advanceModuleEnum()) does
+    so for the current module.  A missed path pins the module, i.e., it
+    only stops collection.
+  - The meta-call (resolveVolatileModule()) protects an unpinned module
+    using the thread's hazard pointer LD->modules.hazard, which remains
+    until the thread resolves the next module.  By then, the frame of
+    the meta-call is pushed.  This frame references the module as its
+    context or through its predicate, which keeps the module alive.
+  - module->definitions counts the definitions that belong to the
+    module.  These are freed by clause and procedure GC.  Lingering
+    definitions (see lingerDefinition()) are not counted; they are
+    freed with the module.  An unpinned module is a candidate for
+    collection when it is created, when its last definition is freed
+    and when it is abolished using abolish_module/1.  Candidates are
+    kept in GD->modules.gc.candidates (MG_CANDIDATE).
+  - Source files that list a module (sf->modules) hold a pointer to it,
+    counted in module->source_refs.  abolish_module/1 removes these.
+  - Temporary modules (see in_temporary_module/3) are pinned while they
+    are used, but these pins are soft (MG_TEMPORARY): references to
+    them are counted as if they are not pinned, and '$destroy_module'/1
+    abolishes the module and drops the pins of the module and its
+    procedures.  See destroyTemporaryModule().
+  - collectVolatileModules() runs as part of the clause GC pass after
+    procedure GC, under GD->clauses.cgc_active and
+    GD->modules.gc.mutex.  It sets MG_DESTROY on unreferenced empty
+    candidates, then, for each thread, clears MG_DESTROY for the hazard,
+    the source and typein modules, the context modules of the frames and
+    the modules of lingering definitions referenced by frames.  It
+    unlinks and frees the remaining ones.
+
+The hazard or reference is set before checking MG_DESTROY, while the
+collector sets MG_DESTROY before checking the hazards and references.
+A lookup that sees MG_DESTROY waits for the collector by locking the
+mutex and retries.
+
+The struct module of a collected module is not freed, so a lock-free
+lookup that read it from the table or its cache just before it was
+unlinked does not access freed memory.  Lookups validate an unpinned
+module by checking MG_DESTROY and its name (see createModule()).
+Collected modules are reused for new modules from the next collection
+onwards.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define MODULE_GC_MIN_CREATED 1000	/* see considerModuleGC() */
+#define MODULE_GC_BACKLOG     4000	/* see destroyedTemporaryModule() */
+#define STORE_SEQ_CST(var, val) PUBLISH_HAZARD(var, val) /* atomic store */
+
+typedef struct module_candidate
+{ Module	module;
+  struct module_candidate *next;
+} module_candidate, *ModuleCandidate;
+
+#define NEXT_FREE_MODULE(m) (*(Module*)&(m)->lingering)
+
+static inline void
+waitModuleGC(void)
+{ simpleMutexLock(&GD->modules.gc.mutex);
+  simpleMutexUnlock(&GD->modules.gc.mutex);
+}
+
+/* Module GC is enabled if the flag gc_code is `module`.  If it is
+   disabled, modules are created pinned and temporary modules are not
+   made MG_TEMPORARY, i.e., '$destroy_module'/1 only abolishes them.
+*/
+
+static inline bool
+moduleGCEnabled(void)
+{ return gcCodeLevel() >= GC_CODE_MODULE;
+}
+
+/* A permanent module is pinned and not temporary.  References to it
+   are not counted.  The pins of a temporary module are dropped by
+   '$destroy_module'/1, so references to these are counted.  As a
+   module never stops being permanent, a reference counted while the
+   module was not permanent may be released after it became permanent
+   without decrementing: this only keeps the count positive for a
+   module that is never collected anyway.
+*/
+
+static inline bool
+isPermanentFlags(unsigned int flags)
+{ return (flags&(MG_PINNED|MG_TEMPORARY)) == MG_PINNED;
+}
+
+static inline bool
+isPermanentModule(const Module m)
+{ return isPermanentFlags(LOAD_SEQ_CST(m->gc_flags));
+}
+
+static void
+pushModuleCandidates(ModuleCandidate head, ModuleCandidate tail)
+{ ModuleCandidate o;
+
+  do
+  { o          = LOAD_SEQ_CST(GD->modules.gc.candidates);
+    tail->next = o;
+  } while( !COMPARE_AND_SWAP_PTR(&GD->modules.gc.candidates, o, head) );
+}
+
+static ModuleCandidate
+takeModuleCandidates(void)
+{ ModuleCandidate list;
+
+  do
+  { list = LOAD_SEQ_CST(GD->modules.gc.candidates);
+  } while( !COMPARE_AND_SWAP_PTR(&GD->modules.gc.candidates, list, NULL) );
+
+  return list;
+}
+
+static void
+considerModuleGC(void)
+{ GET_LD
+  size_t created = ATOMIC_INC(&GD->modules.gc.created);
+
+  if ( created >= MODULE_GC_MIN_CREATED &&
+       created >= (size_t)GD->statistics.modules/4 &&
+       !isSignalledGCThread(SIG_CLAUSE_GC) )
+    signalGCThread(SIG_CLAUSE_GC);
+}
+
+/* Called after destroying a temporary module.  Temporary modules are
+   reclaimed by the clause GC pass.  If threads destroy temporary
+   modules faster than the gc thread can reclaim them, memory usage
+   grows without bounds.  Therefore, if many temporary modules were
+   destroyed since the last pass, the destroying thread runs the pass
+   itself or waits for the running pass to complete.
+*/
+
+static void
+destroyedTemporaryModule(void)
+{ size_t destroyed = ATOMIC_INC(&GD->modules.gc.destroyed);
+
+  if ( destroyed >= MODULE_GC_MIN_CREATED )
+  { GET_LD
+
+    if ( !isSignalledGCThread(SIG_CLAUSE_GC) )
+      signalGCThread(SIG_CLAUSE_GC);
+    if ( destroyed >= MODULE_GC_BACKLOG )
+    { pl_garbage_collect_clauses();
+      while( LOAD_SEQ_CST(GD->clauses.cgc_active) &&
+	     LOAD_SEQ_CST(GD->modules.gc.destroyed) >= MODULE_GC_BACKLOG )
+	Pause(0.0002);
+    }
+  }
+}
+
+/* Make `m` a candidate for module GC if it is not pinned.  Called when
+   an unpinned module is created, when its last definition is freed
+   and by abolish_module/1.
+*/
+
+void
+moduleGCCandidate(Module m)
+{ unsigned int flags;
+
+  do
+  { flags = LOAD_SEQ_CST(m->gc_flags);
+    if ( (flags&(MG_PINNED|MG_CANDIDATE)) )
+      return;
+  } while( !COMPARE_AND_SWAP_UINT(&m->gc_flags, flags, flags|MG_CANDIDATE) );
+
+  ModuleCandidate cell = allocHeapOrHalt(sizeof(*cell));
+  cell->module = m;
+  pushModuleCandidates(cell, cell);
+}
+
+/* Find module `name` without protecting it.  The result may only be
+   used for pinning or protecting it.
+*/
+
+#define findModule(name) LDFUNC(findModule, name)
+static inline Module
+findModule(DECL_LD atom_t name)
+{ unsigned int i = (unsigned int)(indexAtom(name) & (MODULE_CACHE_SIZE-1));
+  unsigned int gen;
+  Module m;
+
+  if ( LD->modules.cache.name[i] == name )
+  { m = LD->modules.cache.module[i];
+    if ( likely(LD->modules.cache.generation ==
+		LOAD_SEQ_CST(GD->modules.generation)) )
+      return m;
+  }
+
+  gen = LOAD_SEQ_CST(GD->modules.generation);
+  if ( LD->modules.cache.generation != gen )
+  { memset(LD->modules.cache.name, 0, sizeof(LD->modules.cache.name));
+    LD->modules.cache.generation = gen;
+  }
 
   if ( (m = lookupHTableWP(GD->tables.modules, name)) )
-    return m;
+  { LD->modules.cache.name[i]   = name;
+    LD->modules.cache.module[i] = m;
+  }
 
-  m = allocHeapOrHalt(sizeof(struct module));
-  memset(m, 0, sizeof(*m));
+  return m;
+}
+
+/* Pin `m`, found as `name`.  Returns the (possibly re-looked-up) module
+   or NULL if it no longer exists.
+*/
+
+static Module
+pinModule(atom_t name, Module m)
+{ GET_LD
+
+  for(;;)
+  { unsigned int flags = LOAD_SEQ_CST(m->gc_flags);
+
+    if ( (flags&MG_PINNED) )
+    { return m;
+    } else if ( (flags&MG_DESTROY) )
+    { waitModuleGC();
+    } else if ( COMPARE_AND_SWAP_UINT(&m->gc_flags, flags, flags|MG_PINNED) )
+    { if ( lookupHTableWP(GD->tables.modules, name) == m )
+	return m;
+					/* stale; we pinned a reused one */
+    } else
+    { continue;
+    }
+
+    if ( !(m = lookupHTableWP(GD->tables.modules, name)) )
+      return NULL;
+  }
+}
+
+/* Pin `m`, which the caller has protected, e.g., because it is the
+   context module of a frame.
+*/
+
+Module
+pinModulePtr(Module m)
+{ for(;;)
+  { unsigned int flags = LOAD_SEQ_CST(m->gc_flags);
+
+    if ( (flags&MG_PINNED) )
+      return m;
+    if ( (flags&MG_DESTROY) )
+      waitModuleGC();
+    else if ( COMPARE_AND_SWAP_UINT(&m->gc_flags, flags, flags|MG_PINNED) )
+      return m;
+  }
+}
+
+/* Find module `name` and protect it against module GC without pinning
+   it:
+
+     - MP_HAZARD: publish it in the thread's hazard pointer.
+     - MP_REF: add a counted reference.  If `ref` is set, the caller
+       must call releaseModuleRef(*ref).  Pinned modules get no
+       reference; *ref is NULL for these.
+*/
+
+#define MP_HAZARD 0
+#define MP_REF    1
+
+#define protectModule(name, how, ref) LDFUNC(protectModule, name, how, ref)
+#define protectModule_(name, how, ref) LDFUNC(protectModule_, name, how, ref)
+static Module protectModule_(DECL_LD atom_t name, int how, Module *ref);
+
+static inline Module
+protectModule(DECL_LD atom_t name, int how, Module *ref)
+{ Module m = findModule(name);
+
+  if ( likely(m && isPermanentFlags(m->gc_flags)) )
+  { if ( ref )
+      *ref = NULL;
+    return m;
+  }
+
+  return protectModule_(name, how, ref);
+}
+
+static Module
+protectModule_(DECL_LD atom_t name, int how, Module *ref)
+{ Module m;
+
+  while( (m = findModule(name)) )
+  { if ( isPermanentModule(m) )
+    { if ( ref )
+	*ref = NULL;
+      return m;
+    }
+    if ( how == MP_HAZARD )
+      PUBLISH_HAZARD(LD->modules.hazard, m);
+    else
+      ATOMIC_INC(&m->gc_references);	/* seq_cst; see collector */
+    if ( !(LOAD_SEQ_CST(m->gc_flags)&MG_DESTROY) &&
+	 m->name == name )		/* not reused; see createModule() */
+    { if ( ref )
+	*ref = m;
+      return m;
+    }
+    if ( how == MP_REF )
+      ATOMIC_DEC(&m->gc_references);
+    waitModuleGC();
+  }
+
+  return NULL;
+}
+
+void
+releaseModuleRef(Module ref)
+{ if ( ref )
+    ATOMIC_DEC(&ref->gc_references);
+}
+
+/* Allocate a new module.  Collected modules are reused from the next
+   collection onwards (see module GC).
+*/
+
+static Module
+allocModule(void)
+{ Module m;
+
+  simpleMutexLock(&GD->modules.gc.free_mutex);
+  if ( (m=GD->modules.gc.free) )
+    GD->modules.gc.free = NEXT_FREE_MODULE(m);
+  simpleMutexUnlock(&GD->modules.gc.free_mutex);
+  if ( !m )
+  { m = allocHeapOrHalt(sizeof(struct module));
+    m->gc_references = 0;
+  }
+
+  return m;
+}
+
+/* Create module `name`.  Must be called with L_MODULE held after
+   verifying the module does not exist.  If `pinned` is false, the
+   module is created unpinned and is protected as described with
+   protectModule().
+
+   (*) A thread may still hold a pointer to a reused module, read
+   before it was collected.  protectModule() validates such a pointer
+   by checking MG_DESTROY and the name.  We therefore keep MG_DESTROY
+   set until the module is initialised.  As such a thread may also
+   increment and decrement gc_references, we do not reset these.
+*/
+
+#define _lookupModule(name) LDFUNC(_lookupModule, name)
+#define createModule(name, pinned, how, ref) \
+	LDFUNC(createModule, name, pinned, how, ref)
+
+static Module
+createModule(DECL_LD atom_t name, unsigned int pinned, int how, Module *ref)
+{ Module m, super;
+
+  m = allocModule();			/* See (*) */
+  m->gc_flags = MG_DESTROY;
+  memset(m, 0, offsetof(struct module, gc_flags));
+  m->definitions = 0;
 
   DEBUG(MSG_CREATE_MODULE,
 	{ Sdprintf("Created module %s at %p\n",
@@ -125,11 +486,88 @@ _lookupModule(DECL_LD atom_t name)
       PL_warning("Could not add super-module");
   }
 
+  if ( pinned || ison(m, M_SYSTEM) )
+  { STORE_SEQ_CST(m->gc_flags, MG_PINNED|(pinned&MG_TEMPORARY));
+    if ( ref )
+      *ref = NULL;
+  } else
+  { if ( how == MP_HAZARD )
+    { PUBLISH_HAZARD(LD->modules.hazard, m);
+    } else
+    { ATOMIC_INC(&m->gc_references);
+      if ( ref )
+	*ref = m;
+    }
+    STORE_SEQ_CST(m->gc_flags, MG_CANDIDATE);
+  }
+
   addNewHTableWP(GD->tables.modules, name, m);
-  GD->statistics.modules++;
+  ATOMIC_INC(&GD->statistics.modules);
   PL_register_atom(name);
 
+  if ( !(m->gc_flags&MG_PINNED) )
+  { ModuleCandidate cell = allocHeapOrHalt(sizeof(*cell));
+
+    cell->module = m;
+    pushModuleCandidates(cell, cell);
+    considerModuleGC();
+  }
+
   return m;
+}
+
+/* Find or create module `name` for set_module(name:class(temporary)).
+   If the module is new or not pinned, it is pinned as a temporary
+   module (see destroyTemporaryModule()).  Otherwise it is returned as
+   is.  Must be called with L_MODULE held.
+*/
+
+static Module _lookupModule(DECL_LD atom_t name);
+
+#define _lookupTemporaryModule(name) LDFUNC(_lookupTemporaryModule, name)
+static Module
+_lookupTemporaryModule(DECL_LD atom_t name)
+{ Module m;
+
+  if ( !moduleGCEnabled() )
+    return _lookupModule(name);
+
+  while( (m = lookupHTableWP(GD->tables.modules, name)) )
+  { unsigned int flags = LOAD_SEQ_CST(m->gc_flags);
+
+    if ( (flags&MG_PINNED) )
+      return m;
+    if ( (flags&MG_DESTROY) )
+      waitModuleGC();
+    else if ( COMPARE_AND_SWAP_UINT(&m->gc_flags, flags,
+				    flags|MG_PINNED|MG_TEMPORARY) )
+      return m;
+  }
+
+  return createModule(name, MG_PINNED|MG_TEMPORARY, MP_REF, NULL);
+}
+
+/* Find or create module `name`, pinning it.  Must be called with
+   L_MODULE held.  If the module is being collected, we wait for the
+   collector, which does not use L_MODULE.
+*/
+
+static Module
+_lookupModule(DECL_LD atom_t name)
+{ Module m;
+
+  while( (m = lookupHTableWP(GD->tables.modules, name)) )
+  { unsigned int flags = LOAD_SEQ_CST(m->gc_flags);
+
+    if ( (flags&MG_PINNED) )
+      return m;
+    if ( (flags&MG_DESTROY) )
+      waitModuleGC();
+    else if ( COMPARE_AND_SWAP_UINT(&m->gc_flags, flags, flags|MG_PINNED) )
+      return m;
+  }
+
+  return createModule(name, MG_PINNED, MP_REF, NULL);
 }
 
 
@@ -148,95 +586,117 @@ lookupModule(DECL_LD atom_t name)
 }
 
 
-/* Find an existing module.  As meta calls look up modules by name, each
- * thread caches the most recent lookups.  The cache is flushed if a
- * module is destroyed (see destroyModule()).
+/* Find an existing module and pin it.  As meta calls look up modules by
+ * name, each thread caches the most recent lookups.  The cache is
+ * flushed if a module is collected (see destroyVolatileModule()).
  */
 
 Module
 isCurrentModule(DECL_LD atom_t name)
-{ unsigned int i = (unsigned int)(indexAtom(name) & (MODULE_CACHE_SIZE-1));
-  unsigned int gen = GD->modules.generation;
-  Module m;
+{ Module m = findModule(name);
 
-  if ( likely(LD->modules.cache.generation == gen) )
-  { if ( LD->modules.cache.name[i] == name )
-      return LD->modules.cache.module[i];
-  } else
-  { memset(LD->modules.cache.name, 0, sizeof(LD->modules.cache.name));
-    LD->modules.cache.generation = gen;
-  }
-
-  if ( (m = lookupHTableWP(GD->tables.modules, name)) )
-  { LD->modules.cache.name[i]   = name;
-    LD->modules.cache.module[i] = m;
-  }
+  if ( m && unlikely(!(m->gc_flags&MG_PINNED)) )
+    m = pinModule(name, m);
 
   return m;
 }
 
 
-/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-acquireModule()/releaseModule() must be used for   module  pointers that
-may refer to a temporary module from a  thread that is not the temporary
-module thread ifself. These functions  cooperate with destroyModule() to
-ensure the module is not destroyed prematurely.
+/* Find module `name`, adding a counted reference if it is not pinned.
+   The caller must call releaseModuleRef(*ref).  Does not create the
+   module.
+*/
 
-Currently this is used for the following.   Ultimately we need module GC
-or  more  comprehensive  usage  of  this  interface  to  safely  support
-temporary modules.
+Module
+acquireModuleRef(DECL_LD atom_t name, Module *ref)
+{ return protectModule(name, MP_REF, ref);
+}
 
-    - current_op/3 to facilitate using the Pengine operators for
-      rendering results.
-    - current_predicate/1, which no longer enumerates through
-      temporary modules.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+/* Find or create module `name` without pinning it, protected as
+   described with protectModule().
+*/
+
+#define volatileModule(name, how, ref) LDFUNC(volatileModule, name, how, ref)
+static inline Module
+volatileModule(DECL_LD atom_t name, int how, Module *ref)
+{ Module m;
+
+  for(;;)
+  { if ( (m = protectModule(name, how, ref)) )
+      return m;
+
+    PL_LOCK(L_MODULE);
+    if ( !lookupHTableWP(GD->tables.modules, name) )
+      m = createModule(name, moduleGCEnabled() ? 0 : MG_PINNED, how, ref);
+    PL_UNLOCK(L_MODULE);
+    if ( m )
+      return m;
+  }
+}
+
+/* Find or create module `name` for the meta-call.  An unpinned module
+   is protected by the thread's hazard pointer until the thread
+   resolves the next module.  The caller must push a frame that refers
+   to the module before that.
+*/
+
+Module
+resolveVolatileModule(DECL_LD atom_t name)
+{ return volatileModule(name, MP_HAZARD, NULL);
+}
+
+/* As lookupModule(), but if the module is not pinned, add a counted
+   reference rather than pinning it.  The caller must call
+   releaseModuleRef(*ref).
+*/
+
+Module
+lookupModuleRef(DECL_LD atom_t name, Module *ref)
+{ return volatileModule(name, MP_REF, ref);
+}
+
+
+/* acquireModule() finds module `name` and protects it for a while
+   against module GC, including temporary modules that are destroyed
+   using '$destroy_module'/1.  acquireModulePtr() protects a module the
+   caller already protects.  Both must be balanced by releaseModule().
+   This is used by current_op/3, current_predicate/1 and the profiler.
+   Unlike lookupModule(), this does not create the module.
+*/
 
 Module
 acquireModule(DECL_LD atom_t name)
-{ Module m;
+{ Module ref;
 
-  PL_LOCK(L_MODULE);
-  m = lookupHTableWP(GD->tables.modules, name);
-  if ( m && m->class == ATOM_temporary )
-    m->references++;
-  PL_UNLOCK(L_MODULE);
-
-  return m;
+  return acquireModuleRef(name, &ref);
 }
+
+/* Also used for the modules in the code of clauses, e.g., from
+   I_CONTEXT and I_CALLM.  See register_clause_symbols() and
+   freeClause().
+*/
 
 void
-acquireModulePtr(DECL_LD Module m)
-{ if ( m && m->class == ATOM_temporary )
-  { PL_LOCK(L_MODULE);
-    m->references++;
-    PL_UNLOCK(L_MODULE);
-  }
+acquireModulePtr(Module m)
+{ if ( m && !isPermanentModule(m) )
+    ATOMIC_INC(&m->gc_references);
 }
-
-static void
-releaseModule_unlocked(Module m)
-{ if ( --m->references == 0 &&
-       ison(m, M_DESTROYED) )
-  { unlinkSourceFilesModule(m);
-#ifdef O_PLMT
-    if ( m->wait )
-      free_wait_area(m->wait);
-#endif
-    GD->statistics.modules--;
-    PL_unregister_atom(m->name);
-    unallocModule(m);
-  }
-}
-
 
 void
 releaseModule(Module m)
-{ if ( m->class == ATOM_temporary )
-  { PL_LOCK(L_MODULE);
-    releaseModule_unlocked(m);
-    PL_UNLOCK(L_MODULE);
-  }
+{ if ( m && !isPermanentModule(m) )
+    ATOMIC_DEC(&m->gc_references);
+}
+
+/* Release the reference of a clause to `m`.  When reclaiming memory at
+   halt, modules may be freed before the clauses that refer to them.
+*/
+
+void
+releaseModuleCodeRef(Module m)
+{ if ( GD->halt.cleaning != CLN_DATA )
+    releaseModule(m);
 }
 
 
@@ -246,7 +706,7 @@ newModuleEnum(int flags)
 
   if ( en )
   { if ( (en->tenum = newTableEnumWP(GD->tables.modules)) )
-    { en->current = NULL;
+    { en->gc_ref = NULL;
       en->flags = flags;
     } else
     { free(en);
@@ -269,14 +729,17 @@ advanceModuleEnum(ModuleEnum en)
     else
       m = NULL;
 
-    if ( m && m->class == ATOM_temporary )
-    { if ( (en->flags&MENUM_TEMP) )
-      { m->references++;
-	if ( en->current && en->current->class == ATOM_temporary )
-	  releaseModule_unlocked(en->current);
-	en->current = m;
-      } else
+    if ( m && m->class == ATOM_temporary && !(en->flags&MENUM_TEMP) )
+      continue;
+					/* see module GC */
+    if ( m && !isPermanentModule(m) )
+    { ATOMIC_INC(&m->gc_references);
+      if ( (LOAD_SEQ_CST(m->gc_flags)&MG_DESTROY) )
+      { ATOMIC_DEC(&m->gc_references);
 	continue;
+      }
+      releaseModuleRef(en->gc_ref);
+      en->gc_ref = m;
     }
 
     break;
@@ -289,8 +752,7 @@ advanceModuleEnum(ModuleEnum en)
 void
 freeModuleEnum(ModuleEnum en)
 { freeTableEnum(en->tenum);
-  if ( en->current && en->current->class == ATOM_temporary )
-    releaseModule_unlocked(en->current);
+  releaseModuleRef(en->gc_ref);
   free(en);
 }
 
@@ -313,6 +775,9 @@ initModules(void)
 #endif
     initFunctors();
 
+    simpleMutexInit(&GD->modules.gc.mutex);
+    simpleMutexInit(&GD->modules.gc.free_mutex);
+    initProcedureGC();			/* before creating procedures */
     GD->tables.modules = newHTableWP(MODULEHASHSIZE);
     GD->tables.modules->free_symbol = unallocModuleSymbol;
     GD->modules.system = _lookupModule(ATOM_system);
@@ -342,6 +807,8 @@ freeLingeringDefinitions(ListCell c)
   { Definition def = c->value;
 
     n = c->next;
+    if ( isoff(def, P_LOCALISED) && def->module )
+      ATOMIC_INC(&def->module->definitions); /* see lingerDefinition() */
     unallocDefinition(def);
     freeHeap(c, sizeof(*c));
   }
@@ -379,6 +846,283 @@ unallocModule(Module m)
 }
 
 
+/* An unpinned module is empty if it is in the state of a new module, so
+   we can collect it.  Most of these properties can only be changed
+   through paths that pin the module.  Lingering definitions (see
+   lingerDefinition()) are not counted in m->definitions and are freed
+   with the module.
+*/
+
+static bool
+isEmptyModule(const Module m)
+{ return ( LOAD_SEQ_CST(m->definitions) == 0 &&
+	   m->procedures->size == 0 &&
+	   m->public->size == 0 &&
+	   !hasOperatorsModule(m) &&
+	   !m->file &&
+	   LOAD_SEQ_CST(m->source_refs) == 0 &&
+#ifdef O_PLMT
+	   !m->wait &&
+#endif
+#ifdef O_PROLOG_HOOK
+	   !m->hook &&
+#endif
+	   (m->class == ATOM_user || m->class == ATOM_temporary) &&
+	   isoff(m, M_SYSTEM) &&
+	   m->supers && !m->supers->next &&
+	   m->supers->value == MODULE_user );
+}
+
+/* `marking` maps the marked candidates and their lingering definitions
+   to their ModuleCandidate.  `ptr` is either.
+*/
+
+#define keepVolatileModule(marking, ptr) LDFUNC(keepVolatileModule, marking, ptr)
+static inline void
+keepVolatileModule(DECL_LD TablePP marking, void *ptr)
+{ ModuleCandidate c;
+
+  if ( ptr && (c=lookupHTablePP(marking, ptr)) )
+    ATOMIC_AND(&c->module->gc_flags, ~MG_DESTROY);
+}
+
+/* Clear MG_DESTROY for the modules that `ld` may use: its hazard, its
+   source and typein modules, the context modules of its frames and the
+   modules of lingering definitions referenced by its frames and
+   predicate references.  The hazard must be scanned before the stack.
+*/
+
+static void
+markVolatileModules(PL_local_data_t *ld, void *ctx)
+{ GET_LD
+  TablePP marking = ctx;
+
+  if ( !ld->magic )
+    return;				/* thread is exiting */
+
+  keepVolatileModule(marking, LOAD_SEQ_CST(ld->modules.hazard));
+  keepVolatileModule(marking, ld->modules.source);
+  keepVolatileModule(marking, ld->modules.typein);
+
+  Word lbase = (Word)ld->stacks.local.base;
+  Word lend  = (Word)ld->stacks.local.top;	/* see markPredicatesInEnvironments() */
+  if ( (Word)ld->stacks.local.max - lend > 2*ARGOFFSET/(int)sizeof(word) )
+    lend++;
+  for(Word current = lbase; current < lend; current++)
+  { LocalFrame fr = (LocalFrame)current;
+
+    if ( isFrame(fr) )
+    { keepVolatileModule(marking, fr->context);
+      keepVolatileModule(marking, fr->predicate);
+    }
+  }
+
+  definition_refs *refs = &ld->predicate_references;
+  for(size_t i=1; i<=refs->top; i++)
+  { volatile definition_ref *drefp = &refs->blocks[MSB(i)][i];
+
+    keepVolatileModule(marking, drefp->predicate);
+  }
+}
+
+/* Unlink `m` and free its resources.  The struct is reused for new
+   modules from the next collection onwards.
+*/
+
+#define destroyVolatileModule(m) LDFUNC(destroyVolatileModule, m)
+static void
+destroyVolatileModule(DECL_LD Module m)
+{ Module old = deleteHTableWP(GD->tables.modules, m->name);
+
+  assert(old == m);
+  (void)old;
+  ATOMIC_INC(&GD->modules.generation);	/* flush module caches */
+  DEBUG(MSG_CREATE_MODULE, Sdprintf("Collected module %s at %p\n",
+				    PL_atom_chars(m->name), m));
+
+  assert(m->procedures->size == 0);	/* so no procedure candidates */
+  destroyHTableWP(m->procedures);
+  destroyHTableWP(m->public);
+  if ( m->operators )			/* only cleared entries */
+  { destroyHTableWP(m->operators);
+    m->operators = NULL;
+  }
+  unallocList(m->supers);
+  if ( m->lingering )
+  { freeLingeringDefinitions(m->lingering);
+    m->lingering = NULL;
+  }
+#ifdef O_PLMT
+  freeSimpleMutex(m->mutex);
+#endif
+  ATOMIC_DEC(&GD->statistics.modules);
+  PL_unregister_atom(m->name);
+
+  m->procedures = NULL;
+  m->public     = NULL;
+  m->supers     = NULL;
+#ifdef O_PLMT
+  m->mutex      = NULL;
+#endif
+  NEXT_FREE_MODULE(m) = GD->modules.gc.pending;
+  GD->modules.gc.pending = m;
+}
+
+/* After setting MG_DESTROY, check that no counted reference exists.
+   This pairs with protectModule(), which increments the references
+   before checking MG_DESTROY.  If we keep it, clear MG_DESTROY.
+*/
+
+static bool
+keepReferencedModule(Module m)
+{ if ( LOAD_SEQ_CST(m->gc_references) > 0 )
+  { ATOMIC_AND(&m->gc_flags, ~MG_DESTROY);
+    return true;
+  }
+
+  return false;
+}
+
+/* Called from pl_garbage_collect_clauses() after procedure GC while
+   holding GD->clauses.cgc_active.  Returns the number of collected
+   modules.
+
+   Candidates that are pinned or have definitions are dropped.  If the
+   last definition is freed, the module becomes a candidate again (see
+   unallocDefinition()).  (*) If another thread freed it after we
+   checked, that thread saw MG_CANDIDATE, so we re-add the module.
+   Candidates that are not empty for other reasons can only become
+   empty using abolish_module/1, which makes them a candidate again.
+   Candidates that are referenced are kept.
+
+   (**) A thread may have added a procedure or definition to the module
+   after we tested isEmptyModule() and before we set MG_DESTROY, while
+   holding a hazard or reference that it released before we checked
+   them.  For example, a meta-call creates an undefined procedure and
+   assertz/1 adds a clause.  Its update precedes its release, so we see
+   it by testing again after marking.  Updates by threads that still
+   hold a hazard or reference clear MG_DESTROY.
+*/
+
+size_t
+collectVolatileModules(void)
+{ GET_LD
+  size_t collected = 0;
+  ModuleCandidate list, keep = NULL, keep_tail = NULL, marked = NULL, c, next;
+  Module m;
+
+  STORE_SEQ_CST(GD->modules.gc.destroyed, 0);
+  if ( !LOAD_SEQ_CST(GD->modules.gc.candidates) ||
+       !moduleGCEnabled() )
+    return 0;
+
+  simpleMutexLock(&GD->modules.gc.mutex);
+  STORE_SEQ_CST(GD->modules.gc.created, 0);
+  if ( (m=GD->modules.gc.pending) )	/* make pending available */
+  { Module tail = m;
+
+    while( NEXT_FREE_MODULE(tail) )
+      tail = NEXT_FREE_MODULE(tail);
+    GD->modules.gc.pending = NULL;
+    simpleMutexLock(&GD->modules.gc.free_mutex);
+    NEXT_FREE_MODULE(tail) = GD->modules.gc.free;
+    GD->modules.gc.free = m;
+    simpleMutexUnlock(&GD->modules.gc.free_mutex);
+  }
+
+  list = takeModuleCandidates();
+  TablePP marking = newHTablePP(64);
+  for(c=list; c; c=next)
+  { unsigned int flags;
+
+    m    = c->module;
+    next = c->next;
+    flags = LOAD_SEQ_CST(m->gc_flags);
+
+    if ( !(flags&MG_PINNED) &&
+	 LOAD_SEQ_CST(m->gc_references) == 0 &&
+	 isEmptyModule(m) &&
+	 COMPARE_AND_SWAP_UINT(&m->gc_flags, flags, flags|MG_DESTROY) &&
+	 !keepReferencedModule(m) )
+    { addNewHTablePP(marking, m, c);
+      for(ListCell l = m->lingering; l; l = l->next)
+	addNewHTablePP(marking, l->value, c);
+      c->next = marked;
+      marked = c;
+    } else if ( ( (flags=LOAD_SEQ_CST(m->gc_flags))&MG_PINNED ||
+		  LOAD_SEQ_CST(m->definitions) > 0 ||
+		  !isEmptyModule(m) ) &&
+		COMPARE_AND_SWAP_UINT(&m->gc_flags, flags,
+				      flags&~MG_CANDIDATE) )
+    { freeHeap(c, sizeof(*c));		/* pinned or not empty */
+      if ( isEmptyModule(m) )
+	moduleGCCandidate(m);		/* last definition was freed (*) */
+    } else
+    { if ( !keep_tail ) keep_tail = c;
+      c->next = keep;
+      keep = c;
+    }
+  }
+
+  if ( marking->size > 0 )
+  { MEMORY_BARRIER();
+    markVolatileModules(LD, marking);
+#ifdef O_PLMT
+    forThreadLocalDataUnsuspended(markVolatileModules, marking);
+#endif
+
+    for(c=marked; c; c=next)
+    { m    = c->module;
+      next = c->next;
+
+      if ( (LOAD_SEQ_CST(m->gc_flags)&MG_DESTROY) &&
+	   isEmptyModule(m) )		/* see (**) */
+      { destroyVolatileModule(m);
+	freeHeap(c, sizeof(*c));
+	collected++;
+      } else
+      { ATOMIC_AND(&m->gc_flags, ~MG_DESTROY);
+	if ( !keep_tail ) keep_tail = c;
+	c->next = keep;
+	keep = c;
+      }
+    }
+  }
+  destroyHTablePP(marking);
+
+  if ( keep )
+    pushModuleCandidates(keep, keep_tail);
+
+  GD->modules.gc.collected += collected;
+  simpleMutexUnlock(&GD->modules.gc.mutex);
+
+  DEBUG(MSG_CGC, Sdprintf("Module GC: collected %zd\n", collected));
+
+  return collected;
+}
+
+/* Called by cleanupModules() at halt */
+
+static void
+cleanupModuleGC(void)
+{ ModuleCandidate c, next;
+  Module m;
+
+  for(c=takeModuleCandidates(); c; c=next)
+  { next = c->next;
+    freeHeap(c, sizeof(*c));
+  }
+  while( (m=GD->modules.gc.pending) )
+  { GD->modules.gc.pending = NEXT_FREE_MODULE(m);
+    freeHeap(m, sizeof(*m));
+  }
+  while( (m=GD->modules.gc.free) )
+  { GD->modules.gc.free = NEXT_FREE_MODULE(m);
+    freeHeap(m, sizeof(*m));
+  }
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 Remove all links from  the  source   file  administration  to  the given
 module. Such links are added by addProcedureSourceFile(). In theory, the
@@ -391,6 +1135,10 @@ This is fine for the  current   schema  of destroying temporary modules,
 which are typically not supposed  to   use  constructs such as multifile
 anyway. The alternative  is  for  procedures   to  maintain  a  list  of
 back-links to the source files.
+
+We also remove `m` from the modules of the source files.  As these hold
+a pointer to the module, module GC does not collect modules that are
+listed by a source file (m->source_refs).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
@@ -421,34 +1169,18 @@ unlinkSourceFilesModule(Module m)
   }
 
   free_bitvector(vec);
+					/* files without procedures for m */
+  for(i=1; i<=high && LOAD_SEQ_CST(m->source_refs) > 0; i++)
+  { SourceFile sf = indexToSourceFile(i);
+
+    if ( sf && sf->modules )
+      unlinkSourceFileModule(sf, m);
+  }
 
   if ( (sf = m->file) )
   { m->file = NULL;
     releaseSourceFile(sf);
   }
-}
-
-
-static bool
-destroyModule(Module m)
-{ GET_LD
-
-  if ( !(m->class != ATOM_temporary ||
-	 m->references > 0) )
-    Sdprintf("Module %s: class %s; refs %d\n",
-	     PL_atom_chars(m->name), PL_atom_chars(m->class), m->references);
-
-  PL_LOCK(L_MODULE);
-  if ( deleteHTableWP(GD->tables.modules, m->name) == m )
-    set(m, M_DESTROYED);
-  ATOMIC_INC(&GD->modules.generation);	/* flush lookupModule() caches */
-  DEBUG(0, { GET_LD
-	     assert(!lookupHTableWP(GD->tables.modules, m->name));
-           });
-  PL_UNLOCK(L_MODULE);
-
-  releaseModule(m);
-  return true;
 }
 
 
@@ -464,14 +1196,17 @@ the state of a new module:
   - Links from source files are removed.
   - Class and flags are reset.
 
-The module keeps its identity.  Unlike destroyModule(), this is safe
-while code of the module is running and if clauses of other modules
-refer to its predicates.
+The module keeps its identity.  This is safe while code of the module
+is running and if clauses of other modules refer to its predicates.
+
+If `unpin` is true, we are called by '$destroy_module'/1 for a temporary
+module and also drop the pins of its procedures (see unpinProcedure()).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define abolishProceduresModule(m) LDFUNC(abolishProceduresModule, m)
+#define abolishProceduresModule(m, unpin) \
+	LDFUNC(abolishProceduresModule, m, unpin)
 static void
-abolishProceduresModule(DECL_LD Module m)
+abolishProceduresModule(DECL_LD Module m, bool unpin)
 { TableEnum e = newTableEnumWP(m->procedures);
   table_key_t name;
   table_value_t value;
@@ -484,7 +1219,10 @@ abolishProceduresModule(DECL_LD Module m)
       continue;
     if ( !(proc->definition->module == m &&
 	   ison(proc->definition, P_THREAD_LOCAL)) )
+    { if ( unpin )
+	unpinProcedure(proc, m);
       abolishProcedure(proc, m);
+    }
     releaseProcedureRef(proc);
   }
   freeTableEnum(e);
@@ -493,16 +1231,16 @@ abolishProceduresModule(DECL_LD Module m)
 
 #define MODULE_RESET_FLAGS (M_WAITED_FOR)
 
-#define abolishModule(m) LDFUNC(abolishModule, m)
+#define abolishModule(m, unpin) LDFUNC(abolishModule, m, unpin)
 static bool
-abolishModule(DECL_LD Module m)
+abolishModule(DECL_LD Module m, bool unpin)
 { DEBUG(MSG_DESTROY_MODULE,
 	Sdprintf("Abolishing module %s at %p\n", PL_atom_chars(m->name), m));
 
-  abolishProceduresModule(m);
+  unlinkSourceFilesModule(m);		/* before procedure GC may */
+  abolishProceduresModule(m, unpin);	/* collect the procedures */
   clearHTableWP(m->public);
   clearOperatorsModule(m);
-  unlinkSourceFilesModule(m);
 
   PL_LOCK(L_MODULE);
   m->line_no = 0;
@@ -542,6 +1280,7 @@ cleanupModules(void)
     t->free_symbol = empty_module;
     destroyHTableWP(t);
   }
+  cleanupModuleGC();
 }
 
 
@@ -740,6 +1479,26 @@ setSuperModule(Module m, Module s)
 }
 
 
+/* True if `m` has defined procedures.  A destroyed temporary module
+   only has undefined (abolished) procedures.
+*/
+
+#define hasProceduresModule(m) LDFUNC(hasProceduresModule, m)
+static bool
+hasProceduresModule(DECL_LD Module m)
+{ if ( m->procedures->size == 0 )
+    return false;
+
+  FOR_TABLE(m->procedures, name, value)
+  { Procedure proc = val2ptr(value);
+
+    if ( !isVolatileProcedure(proc) && isDefinedProcedure(proc) )
+      return true;
+  }
+
+  return false;
+}
+
 #define set_module(m, prop) LDFUNC(set_module, m, prop)
 static int
 set_module(DECL_LD Module m, term_t prop)
@@ -771,10 +1530,9 @@ set_module(DECL_LD Module m, term_t prop)
       { m->class = class;
 	return true;
       } else if ( class == ATOM_temporary )
-      { TableWP procs;
-
-	if ( m->class == ATOM_user &&
-	     !((procs=m->procedures) && procs->size != 0) )
+      { if ( ( m->class == ATOM_user ||
+	       m->class == ATOM_temporary ) && /* destroyed, not collected */
+	     !hasProceduresModule(m) )
 	{ m->class = class;
 	} else
 	{ return PL_error(NULL, 0,
@@ -807,6 +1565,21 @@ set_module(DECL_LD Module m, term_t prop)
 }
 
 
+static bool
+isTemporaryClassProperty(term_t prop)
+{ GET_LD
+  Word p = valTermRef(prop);
+
+  deRef(p);
+  if ( hasFunctor(*p, FUNCTOR_class1) )
+  { p = argTermP(*p, 0);
+    deRef(p);
+    return *p == ATOM_temporary;
+  }
+
+  return false;
+}
+
 static
 PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
 { PRED_LD
@@ -821,7 +1594,11 @@ PRED_IMPL("set_module", 1, set_module, PL_FA_TRANSPARENT)
   *valTermRef(prop) = linkValNoG(p);
 
   PL_LOCK(L_MODULE);
-  m = mname ? _lookupModule(mname) : MODULE_parse;
+  if ( mname )
+    m = ( isTemporaryClassProperty(prop) ? _lookupTemporaryModule(mname)
+					 : _lookupModule(mname) );
+  else
+    m = MODULE_parse;
   rc = set_module(m, prop);
   PL_UNLOCK(L_MODULE);
 
@@ -895,7 +1672,10 @@ stripModuleName(DECL_LD Word term, atom_t *name)
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 stripModule() takes an atom or term, possible embedded in the :/2 module
 term.  It will assign *module with the associated module and return  the
-remaining term.
+remaining term.  The module is pinned (see module GC), unless `flags`
+contains SM_VOLATILE, which is used by the meta-call.  In that case the
+module is protected by the thread's hazard pointer or by the frame from
+which we take the context module.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 Word
@@ -912,8 +1692,54 @@ stripModule(DECL_LD Word term, Module *module, int flags)
 	  *module = m;
 	else
 	  return NULL;
+      } else if ( (flags&SM_VOLATILE) )
+      { *module = resolveVolatileModule(mname);
       } else
-      { *module = lookupModule(mname);
+      { Module m = findModule(mname);	/* inline fast path */
+
+	if ( likely(m && (m->gc_flags&MG_PINNED)) )
+	  *module = m;
+	else
+	  *module = lookupModule(mname);
+      }
+    } else
+    { Module m = (environment_frame ? contextModule(environment_frame)
+				    : MODULE_user);
+
+      if ( unlikely(!(flags&SM_VOLATILE) &&
+		    !(m->gc_flags&MG_PINNED)) )
+	m = pinModulePtr(m);		/* see module GC */
+      *module = m;
+    }
+  }
+
+  return rc;
+}
+
+
+/* As stripModule(), but do not pin the module.  If the module is not
+   pinned, *ref is set to the module and the caller must call
+   releaseModuleRef(*ref) when done.  Otherwise *ref is NULL.  The
+   context module needs no reference as it is protected by the frame.
+*/
+
+Word
+stripModuleRef(DECL_LD Word term, Module *module, Module *ref, int flags)
+{ atom_t mname = 0;
+  Word rc;
+
+  *ref = NULL;
+  if ( (rc=stripModuleName(term, &mname)) )
+  { if ( mname )
+    { Module m = findModule(mname);
+
+      if ( likely(m && isPermanentFlags(m->gc_flags)) )
+      { *module = m;
+      } else if ( unlikely(flags&SM_NOCREATE) )
+      { if ( !(*module = acquireModuleRef(mname, ref)) )
+	  return NULL;
+      } else
+      { *module = lookupModuleRef(mname, ref);
       }
     } else
     { *module = (environment_frame ? contextModule(environment_frame)
@@ -1079,10 +1905,11 @@ PRED_IMPL("$current_module", 2, current_module, PL_FA_NONDETERMINISTIC)
   { case FRG_FIRST_CALL:
 				/* deterministic case: module --> file */
       if ( PL_get_atom(module, &name) )
-      { Module m;
+      { Module m, ref;
 
-	if ( (m=isCurrentModule(name)) )
+	if ( (m=acquireModuleRef(name, &ref)) )
 	{ atom_t f = (!m->file ? ATOM_nil : m->file->name);
+	  releaseModuleRef(ref);
 	  return PL_unify_atom(file, f);
 	}
 
@@ -1750,7 +2577,17 @@ static void
 fixExport(Definition old, Definition new)
 { PL_LOCK(L_MODULE);		/* Otherwise tmp modules may disappear */
   FOR_TABLE(GD->tables.modules, name, value)
-    fixExportModule(val2ptr(value), old, new);
+  { Module m = val2ptr(value);
+
+    if ( isPermanentModule(m) )
+    { fixExportModule(m, old, new);
+    } else				/* see module GC */
+    { ATOMIC_INC(&m->gc_references);
+      if ( !(LOAD_SEQ_CST(m->gc_flags)&MG_DESTROY) )
+	fixExportModule(m, old, new);
+      ATOMIC_DEC(&m->gc_references);
+    }
+  }
   PL_UNLOCK(L_MODULE);
 }
 
@@ -1871,7 +2708,7 @@ retry:
       return false;
   }
 
-  { Procedure nproc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
+  { Procedure nproc = allocProcedure();	/* see procedure GC */
     Procedure old;
 
     nproc->flags = pflags|PROC_PINNED;
@@ -1911,12 +2748,43 @@ PRED_IMPL("$import", 2, import, PL_FA_TRANSPARENT)
   return import(A1, A2);
 }
 
-/** '$destroy_module'(+Module) is det.
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+destroyTemporaryModule() implements '$destroy_module'/1, which is used by
+in_temporary_module/3.  It abolishes the module (see abolishModule()) and
+leaves it to procedure and module GC to reclaim the procedures and the
+module when they are no longer referenced.
 
-Destroy all traces of  the  named  module.   This  is  only  safe  if no
-procedure in Module is executing  and   there  are no predicates outside
-this module that link to predicates of this module.
-*/
+A temporary module and its procedures are pinned as usual while the
+module is used, e.g., while loading code into it.  If the module was a
+new or unpinned module when it became temporary (MG_TEMPORARY, see
+set_module/1), references to it are counted as if it is not pinned and
+destroying it drops the pins of the module and its procedures.  This
+assumes that, after it is destroyed, the module is no longer used
+through a pointer obtained by a path that pins it.  Pins after
+destroying the module are permanent.  Clauses that refer to the module
+hold a counted reference (see acquireClauseModule()).
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define destroyTemporaryModule(m) LDFUNC(destroyTemporaryModule, m)
+static bool
+destroyTemporaryModule(DECL_LD Module m)
+{ bool soft = !!(LOAD_SEQ_CST(m->gc_flags)&MG_TEMPORARY);
+  bool rc = abolishModule(m, soft);
+
+  if ( soft )
+  { ATOMIC_AND(&m->gc_flags, ~(MG_PINNED|MG_TEMPORARY));
+    moduleGCCandidate(m);
+    destroyedTemporaryModule();
+  }
+
+  return rc;
+}
+
+
+/** '$destroy_module'(+Module) is det.
+ *
+ * Destroy the temporary module Module.  See destroyTemporaryModule().
+ */
 
 static
 PRED_IMPL("$destroy_module", 1, destroy_module, 0)
@@ -1928,7 +2796,10 @@ PRED_IMPL("$destroy_module", 1, destroy_module, 0)
 
     if ( (m=acquireModule(name)) )
     { if ( m->class == ATOM_temporary )
-      { return destroyModule(m);
+      { bool rc = destroyTemporaryModule(m);
+
+	releaseModule(m);
+	return rc;
       } else
       { releaseModule(m);
 	return PL_error(NULL, 0,
@@ -1955,16 +2826,25 @@ PRED_IMPL("$abolish_module", 1, abolish_module, 0)
   atom_t name;
   Module m;
 
+  Module ref;
+  bool rc;
+
   if ( !PL_get_atom_ex(A1, &name) )
     return false;
-  if ( !(m=isCurrentModule(name)) )
+  if ( !(m=acquireModuleRef(name, &ref)) )
     return true;
   if ( name == ATOM_user || name == ATOM_system ||
        ison(m, M_SYSTEM) || m->class == ATOM_system )
+  { releaseModuleRef(ref);
     return PL_error("abolish_module", 1, "system module",
 		    ERR_PERMISSION, ATOM_abolish, ATOM_module, A1);
+  }
 
-  return abolishModule(m);
+  rc = abolishModule(m, false);
+  moduleGCCandidate(m);
+  releaseModuleRef(ref);
+
+  return rc;
 }
 
 		 /*******************************

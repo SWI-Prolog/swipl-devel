@@ -919,7 +919,7 @@ cgc_handler(int sig)
   (void)sig;
 
   if ( gcByGCThread() )
-  { if ( localClauseGCDue() )
+  { if ( localClauseGCDue() && gcCodeLevel() != GC_CODE_FALSE )
       localClauseGC();
   } else
   { pl_garbage_collect_clauses();	/* also does the local clause GC */

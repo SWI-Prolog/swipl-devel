@@ -5622,7 +5622,7 @@ VMH(i_metacall_common, 3, (Word, int, bool), (a, callargs, is_call0))
   Module module = NULL;
   closure *clsp = NULL;
 
-  if ( !(a = stripModule(a, &module, 0)) )
+  if ( !(a = stripModule(a, &module, SM_VOLATILE)) )
     THROW_EXCEPTION;
   goal = *a;
 

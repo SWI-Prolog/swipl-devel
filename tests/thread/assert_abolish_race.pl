@@ -54,7 +54,11 @@ assert_abolish_race :-
 	run_tests([ assert_abolish_race
 		  ]).
 
-:- begin_tests(assert_abolish_race).
+:- begin_tests(assert_abolish_race,
+               [ setup((current_prolog_flag(gc_code, Old),
+                        set_prolog_flag(gc_code, module))),
+                 cleanup(set_prolog_flag(gc_code, Old))
+               ]).
 
 test(erased, fail) :-
 	race(q, true),

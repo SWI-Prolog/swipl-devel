@@ -481,6 +481,7 @@ addModuleSourceFile(SourceFile sf, Module m)
   c2->value = m;
   c2->next = NULL;
   *cp = c2;
+  ATOMIC_INC(&m->source_refs);		/* see module GC */
 
 out:
   UNLOCKSRCFILE(sf);
@@ -498,6 +499,7 @@ delModuleSourceFile(SourceFile sf, Module m)
   { if ( c->value == m )
     { *cp = c->next;
       freeHeap(c, sizeof(*c));
+      ATOMIC_DEC(&m->source_refs);
 
       rc = true;
       break;
@@ -519,6 +521,7 @@ delAllModulesSourceFile__unlocked(SourceFile sf)
   { Module m = c->value;
 
     n = c->next;
+    ATOMIC_DEC(&m->source_refs);
     if ( m->file == sf )
     { PL_LOCK(L_MODULE);
       m->file = NULL;
@@ -532,9 +535,42 @@ delAllModulesSourceFile__unlocked(SourceFile sf)
 }
 
 
+/* True if `def` has a clause from `sf` that is not erased.  The caller
+   holds LOCKSRCFILE(sf).
+*/
+
+#define hasClausesFromSourceFile(def, sf) \
+	LDFUNC(hasClausesFromSourceFile, def, sf)
+static bool
+hasClausesFromSourceFile(DECL_LD Definition def, SourceFile sf)
+{ bool rc = false;
+
+  if ( ison(def, P_FOREIGN|P_THREAD_LOCAL) )
+    return false;
+
+  acquire_def(def);
+  for(ClauseRef c = def->impl.clauses.first_clause; c; c = c->next)
+  { Clause cl = c->value.clause;
+
+    if ( cl->owner_no == sf->index && isoff(cl, CL_ERASED) )
+    { rc = true;
+      break;
+    }
+  }
+  release_def(def);
+
+  return rc;
+}
+
+
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Remove all links from sf to  m  module.   If  sf  becomes empty, we also
-delete the source file.
+Remove all links from sf to  m  module:  the procedures of m and m from
+the modules of sf.  If sf no longer belongs to any module, we also drop
+the links to procedures of other modules for which sf no longer has
+clauses, e.g., the system:'$load_context_module'/3 clause that is
+retracted when a temporary module is destroyed.  Otherwise these links
+would keep sf.  If sf becomes empty, it is deleted when it is released
+for the last time.
 
 (*) Although the system:$init_goal/3 clauses belong   to the file, we'll
 consider a file holding only initialization goals empty.
@@ -544,11 +580,21 @@ void
 unlinkSourceFileModule(SourceFile sf, Module m)
 { GET_LD
   ListCell cell, next, prev = NULL;
+  ListCell *cp, c;
 
   LOCKSRCFILE(sf);
 
   DEBUG(MSG_DESTROY_MODULE,
 	Sdprintf("Cleaning %s\n", PL_atom_chars(sf->name)));
+
+  for(cp=&sf->modules; (c=*cp); cp=&c->next)
+  { if ( c->value == m )
+    { *cp = c->next;
+      freeHeap(c, sizeof(*c));
+      ATOMIC_DEC(&m->source_refs);	/* see module GC */
+      break;
+    }
+  }
 
   for(cell=sf->procedures; cell; cell=next)
   { Procedure proc;
@@ -558,8 +604,9 @@ unlinkSourceFileModule(SourceFile sf, Module m)
     proc = cell->value;
     def  = proc->definition;
 
-    if ( lookupHTableWP(m->procedures, def->functor->functor) ||
-	 PROCEDURE_dinit_goal->definition == def )	/* see (*) */
+    if ( lookupHTableWP(m->procedures, def->functor->functor) == proc ||
+	 PROCEDURE_dinit_goal->definition == def ||	/* see (*) */
+	 ( !sf->modules && !hasClausesFromSourceFile(def, sf) ) )
     { if ( sf->current_procedure == proc )
 	sf->current_procedure = NULL;
 

@@ -749,6 +749,31 @@ setOccursCheck(atom_t a)
 
 
 static bool
+setGCCode(atom_t a)
+{ gc_code_level level;
+
+  if ( a == ATOM_false )
+    level = GC_CODE_FALSE;
+  else if ( a == ATOM_clause )
+    level = GC_CODE_CLAUSE;
+  else if ( a == ATOM_procedure )
+    level = GC_CODE_PROCEDURE;
+  else if ( a == ATOM_module )
+    level = GC_CODE_MODULE;
+  else
+  { GET_LD
+    term_t value = PL_new_term_ref();
+
+    PL_put_atom(value, a);
+    return PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_gc_code, value);
+  }
+
+  GD->clauses.gc_level = level;
+  return true;
+}
+
+
+static bool
 setIncomparable(atom_t a)
 { GET_LD
 
@@ -1396,6 +1421,8 @@ set_flag_value(DECL_LD prolog_flag *f, Module m, atom_t k, term_t value)
       { rval = setOccursCheck(a);
       } else if ( k == ATOM_incomparable )
       { rval = setIncomparable(a);
+      } else if ( k == ATOM_gc_code )
+      { rval = setGCCode(a);
       } else if ( k == ATOM_access_level )
       { rval = setAccessLevelFromAtom(a);
       } else if ( k == ATOM_encoding )
@@ -2580,6 +2607,7 @@ initPrologFlags(void)
   setPrologFlag("gc",	  FT_BOOL,	       true,  PLFLAG_GC);
   setPrologFlag("trace_gc",  FT_BOOL,	       false, PLFLAG_TRACE_GC);
   setPrologFlag("gc_generational", FT_BOOL,  true, PLFLAG_GC_GENERATIONAL);
+  setPrologFlag("gc_code", FT_ATOM, "clause");	/* see gc_code_level */
 #ifdef O_ATOMGC
   setPrologFlag("agc_margin", FT_INTEGER, (intptr_t)GD->atoms.margin);
   setPrologFlag("agc_close_streams", FT_BOOL, false, PLFLAG_AGC_CLOSE_STREAMS);

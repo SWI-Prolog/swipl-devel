@@ -178,6 +178,18 @@ struct PL_global_data
   { Module	user;			/* user module */
     Module	system;			/* system predicate module */
     unsigned int generation;		/* Incremented on destroying a module */
+    struct
+    { struct module_candidate *candidates; /* Unpinned modules */
+      Module	free;			/* Collected, for reuse */
+      Module	pending;		/* Collected, reuse after next GC */
+#ifdef O_PLMT
+      simpleMutex mutex;		/* Sync with lookups */
+      simpleMutex free_mutex;		/* Guards `free` */
+#endif
+      size_t	created;		/* Volatile created since last GC */
+      size_t	destroyed;		/* Temporary destroyed since last GC */
+      int64_t	collected;		/* Total collected */
+    } gc;				/* See module GC in pl-modul.c */
   } modules;
 
   struct
@@ -405,7 +417,10 @@ struct PL_global_data
       Procedure free;			/* Collected, for reuse */
       Procedure pending;		/* Collected, reuse after next GC */
       TablePP	marking;		/* Definition -> Procedure */
+#ifdef O_PLMT
       simpleMutex mutex;		/* Sync with lookups */
+      simpleMutex free_mutex;		/* Guards `free` */
+#endif
       size_t	created;		/* Volatile created since last GC */
       int64_t	collected;		/* Total collected */
       int	disabled;		/* Do not collect (profiler) */
@@ -421,6 +436,7 @@ struct PL_global_data
   { ClauseRef	lingering;		/* Unlinked clause refs */
     size_t	lingering_count;	/* # Unlinked clause refs */
     int		cgc_active;		/* CGC is running */
+    int		gc_level;		/* gc_code_level; flag gc_code */
     int64_t	cgc_count;		/* # clause GC calls */
     int64_t	cgc_reclaimed;		/* # clauses reclaimed */
     double	cgc_time;		/* Total time spent in CGC */
@@ -710,6 +726,7 @@ struct PL_local_data
       Module	module[MODULE_CACHE_SIZE];
       unsigned int generation;		/* GD->modules.generation */
     } cache;
+    Module	hazard;			/* See resolveVolatileModule() */
   } modules;
 
   struct

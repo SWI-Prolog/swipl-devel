@@ -214,6 +214,32 @@ clearOperatorsModule(Module m)
 }
 
 
+/* True if `m` defines operators.  clearOperatorsModule() does not
+   remove the entries, so we check them.  Used by module GC without
+   L_OP: the table may be read without a lock and module GC does not
+   collect a module while operators can be added (see isEmptyModule()).
+*/
+
+bool
+hasOperatorsModule(Module m)
+{ TableWP t;
+
+  if ( !(t=m->operators) )
+    return false;
+
+  FOR_TABLE(t, name, value)
+  { operator *op = val2ptr(value);
+
+    for(int kind = OP_PREFIX; kind <= OP_POSTFIX; kind++)
+    { if ( op->type[kind] != OP_INHERIT )
+	return true;
+    }
+  }
+
+  return false;
+}
+
+
 		 /*******************************
 		 *	  QUERY OPERATORS	*
 		 *******************************/

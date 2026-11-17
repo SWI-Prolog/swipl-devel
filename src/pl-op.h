@@ -48,5 +48,6 @@ bool		currentOperator(Module m, atom_t name, int kind,
 int		priorityOperator(Module m, atom_t atom);
 void		initOperators(void);
 void		clearOperatorsModule(Module m);
+bool		hasOperatorsModule(Module m);
 
 #endif /*_PL_OP_H*/

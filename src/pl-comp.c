@@ -523,7 +523,8 @@ register_clause_symbols(Clause clause, bool local)
 { forAtomsAndFunctorsInClause(clause,
 			      local ? register_local_clause_atom
 				    : register_clause_atom,
-			      NULL, acquireFunctor, acquireProcedureRef);
+			      NULL, acquireFunctor, acquireProcedureRef,
+			      acquireModulePtr);
 }
 
 
@@ -2727,6 +2728,7 @@ that have an I_CONTEXT because we need to reset the context.
 
       if ( ison(def, P_MFCONTEXT) )
       { set(&clause, CL_BODY_CONTEXT);
+	pinModulePtr(ci->module);	/* see module GC */
 	Output_1(ci, I_CONTEXT, ptr2code(ci->module));
       }
     }
@@ -5561,7 +5563,8 @@ output_indirect(DECL_LD compileInfo *ci, code op, Word p)
 static bool
 for_atoms_in_codes(size_t size, Code PC, int (func)(atom_t a, void*),
 		   void *ctx, void (*ffunc)(functor_t f),
-		   void (*pfunc)(Procedure proc))
+		   void (*pfunc)(Procedure proc),
+		   void (*mfunc)(Module m))
 { Code ep = PC + size;
 
   for( ; PC < ep; PC = stepPC(PC) )
@@ -5588,6 +5591,10 @@ for_atoms_in_codes(size_t size, Code PC, int (func)(atom_t a, void*),
 	  if ( pfunc )
 	    (*pfunc)(code2ptr(Procedure, PC[an+1]));
 	  break;
+	case CA1_MODULE:
+	  if ( mfunc )
+	    (*mfunc)(code2ptr(Module, PC[an+1]));
+	  break;
       }
     }
   }
@@ -5597,7 +5604,7 @@ for_atoms_in_codes(size_t size, Code PC, int (func)(atom_t a, void*),
 
 bool
 forAtomsInCodes(size_t size, Code PC, int (func)(atom_t a, void*), void *ctx)
-{ return for_atoms_in_codes(size, PC, func, ctx, NULL, NULL);
+{ return for_atoms_in_codes(size, PC, func, ctx, NULL, NULL, NULL);
 }
 
 bool
@@ -5613,9 +5620,10 @@ bool
 forAtomsAndFunctorsInClause(Clause clause,
 			    int (func)(atom_t a, void*), void *ctx,
 			    void (*ffunc)(functor_t f),
-			    void (*pfunc)(Procedure proc))
+			    void (*pfunc)(Procedure proc),
+			    void (*mfunc)(Module m))
 { return for_atoms_in_codes(clause->code_size, clause->codes,
-			    func, ctx, ffunc, pfunc);
+			    func, ctx, ffunc, pfunc, mfunc);
 }
 
 #endif /*O_ATOMGC*/
@@ -5721,30 +5729,36 @@ assert_term(DECL_LD term_t term, Module module, ClauseRef where,
   term_t warnings = (owner ? tmp+3 : 0);
   functor_t fdef;
   int hflags = 0;
+  Module mref;
 
   if ( !module )
     module = source_module;
 
-  if ( !PL_strip_module_ex(term, &module, tmp) )
+  if ( !PL_strip_module_ex_ref(term, &module, tmp, &mref) )
     return NULL;
   mhead = module;
-  if ( !get_head_and_body_clause(tmp, head, body, &mhead, &hflags) )
-    return NULL;
-  if ( !get_head_functor(head, &fdef, 0) )
-    return NULL;			/* not callable, arity too high */
+  if ( !get_head_and_body_clause(tmp, head, body, &mhead, &hflags) ||
+       !get_head_functor(head, &fdef, 0) ) /* not callable, arity too high */
+  { clause = NULL;
+    goto out;
+  }
   if ( loc )
   { if ( !(proc = isCurrentProcedure(fdef, mhead)) )
     { if ( checkModifySystemProc(fdef) )
 	proc = lookupProcedure(fdef, mhead);
       if ( !proc )
-	return NULL;
+      { clause = NULL;
+	goto out;
+      }
     }
   } else
   { if ( !(proc = isCurrentProcedureRef(fdef, mhead)) )
     { if ( checkModifySystemProc(fdef) )
 	proc = lookupProcedureRef(fdef, mhead);
       if ( !proc )
-	return NULL;
+      { clause = NULL;
+	goto out;
+      }
     }
   }
 
@@ -5753,6 +5767,8 @@ assert_term(DECL_LD term_t term, Module module, ClauseRef where,
   if ( !loc )
     releaseProcedureRef(proc);
 
+out:
+  releaseModuleRef(mref);		/* see module GC */
   return clause;
 }
 
@@ -5837,6 +5853,7 @@ assert_proc(DECL_LD Procedure proc, Module mhead, Module module,
   if ( !loc &&				/* see releaseDefinition() */
        !(LOAD_SEQ_CST(proc->flags)&PROC_PINNED) &&
        def == proc->definition &&
+       def == clause->predicate &&	/* freeClause() releases this */
        LOAD_SEQ_CST(def->clause_refs) > 0 )
   { ATOMIC_INC(&def->clause_refs);
     set(clause, CL_DEF_REF);
@@ -8471,10 +8488,13 @@ clause(term_t head, term_t body, term_t ref, term_t bindings, int flags,
   }
 
   if ( def->functor->arity > 0 )
-  { if ( !PL_strip_module(head, &module, head) )
+  { Module mref;
+
+    if ( !PL_strip_module_ref(head, &module, head, &mref, 0) )
     { popPredicateAccess(def);
       return false;
     }
+    releaseModuleRef(mref);		/* only needed the plain head */
     argv = valTermRef(head);
     deRef(argv);
     argv = argTermP(*argv, 0);

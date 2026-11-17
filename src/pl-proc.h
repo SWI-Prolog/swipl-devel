@@ -103,6 +103,9 @@ ClauseRef	assertProcedure(Procedure proc, Clause clause,
 ClauseRef	assertDynamicProcedure(Procedure proc, Clause clause,
 				ClauseRef where);
 bool		abolishProcedure(Procedure proc, Module module);
+void		unpinProcedure(Procedure proc, Module m);
+Procedure	allocProcedure(void);
+void		initProcedureGC(void);
 bool		retract_clause(Clause clause, gen_t gen);
 bool		retractClauseDefinition(Definition def, Clause clause,
 					int notify);
