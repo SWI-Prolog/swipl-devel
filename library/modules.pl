@@ -67,7 +67,13 @@
 %   `call(Goal)`.
 %
 %   The module and all  its  predicates   are  destroyed  after Goal
-%   terminates, as defined by setup_call_cleanup/3.
+%   terminates, as defined by setup_call_cleanup/3.  Destroying the
+%   module abolishes its predicates.  If the Prolog flag `gc_code` is
+%   `module`, the module and its predicates are reclaimed by garbage
+%   collection when they are no longer referenced, e.g., by other
+%   threads or by clauses of other modules.  Otherwise the empty module
+%   and its undefined predicates remain.  Applications that create many
+%   temporary modules should set `gc_code` to `module`.
 %
 %   *Discussion* This predicate is intended to   load programs in an
 %   isolated   environment   and   reclaim   all   resources.   This

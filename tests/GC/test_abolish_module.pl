@@ -38,7 +38,9 @@
 :- use_module(library(plunit)).
 :- use_module(library(lists)).
 :- use_module(library(apply)).
+:- if(exists_source(library(thread))).
 :- use_module(library(thread)).
+:- endif.
 :- use_module(library(yall)).
 
 /** <module> Test abolish_module/1
@@ -54,8 +56,8 @@ test_abolish_module :-
               ]).
 
 :- begin_tests(abolish_module,
-               [ setup(stop_gc_thread(Old)),
-                 cleanup(set_prolog_gc_thread(Old))
+               [ setup(gc_setup(Old)),
+                 cleanup(gc_cleanup(Old))
                ]).
 
 test(predicates, Ps == []) :-
@@ -128,7 +130,7 @@ test(file, X == 42) :-
     am_load:use_module(File),
     am_load:f(X),
     delete_file(File).
-test(threads) :-
+test(threads, condition(current_prolog_flag(threads, true))) :-
     numlist(1, 20, L),
     maplist([I,M]>>atom_concat(am_t_, I, M), L, Pool),
     thread_create(gc_loop, GC),
@@ -143,8 +145,8 @@ test(threads) :-
     thread_join(GC, _),
     forall(member(M, Pool),
            ( abolish_module(M),
-             assertz(M:p(1)),
-             M:p(X),
+             assertz(M:am_tp(1)),
+             M:am_tp(X),
              assertion(X == 1)
            )).
 
@@ -152,19 +154,16 @@ test(threads) :-
 
 am_run_cont(done).
 
-thread_op(1, M) :- assertz(M:p(1)).
+thread_op(1, M) :- assertz(M:am_tp(1)).
 thread_op(2, M) :- abolish_module(M).
-thread_op(3, M) :- catch(ignore(M:p(_)), error(existence_error(_,_),_), true).
-thread_op(4, M) :- ignore(retract(M:p(_))).
+thread_op(3, M) :- catch(ignore(M:am_tp(_)),
+                         error(existence_error(_,_),_), true).
+thread_op(4, M) :- ignore(retract(M:am_tp(_))).
 
 collect(Predicates) :-
     garbage_collect_clauses,
     garbage_collect_clauses,
     statistics(predicates, Predicates).
-
-stop_gc_thread(Old) :-
-    current_prolog_flag(gc_thread, Old),
-    set_prolog_gc_thread(false).
 
 gc_loop :-
     catch(gc_loop_, stop, true).
@@ -172,3 +171,15 @@ gc_loop :-
 gc_loop_ :-
     garbage_collect_clauses,
     gc_loop_.
+
+%   Procedure and module GC require the flag gc_code to be `module`.
+
+gc_setup(GCThread-GCCode) :-
+    current_prolog_flag(gc_thread, GCThread),
+    current_prolog_flag(gc_code, GCCode),
+    set_prolog_gc_thread(false),
+    set_prolog_flag(gc_code, module).
+
+gc_cleanup(GCThread-GCCode) :-
+    set_prolog_flag(gc_code, GCCode),
+    set_prolog_gc_thread(GCThread).

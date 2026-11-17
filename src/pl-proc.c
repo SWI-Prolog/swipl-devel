@@ -125,6 +125,7 @@ newDefinition(FunctorDef fd, Module m, bool permanent)
   }
   def->functor = fd;
   def->module  = m;
+  ATOMIC_INC(&m->definitions);		/* see module GC and unallocDefinition() */
 #if defined(__SANITIZE_ADDRESS__) && defined(HAVE_SANITIZER_LSAN_INTERFACE_H)
   def->name = strdup(predicateName(def));
   __lsan_ignore_object(def->name);
@@ -171,6 +172,8 @@ definitions and functors.  This is modelled after atom and functor GC
     procedure by the thread's hazard pointer
     LD->atoms.volatile_procedure until it has pushed a frame for it.
     The hazard remains until the thread resolves the next procedure.
+  - '$destroy_module'/1 drops the pins of the procedures of a temporary
+    module before abolishing them (unpinProcedure()).
   - Unpinned procedures that are undefined are volatile
     (PROC_VOLATILE): new stubs and unpinned procedures that are
     abolished (abolishedProcedure()).  Lookups act as if volatile
@@ -197,7 +200,7 @@ PROC_DESTROY waits for the collector by locking the mutex and retries.
 The struct procedure of a collected procedure is never freed, so a
 lock-free lookup that read it from the table just before it was
 unlinked does not access freed memory.  Collected procedures are reused
-for new volatile procedures from the next collection onwards.
+for new procedures from the next collection onwards (allocProcedure()).
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define PROC_GC_MIN_CREATED 1000	/* see considerProcedureGC() */
@@ -305,6 +308,19 @@ cleanupProcedureGC(void)
   GD->procedures.gc.free = GD->procedures.gc.pending = NULL;
 }
 
+/* Procedure GC is enabled if the flag gc_code is `procedure` or
+   `module` and the profiler did not disable it (disableProcedureGC()).
+   If it is disabled, procedures are created pinned and abolishing a
+   procedure does not make it volatile, i.e., procedures are never
+   collected.
+*/
+
+static inline bool
+procedureGCEnabled(void)
+{ return ( gcCodeLevel() >= GC_CODE_PROCEDURE &&
+	   !LOAD_SEQ_CST(GD->procedures.gc.disabled) );
+}
+
 #define considerProcedureGC(_) LDFUNC(considerProcedureGC, _)
 static void
 considerProcedureGC(DECL_LD)
@@ -312,26 +328,30 @@ considerProcedureGC(DECL_LD)
 
   if ( created >= PROC_GC_MIN_CREATED &&
        created >= (size_t)GD->statistics.predicates/4 &&
-       !LOAD_SEQ_CST(GD->procedures.gc.disabled) &&
+       procedureGCEnabled() &&
        !isSignalledGCThread(SIG_CLAUSE_GC) )
     signalGCThread(SIG_CLAUSE_GC);
 }
 
-static Procedure
-allocVolatileProcedure(void)
+/* Allocate a procedure.  Collected procedures are reused from the next
+   collection onwards (see procedure GC).
+*/
+
+Procedure
+allocProcedure(void)
 { Procedure proc;
 
-  simpleMutexLock(&GD->procedures.gc.mutex);
+  simpleMutexLock(&GD->procedures.gc.free_mutex);
   if ( (proc=GD->procedures.gc.free) )
     GD->procedures.gc.free = (Procedure)proc->source_no;
-  simpleMutexUnlock(&GD->procedures.gc.mutex);
+  simpleMutexUnlock(&GD->procedures.gc.free_mutex);
   if ( !proc )
     proc = allocHeapOrHalt(sizeof(struct procedure));
 
   return proc;
 }
 
-/* Undo allocVolatileProcedure() for a procedure that was never
+/* Undo allocProcedure() for a procedure that was never
    published.
 */
 
@@ -344,10 +364,10 @@ freeUnpublishedProcedure(Procedure proc)
   unallocDefinition(def);
   proc->definition = NULL;
   proc->flags = PROC_DESTROY;
-  simpleMutexLock(&GD->procedures.gc.mutex);
+  simpleMutexLock(&GD->procedures.gc.free_mutex);
   proc->source_no = (size_t)GD->procedures.gc.free;
   GD->procedures.gc.free = proc;
-  simpleMutexUnlock(&GD->procedures.gc.mutex);
+  simpleMutexUnlock(&GD->procedures.gc.free_mutex);
 }
 
 /* visibleProcedure() for the meta-call.  An unpinned procedure is
@@ -357,6 +377,32 @@ freeUnpublishedProcedure(Procedure proc)
    visible.
 */
 
+/* The visible procedure `f` defined in `m` itself, or NULL.  See
+   visibleProcedureNoPin().
+*/
+
+#define moduleProcedureNoPin(f, m) LDFUNC(moduleProcedureNoPin, f, m)
+static inline Procedure
+moduleProcedureNoPin(DECL_LD functor_t f, Module m)
+{ Procedure p;
+
+  if ( (p = lookupHTableWP(m->procedures, f)) )
+  { unsigned int flags = LOAD_SEQ_CST(p->flags);
+
+    if ( !(flags&(PROC_PINNED|PROC_VOLATILE|PROC_DESTROY)) )
+    { PUBLISH_HAZARD(LD->atoms.volatile_procedure, p);
+      flags = LOAD_SEQ_CST(p->flags);
+      if ( lookupHTableWP(m->procedures, f) != p )
+	flags |= PROC_DESTROY;
+    }
+    if ( !(flags&(PROC_VOLATILE|PROC_DESTROY)) &&
+	 isDefinedOrAutoloadProcedure(p) )
+      return p;
+  }
+
+  return NULL;
+}
+
 static Procedure
 visibleProcedureNoPin(DECL_LD functor_t f, Module m)
 { ListCell c;
@@ -365,19 +411,8 @@ visibleProcedureNoPin(DECL_LD functor_t f, Module m)
   for(;;)
   { next:
 
-    if ( (p = lookupHTableWP(m->procedures, f)) )
-    { unsigned int flags = LOAD_SEQ_CST(p->flags);
-
-      if ( !(flags&(PROC_PINNED|PROC_VOLATILE|PROC_DESTROY)) )
-      { PUBLISH_HAZARD(LD->atoms.volatile_procedure, p);
-	flags = LOAD_SEQ_CST(p->flags);
-	if ( lookupHTableWP(m->procedures, f) != p )
-	  flags |= PROC_DESTROY;
-      }
-      if ( !(flags&(PROC_VOLATILE|PROC_DESTROY)) &&
-	   isDefinedOrAutoloadProcedure(p) )
-	return p;
-    }
+    if ( (p = moduleProcedureNoPin(f, m)) )
+      return p;
 
     for(c=m->supers; c; c=c->next)
     { if ( c->next )
@@ -451,7 +486,7 @@ volatileProcedure(DECL_LD functor_t f, Module m, int how)
   { if ( (proc = protectProcedure(m, f, how)) )
       return proc;
 
-    if ( LOAD_SEQ_CST(GD->procedures.gc.disabled) )
+    if ( !procedureGCEnabled() )
     { proc = lookupProcedure(f, m);
       if ( how == VP_REF )
 	acquireProcedureRef(proc);
@@ -462,7 +497,7 @@ volatileProcedure(DECL_LD functor_t f, Module m, int how)
     Definition def = newDefinition(valueFunctor(f), m, false);
     ProcCandidate cell = allocHeapOrHalt(sizeof(*cell));
 
-    proc = allocVolatileProcedure();
+    proc = allocProcedure();
     proc->definition = def;
     proc->source_no  = 0;
     proc->flags      = 0;
@@ -523,6 +558,38 @@ pinProcedureRef(Procedure proc)
   permanentFunctor(proc->definition->functor->functor);
 }
 
+/* Drop the pin of `proc` in `m`.  Called by '$destroy_module'/1 for
+   the procedures of a temporary module before abolishing them, such
+   that procedure GC can collect them (see destroyTemporaryModule()).
+   An unpinned procedure must not have clauses that do not keep its
+   definition alive (see CL_DEF_REF and releaseDefinition()).
+*/
+
+void
+unpinProcedure(Procedure proc, Module m)
+{ Definition def = proc->definition;
+
+  if ( !(LOAD_SEQ_CST(proc->flags)&PROC_PINNED) )
+    return;
+
+  LOCKDEF(def);
+  if ( def->module == m &&
+       isoff(def, P_FOREIGN|P_THREAD_LOCAL) &&
+       LOAD_SEQ_CST(def->clause_refs) > 0 )
+  { for(ClauseRef c = def->impl.clauses.first_clause; c; c = c->next)
+    { Clause cl = c->value.clause;
+
+      if ( isoff(cl, CL_DEF_REF) &&
+	   cl->predicate == def )	/* freeClause() releases this */
+      { ATOMIC_INC(&def->clause_refs);
+	set(cl, CL_DEF_REF);
+      }
+    }
+  }
+  ATOMIC_AND(&proc->flags, ~PROC_PINNED);
+  UNLOCKDEF(def);
+}
+
 /* Called while abolishing `proc`.  If it is not pinned, nobody keeps
    an uncounted reference to it, so we may collect it after clause GC
    has removed its clauses.  We make it volatile, which makes it
@@ -536,7 +603,7 @@ static bool
 abolishedProcedure(Procedure proc)
 { unsigned int flags;
 
-  if ( LOAD_SEQ_CST(GD->procedures.gc.disabled) )
+  if ( !procedureGCEnabled() )
     return false;
 
   do
@@ -564,11 +631,30 @@ abolishedProcedure(Procedure proc)
 */
 
 Procedure
-resolveVolatileProcedure(DECL_LD functor_t f, Module m)
-{ Procedure proc;
+resolveVolatileProcedure(DECL_LD functor_t f, Module m0)
+{ Module m = m0;
+  Procedure proc;
+  ListCell c;
 
-  if ( (proc=visibleProcedureNoPin(f, m)) )
-    return proc;
+  for(;;)				/* as visibleProcedureNoPin(), */
+  { next:				/* but avoiding a call */
+    if ( (proc = moduleProcedureNoPin(f, m)) )
+      return proc;
+
+    for(c=m->supers; c; c=c->next)
+    { if ( c->next )
+      { if ( (proc=visibleProcedureNoPin(f, c->value)) )
+	  return proc;
+      } else
+      { m = c->value;
+	goto next;
+      }
+    }
+
+    break;
+  }
+
+  m = m0;
 
   return volatileProcedure(f, m, VP_HAZARD);
 }
@@ -767,7 +853,7 @@ lookupProcedure(functor_t f, Module m)
   }
 #endif
 
-  proc = (Procedure)  allocHeapOrHalt(sizeof(struct procedure));
+  proc = allocProcedure();	/* reuse collected procedures */
   def  = newDefinition(valueFunctor(f), m, true);
   proc->definition = def;
   proc->flags      = PROC_PINNED;
@@ -816,6 +902,9 @@ lingerDefinition(Definition def)
 
   DEBUG(MSG_PROC_COUNT, Sdprintf("Linger %s\n", predicateName(def)));
   ATOMIC_SUB(&m->code_size, sizeof(*def));
+					/* not counted; see module GC */
+  if ( isoff(def, P_LOCALISED) && ATOMIC_DEC(&m->definitions) == 0 )
+    moduleGCCandidate(m);
 
   /*GC_LINGER(def);*/
 }
@@ -923,7 +1012,9 @@ releaseDefinitionClause(Definition def)
 
 void
 unallocDefinition(Definition def)
-{ if ( def->tabling )
+{ Module m = ison(def, P_LOCALISED) ? NULL : def->module; /* see newDefinition() */
+
+  if ( def->tabling )
     freeHeap(def->tabling, sizeof(*def->tabling));
   if ( def->impl.any.args )
     freeHeap(def->impl.any.args, sizeof(arg_info)*def->functor->arity);
@@ -937,6 +1028,8 @@ unallocDefinition(Definition def)
     releaseFunctor(def->functor->functor);
   freeHeap(def, sizeof(*def));
   ATOMIC_DEC(&GD->statistics.predicates);
+  if ( m && ATOMIC_DEC(&m->definitions) == 0 )
+    moduleGCCandidate(m);		/* see module GC */
 }
 
 
@@ -971,10 +1064,20 @@ free_ddi_symbol(table_key_t name, table_value_t value)
 }
 
 
+/* Procedures may be created before initProcedures(), e.g., by
+   initTries().  initModules() therefore initialises the mutexes of
+   procedure GC.  On Windows, these must be initialised before use.
+*/
+
+void
+initProcedureGC(void)
+{ simpleMutexInit(&GD->procedures.gc.mutex);
+  simpleMutexInit(&GD->procedures.gc.free_mutex);
+}
+
 void
 initProcedures(void)
-{ simpleMutexInit(&GD->procedures.gc.mutex);
-  GD->procedures.dirty = newHTablePP(32);
+{ GD->procedures.dirty = newHTablePP(32);
   GD->procedures.dirty->free_symbol = free_ddi_symbol;
 }
 
@@ -1025,7 +1128,7 @@ importDefinitionModule(Module m, Definition def, int flags)
       }
     }
   } else
-  { proc = (Procedure) allocHeapOrHalt(sizeof(struct procedure));
+  { proc = allocProcedure();
     shareDefinition(def);
     proc->definition = def;
     proc->flags      = flags|PROC_PINNED;
@@ -1405,19 +1508,27 @@ procedure is created in the module.  Otherwise, the system traverses the
 module-inheritance chain to find the existing procedure.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define get_module(mname, how) LDFUNC(get_module, mname, how)
+/* With GP_REF, the module is not pinned.  Instead, *ref is set to the
+   module if it is not pinned and the caller must release it.
+*/
+
+#define get_module(mname, how, ref) LDFUNC(get_module, mname, how, ref)
 static Module
-get_module(DECL_LD atom_t mname, int how)
+get_module(DECL_LD atom_t mname, int how, Module *ref)
 { if ( mname )
   { switch(how&GP_HOW_MASK)
     { case GP_CREATE:
       case GP_DEFINE:
-	return lookupModule(mname);
+	return (how&GP_REF) ? lookupModuleRef(mname, ref)
+			    : lookupModule(mname);
       case GP_FIND:
       case GP_FINDHERE:
       case GP_RESOLVE:
       { Module m;
-	if ( (m=isCurrentModule(mname)) )
+	if ( (how&GP_REF) )
+	{ if ( (m=acquireModuleRef(mname, ref)) )
+	    return m;
+	} else if ( (m=isCurrentModule(mname)) )
 	  return m;
 	return MODULE_user;
       }
@@ -1429,6 +1540,15 @@ get_module(DECL_LD atom_t mname, int how)
 }
 
 
+/* With GP_REF, the procedure is returned with a counted reference and
+   the module is not pinned (see procedure and module GC).
+*/
+
+#define get_procedure_ref(descr, proc, h, how) \
+	LDFUNC(get_procedure_ref, descr, proc, h, how)
+static bool get_procedure_ref(DECL_LD term_t descr, Procedure *proc,
+			      term_t h, int how);
+
 bool
 get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 { GET_LD
@@ -1436,6 +1556,9 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
   Module m = NULL;
   functor_t fdef;
   Procedure p;
+
+  if ( (how&GP_REF) )
+    return get_procedure_ref(descr, proc, h, how);
 
   if ( (how&GP_NAMEARITY) )
   { if ( !get_functor(descr, &fdef, &m, h,
@@ -1449,7 +1572,7 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
       return false;
     *valTermRef(head) = linkValNoG(p);
 
-    if ( !(m = get_module(mname, how)) )
+    if ( !(m = get_module(mname, how, NULL)) )
       return false;
 
     if ( h )
@@ -1457,36 +1580,6 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
 
     if ( !get_head_functor(head, &fdef, how) )
       return false;
-  }
-
-  if ( (how&GP_REF) )		/* counted; see procedure GC */
-  { switch( how & GP_HOW_MASK )
-    { case GP_CREATE:
-	p = lookupBodyProcedureRef(fdef, m);
-	unvolatileProcedure(p);		/* caller will define it */
-	break;
-      case GP_FINDHERE:
-	p = isCurrentProcedureRef(fdef, m);
-	break;
-      case GP_FIND:
-	p = visibleProcedureRef(fdef, m);
-	break;
-      case GP_DEFINE:
-	if ( !(p = lookupProcedureToDefineRef(fdef, m)) )
-	  return false;		/* permission error */
-	break;
-      case GP_RESOLVE:
-	if ( (p = resolveProcedure(fdef, m)) )
-	  acquireProcedureRef(p);	/* pinned */
-	break;
-      default:
-	p = NULL;
-	assert(0);
-    }
-    if ( !p )
-      goto notfound;
-    *proc = p;
-    return true;
   }
 
   switch( how & GP_HOW_MASK )
@@ -1522,6 +1615,80 @@ get_procedure(term_t descr, Procedure *proc, term_t h, int how)
   }
 out:
   return true;
+
+notfound:
+  if ( (how & GP_EXISTENCE_ERROR) )
+    return PL_error(NULL, 0, NULL, ERR_EXISTENCE, ATOM_procedure, descr);
+  return false;
+}
+
+
+static bool
+get_procedure_ref(DECL_LD term_t descr, Procedure *proc, term_t h, int how)
+{ atom_t mname = 0;
+  Module m = NULL, mref = NULL;
+  functor_t fdef;
+  Procedure p;
+
+  if ( (how&GP_NAMEARITY) )
+  { term_t plain = PL_new_term_ref();
+
+    if ( !PL_strip_module_ref(descr, &m, plain, &mref, 0) )
+      return false;
+    if ( !get_functor(plain, &fdef, &m, h,
+		      GF_PROCEDURE|GP_NOT_QUALIFIED|(how&GP_TYPE_QUIET)) )
+      goto failed;
+  } else
+  { term_t head = PL_new_term_ref();
+    Word p;
+
+    if ( !(p=stripModuleName(valTermRef(descr), &mname)) )
+      return false;
+    *valTermRef(head) = linkValNoG(p);
+
+    if ( !(m = get_module(mname, how, &mref)) )
+      return false;
+
+    if ( h )
+      PL_put_term(h, head);
+
+    if ( !get_head_functor(head, &fdef, how) )
+      goto failed;
+  }
+
+  { switch( how & GP_HOW_MASK )
+    { case GP_CREATE:
+	p = lookupBodyProcedureRef(fdef, m);
+	unvolatileProcedure(p);		/* caller will define it */
+	break;
+      case GP_FINDHERE:
+	p = isCurrentProcedureRef(fdef, m);
+	break;
+      case GP_FIND:
+	p = visibleProcedureRef(fdef, m);
+	break;
+      case GP_DEFINE:
+	if ( !(p = lookupProcedureToDefineRef(fdef, m)) )
+	  goto failed;		/* permission error */
+	break;
+      case GP_RESOLVE:
+	if ( (p = resolveProcedure(fdef, m)) )
+	  acquireProcedureRef(p);	/* pinned */
+	break;
+      default:
+	p = NULL;
+	assert(0);
+    }
+    releaseModuleRef(mref);
+    if ( !p )
+      goto notfound;
+    *proc = p;
+    return true;
+  }
+
+failed:
+  releaseModuleRef(mref);
+  return false;
 
 notfound:
   if ( (how & GP_EXISTENCE_ERROR) )
@@ -1621,7 +1788,7 @@ typedef struct
 { functor_t	functor;		/* Functor we are looking for */
   atom_t	name;			/* Name of target pred */
   int		arity;			/* arity of target pred */
-  int		macq;			/* Module is acquired */
+  Module	mref;			/* Counted reference; see module GC */
   Module	module;			/* Module to search in */
   Module	super;			/* Walking along super-chain */
   TableEnum	epred;			/* Predicate enumerator */
@@ -1744,9 +1911,8 @@ PRED_IMPL("current_predicate", 1, current_predicate,
 	  if ( !(e->module=advanceModuleEnum(e->emod)) )
 	    return false;
 	} else if ( PL_get_atom_ex(mt, &mname) )
-	{ if ( !(e->module = acquireModule(mname)) )
+	{ if ( !(e->module = acquireModuleRef(mname, &e->mref)) )
 	    return false;
-	  e->macq = true;
 	} else
 	{ return false;
 	}
@@ -1861,8 +2027,7 @@ clean:
       freeTableEnum(e->epred);
     if ( e->emod )
       freeModuleEnum(e->emod);
-    if ( e->module && e->macq )
-      releaseModule(e->module);
+    releaseModuleRef(e->mref);
     if ( e != &e0 )
       freeForeignState(e, sizeof(*e));
   }
@@ -2595,7 +2760,8 @@ register_local_atom_clause(atom_t a, void *ctx)
 void
 freeClause(Clause c)
 { forAtomsAndFunctorsInClause(c, unregister_atom_clause, NULL,
-			      releaseFunctor, releaseProcedureRef);
+			      releaseFunctor, releaseProcedureRef,
+			      releaseModuleCodeRef);
 
   for(;;)				/* see release_clause_blob() */
   { unsigned int flags = c->flags;
@@ -3696,7 +3862,14 @@ localClauseGC(DECL_LD)
 }
 
 
-/* Collection of volatile procedures.  See "PROCEDURE GC" above. */
+/* Collection of volatile procedures.  See "PROCEDURE GC" above.
+
+   The definition of an abolished procedure may still have lingering
+   data (def->lingering), e.g., old clause indexes.  This is normally
+   freed by clause GC, but clause GC no longer considers the definition
+   after its clauses are gone.  As the collector verifies that no
+   thread references the definition, unallocDefinition() may free it.
+*/
 
 static bool
 isPristineStub(Definition def)
@@ -3705,8 +3878,7 @@ isPristineStub(Definition def)
 	   def->shared == 1 &&
 	   LOAD_SEQ_CST(def->clause_refs) <= 1 &&
 	   !def->events &&
-	   !def->tabling &&
-	   !def->lingering );
+	   !def->tabling );
 }
 
 /* `marking` maps both the definition and the procedure of candidates
@@ -3801,15 +3973,24 @@ collectVolatileProcedures(void)
   Procedure p;
 
   if ( !LOAD_SEQ_CST(GD->procedures.gc.candidates) ||
-       LOAD_SEQ_CST(GD->procedures.gc.disabled) )
+       !procedureGCEnabled() )
     return 0;
+
+  tmp_buffer srcfiles;			/* source files to release */
+  initBuffer(&srcfiles);
 
   simpleMutexLock(&GD->procedures.gc.mutex);
   STORE_SEQ_CST(GD->procedures.gc.created, 0);
-  while( (p=GD->procedures.gc.pending) )
-  { GD->procedures.gc.pending = (Procedure)p->source_no;
-    p->source_no = (size_t)GD->procedures.gc.free;
+  if ( (p=GD->procedures.gc.pending) )	/* make pending available */
+  { Procedure tail = p;
+
+    while( tail->source_no )
+      tail = (Procedure)tail->source_no;
+    GD->procedures.gc.pending = NULL;
+    simpleMutexLock(&GD->procedures.gc.free_mutex);
+    tail->source_no = (size_t)GD->procedures.gc.free;
     GD->procedures.gc.free = p;
+    simpleMutexUnlock(&GD->procedures.gc.free_mutex);
   }
 
   list = takeProcedureCandidates();
@@ -3851,7 +4032,9 @@ collectVolatileProcedures(void)
 
       next = c->next;
       if ( (LOAD_SEQ_CST(proc->flags)&PROC_DESTROY) )
-      { destroyVolatileProcedure(proc);
+      { if ( proc->source_no )		/* see destroyTemporaryModule() */
+	  addBuffer(&srcfiles, proc->source_no, size_t);
+	destroyVolatileProcedure(proc);
 	freeHeap(c, sizeof(*c));
 	collected++;
       } else
@@ -3868,6 +4051,12 @@ collectVolatileProcedures(void)
 
   GD->procedures.gc.collected += collected;
   simpleMutexUnlock(&GD->procedures.gc.mutex);
+					/* may call Prolog; see */
+  for(size_t *sfp = baseBuffer(&srcfiles, size_t); /* clearSourceAdmin() */
+      sfp < topBuffer(&srcfiles, size_t);
+      sfp++)
+    releaseSourceFileNo(*sfp);
+  discardBuffer(&srcfiles);
 
   DEBUG(MSG_CGC, Sdprintf("Procedure GC: collected %zd\n", collected));
 
@@ -3930,6 +4119,9 @@ foreign_t
 pl_garbage_collect_clauses(void)
 { GET_LD
   bool rc = true;
+
+  if ( gcCodeLevel() == GC_CODE_FALSE )	/* flag gc_code */
+    return true;
 
   if ( HAS_LD && LD->clauses.local.erased )
     localClauseGC();
@@ -4027,10 +4219,13 @@ pl_garbage_collect_clauses(void)
 
   out:
     collectVolatileProcedures();
+    collectVolatileModules();
     GD->clauses.cgc_active = false;
-  } else if ( LOAD_SEQ_CST(GD->procedures.gc.candidates) &&
+  } else if ( ( LOAD_SEQ_CST(GD->procedures.gc.candidates) ||
+		LOAD_SEQ_CST(GD->modules.gc.candidates) ) &&
 	      COMPARE_AND_SWAP_INT(&GD->clauses.cgc_active, false, true) )
   { collectVolatileProcedures();
+    collectVolatileModules();
     GD->clauses.cgc_active = false;
   }
 
@@ -4423,7 +4618,7 @@ PRED_IMPL("retract", 1, retract,
 
     return true;
   } else
-  { Module m = NULL;
+  { Module m = NULL, mref;
     term_t cl = PL_new_term_ref();
     term_t head = PL_new_term_ref();
     term_t body = PL_new_term_ref();
@@ -4434,15 +4629,23 @@ PRED_IMPL("retract", 1, retract,
     int rc;
     int flags = 0;
 
-    if ( !PL_strip_module_ex(term, &m, cl) ||
-	 !get_head_and_body_clause(cl, head, body, &m, &flags) )
+    if ( !PL_strip_module_ex_ref(term, &m, cl, &mref) )
       return false;
+    if ( !get_head_and_body_clause(cl, head, body, &m, &flags) )
+    { releaseModuleRef(mref);
+      return false;
+    }
+    if ( CTX_CNTRL != FRG_FIRST_CALL )
+      releaseModuleRef(mref);		/* only needed to find proc */
     if ( !(flags&CLAUSE_SSU_FLAGS) && PL_get_atom(body, &b) && b == ATOM_true )
       rc = PL_put_term(cl, head);
     else
       rc = PL_cons_functor(cl, clause_functor(flags), head, body);
     if ( !rc )
+    { if ( CTX_CNTRL == FRG_FIRST_CALL )
+	releaseModuleRef(mref);
       return false;
+    }
 
     argv = head_arguments(head);
 
@@ -4452,8 +4655,12 @@ PRED_IMPL("retract", 1, retract,
       Definition def;
 
       if ( !PL_get_functor(head, &fd) )
+      { releaseModuleRef(mref);
 	return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_callable, head);
-      if ( !(proc = isCurrentProcedureRef(fd, m)) )
+      }
+      proc = isCurrentProcedureRef(fd, m);
+      releaseModuleRef(mref);		/* see module GC */
+      if ( !proc )
       { checkModifySystemProc(fd);
 	fail;
       }
@@ -4741,11 +4948,15 @@ do_abolish(Module m, term_t atom, term_t arity)
 foreign_t
 pl_abolish(term_t name, term_t arity)	/* Name, Arity */
 { GET_LD
-  Module m = NULL;
+  Module m = NULL, mref;
+  bool rc;
 
-  return ( PL_strip_module(name, &m, name) &&
-	   do_abolish(m, name, arity)
-	 );
+  if ( !PL_strip_module_ref(name, &m, name, &mref, 0) )
+    return false;
+  rc = do_abolish(m, name, arity);
+  releaseModuleRef(mref);		/* see module GC */
+
+  return rc;
 }
 
 
@@ -4754,18 +4965,22 @@ pl_abolish1(term_t spec)		/* Name/Arity */
 { GET_LD
   term_t name  = PL_new_term_ref();
   term_t arity = PL_new_term_ref();
-  Module m = NULL;
+  Module m = NULL, mref;
+  bool rc;
 
-  if ( !PL_strip_module(spec, &m, spec) )
+  if ( !PL_strip_module_ref(spec, &m, spec, &mref, 0) )
     return false;
 
   if ( !PL_is_functor(spec, FUNCTOR_divide2) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_predicate_indicator, spec);
+  { rc = PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_predicate_indicator, spec);
+  } else
+  { _PL_get_arg(1, spec, name);
+    _PL_get_arg(2, spec, arity);
+    rc = do_abolish(m, name, arity);
+  }
+  releaseModuleRef(mref);		/* see module GC */
 
-  _PL_get_arg(1, spec, name);
-  _PL_get_arg(2, spec, arity);
-
-  return do_abolish(m, name, arity);
+  return rc;
 }
 
 
@@ -4911,26 +5126,15 @@ sizeof_erased_clauses(Definition def)
 }
 
 
-static
-PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
-	  PL_FA_TRANSPARENT)
-{ PRED_LD
-  term_t pred  = A1;
-  term_t what  = A2;
-  term_t value = A3;
-  Procedure proc;
-  Definition def;
-  functor_t fd;
-  atom_t key;
-  Module module = (Module) NULL;
-  uint64_t att;
-  term_t head = PL_new_term_ref();
+#define get_predicate_attribute(module, proc, what, value) \
+	LDFUNC(get_predicate_attribute, module, proc, what, value)
 
-  if ( !PL_strip_module(pred, &module, head) ||
-       !PL_get_functor(head, &fd) ||
-       ( !(proc = visibleProcedure(fd, module)) &&
-	 !(proc = isCurrentProcedure(fd, module)) ) )
-    return false;
+static bool
+get_predicate_attribute(DECL_LD Module module, Procedure proc,
+			term_t what, term_t value)
+{ Definition def;
+  atom_t key;
+  uint64_t att;
 
   def = proc->definition;
 
@@ -5043,6 +5247,46 @@ PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
   } else
   { return false;
   }
+}
+
+
+/* '$get_predicate_attribute'(:Head, +Key, -Value) is used by the
+   autoloader, the error handling of undefined predicates and
+   predicate_property/2, so we do not pin the module or, if the module
+   is not pinned, the procedure (see procedure and module GC).
+*/
+
+static
+PRED_IMPL("$get_predicate_attribute", 3, get_predicate_attribute,
+	  PL_FA_TRANSPARENT)
+{ PRED_LD
+  Module module = NULL, ref;
+  term_t head = PL_new_term_ref();
+  bool rc;
+
+  functor_t fd;
+  Procedure proc;
+
+  if ( !PL_strip_module_ref(A1, &module, head, &ref, 0) ||
+       !PL_get_functor(head, &fd) )
+    return false;
+
+  if ( !ref )				/* pinned module: avoid refs */
+  { if ( (proc = visibleProcedure(fd, module)) ||
+	 (proc = isCurrentProcedure(fd, module)) )
+      return get_predicate_attribute(module, proc, A2, A3);
+    return false;
+  }
+
+  if ( (proc = visibleProcedureRef(fd, module)) ||
+       (proc = isCurrentProcedureRef(fd, module)) )
+  { rc = get_predicate_attribute(module, proc, A2, A3);
+    releaseProcedureRef(proc);
+  } else
+    rc = false;
+  releaseModuleRef(ref);
+
+  return rc;
 }
 
 
@@ -5513,7 +5757,8 @@ PRED_IMPL("copy_predicate_clauses", 2, copy_predicate_clauses, PL_FA_TRANSPARENT
 				  ison(copy_def, P_LOCALISED)
 					? register_local_atom_clause
 					: register_atom_clause,
-				  NULL, acquireFunctor, acquireProcedureRef);
+				  NULL, acquireFunctor, acquireProcedureRef,
+				  acquireModulePtr);
       assertProcedure(to, copy, CL_END);
     }
   }

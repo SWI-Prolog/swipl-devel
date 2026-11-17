@@ -1882,6 +1882,29 @@ If true (default), the garbage collector is active.  If false, neither
 garbage collection, nor stack shifts will take place, even not on
 explicit request.  May be changed.
 
+    \prologflagitem{gc_code}{atom}{rw}
+Determines which code is reclaimed by garbage collection.  Each level
+includes the previous ones.  May be changed.
+\begin{description}
+    \termitem{false}{}
+No garbage collection of code, even not on explicit request using
+garbage_collect_clauses/0.  Erased clauses are never reclaimed.  This
+is intended for debugging.
+    \termitem{clause}{}
+Reclaim erased clauses (default).
+    \termitem{procedure}{}
+Also reclaim the predicates that call/N creates for undefined
+predicates and predicates created at runtime that are abolished using
+abolish/1.
+    \termitem{module}{}
+Also reclaim modules that are empty and no longer referenced, e.g.,
+modules created by calling or asserting into a new module, modules
+reset using abolish_module/1 and temporary modules destroyed by
+in_temporary_module/3.  Below this level, in_temporary_module/3 only
+abolishes the module, which leaves the module and its (undefined)
+predicates.
+\end{description}
+
     \prologflagitem{gc_generational}{bool}{rw}
 If \const{true} (default), stack garbage collection is
 \jargon{generational}: data that survived a garbage collection is

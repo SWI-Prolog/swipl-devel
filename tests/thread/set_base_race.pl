@@ -49,7 +49,11 @@ set_base_race :-
 	run_tests([ set_base_race
 		  ]).
 
-:- begin_tests(set_base_race).
+:- begin_tests(set_base_race,
+               [ setup((current_prolog_flag(gc_code, Old),
+                        set_prolog_flag(gc_code, module))),
+                 cleanup(set_prolog_flag(gc_code, Old))
+               ]).
 
 test(base, Status == true-true) :-
 	set_prolog_flag(set_base_race_m:unknown, fail),

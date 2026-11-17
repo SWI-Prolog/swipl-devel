@@ -48,7 +48,11 @@
 #define	lookupModule(name)			LDFUNC(lookupModule, name)
 #define	isCurrentModule(name)			LDFUNC(isCurrentModule, name)
 #define	acquireModule(name)			LDFUNC(acquireModule, name)
-#define	acquireModulePtr(module)		LDFUNC(acquireModulePtr, module)
+#define	acquireModuleRef(name, ref)		LDFUNC(acquireModuleRef, name, ref)
+#define	resolveVolatileModule(name)		LDFUNC(resolveVolatileModule, name)
+#define	lookupModuleRef(name, ref)		LDFUNC(lookupModuleRef, name, ref)
+#define	stripModuleRef(term, module, ref, flags) \
+	LDFUNC(stripModuleRef, term, module, ref, flags)
 #define	stripModule(term, module, flags)	LDFUNC(stripModule, term, module, flags)
 #define	stripModuleName(term, name)		LDFUNC(stripModuleName, term, name)
 #define exportProcedure(module, proc)		LDFUNC(exportProcedure, module, proc)
@@ -59,8 +63,18 @@
 Module		lookupModule(atom_t name);
 Module		isCurrentModule(atom_t name);
 Module		acquireModule(atom_t name);
-void		acquireModulePtr(Module m);
+Module		acquireModuleRef(atom_t name, Module *ref);
+void		releaseModuleRef(Module ref);
+Module		resolveVolatileModule(atom_t name);
+Module		lookupModuleRef(atom_t name, Module *ref);
+Word		stripModuleRef(Word term, Module *module, Module *ref,
+			       int flags);
+Module		pinModulePtr(Module m);
+void		moduleGCCandidate(Module m);
+size_t		collectVolatileModules(void);
 void		releaseModule(Module m);
+void		acquireModulePtr(Module m);
+void		releaseModuleCodeRef(Module m);
 void		initModules(void);
 void		cleanupModules(void);
 bool		addModuleSourceFile(SourceFile sf, Module m);

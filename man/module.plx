@@ -720,6 +720,24 @@ import/1 and export/1 or by specifying the import module as described in
 ?- world_c:import(world_b:solve/2).  % and import it to world_c
 \end{code}
 
+If the Prolog flag \prologflag{gc_code} is \const{module}, modules
+created at runtime are removed by garbage collection when they are empty
+and no longer referenced. The default value of this flag is
+\const{clause}, which disables garbage collection of predicates and
+modules. Garbage collection of modules is part of clause garbage
+collection (see garbage_collect_clauses/0). A
+module is empty if it has no predicates, exports, local operators or
+flags other than the defaults and imports only from \const{user}.
+Note that calling an undefined predicate creates a predicate, which is
+in turn removed by garbage collection if nothing refers to it.
+
+A module that is referenced from compiled code, loaded from a file,
+modified using e.g., set_module/1, add_import_module/3, op/3 or
+set_prolog_flag/2, or used through the foreign language interface is
+never removed. As modules are created when they are used, removing an
+empty module has no visible effect, except that current_module/1 no
+longer reports it.
+
 A world that is no longer needed can be emptied using abolish_module/1.
 
 \begin{description}
@@ -735,8 +753,10 @@ modules become undefined.
 
 The module itself remains as an empty module, so clauses that call
 predicates of \arg{Module} keep working if these predicates are
-defined again. This predicate is safe to use while other threads are
-running code of \arg{Module}. Succeeds silently if \arg{Module} does not
+defined again. If nothing refers to the module and the flag
+\prologflag{gc_code} is \const{module}, it is subsequently removed by
+garbage collection as described above. This predicate is
+safe to use while other threads are running code of \arg{Module}. Succeeds silently if \arg{Module} does not
 exist and raises a permission error for the modules \const{user} and
 \const{system} and other system modules.
 \end{description}

@@ -1033,6 +1033,7 @@ typedef enum
 #define GF_NAMEARITY	0x4		/* only accept name/arity */
 
 #define SM_NOCREATE	0x1		/* stripModule(): do not create modules */
+#define SM_VOLATILE	0x2		/* stripModule(): meta-call; do not pin */
 
 		 /*******************************
 		 *	       ALERT		*
@@ -1193,7 +1194,6 @@ with one operation, it turns out to be faster as well.
 #define UNKNOWN_WARNING		(0x00002000) /* module */
 #define UNKNOWN_ERROR		(0x00004000) /* module */
 #define UNKNOWN_MASK		(UNKNOWN_ERROR|UNKNOWN_WARNING|UNKNOWN_FAIL)
-#define M_DESTROYED		(0x00010000)
 #define M_WAITED_FOR		(0x00020000) /* thread_wait/2 on this module */
 #define M_RDSTRING_TERM		(0x00040000) /* read/1 and friends: demand a term */
 
@@ -2289,15 +2289,23 @@ struct module
   unsigned int	line_no;	/* Source line-number */
   unsigned int  flags;		/* booleans: */
   int		var_prefix;	/* var_prefix flag char (0: none) */
-  int		references;	/* see acquireModule() */
   gen_t		last_modified;	/* Generation I was last modified */
+  unsigned int	source_refs;	/* #source files that list me */
+  unsigned int	gc_flags;	/* MG_* flags; see module GC */
+  unsigned int	gc_references;	/* Counted references; see module GC */
+  size_t	definitions;	/* #Definitions with ->module == me */
 };
+
+#define MG_PINNED	0x1	/* Never collected */
+#define MG_CANDIDATE	0x2	/* In GD->modules.gc.candidates */
+#define MG_DESTROY	0x4	/* Being collected */
+#define MG_TEMPORARY	0x8	/* Pins are dropped by '$destroy_module'/1 */
 
 #define MENUM_TEMP	0x1	/* Also enumerate temporary modules */
 
 typedef struct module_enum
 { TableEnum	tenum;
-  Module        current;
+  Module	gc_ref;		/* Counted reference; see module GC */
   int		flags;
 } module_enum, *ModuleEnum;
 
@@ -3068,6 +3076,19 @@ typedef enum
   OCCURS_CHECK_TRUE,		/* fail if rational tree would result */
   OCCURS_CHECK_ERROR		/* exception if rational tree would result */
 } occurs_check_t;
+
+/* Value of the Prolog flag gc_code.  Each level includes the lower ones.
+   See procedure GC (pl-proc.c) and module GC (pl-modul.c).
+*/
+
+typedef enum
+{ GC_CODE_FALSE = -1,			/* No clause GC (debugging) */
+  GC_CODE_CLAUSE = 0,			/* Clause GC (default) */
+  GC_CODE_PROCEDURE,			/* Also procedure GC */
+  GC_CODE_MODULE			/* Also module GC */
+} gc_code_level;
+
+#define gcCodeLevel() ((gc_code_level)LOAD_SEQ_CST(GD->clauses.gc_level))
 
 typedef enum
 { ACCESS_LEVEL_USER = 0,	/* Default user view */
