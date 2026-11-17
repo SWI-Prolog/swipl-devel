@@ -3919,8 +3919,24 @@ A_VAR: Push a variable.  This can be any term
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 
+#define A_VAR_TAGGED_INT(offset) \
+	do \
+	{ Word _p = varFrameP(FR, offset); \
+	  deRef(_p); \
+	  if ( isTaggedInt(*_p) && \
+	       likely(LD->arith.stack.top != LD->arith.stack.max) ) \
+	  { Number _n = LD->arith.stack.top++; \
+	    _n->value.i = valInt(*_p); \
+	    _n->type = V_INTEGER; \
+	    NEXT_INSTRUCTION; \
+	  } \
+	} while(0)
+
 VMI(A_VAR, 0, 1, (CA1_VAR))
-{ VMH_GOTO(a_var_n, (int)*PC++);
+{ int offset = (int)*PC++;
+
+  A_VAR_TAGGED_INT(offset);
+  VMH_GOTO(a_var_n, offset);
 }
 END_VMI
 
@@ -3978,17 +3994,20 @@ VMH(a_var_n, 1, (int), (offset))
 END_VMH
 
 VMI(A_VAR0, 0, 0, ())
-{ VMH_GOTO(a_var_n, VAROFFSET(0));
+{ A_VAR_TAGGED_INT(VAROFFSET(0));
+  VMH_GOTO(a_var_n, VAROFFSET(0));
 }
 END_VMI
 
 VMI(A_VAR1, 0, 0, ())
-{ VMH_GOTO(a_var_n, VAROFFSET(1));
+{ A_VAR_TAGGED_INT(VAROFFSET(1));
+  VMH_GOTO(a_var_n, VAROFFSET(1));
 }
 END_VMI
 
 VMI(A_VAR2, 0, 0, ())
-{ VMH_GOTO(a_var_n, VAROFFSET(2));
+{ A_VAR_TAGGED_INT(VAROFFSET(2));
+  VMH_GOTO(a_var_n, VAROFFSET(2));
 }
 END_VMI
 
@@ -4084,6 +4103,16 @@ VMI(A_ADD, 0, 0, ())
   int rc;
   number r;
 
+  if ( argv[0].type == V_INTEGER && argv[1].type == V_INTEGER )
+  { long long v;
+
+    if ( !__builtin_saddll_overflow(argv[0].value.i, argv[1].value.i, &v) )
+    { argv[0].value.i = v;		/* replace the two ints by the sum */
+      LD->arith.stack.top = argv+1;
+      NEXT_INSTRUCTION;
+    }
+  }
+
   SAVE_REGISTERS(QID);
   rc = pl_ar_add(argv+1, argv, &r);
   LOAD_REGISTERS(QID);
@@ -4106,6 +4135,18 @@ VMI(A_MUL, 0, 0, ())
 { Number argv = argvArithStack(2);
   int rc;
   number r;
+
+#if HAVE___BUILTIN_MUL_OVERFLOW
+  if ( argv[0].type == V_INTEGER && argv[1].type == V_INTEGER )
+  { int64_t v;
+
+    if ( !__builtin_mul_overflow(argv[0].value.i, argv[1].value.i, &v) )
+    { argv[0].value.i = v;		/* replace the two ints by the product */
+      LD->arith.stack.top = argv+1;
+      NEXT_INSTRUCTION;
+    }
+  }
+#endif
 
   SAVE_REGISTERS(QID);
   rc = ar_mul(argv+1, argv, &r);
@@ -4232,7 +4273,13 @@ condition.  Example translation: `a(Y) :- b(X), X > Y'
   if ( n1->type == n2->type ) \
   { switch(n1->type) \
     { case V_INTEGER: \
-	VMH_GOTO(a_cmp_out, n1->value.i op n2->value.i); \
+      { int _rc = (n1->value.i op n2->value.i); \
+	LD->arith.stack.top = n1;	/* pop two ints: nothing to clear */ \
+	AR_END(); \
+	if ( _rc ) \
+	  NEXT_INSTRUCTION; \
+	FASTCOND_FAILED; \
+      } \
       case V_FLOAT: \
 	VMH_GOTO(a_cmp_out, n1->value.f op n2->value.f); \
       default: \
@@ -4482,6 +4529,16 @@ VMI(A_FIRSTVAR_IS, VIF_BREAK, 1, (CA1_FVAR)) /* A is B */
 { Number n = argvArithStack(1);
   word w;
   bool rc;
+
+  if ( n->type == V_INTEGER )		/* Speedup the 99% case a bit */
+  { w = consInt(n->value.i);
+    if ( valInt(w) == n->value.i )
+    { LD->arith.stack.top = n;		/* pop an int: nothing to clear */
+      AR_END();
+      *varFrameP(FR, *PC++) = w;
+      NEXT_INSTRUCTION;
+    }
+  }
 
   SAVE_REGISTERS(QID);
   rc = put_number(&w, n);
