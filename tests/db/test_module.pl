@@ -97,4 +97,16 @@ test(mqual, [sto(rational_trees),
 	T = a:T,
 	mqual(T).
 
+% A clause that overrides a weak import belongs to the local definition,
+% not to the imported one.
+test(overrule_import, PI == test_module_ovr:subtract/3) :-
+	setup_call_cleanup(
+	    open_string(":- use_module(library(lists)).\n\c
+			 subtract(a, b, c).\n", In),
+	    load_files(test_module_ovr:test_module_ovr_file,
+		       [stream(In), silent(true)]),
+	    close(In)),
+	clause(test_module_ovr:subtract(_,_,_), true, Ref),
+	clause_property(Ref, predicate(PI)).
+
 :- end_tests(module).
