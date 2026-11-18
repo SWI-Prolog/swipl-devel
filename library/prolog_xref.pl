@@ -3051,6 +3051,7 @@ xref_source_file(_, _, _, Options) :-
     fail.
 xref_source_file(Spec, _, Src, _Options) :-
     verbose(Src),
+    \+ current_cond(_),             % may be guarded by exists_source/1
     print_message(warning, error(existence_error(file, Spec), _)),
     fail.
 

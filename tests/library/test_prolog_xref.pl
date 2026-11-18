@@ -47,7 +47,7 @@ test_prolog_xref :-
                 xref_conditions
               ]).
 
-:- dynamic data_dir/1.
+:- dynamic data_dir/1, missing_file/1.
 
 :- prolog_load_context(directory, Dir),
    directory_file_path(Dir, xref, DataDir),
@@ -111,6 +111,21 @@ defined_classes(File, Classes) :-
 
 :- end_tests(xref_defined_class).
 
+%   xref_missing_files(+File, -Missing)
+%
+%   Cross-reference File, collecting the files reported as missing.
+
+xref_missing_files(File, Missing) :-
+    retractall(missing_file(_)),
+    setup_call_cleanup(
+        asserta((user:message_hook(error(existence_error(file, Spec), _),
+                                   warning, _) :-
+                    assertz(test_prolog_xref:missing_file(Spec))),
+                Ref),
+        xref_source(File),
+        ( erase(Ref), xref_clean(File) )),
+    findall(Spec, retract(missing_file(Spec)), Missing).
+
 :- begin_tests(xref_conditions).
 
 test(no_code, Ran == false) :-
@@ -125,5 +140,9 @@ test(safe_condition, Exports == [good/0]) :-
     data_file('xref_cond_imported.pl', File),
     prolog_file_directives(File, Directives, []),
     findall(PI, member((:- export(PI)), Directives), Exports).
+test(guarded_missing_file,
+     Missing == [library(xref_no_such_file_plain)]) :-
+    data_file('xref_cond_missing.pl', File),
+    xref_missing_files(File, Missing).
 
 :- end_tests(xref_conditions).
