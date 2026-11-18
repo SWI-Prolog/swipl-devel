@@ -2546,6 +2546,15 @@ clauses that has been deleted.
 This is called for (re)consult and abolish/1.
 
 MT: Caller must hold L_PREDICATE
+
+(*) The supervisors of static predicates with one or two clauses
+(S_TRUSTME, S_LIST) embed their clauses and run them without checking
+whether they are visible.  A goal of a generation in which one of these
+clauses is erased must not run it.  Therefore, the supervisor is reset
+to S_VIRGIN before the generation that erases them is published: a goal
+in that generation, which reads DEF->codes after reading the generation
+(see setGenerationFrame()), finds S_VIRGIN and creates a supervisor
+without them.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 size_t
@@ -2589,6 +2598,9 @@ removeClausesPredicate(Definition def, size_t sfindex, int fromfile)
       }
     }
     release_def(def);
+    if ( deleted && isoff(def, P_DYNAMIC|P_LOCKED_SUPERVISOR) )
+      freeCodesDefinition(def, true);	/* see (*) */
+    MEMORY_RELEASE();
     GD->_generation = update;
     PL_UNLOCK(L_GENERATION);
 
@@ -2961,6 +2973,9 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
       }
     }
     release_def(def);
+    if ( deleted && isoff(def, P_DYNAMIC|P_LOCKED_SUPERVISOR) )
+      freeCodesDefinition(def, true);	/* see removeClausesPredicate() */
+    MEMORY_RELEASE();
     GD->_generation = update;
     PL_UNLOCK(L_GENERATION);
     was_dirty = ison(def, P_DIRTYREG);

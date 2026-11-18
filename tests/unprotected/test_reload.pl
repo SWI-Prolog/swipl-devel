@@ -122,6 +122,14 @@ test(del_clause_indexed, [P == [], Q == []]) :-
     reload(del_clause_indexed, 2),
     findall(x, del_clause_indexed:p(a), P),
     findall(x, del_clause_indexed:q([a]), Q).
+test(del_clause_meta) :-                        % the supervisor embeds
+    reload(del_clause_meta, 1),                 % the deleted clause
+    assertion(del_clause_meta:p([a])),
+    reload(del_clause_meta, 2),
+    assertion(\+ del_clause_meta:p([a])),
+    garbage_collect_clauses,
+    assertion(\+ del_clause_meta:p([a])),
+    assertion(del_clause_meta:p([])).
 test(replace_clause, all(X == [b])) :-
     reload(replace_clause, 1),
     reload(replace_clause, 2),
