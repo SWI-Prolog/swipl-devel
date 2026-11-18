@@ -4681,10 +4681,61 @@ publishes the newer generation, the second takes it and the third goes.
 Clause GC marks the access objects of another thread under that thread's
 scan_lock, so this last step holds it: a scan sees the newer generation
 in one of the two.
+
+At the current generation, the candidates are the clauses after the one
+retract/1 lost, and ctx->chp does not suffice to find them: it was chosen
+at the older generation, so it skips a clause that only the current
+generation sees, is NULL if the lost clause was the last candidate, and
+may be in a clause index that was replaced or deleted since, which lacks
+the clauses added after that.  retract/1 therefore walks again from
+firstClause() to the lost clause, at the generation at which it found it,
+and continues from that clause at the current generation.  firstClause()
+only uses the current indexes, which receive every new clause.  If this
+walk does not reach the lost clause (the index it chose was filled after
+the clause was erased, or the predicate has no clauses left that are not
+erased), retract/1 continues in the clause list, which has every clause.
+The lost clause is visible at a generation that an access object
+publishes, so its clause reference stays linked until nextClause() has
+moved on.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#define retract_move_generation(ctx, head, fid) \
-	LDFUNC(retract_move_generation, ctx, head, fid)
+/* Position ctx->chp at `lost`, which is visible at the generation of the
+ * environment frame, in a walk that has every clause added since.
+ */
+
+#define retract_find_lost(ctx, lost, argv) \
+	LDFUNC(retract_find_lost, ctx, lost, argv)
+
+static void
+retract_find_lost(DECL_LD retract_context *ctx, Clause lost, Word argv)
+{ Definition def = ctx->def;
+  struct clause_choice chp;
+  ClauseRef c;
+
+  for(c = firstClause(argv, environment_frame, def, &chp);
+      c;
+      c = nextClause(&chp, argv, environment_frame, def))
+  { if ( c->value.clause == lost )
+    { ctx->chp.cref = c;
+      ctx->chp.key  = chp.key;
+      return;
+    }
+  }
+
+  acquire_def(def);
+  for(c = def->impl.clauses.first_clause; c; c = c->next)
+  { if ( c->value.clause == lost )
+    { ctx->chp.cref = c;
+      ctx->chp.key  = argv ? index_of_word(argv[def->impl.clauses.primary_index])
+			   : 0;
+      break;
+    }
+  }
+  release_def(def);
+}
+
+#define retract_move_generation(ctx, lost, head, fid) \
+	LDFUNC(retract_move_generation, ctx, lost, head, fid)
 
 #ifdef __GNUC__				/* keep its frame out of retract/1 */
 #define RETRACT_NOINLINE __attribute__((noinline))
@@ -4693,7 +4744,8 @@ in one of the two.
 #endif
 
 static COLD RETRACT_NOINLINE ClauseRef
-retract_move_generation(DECL_LD retract_context *ctx, term_t head, fid_t fid)
+retract_move_generation(DECL_LD retract_context *ctx, Clause lost,
+			term_t head, fid_t fid)
 { definition_ref *moved = ( (ctx->flags&RETRACT_MOVED) ?
 			     findPredicateAccessObj(ctx->def) : NULL );
   definition_ref *now = pushPredicateAccessObj(ctx->def);
@@ -4702,13 +4754,16 @@ retract_move_generation(DECL_LD retract_context *ctx, term_t head, fid_t fid)
 
   if ( !now )
     return NULL;			/* exception ends retract/1 */
+  PL_rewind_foreign_frame(fid);
+  argv = head_arguments(head);		/* decompile() may have shifted */
+  retract_find_lost(ctx, lost, argv);
   setGenerationFrameVal(environment_frame, now->generation);
   DEBUG(MSG_CGC_RETRACT,
 	Sdprintf("Retract: first clause deleted; set gen to %lld\n",
 		 generationFrame(environment_frame)));
-  PL_rewind_foreign_frame(fid);
-  argv = head_arguments(head);		/* decompile() may have shifted */
   cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
+  if ( cref && cref->value.clause == lost )	/* an event refused to erase */
+    cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
   if ( moved )
   { simpleMutexLock(&LD->thread.scan_lock);
     moved->generation = now->generation;
@@ -4864,7 +4919,7 @@ PRED_IMPL("retract", 1, retract,
 	{ /* The clause was not erased, usually because another thread
 	     erased it first: continue at the current generation.  See
 	     (*) above. */
-	  cref = retract_move_generation(ctx, head, fid);
+	  cref = retract_move_generation(ctx, clause, head, fid);
 	  continue;
 	}
       }
