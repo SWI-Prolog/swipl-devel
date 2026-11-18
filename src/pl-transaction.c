@@ -525,6 +525,27 @@ announce_updates(DECL_LD Buffer updates)
 		 *	PROLOG CONNECTION	*
 		 *******************************/
 
+/* The start generation of a transaction pins the global view of its
+ * goal: clause GC marks it for every dirty predicate (see
+ * markPredicatesInEnvironments()).  A clause GC that read the global
+ * generation before our store became visible may not see the store
+ * when it marks.  We therefore store, execute a full barrier and read
+ * the global generation again until it is unchanged, which pairs with
+ * the barrier clause GC executes after reading the start generation.
+ */
+
+#define setTransactionStart(_) LDFUNC(setTransactionStart, _)
+static void
+setTransactionStart(DECL_LD)
+{ gen_t gen;
+
+  do
+  { gen = global_generation();
+    LD->transaction.gen_start = gen;
+    MEMORY_BARRIER();
+  } while ( gen != global_generation() );
+}
+
 #define transaction(goal, constraint, lock, flags) LDFUNC(transaction, goal, constraint, lock, flags)
 static int
 transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
@@ -614,7 +635,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
 #define TR_UNLOCK() (void)0
 #endif
 
-    LD->transaction.gen_start  = global_generation();
+    setTransactionStart();
     LD->transaction.gen_base   = GEN_TRANSACTION_BASE + tid*GEN_TRANSACTION_SIZE;
     LD->transaction.gen_max    = LD->transaction.gen_base+GEN_TRANSACTION_SIZE-6;
     LD->transaction.generation = LD->transaction.gen_base;
@@ -625,7 +646,7 @@ transaction(DECL_LD term_t goal, term_t constraint, term_t lock, int flags)
       if ( constraint )
       { if ( (rc=TR_LOCK()) )
 	{ locked = true;
-	  LD->transaction.gen_start = global_generation();
+	  setTransactionStart();
 	  rc = callProlog(NULL, constraint, PL_Q_PASS_EXCEPTION, NULL);
 	}
       }
