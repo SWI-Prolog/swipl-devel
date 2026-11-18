@@ -4135,6 +4135,7 @@ pl_garbage_collect_clauses(void)
     int verbose = truePrologFlag(PLFLAG_TRACE_GC) && !LD->in_print_message;
     tmp_buffer tr_starts;
 
+    MEMORY_BARRIER();			/* see setTransactionStart() */
     if ( verbose )
     { if ( (rc=printMessage(ATOM_informational,
 			    PL_FUNCTOR_CHARS, "cgc", 1,
