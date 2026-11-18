@@ -4571,15 +4571,18 @@ pl_require(term_t pred)
 typedef struct
 { Definition def;
   struct clause_choice chp;
-  int allocated;
+  int flags;			/* RETRACT_* */
 } retract_context;
+
+#define RETRACT_ALLOCATED 0x1	/* by alloc_retract_context() */
+#define RETRACT_MOVED	  0x2	/* a second access object, see (*) */
 
 static retract_context *
 alloc_retract_context(retract_context *ctx0)
 { retract_context *ctx = allocForeignState(sizeof(*ctx));
 
   *ctx = *ctx0;
-  ctx->allocated = true;
+  ctx->flags |= RETRACT_ALLOCATED;
 
   return ctx;
 }
@@ -4590,8 +4593,12 @@ free_retract_context(DECL_LD retract_context *ctx)
 { popPredicateAccess(ctx->def);
   leaveDefinition(ctx->def);
 
-  if ( ctx->allocated )
-    freeForeignState(ctx, sizeof(*ctx));
+  if ( ctx->flags )
+  { if ( (ctx->flags&RETRACT_MOVED) )
+      popPredicateAccess(ctx->def);
+    if ( (ctx->flags&RETRACT_ALLOCATED) )
+      freeForeignState(ctx, sizeof(*ctx));
+  }
 }
 
 /* head_arguments() returns a pointer to the arguments of the clause
@@ -4609,11 +4616,67 @@ head_arguments(DECL_LD term_t head)
 }
 
 
-/* (*) If retract/1 lost the race for the first matching clause, it
-   continues at the current generation.  Clause GC protects the clauses
-   visible at the generation of our predicate access, so we must update
-   that as well.  Otherwise clause GC may reclaim clauses that we see.
-*/
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+(*) Clause GC keeps what is visible at the generations it marks: those of
+the frames running a predicate and those of the predicate access objects
+(pushPredicateAccessObj()).  The frame of retract/1 runs retract/1, so
+only its access objects protect what retract/1 uses: the clause it
+erases, and ctx->chp, the next candidate, which it keeps until it is
+called again.  ctx->chp may point into a clause index that a resize
+replaced since; the old index is freed once every generation clause GC
+marks is after its replacement (free_lingering() in cleanDefinition()).
+`dref` therefore keeps the generation at which firstClause() chose the
+index until retract/1 is done.
+
+If another thread erased the first candidate (or an update event refused
+to erase it), retract/1 continues at the current generation.  The clauses
+that nextClause() then selects are known to be visible only at that
+generation, so a second access object publishes it first and stays until
+retract/1 is done.  If this happens again, a third access object
+publishes the newer generation, the second takes it and the third goes.
+Clause GC marks the access objects of another thread under that thread's
+scan_lock, so this last step holds it: a scan sees the newer generation
+in one of the two.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define retract_move_generation(ctx, head, fid) \
+	LDFUNC(retract_move_generation, ctx, head, fid)
+
+#ifdef __GNUC__				/* keep its frame out of retract/1 */
+#define RETRACT_NOINLINE __attribute__((noinline))
+#else
+#define RETRACT_NOINLINE
+#endif
+
+static COLD RETRACT_NOINLINE ClauseRef
+retract_move_generation(DECL_LD retract_context *ctx, term_t head, fid_t fid)
+{ definition_ref *moved = ( (ctx->flags&RETRACT_MOVED) ?
+			     findPredicateAccessObj(ctx->def) : NULL );
+  definition_ref *now = pushPredicateAccessObj(ctx->def);
+  ClauseRef cref;
+  Word argv;
+
+  if ( !now )
+    return NULL;			/* exception ends retract/1 */
+  setGenerationFrameVal(environment_frame, now->generation);
+  DEBUG(MSG_CGC_RETRACT,
+	Sdprintf("Retract: first clause deleted; set gen to %lld\n",
+		 generationFrame(environment_frame)));
+  PL_rewind_foreign_frame(fid);
+  argv = head_arguments(head);		/* decompile() may have shifted */
+  cref = nextClause(&ctx->chp, argv, environment_frame, ctx->def);
+  if ( moved )
+  { simpleMutexLock(&LD->thread.scan_lock);
+    moved->generation = now->generation;
+    popPredicateAccess(ctx->def);
+    simpleMutexUnlock(&LD->thread.scan_lock);
+  } else
+  { ctx->flags |= RETRACT_MOVED;
+  }
+
+  return cref;
+}
+
 
 static
 PRED_IMPL("retract", 1, retract,
@@ -4713,7 +4776,7 @@ PRED_IMPL("retract", 1, retract,
 
       ctx = &ctxbuf;
       ctx->def = def;
-      ctx->allocated = 0;
+      ctx->flags = 0;
     } else
     { ctx  = CTX_PTR;
       DEBUG(MSG_CGC_RETRACT,
@@ -4753,14 +4816,12 @@ PRED_IMPL("retract", 1, retract,
 
 	  PL_close_foreign_frame(fid);
 	  ForeignRedoPtr(ctx);
-	} else				/* See (*) */
-	{ do
-	  { dref->generation = current_generation(ctx->def);
-	  } while ( dref->generation != current_generation(ctx->def) );
-	  setGenerationFrameVal(environment_frame, dref->generation);
-	  DEBUG(MSG_CGC_RETRACT,
-		Sdprintf("Retract: first clause deleted; set gen to %lld\n",
-			 generationFrame(environment_frame)));
+	} else if ( !PL_exception(0) )
+	{ /* The clause was not erased, usually because another thread
+	     erased it first: continue at the current generation.  See
+	     (*) above. */
+	  cref = retract_move_generation(ctx, head, fid);
+	  continue;
 	}
       }
 

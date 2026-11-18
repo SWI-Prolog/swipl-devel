@@ -9180,6 +9180,22 @@ out:
   refs->top--;
 }
 
+/* The topmost access object of `def` in this thread */
+
+definition_ref *
+findPredicateAccessObj(DECL_LD Definition def)
+{ definition_refs *refs = &LD->predicate_references;
+
+  for(size_t top = refs->top; top > 0; top--)
+  { definition_ref *dref = def_ref(refs, top);
+
+    if ( dref->predicate == def )
+      return dref;
+  }
+
+  return NULL;
+}
+
 size_t
 popNPredicateAccess(DECL_LD size_t n)
 { definition_refs *refs = &LD->predicate_references;

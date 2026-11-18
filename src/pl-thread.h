@@ -644,6 +644,7 @@ typedef struct
 
 #if USE_LD_MACROS
 #define	pushPredicateAccessObj(def)	LDFUNC(pushPredicateAccessObj, def)
+#define	findPredicateAccessObj(def)	LDFUNC(findPredicateAccessObj, def)
 #define	popPredicateAccess(def)		LDFUNC(popPredicateAccess, def)
 #define	popNPredicateAccess(n)		LDFUNC(popNPredicateAccess, n)
 #define	cgc_thread_stats(stats)		LDFUNC(cgc_thread_stats, stats)
@@ -665,6 +666,7 @@ Definition*	predicates_in_use(void);
 bool		pl_functor_table_in_use(FunctorTable functor_table);
 bool		pl_kvs_in_use(KVS kvs);
 definition_ref* pushPredicateAccessObj(Definition def);
+definition_ref* findPredicateAccessObj(Definition def);
 void		popPredicateAccess(Definition def);
 size_t		popNPredicateAccess(size_t n);
 void		markAccessedPredicates(PL_local_data_t *ld);
