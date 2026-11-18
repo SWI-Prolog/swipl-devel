@@ -357,6 +357,13 @@ min_assoc(t(K,V,_,L,_), _, _, Key, Val) :-
 %   Assoc is Assoc0, except that Key is  associated with Value. This can
 %   be used to insert and change associations.
 
+:- if(current_predicate('$btree_avl_put'/4)).
+% '$btree_avl_put'/4 does the common case in C. It fails if it finds
+% anything it does not handle, which we leave to the Prolog definition.
+put_assoc(Key, A0, Value, A) :-
+    '$btree_avl_put'(Key, A0, Value, A),
+    !.
+:- endif.
 put_assoc(Key, A0, Value, A) :-
     insert(A0, Key, Value, A, _).
 

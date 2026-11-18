@@ -38,13 +38,15 @@
 	  ]).
 :- use_module(library(plunit)).
 :- use_module(library(assoc)).
+:- use_module(library(sandbox)).
 
 % Test new predicates of assoc library
 % Author: Glenn Burgess May 2010
 % Modified for using PlUnit by Jan Wielemaker
 
 test_assoc :-
-	run_tests([ assoc
+	run_tests([ assoc,
+		    assoc_put
 		  ]).
 
 :- begin_tests(assoc).
@@ -177,3 +179,105 @@ test(del_no_member, true) :-
 	\+ del_min_assoc(3, A, _, _).
 
 :- end_tests(assoc).
+
+:- begin_tests(assoc_put).
+
+% put_assoc/4 uses C code where it can.  It must do exactly what its
+% Prolog definition does.
+
+pl_put(K, A0, V, A) :-
+	assoc:insert(A0, K, V, A, _).
+
+put_all([], A, A).
+put_all([K-V|T], A0, A) :-
+	put_assoc(K, A0, V, A1),
+	pl_put(K, A0, V, A2),
+	A1 == A2,
+	put_all(T, A1, A).
+
+% True if put_assoc/4 and its Prolog definition do the same to a copy
+% of the arguments, with the occurs_check flag set to Flag.
+same(Flag, K, A0, V, A) :-
+	outcome(Flag, put_assoc, put(K,A0,V,A), O1),
+	outcome(Flag, pl_put, put(K,A0,V,A), O2),
+	O1 =@= O2.
+
+outcome(Flag, Put, Args, Result-Copy) :-
+	copy_term(Args, Copy),
+	Copy = put(K,A0,V,A),
+	current_prolog_flag(occurs_check, Old),
+	setup_call_cleanup(
+	    set_prolog_flag(occurs_check, Flag),
+	    (   catch(call(Put, K, A0, V, A), error(Result, _), true)
+	    ->  true
+	    ;   Result = failed
+	    ),
+	    set_prolog_flag(occurs_check, Old)).
+
+chain(I, N, t) :-
+	I > N,
+	!.
+chain(I, N, t(I,I,-,t,R)) :-
+	I1 is I+1,
+	chain(I1, N, R).
+
+test(random) :-
+	findall(K-V, (between(1, 3000, V), K is random(1000)), Pairs),
+	put_all(Pairs, t, A),
+	is_assoc(A).
+test(ascending) :-
+	findall(K-K, between(1, 2000, K), Pairs),
+	put_all(Pairs, t, A),
+	is_assoc(A),
+	assoc_to_list(A, Pairs).
+test(descending) :-
+	findall(K-K, (between(1, 2000, I), K is 2001-I), Pairs),
+	put_all(Pairs, t, A),
+	is_assoc(A).
+test(update_keeps_key) :-
+	K1 = f(1),
+	duplicate_term(K1, K2),
+	put_assoc(K1, t, old, A0),
+	put_assoc(K2, A0, new, t(K,new,-,t,t)),
+	same_term(K, K1).
+test(variable_value) :-
+	put_assoc(a, t, V, A),
+	get_assoc(a, A, X),
+	X == V.
+test(bound_output) :-
+	list_to_assoc([1-a,2-b,3-c], A0),
+	pl_put(4, A0, d, A),
+	put_assoc(4, A0, d, A),
+	\+ put_assoc(4, A0, e, A),
+	\+ put_assoc(4, A0, d, t).
+test(not_an_assoc,
+     [ forall(member(Bad, [ foo, _, f(x), t(a,1,-,t),
+			    t(a,1,-,t,x), t(m,1,-,_,t)
+			  ]))
+     ]) :-
+	same(false, 0, Bad, v, _),
+	same(false, z, Bad, v, _).
+test(odd_balance,
+     [ forall(member(Bad, [ t(a,1,>,t,t), t(a,1,<,t,t),
+			    t(a,1,nobal,t,t), t(a,1,_,t,t),
+			    t(a,1,-,t,t(b,2,>,t,t))
+			  ]))
+     ]) :-
+	forall(member(K, [0, a, b, c]),
+	       same(false, K, Bad, v, _)).
+test(deep) :-				% deeper than any AVL tree
+	chain(1, 200, Chain),
+	same(false, 0, Chain, v, _),
+	same(false, 100, Chain, v, _),
+	same(false, 201, Chain, v, _).
+test(occurs_check, [forall(member(Flag, [false, true, error]))]) :-
+	same(Flag, k, t, O1, O1),
+	same(Flag, O2, t, v, O2),
+	same(Flag, k, t, f(O3), O3),
+	same(Flag, z, t(a,O4,-,t,t), v, O4),
+	same(Flag, z, t(a,1,-,t,t), v, _),
+	same(Flag, a, t(a,1,-,t,t), v, _).
+test(sandbox) :-
+	safe_goal(put_assoc(a, t, 1, _)).
+
+:- end_tests(assoc_put).
