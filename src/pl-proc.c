@@ -4739,6 +4739,10 @@ PRED_IMPL("retract", 1, retract,
       enterDefinition(def);			/* reference the predicate */
       dref = pushPredicateAccessObj(def);
       releaseProcedureRef(proc);	/* def is now accessed */
+      if ( !dref )
+      { leaveDefinition(def);
+	return false;
+      }
       setGenerationFrameVal(environment_frame, dref->generation);
       cref = firstClause(argv, environment_frame, def, &ctxbuf.chp);
       DEBUG(MSG_CGC_RETRACT,
