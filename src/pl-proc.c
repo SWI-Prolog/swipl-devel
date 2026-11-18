@@ -2558,6 +2558,9 @@ removeClausesPredicate(Definition def, size_t sfindex, int fromfile)
 
   if ( ison(def, P_THREAD_LOCAL) )
     return 0;
+					/* before goals can see the erasure */
+  if ( isoff(def, P_DYNAMIC) && def->impl.clauses.number_of_clauses )
+    registerDirtyDefinition(def);
 
   if ( GD->halt.cleaning != CLN_DATA )		/* normal operation */
   { PL_LOCK(L_GENERATION);
@@ -2930,6 +2933,7 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
     size_t deleted = 0;
     size_t added   = 0;
     size_t memory  = 0;
+    bool was_dirty;
 
     LOCKDEF(def);
     PL_LOCK(L_GENERATION);
@@ -2959,6 +2963,11 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
     release_def(def);
     GD->_generation = update;
     PL_UNLOCK(L_GENERATION);
+    was_dirty = ison(def, P_DIRTYREG);
+    if ( added || deleted )		/* see maybeUnregisterDirtyDefinition() */
+    { def->last_modified = update;
+      registerDirtyDefinition(def);
+    }
     DEBUG(CHK_SECURE, checkDefinition(def));
     UNLOCKDEF(def);
 
@@ -2979,11 +2988,11 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
     { ATOMIC_SUB(&def->module->code_size, memory);
       ATOMIC_ADD(&GD->clauses.erased_size, memory);
       ATOMIC_ADD(&GD->clauses.erased, deleted);
-      if( ison(def, P_DIRTYREG) )
+      if ( was_dirty )
 	ATOMIC_SUB(&GD->clauses.dirty, deleted);
-
-      registerDirtyDefinition(def);
     }
+    if ( added && !deleted && !isSignalledGCThread(SIG_CLAUSE_GC) )
+      signalGCThread(SIG_CLAUSE_GC);	/* to unregister it soon */
     clear(def, P_MODIFIED);
   }
 }
@@ -3664,15 +3673,34 @@ may leave this predicate as non-dirty while it is dirty.
 				def->impl.clauses.erased_clauses++
 				registerDirtyDefinition()
   unregisterDirtyDefinition()
+
+The generation test is repeated under the lock for the same reason: a
+reload of a static predicate sets last_modified and registers the
+predicate under the lock after it published the new clauses, so we
+either see the new last_modified, or we unregister before the reload
+registers it again, while it is still reloading.  Unregistering it after
+the reload while a goal runs at an older generation would let that goal
+skip the generation tests and see the new clauses (see
+is_clean_definition()).  A predicate that was registered after we reset
+the marks (ddi_reset()) is not marked in this run: its goals are not
+known, so it stays registered until the next run.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
+static bool
+no_older_goal(Definition def, DirtyDefInfo ddi)
+{ return ( ison(ddi, DDI_MARKING) &&
+	   ddi_oldest_generation(ddi) > def->last_modified );
+}
+
 static void
-maybeUnregisterDirtyDefinition(Definition def)
+maybeUnregisterDirtyDefinition(Definition def, DirtyDefInfo ddi)
 { if ( ison(def, P_DIRTYREG) &&
-       def->impl.clauses.erased_clauses == 0 )
+       def->impl.clauses.erased_clauses == 0 &&
+       ( ison(def, P_DYNAMIC) || no_older_goal(def, ddi) ) )
   { LOCKDEF(def);			/* See (*) */
     if ( ison(def, P_DIRTYREG) &&
-	 def->impl.clauses.erased_clauses == 0 )
+	 def->impl.clauses.erased_clauses == 0 &&
+	 ( ison(def, P_DYNAMIC) || no_older_goal(def, ddi) ) )
       unregisterDirtyDefinition(def);
     UNLOCKDEF(def);
   }
@@ -4191,7 +4219,7 @@ pl_garbage_collect_clauses(void)
 		       (int)def->impl.clauses.erased_clauses));
       }
 
-      maybeUnregisterDirtyDefinition(def);
+      maybeUnregisterDirtyDefinition(def, ddi);
     }
 
     discardBuffer(&tr_starts);

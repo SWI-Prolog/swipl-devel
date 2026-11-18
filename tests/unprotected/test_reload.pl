@@ -95,6 +95,14 @@ test(add_clause, all(X == [a,b,c])) :-
     reload(add_clause, 1),
     reload(add_clause, 2),
     add_clause:p1(X).
+test(add_clause_running, Xs == [1,2]) :- % logical update view
+    reload(add_clause_running, 1),
+    findall(X, ( add_clause_running:p(X),
+                 (   X == 1
+                 ->  reload(add_clause_running, 2)
+                 ;   true
+                 )
+               ), Xs).
 test(del_clause, all(X == [a,c])) :-
     reload(del_clause, 1),
     reload(del_clause, 2),
