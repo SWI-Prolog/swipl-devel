@@ -5818,7 +5818,7 @@ assert_proc(DECL_LD Procedure proc, Module mhead, Module module,
 
   DEBUG(2,
 	Sdprintf("compiling ");
-	PL_write_term(Serror, term, 1200, PL_WRT_QUOTED);
+	PL_write_term(Serror, head, 1200, PL_WRT_QUOTED);
 	Sdprintf(" ... "););
 
 /* (*) A clause loaded from a file may define a local version of an
