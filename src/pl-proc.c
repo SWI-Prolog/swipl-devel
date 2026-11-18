@@ -939,8 +939,8 @@ destroyDefinition(Definition def)
 
     LOCKDEF(def);
     deleteIndexesDefinition(def);
-    UNLOCKDEF(def);
     removeClausesPredicate(def, 0, false);
+    UNLOCKDEF(def);
     if ( GD->halt.cleaning != CLN_DATA )
     { registerDirtyDefinition(def);
       DEBUG(MSG_PRED_COUNT, Sdprintf("Erased %s at\n", predicateName(def), def));
@@ -2931,6 +2931,7 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
     size_t added   = 0;
     size_t memory  = 0;
 
+    LOCKDEF(def);
     PL_LOCK(L_GENERATION);
     update = global_generation()+1;
     acquire_def(def);
@@ -2958,6 +2959,8 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
     release_def(def);
     GD->_generation = update;
     PL_UNLOCK(L_GENERATION);
+    DEBUG(CHK_SECURE, checkDefinition(def));
+    UNLOCKDEF(def);
 
     DEBUG(MSG_RECONSULT_CLAUSE,
 	  Sdprintf("%s: added %ld, deleted %ld clauses "
@@ -2982,8 +2985,6 @@ reconsultFinalizePredicate(DECL_LD sf_reload *rl, Definition def, p_reload *r)
       registerDirtyDefinition(def);
     }
     clear(def, P_MODIFIED);
-
-    DEBUG(CHK_SECURE, checkDefinition(def));
   }
 }
 
