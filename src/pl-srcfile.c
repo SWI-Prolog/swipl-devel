@@ -856,8 +856,10 @@ unloadFile(SourceFile sf)
     Definition def = proc->definition;
 
     if ( isoff(def, P_FOREIGN|P_THREAD_LOCAL) )
-    { deleted += removeClausesPredicate(
+    { LOCKDEF(def);
+      deleted += removeClausesPredicate(
 		     def, ison(def, P_MULTIFILE) ? sf->index : 0, true);
+      UNLOCKDEF(def);
     }
 
     DEBUG(MSG_UNLOAD,
@@ -1525,10 +1527,12 @@ delete_old_predicate(SourceFile sf, Procedure proc)
     release_def(def);
   }
 
+  LOCKDEF(def);
   deleted = removeClausesPredicate(
 		def,
 		ison(def, P_MULTIFILE) ? sf->index : 0,
 		true);
+  UNLOCKDEF(def);
 
   if ( isoff(def, P_MULTIFILE) )
   { clear(def, FILE_ASSIGNED);
