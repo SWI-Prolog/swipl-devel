@@ -56,11 +56,11 @@
 \pagestyle{fancyplain}
 #endif
 
-\newcommand{\vmajor}{10}
+\newcommand{\vmajor}{11}
 \newcommand{\vminor}{0}
-\newcommand{\vpatch}{2}
+\newcommand{\vpatch}{0}
 \newcommand{\vtag}{}
-\newcommand{\vmonth}{October}
+\newcommand{\vmonth}{November}
 \newcommand{\vyear}{2026}
 
 #ifdef BOOK
