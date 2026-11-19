@@ -86,6 +86,38 @@ typedef struct _opdef			/* predefined and enumerated */
 #define OP_INHERIT	0
 
 		 /*******************************
+		 *	   OPERATOR NAMES	*
+		 *******************************/
+
+/* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Bit set of atoms that are or have been an operator in any module.  The
+index is the atom index modulo the size of the set.  A clear bit means
+the atom is not an operator.  A set bit means it may be one, and the
+operator tables are searched.  Bits are set and never cleared, so the
+set can be read without a lock.
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+#define OP_NAME_BITS	4096
+#define OP_NAME_WBITS	(sizeof(unsigned int)*8)
+
+static unsigned int op_names[OP_NAME_BITS/OP_NAME_WBITS];
+
+static void
+addOperatorName(atom_t name)
+{ size_t bit = indexAtom(name) % OP_NAME_BITS;
+
+  ATOMIC_OR(&op_names[bit/OP_NAME_WBITS], 1u<<(bit%OP_NAME_WBITS));
+}
+
+static inline bool
+maybeOperatorName(atom_t name)
+{ size_t bit = indexAtom(name) % OP_NAME_BITS;
+
+  return (op_names[bit/OP_NAME_WBITS] & (1u<<(bit%OP_NAME_WBITS))) != 0;
+}
+
+
+		 /*******************************
 		 *	  OPERATOR TABLE	*
 		 *******************************/
 
@@ -185,6 +217,7 @@ defOperator(Module m, atom_t name, unsigned char type, short priority, int force
   op->type[t]     = (priority >= 0 ? type : OP_INHERIT);
   if ( must_reg )
   { PL_register_atom(name);
+    addOperatorName(name);
     addNewHTableWP(m->operators, name, op);
   }
   PL_UNLOCK(L_OP);
@@ -276,6 +309,9 @@ currentOperator(Module m, atom_t name, int kind,
 
   assert(kind >= OP_PREFIX && kind <= OP_POSTFIX);
 
+  if ( !maybeOperatorName(name) )
+    return false;
+
   if ( !m )
     m = MODULE_user;
 
@@ -346,6 +382,9 @@ scanPriorityOperator(Module m, atom_t name, int *done, int sofar)
 int
 priorityOperator(Module m, atom_t name)
 { int done = 0;
+
+  if ( !maybeOperatorName(name) )
+    return 0;
 
   if ( !m )
     m = MODULE_user;
