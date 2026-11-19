@@ -5658,6 +5658,25 @@ is intended to be used in combination with fork():
 The call behaves the same  on  Windows,   though  there  is  probably no
 meaningful application.
 
+    \cfunction{void *}{PL_save_ctty}{}
+Prepare for running a child process on the terminal of the calling
+thread's \const{user_input}, \const{user_output} and \const{user_error}
+when that terminal is not the controlling terminal of our session, such
+as the pty of an Epilog window.  A child that makes such a terminal its
+controlling terminal is the leader of its session, and BSD kernels,
+including MacOS, revoke the terminal when that leader exits, leaving
+Prolog's descriptors on it unusable.  Call this before creating the
+child and pass the result to PL_restore_ctty() after the child has been
+reaped.  Returns \const{NULL} if there is nothing to restore, notably
+when running on the controlling terminal and on systems that do not
+revoke.  The returned state holds resources and must always be passed
+to PL_restore_ctty().  Used by shell/1 and process_create/3.
+
+    \cfunction{void}{PL_restore_ctty}{void *state}
+If the terminals recorded by PL_save_ctty() were revoked, open them
+again on the same descriptors and restore their settings.  Always
+releases \arg{state}, which may be \const{NULL}.
+
     \cfunction{bool}{PL_halt}{int status}
     Terminate the Prolog process as halt/1. The \arg{status} is used to
     set the return code from calling \exam{exit()} - this is a value between

@@ -3029,6 +3029,44 @@ restore_ctty(const ctty_state *state)
 }
 #endif
 
+/* The above for foreign code that runs a child on our terminal itself,
+ * process_create/3 in particular.  As with shell/1, the caller writes
+ * again as soon as it has seen the child go, which is before an epilog
+ * window gets to reconnect the pty.  The state is opaque to the caller:
+ * PL_save_ctty() answers NULL if there is nothing a child could revoke,
+ * and PL_restore_ctty() accepts NULL and always releases the state.
+ */
+
+void *
+PL_save_ctty(void)
+{
+#ifdef O_ADOPT_CTTY
+  ctty_state *state = malloc(3*sizeof(*state));
+
+  if ( state )
+  { save_ctty(state);
+    for(int i=0; i<3; i++)
+    { if ( state[i].dup >= 0 )
+	return state;
+    }
+    free(state);
+  }
+#endif
+
+  return NULL;
+}
+
+void
+PL_restore_ctty(void *state)
+{
+#ifdef O_ADOPT_CTTY
+  if ( state )
+  { restore_ctty(state);
+    free(state);
+  }
+#endif
+}
+
 static const char *
 prog_shell(void)
 { GET_LD
@@ -3166,6 +3204,18 @@ System(char *cmd)
 #endif
 
   return rval;
+}
+
+#else /* __unix__ */
+
+void *
+PL_save_ctty(void)
+{ return NULL;
+}
+
+void
+PL_restore_ctty(void *state)
+{
 }
 #endif /* __unix__ */
 

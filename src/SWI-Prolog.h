@@ -1201,6 +1201,8 @@ PL_EXPORT(bool)		PL_set_resource_db_mem(const unsigned char *data,
 PL_EXPORT(bool)		PL_toplevel(void);
 PL_EXPORT(int)		PL_cleanup(int status);
 PL_EXPORT(void)		PL_cleanup_fork(void);
+PL_EXPORT(void *)	PL_save_ctty(void);
+PL_EXPORT(void)		PL_restore_ctty(void *state);
 PL_EXPORT(bool)		PL_halt(int status);
 
 		 /*******************************
