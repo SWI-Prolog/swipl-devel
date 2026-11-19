@@ -1054,6 +1054,73 @@ PRED_IMPL("$term_size", 3, term_size, 0)
 
 
 		 /*******************************
+		 *	  CONTAINS FUNCTOR	*
+		 *******************************/
+
+/* True when the term at `p` is or contains a compound with functor
+   `fd`.  Shared and cyclic subterms are visited once.  Attributes
+   of attributed variables are not searched.
+*/
+
+#define contains_functor(p, fd) LDFUNC(contains_functor, p, fd)
+static bool
+contains_functor(DECL_LD Word p, functor_t fd)
+{ term_agenda agenda;
+  bool found = false;
+  Word t;
+
+  initvisited();
+  initTermAgenda(&agenda, 1, p);
+
+  while((t=nextTermAgenda(&agenda)))
+  { if ( isTerm(*t) )
+    { Functor f = valueTerm(*t);
+      word functor = f->definition;	/* marked if we have been here */
+
+      if ( functor == fd )
+      { found = true;
+	break;
+      }
+      if ( visited(f) )
+	continue;
+
+      pushWorkAgenda(&agenda, arityFunctor(functor), f->arguments);
+    }
+  }
+
+  clearTermAgenda(&agenda);
+  unvisit();
+
+  return found;
+}
+
+
+/** '$contains_functor'(@Term, +Name, +Arity) is semidet.
+
+True when Term is or contains a compound term Name/Arity.  This is
+used by boot/expand.pl to quickly decide that a term does not need
+function expansion.
+*/
+
+static
+PRED_IMPL("$contains_functor", 3, contains_functor, 0)
+{ PRED_LD
+  atom_t name;
+  size_t arity;
+  functor_t fd;
+
+  if ( !PL_get_atom_ex(A2, &name) ||
+       !PL_get_size_ex(A3, &arity) )
+    return false;
+
+  if ( !(fd=isCurrentFunctor(name, arity)) )
+    return false;			/* no such term exists */
+
+  return contains_functor(valTermRef(A1), fd);
+}
+
+
+		 /*******************************
 		 *	     CYCLIC		*
 		 *******************************/
 
@@ -6717,6 +6784,7 @@ BeginPredDefs(prims)
   PRED_DEF("is_address", 1, is_address, 0)
   PRED_DEF("nonground", 2, nonground, 0)
   PRED_DEF("$term_size", 3, term_size, 0)
+  PRED_DEF("$contains_functor", 3, contains_functor, 0)
   PRED_DEF("acyclic_term", 1, acyclic_term, PL_FA_ISO)
   PRED_DEF("cyclic_term", 1, cyclic_term, 0)
   PRED_DEF("$factorize_term", 3, factorize_term, 0)

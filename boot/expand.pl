@@ -1128,8 +1128,15 @@ wrap_var(G, P0, call(G), P) :-
 
 %!  contains_functions(@Term) is semidet.
 %
-%   True when Term contains a function reference.
+%   True when Term contains a function reference. If function/2 is not
+%   extended, the only functions are  dict   calls,  which  we can find
+%   quickly using '$contains_functor'/3.
 
+contains_functions(Term) :-
+    '$get_predicate_attribute'(function(_,_), number_of_clauses, 1),
+    !,
+    '$contains_functor'(Term, '.', 2),
+    \+ functor([_|_], '.', _).              % traditional mode: a list
 contains_functions(Term) :-
     \+ \+ ( '$factorize_term'(Term, Skeleton, Assignments),
             (   contains_functions2(Skeleton)
