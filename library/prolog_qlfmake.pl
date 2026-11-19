@@ -82,7 +82,10 @@ qlf_make :-
     system_lib_files(Files),
     include(qlf_needs_rebuild, Files, Rebuild),
     report_work(Files, Rebuild),
-    qcompile_files(Rebuild),
+    setup_call_cleanup(
+        forall(member(File, Rebuild), assertz(qlf_todo(File))),
+        qcompile_files(Rebuild),
+        retractall(qlf_todo(_))),
     size_stats(Files).
 
 %!  qlf_make(+Spec) is det.
@@ -96,10 +99,7 @@ qlf_make(Spec) :-
                        [ file_type(prolog),
                          access(read)
                        ]),
-    (   qlf_needs_rebuild(PlFile)
-    ->  qcompile_(PlFile)
-    ;   true
-    ).
+    qcompile_(PlFile).
 
 qcompile_files([]) => true.
 qcompile_files([+H|T]) =>
@@ -116,9 +116,30 @@ qcompile_files([H|T]) =>
         qcompile_files(Agenda)
     ).
 
+%!  qcompile_(+PlFile) is det.
+%
+%   Create the .qlf file for PlFile if it needs to be (re)built.  It is
+%   already built if PlFile was loaded while compiling an earlier file.
+%   See prolog:qlf_auto/1.
+
 qcompile_(PlFile) :-
+    qlf_needs_rebuild(PlFile),
+    !,
     progress(PlFile),
     qcompile(PlFile, [imports([])]).
+qcompile_(_).
+
+%!  prolog:qlf_auto(+PlFile) is semidet.
+%
+%   Hook called before loading PlFile from source if it has no .qlf file.
+%   If we need to build this file anyway, tell the loader to create the
+%   .qlf file as it loads PlFile, such that we do not compile it twice.
+
+:- dynamic qlf_todo/1.                  % PlFile
+:- multifile prolog:qlf_auto/1.
+
+prolog:qlf_auto(PlFile) :-
+    qlf_todo(PlFile).
 
 %!  preload_pldoc is det.
 %

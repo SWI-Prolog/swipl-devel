@@ -2515,13 +2515,15 @@ load_files(Module:Files, Options) :-
 %
 %   True if we create QlfFile using   qcompile/2. This is determined
 %   by the option qcompile(QlfMode) or, if   this is not present, by
-%   the prolog_flag qcompile.
+%   the hook prolog:qlf_auto/1 or the prolog_flag qcompile.
 
 :- create_prolog_flag(qcompile, false, [type(atom)]).
 
 '$qlf_auto'(PlFile, QlfFile, Options) :-
     (   '$option'(qcompile(QlfMode), Options)
     ->  true
+    ;   prolog:qlf_auto(PlFile)
+    ->  QlfMode = auto
     ;   current_prolog_flag(qcompile, QlfMode),
 	\+ '$in_system_dir'(PlFile)
     ),
@@ -2536,6 +2538,20 @@ load_files(Module:Files, Options) :-
 '$in_system_dir'(PlFile) :-
     current_prolog_flag(home, Home),
     sub_atom(PlFile, 0, _, _, Home).
+
+%!  prolog:qlf_auto(+PlFile) is semidet.
+%
+%   Hook. True when PlFile must be  compiled using qcompile/2, creating
+%   its .qlf file. Called if PlFile is  loaded from source because it has
+%   no .qlf file. This is like the load_files/2 option qcompile(auto), but
+%   can be used for files that are loaded indirectly. Unlike the Prolog
+%   flag `qcompile`, it also applies to system files.
+%   library(prolog_qlfmake) uses this to create the .qlf file of a
+%   library that is loaded while compiling another one, rather than
+%   compiling it twice.
+
+:- multifile
+    prolog:qlf_auto/1.              % +PlFile
 
 '$spec_extension'(File, Ext) :-
     atom(File),
