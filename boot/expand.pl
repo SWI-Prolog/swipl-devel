@@ -280,6 +280,7 @@ mark_head_variables(Head) :-
 
 expand_head_functions(Head0, Head, Body0, Body) :-
     compound(Head0),
+    contains_functions(Head0),
     '$current_source_module'(M),
     replace_functions(Head0, Eval, Head, M),
     Eval \== true,
@@ -289,6 +290,7 @@ expand_head_functions(Head, Head, Body, Body).
 
 expand_body(_MList, Head0, Pos, Clause, Pos) :- % TBD: Position handling
     compound(Head0),
+    contains_functions(Head0),
     '$current_source_module'(M),
     replace_functions(Head0, Eval, Head, M),
     Eval \== true,
