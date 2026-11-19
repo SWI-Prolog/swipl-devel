@@ -90,5 +90,6 @@ void		acquireSourceFile(SourceFile sf);
 void		acquireSourceFileNo(size_t index);
 bool		releaseSourceFile(SourceFile f);
 #endif
+SourceFile	acquireIndexSourceFile(size_t index);
 
 #endif /*_PL_SRCFILE_H*/

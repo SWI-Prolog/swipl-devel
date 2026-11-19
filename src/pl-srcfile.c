@@ -360,6 +360,27 @@ acquireSourceFileNo(size_t index)
 }
 
 
+/* Get the source file at `index` with a reference, or NULL.  Unlike
+   indexToSourceFile(), this is safe if we do not already hold a
+   reference: releaseSourceFile() destroys a file under L_SRCFILE.
+   The caller must call releaseSourceFile().
+*/
+
+SourceFile
+acquireIndexSourceFile(size_t index)
+{ SourceFile sf;
+
+  PL_LOCK(L_SRCFILE);
+  if ( (sf = indexToSourceFile(index)) && sf->magic == SF_MAGIC )
+    acquireSourceFile(sf);
+  else
+    sf = NULL;
+  PL_UNLOCK(L_SRCFILE);
+
+  return sf;
+}
+
+
 bool
 #ifdef O_DEBUG
 releaseSourceFile_d(SourceFile sf, const char *file, unsigned int line)
@@ -373,32 +394,40 @@ releaseSourceFile(SourceFile sf)
 		 file, line,
 		 sf->references-1));
 
-  if ( sf->references <= 0 )
-  { Sdprintf("Oops: %d references for source file %s\n", sf->references, PL_atom_chars(sf->name));
-    sf->references = 0x4000000;
+  for(;;)			/* drop a reference that is not the last */
+  { unsigned int refs = LOAD_SEQ_CST(sf->references);
+
+    if ( refs == 0 )
+    { Sdprintf("Oops: 0 references for source file %s\n",
+	       PL_atom_chars(sf->name));
+      sf->references = 0x4000000;
+    } else if ( refs == 1 )
+    { break;
+    } else if ( COMPARE_AND_SWAP_UINT(&sf->references, refs, refs-1) )
+    { return true;
+    }
   }
-  if ( ATOMIC_DEC(&sf->references) == 0 )
-  { atom_t name = 0;
 
-    PL_LOCK(L_SRCFILE);
-    if ( sf->references == 0 &&
-	 !sf->system &&
-	 !sf->current_procedure &&
-	 !sf->procedures &&
-	 !sf->modules )
-    { DEBUG(MSG_DESTROY_MODULE,
-	    Sdprintf("Destroying empty source file %s\n",
-		     PL_atom_chars(sf->name)));
-      name = destroySourceFile(sf);
-    }
-    PL_UNLOCK(L_SRCFILE);
+  atom_t name = 0;		/* the last: destroy under L_SRCFILE, */
+				/* see acquireIndexSourceFile() */
+  PL_LOCK(L_SRCFILE);
+  if ( ATOMIC_DEC(&sf->references) == 0 &&
+       !sf->system &&
+       !sf->current_procedure &&
+       !sf->procedures &&
+       !sf->modules )
+  { DEBUG(MSG_DESTROY_MODULE,
+	  Sdprintf("Destroying empty source file %s\n",
+		   PL_atom_chars(sf->name)));
+    name = destroySourceFile(sf);
+  }
+  PL_UNLOCK(L_SRCFILE);
 
-    if ( name )
-    { bool rc = clearSourceAdmin(name);
-      PL_unregister_atom(name);
+  if ( name )
+  { bool rc = clearSourceAdmin(name);
+    PL_unregister_atom(name);
 
-      return rc;
-    }
+    return rc;
   }
 
   return true;
@@ -722,14 +751,17 @@ PRED_IMPL("$time_source_file", 3, time_source_file, PL_FA_NONDETERMINISTIC)
 
   fid = PL_open_foreign_frame();
   for(; index < mx; index++)
-  { SourceFile f = indexToSourceFile(index);
+  { SourceFile f = acquireIndexSourceFile(index);
 
-    if ( f == NULL || f->count == 0 )
+    if ( f == NULL )
       continue;
 
-    if ( PL_unify_atom(file, f->name) &&
-	 unify_src_file_time(time, f) &&
-	 PL_unify_atom(type, f->system ? ATOM_system : ATOM_user) )
+    bool rc = ( f->count > 0 &&
+		PL_unify_atom(file, f->name) &&
+		unify_src_file_time(time, f) &&
+		PL_unify_atom(type, f->system ? ATOM_system : ATOM_user) );
+    releaseSourceFile(f);
+    if ( rc )
     { PL_close_foreign_frame(fid);
       ForeignRedoInt(index+1);
     }

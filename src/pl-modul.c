@@ -1178,20 +1178,25 @@ unlinkSourceFilesModule(Module m)
 
   for(i=1; i<=high; i++)
   { if ( true_bit(vec, i) )
-    { SourceFile sf = indexToSourceFile(i);
+    { SourceFile sf = acquireIndexSourceFile(i);
 
       if ( sf )
-	unlinkSourceFileModule(sf, m);
+      { unlinkSourceFileModule(sf, m);
+	releaseSourceFile(sf);
+      }
     }
   }
 
   free_bitvector(vec);
 					/* files without procedures for m */
   for(i=1; i<=high && LOAD_SEQ_CST(m->source_refs) > 0; i++)
-  { SourceFile sf = indexToSourceFile(i);
+  { SourceFile sf = acquireIndexSourceFile(i);
 
-    if ( sf && sf->modules )
-      unlinkSourceFileModule(sf, m);
+    if ( sf )
+    { if ( sf->modules )
+	unlinkSourceFileModule(sf, m);
+      releaseSourceFile(sf);
+    }
   }
 
   if ( (sf = m->file) )
