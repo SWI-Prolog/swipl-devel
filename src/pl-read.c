@@ -5283,18 +5283,57 @@ name_token(Token token, op_entry *e, ReadData _PL_rd)
 }
 
 
+/* new_position() binds the variable `positions` to a new term with
+   functor `f` and returns a pointer to its arguments, which are all
+   unbound, or NULL if there is not enough memory.  Filling the
+   arguments directly is a lot cheaper than using PL_unify_term().
+   The positions we build are all fresh variables, see read_term().
+*/
+
+#define new_position(positions, f) LDFUNC(new_position, positions, f)
+static Word
+new_position(DECL_LD term_t positions, functor_t f)
+{ Word p;
+
+  if ( !PL_unify_functor(positions, f) )
+    return NULL;
+
+  p = valTermRef(positions);
+  deRef(p);
+
+  return argTermP(*p, 0);
+}
+
+
+/* Bind `positions` to f(Start, End) */
+
+#define unify_range_position(positions, f, start, end) \
+	LDFUNC(unify_range_position, positions, f, start, end)
+
+static bool
+unify_range_position(DECL_LD term_t positions, functor_t f,
+		     int64_t start, int64_t end)
+{ Word argp;
+
+  if ( !(argp=new_position(positions, f)) )
+    return false;
+  argp[0] = consInt(start);
+  argp[1] = consInt(end);
+
+  return true;
+}
+
+
 #define unify_atomic_position(positions, token) \
 	LDFUNC(unify_atomic_position, positions, token)
 
 static int
 unify_atomic_position(DECL_LD term_t positions, Token token)
 { if ( positions )
-  { return PL_unify_term(positions,
-			 PL_FUNCTOR, FUNCTOR_minus2,
-			   PL_INT64, token->start,
-			   PL_INT64, token->end);
-  } else
-    return true;
+    return unify_range_position(positions, FUNCTOR_minus2,
+				token->start, token->end);
+
+  return true;
 }
 
 
@@ -5304,12 +5343,10 @@ unify_atomic_position(DECL_LD term_t positions, Token token)
 static int
 unify_string_position(DECL_LD term_t positions, Token token)
 { if ( positions )
-  { return PL_unify_term(positions,
-			 PL_FUNCTOR, FUNCTOR_string_position2,
-			   PL_INT64, token->start,
-			   PL_INT64, token->end);
-  } else
-    return true;
+    return unify_range_position(positions, FUNCTOR_string_position2,
+				token->start, token->end);
+
+  return true;
 }
 
 
@@ -5750,14 +5787,14 @@ read_list_start(DECL_LD pframe *f, Token token, ct_request *req,
     return false;
 
   if ( f->pin )
-  { if ( !(pv = PL_new_term_refs(3)) ||
-	 !PL_unify_term(f->pin,
-			PL_FUNCTOR, FUNCTOR_list_position4,
-			PL_INT64, token->start,
-			PL_VARIABLE,
-			PL_TERM, P_LIST,
-			PL_TERM, P_TAIL) )
+  { Word argp;				/* list_position(S,_E,Elems,Tail) */
+
+    if ( !(pv = PL_new_term_refs(3)) ||
+	 !(argp = new_position(f->pin, FUNCTOR_list_position4)) )
       return false;
+    argp[0] = consInt(token->start);
+    setHandle(P_LIST, makeRefG(&argp[2]));
+    setHandle(P_TAIL, makeRefG(&argp[3]));
   } else
     pv = 0;
 
@@ -6024,15 +6061,15 @@ read_compound_start(DECL_LD pframe *f, Token token, ct_request *req,
 { term_t pv;
 
   if ( f->pin )
-  { if ( !(pv = PL_new_term_refs(2)) ||
-	 !PL_unify_term(f->pin,
-			PL_FUNCTOR, FUNCTOR_term_position5,
-			PL_INT64, token->start,
-			PL_VARIABLE,
-			PL_INT64, token->start,
-			PL_INT64, token->end,
-			PL_TERM, P_ARG) )
+  { Word argp;				/* term_position(S,_E,FS,FE,Args) */
+
+    if ( !(pv = PL_new_term_refs(2)) ||
+	 !(argp = new_position(f->pin, FUNCTOR_term_position5)) )
       return false;
+    argp[0] = consInt(token->start);
+    argp[2] = consInt(token->start);
+    argp[3] = consInt(token->end);
+    setHandle(P_ARG, makeRefG(&argp[4]));
   } else
     pv = 0;
 
@@ -6691,6 +6728,7 @@ read_term(DECL_LD term_t term, ReadData rd)
   Token token;
   Word p;
   fid_t fid;
+  term_t positions;
 
   if ( !raw_read(rd, &rd->end) )
     fail;
@@ -6701,7 +6739,12 @@ read_term(DECL_LD term_t term, ReadData rd)
   rd->here = rd->base;
   rd->strictness = truePrologFlag(PLFLAG_ISO);
 
-  rc2 = complex_term(NULL, OP_MAXPRIORITY+1, rd->subtpos, rd);
+  if ( (positions=rd->subtpos) && !PL_is_variable(positions) )
+  { if ( !(positions=PL_new_term_ref()) ) /* build first, unify later */
+      goto out;
+  }
+
+  rc2 = complex_term(NULL, OP_MAXPRIORITY+1, positions, rd);
   if ( rc2 != true )
   { rc = raiseStackOverflow(rc2);
     goto out;
@@ -6739,6 +6782,8 @@ read_term(DECL_LD term_t term, ReadData rd)
 
   truncate_term_stack(result, rd);
   if ( !rc )
+    goto out;
+  if ( positions != rd->subtpos && !(rc=PL_unify(rd->subtpos, positions)) )
     goto out;
   if ( rd->varnames && !(rc=bind_variable_names(rd)) )
     goto out;
