@@ -1139,12 +1139,19 @@ back-links to the source files.
 We also remove `m` from the modules of the source files.  As these hold
 a pointer to the module, module GC does not collect modules that are
 listed by a source file (m->source_refs).
+
+The procedures are enumerated using acquireTableProcedure(): procedure
+GC reuses the `source_no` field of a collected procedure to link it into
+its free list.  A source file may be registered after we computed
+`high`; in that case we mark all files.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static void
 markSourceFilesProcedure(Procedure proc, struct bit_vector *v)
-{ if ( isoff(proc, PROC_MULTISOURCE) )
-    set_bit(v, proc->source_no);
+{ size_t no = proc->source_no;
+
+  if ( isoff(proc, PROC_MULTISOURCE) && no < v->size )
+    set_bit(v, no);
   else
     setall_bitvector(v);
 }
@@ -1155,9 +1162,19 @@ unlinkSourceFilesModule(Module m)
 { size_t i, high = highSourceFileIndex();
   struct bit_vector *vec = new_bitvector(high+1);
   SourceFile sf;
+  TableEnum e = newTableEnumWP(m->procedures);
+  table_key_t name;
+  table_value_t value;
 
-  FOR_TABLE(m->procedures, name, value)
-    markSourceFilesProcedure(val2ptr(value), vec);
+  while( advanceTableEnum(e, &name, &value) )
+  { Procedure proc = val2ptr(value);
+
+    if ( acquireTableProcedure(m, (functor_t)name, proc) )
+    { markSourceFilesProcedure(proc, vec);
+      releaseProcedureRef(proc);
+    }
+  }
+  freeTableEnum(e);
 
   for(i=1; i<=high; i++)
   { if ( true_bit(vec, i) )
