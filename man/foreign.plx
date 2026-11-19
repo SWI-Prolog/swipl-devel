@@ -1374,7 +1374,10 @@ Text that contains a 0-code cannot be represented as a 0-terminated
 string.  If such text is converted by PL_get_chars() or another function
 that does not return the length, the function fails or, if
 \const{CVT_EXCEPTION} is given, raises the exception
-\exam{representation_error(nul_terminated_string(Text))}.
+\exam{representation_error(nul_terminated_string(Text))}.  Text is the
+converted term: an atom, string, code or character list, or any term if
+one of the ``CVT_WRITE*'' flags is used.  The name refers to the C
+representation and not to the Prolog string type.
 
 The first set of flags (\const{CVT_ATOM} through \const{CVT_VARIABLE},
 if set, are tested in order, using the first that matches. If none of

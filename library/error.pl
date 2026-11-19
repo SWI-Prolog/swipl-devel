@@ -172,7 +172,9 @@ uninstantiation_error(Culprit) :-
 %   Besides the atomic flags defined by ISO, SWI-Prolog uses flags of
 %   the form Id(Culprit), where Culprit is the value that cannot be
 %   represented, e.g., representation_error(uint(4294967296)) or
-%   representation_error(nul_terminated_string(Text)).
+%   representation_error(nul_terminated_string(Text)).  Here, Text is
+%   the term that was converted: an atom, string, code or character
+%   list, or any term if the conversion writes it.
 
 representation_error(Flag) :-
     throw(error(representation_error(Flag), _)).
