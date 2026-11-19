@@ -1467,15 +1467,20 @@ PL_cvt_o_address(void *address, term_t p)
 		 *******************************/
 
 int					/* -2: exception pending */
-PL_compare(term_t t1, term_t t2)
-{ GET_LD
-  valid_term_t(t1);
-  valid_term_t(t2);
-  Word p1 = valHandleP(t1);
+PL_compare(DECL_LD term_t t1, term_t t2)
+{ Word p1 = valHandleP(t1);
   Word p2 = valHandleP(t2);
 
   return compareStandard(p1, p2, false);	/* -1, 0, 1 or CMP_ERROR */
 }
+
+
+API_STUB(int)
+(PL_compare)(term_t t1, term_t t2)
+( valid_term_t(t1);
+  valid_term_t(t2);
+  return PL_compare(t1, t2);
+)
 
 
 bool
@@ -1569,11 +1574,8 @@ API_STUB(bool)
 )
 
 bool
-PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
-{ GET_LD
-  valid_term_t(h);
-  valid_functor_t(fd);
-  size_t arity = arityFunctor(fd);
+PL_cons_functor_v(DECL_LD term_t h, functor_t fd, term_t a0)
+{ size_t arity = arityFunctor(fd);
 
   if ( arity == 0 )
   { setHandle(h, nameFunctor(fd));
@@ -1596,6 +1598,14 @@ PL_cons_functor_v(term_t h, functor_t fd, term_t a0)
 
   return true;
 }
+
+
+API_STUB(bool)
+(PL_cons_functor_v)(term_t h, functor_t fd, term_t a0)
+( valid_term_t(h);
+  valid_functor_t(fd);
+  return PL_cons_functor_v(h, fd, a0);
+)
 
 
 bool
@@ -1629,11 +1639,8 @@ API_STUB(bool)
 */
 
 bool
-PL_cons_list_v(term_t list, size_t count, term_t elems)
-{ GET_LD
-
-  valid_term_t(list);
-  if ( count > 0 )
+PL_cons_list_v(DECL_LD term_t list, size_t count, term_t elems)
+{ if ( count > 0 )
   { Word p;
 
     if ( !ensureGlobalSpace(3*count, ALLOW_GC) )
@@ -1641,8 +1648,7 @@ PL_cons_list_v(term_t list, size_t count, term_t elems)
 
     p = gTop;
     for( ; count-- > 0; p += 3, elems++ )
-    { valid_term_t(elems);
-      p[0] = FUNCTOR_dot2;
+    { p[0] = FUNCTOR_dot2;
       bindConsVal(&p[1], valHandleP(elems));
       if ( count > 0 )
       { p[2] = consCompound(&p[3]);
@@ -2845,10 +2851,8 @@ API_STUB(bool)
 )
 
 int
-PL_skip_list(term_t list, term_t tail, size_t *len)
-{ GET_LD
-  valid_term_t(list);
-  intptr_t length;
+PL_skip_list(DECL_LD term_t list, term_t tail, size_t *len)
+{ intptr_t length;
   Word l = valTermRef(list);
   Word t;
 
@@ -2856,8 +2860,7 @@ PL_skip_list(term_t list, term_t tail, size_t *len)
   if ( len )
     *len = length;
   if ( tail )
-  { valid_user_term_t(tail);
-    Word t2 = valTermRef(tail);
+  { Word t2 = valTermRef(tail);
 
     setVar(*t2);
     unify_ptrs(t2, t, 0);
@@ -2872,6 +2875,15 @@ PL_skip_list(term_t list, term_t tail, size_t *len)
   else
     return PL_NOT_A_LIST;
 }
+
+
+API_STUB(int)
+(PL_skip_list)(term_t list, term_t tail, size_t *len)
+( valid_term_t(list);
+  if ( tail )
+    valid_user_term_t(tail);
+  return PL_skip_list(list, tail, len);
+)
 
 
 bool
@@ -2963,13 +2975,18 @@ API_STUB(bool)
 )
 
 bool
-PL_is_integer(term_t t)
-{ GET_LD
-  valid_term_t(t);
-  word w = valHandle(t);
+PL_is_integer(DECL_LD term_t t)
+{ word w = valHandle(t);
 
   return isInteger(w) ? true : false;
 }
+
+
+API_STUB(bool)
+(PL_is_integer)(term_t t)
+( valid_term_t(t);
+  return PL_is_integer(t);
+)
 
 
 bool
@@ -3446,14 +3463,18 @@ PL_put_list(term_t l)
 
 
 bool
-PL_put_nil(term_t l)
-{ GET_LD
-  valid_user_term_t(l);
-
-  setHandle(l, ATOM_nil);
+PL_put_nil(DECL_LD term_t l)
+{ setHandle(l, ATOM_nil);
 
   return true;
 }
+
+
+API_STUB(bool)
+(PL_put_nil)(term_t l)
+( valid_user_term_t(l);
+  return PL_put_nil(l);
+)
 
 
 bool

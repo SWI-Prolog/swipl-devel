@@ -881,10 +881,15 @@ PL_instantiation_error(term_t actual)
 }
 
 bool
-PL_uninstantiation_error(term_t actual)
-{ valid_term_t(actual);
-  return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 0, actual);
+PL_uninstantiation_error(DECL_LD term_t actual)
+{ return PL_error(NULL, 0, NULL, ERR_UNINSTANTIATION, 0, actual);
 }
+
+API_STUB(bool)
+(PL_uninstantiation_error)(term_t actual)
+( valid_term_t(actual);
+  return PL_uninstantiation_error(actual);
+)
 
 bool
 PL_representation_error(const char *representation)
@@ -907,38 +912,52 @@ PL_representation_error_culprit(const char *representation, term_t culprit)
 
 
 bool
-PL_type_error(const char *expected, term_t actual)
-{ valid_term_t(actual);
-  return PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, expected, actual);
+PL_type_error(DECL_LD const char *expected, term_t actual)
+{ return PL_error(NULL, 0, NULL, ERR_CHARS_TYPE, expected, actual);
 }
+
+API_STUB(bool)
+(PL_type_error)(const char *expected, term_t actual)
+( valid_term_t(actual);
+  return PL_type_error(expected, actual);
+)
 
 
 bool
-PL_domain_error(const char *expected, term_t actual)
-{ valid_term_t(actual);
-  atom_t a = PL_new_atom(expected);
+PL_domain_error(DECL_LD const char *expected, term_t actual)
+{ atom_t a = PL_new_atom(expected);
   bool rc = PL_error(NULL, 0, NULL, ERR_DOMAIN, a, actual);
   PL_unregister_atom(a);
 
   return rc;
 }
 
+API_STUB(bool)
+(PL_domain_error)(const char *expected, term_t actual)
+( valid_term_t(actual);
+  return PL_domain_error(expected, actual);
+)
+
 
 bool
-PL_existence_error(const char *type, term_t actual)
-{ valid_term_t(actual);
-  atom_t a = PL_new_atom(type);
+PL_existence_error(DECL_LD const char *type, term_t actual)
+{ atom_t a = PL_new_atom(type);
   bool rc = PL_error(NULL, 0, NULL, ERR_EXISTENCE, a, actual);
   PL_unregister_atom(a);
 
   return rc;
 }
 
+API_STUB(bool)
+(PL_existence_error)(const char *type, term_t actual)
+( valid_term_t(actual);
+  return PL_existence_error(type, actual);
+)
+
 
 bool
-PL_permission_error(const char *op, const char *type, term_t obj)
-{ valid_term_t(obj);
-  atom_t t = PL_new_atom(type);
+PL_permission_error(DECL_LD const char *op, const char *type, term_t obj)
+{ atom_t t = PL_new_atom(type);
   atom_t o = PL_new_atom(op);
   bool rc = PL_error(NULL, 0, NULL, ERR_PERMISSION, o, t, obj);
 
@@ -947,6 +966,12 @@ PL_permission_error(const char *op, const char *type, term_t obj)
 
   return rc;
 }
+
+API_STUB(bool)
+(PL_permission_error)(const char *op, const char *type, term_t obj)
+( valid_term_t(obj);
+  return PL_permission_error(op, type, obj);
+)
 
 bool
 PL_resource_error(const char *resource)
@@ -1171,11 +1196,8 @@ int_range_error(term_t t, atom_t type, bool is_unsigned)
 }
 
 bool
-PL_get_integer_ex(term_t t, int *i)
-{ GET_LD
-  valid_term_t(t);
-
-  if ( PL_get_integer(t, i) )
+PL_get_integer_ex(DECL_LD term_t t, int *i)
+{ if ( PL_get_integer(t, i) )
     succeed;
 
   if ( PL_is_integer(t) )
@@ -1183,6 +1205,13 @@ PL_get_integer_ex(term_t t, int *i)
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_integer, t);
 }
+
+
+API_STUB(bool)
+(PL_get_integer_ex)(term_t t, int *i)
+( valid_term_t(t);
+  return PL_get_integer_ex(t, i);
+)
 
 bool
 PL_get_long_ex(DECL_LD term_t t, long *i)
@@ -1403,23 +1432,35 @@ PL_get_stdbool_ex(DECL_LD term_t t, bool *i)
 }
 
 bool
-PL_get_bool_ex(term_t t, int *i)
-{ valid_term_t(t);
-  if ( PL_get_bool(t, i) )
+PL_get_bool_ex(DECL_LD term_t t, int *i)
+{ if ( PL_get_bool(t, i) )
     return true;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_bool, t);
 }
 
 
+API_STUB(bool)
+(PL_get_bool_ex)(term_t t, int *i)
+( valid_term_t(t);
+  return PL_get_bool_ex(t, i);
+)
+
+
 bool
-PL_get_char_ex(term_t t, int *p, int eof)
-{ valid_term_t(t);
-  if ( PL_get_char(t, p, eof) )
+PL_get_char_ex(DECL_LD term_t t, int *p, int eof)
+{ if ( PL_get_char(t, p, eof) )
     succeed;
 
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_character, t);
 }
+
+
+API_STUB(bool)
+(PL_get_char_ex)(term_t t, int *p, int eof)
+( valid_term_t(t);
+  return PL_get_char_ex(t, p, eof);
+)
 
 
 bool
@@ -1438,13 +1479,8 @@ API_STUB(bool)
 
 
 bool
-PL_unify_list_ex(term_t l, term_t h, term_t t)
-{ GET_LD
-  valid_term_t(l);
-  valid_term_t(h);
-  valid_term_t(t);
-
-  if ( PL_unify_list(l, h, t) )
+PL_unify_list_ex(DECL_LD term_t l, term_t h, term_t t)
+{ if ( PL_unify_list(l, h, t) )
     succeed;
 
   if ( PL_get_nil(l) )
@@ -1454,10 +1490,18 @@ PL_unify_list_ex(term_t l, term_t h, term_t t)
 }
 
 
+API_STUB(bool)
+(PL_unify_list_ex)(term_t l, term_t h, term_t t)
+( valid_term_t(l);
+  valid_term_t(h);
+  valid_term_t(t);
+  return PL_unify_list_ex(l, h, t);
+)
+
+
 bool
-PL_unify_nil_ex(term_t l)
-{ valid_term_t(l);
-  if ( PL_unify_nil(l) )
+PL_unify_nil_ex(DECL_LD term_t l)
+{ if ( PL_unify_nil(l) )
     succeed;
 
   if ( PL_is_list(l) )
@@ -1467,14 +1511,16 @@ PL_unify_nil_ex(term_t l)
 }
 
 
-bool
-PL_get_list_ex(term_t l, term_t h, term_t t)
-{ GET_LD
-  valid_term_t(l);
-  valid_term_t(h);
-  valid_term_t(t);
+API_STUB(bool)
+(PL_unify_nil_ex)(term_t l)
+( valid_term_t(l);
+  return PL_unify_nil_ex(l);
+)
 
-  if ( PL_get_list(l, h, t) )
+
+bool
+PL_get_list_ex(DECL_LD term_t l, term_t h, term_t t)
+{ if ( PL_get_list(l, h, t) )
     succeed;
 
   if ( PL_get_nil(l) )
@@ -1483,12 +1529,20 @@ PL_get_list_ex(term_t l, term_t h, term_t t)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
 
+
+API_STUB(bool)
+(PL_get_list_ex)(term_t l, term_t h, term_t t)
+( valid_term_t(l);
+  valid_term_t(h);
+  valid_term_t(t);
+  return PL_get_list_ex(l, h, t);
+)
+
 bool
-PL_get_nil_ex(term_t l)
+PL_get_nil_ex(DECL_LD term_t l)
 { if ( PL_exception(0) )
     return false;
 
-  valid_term_t(l);
   if ( PL_get_nil(l) )
     return true;
 
@@ -1498,11 +1552,16 @@ PL_get_nil_ex(term_t l)
   return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_list, l);
 }
 
+
+API_STUB(bool)
+(PL_get_nil_ex)(term_t l)
+( valid_term_t(l);
+  return PL_get_nil_ex(l);
+)
+
 bool
-PL_unify_bool_ex(term_t t, int val)
-{ GET_LD
-  int v;
-  valid_term_t(t);
+PL_unify_bool_ex(DECL_LD term_t t, int val)
+{ int v;
 
   if ( PL_is_variable(t) )
     return PL_unify_atom(t, val ? ATOM_true : ATOM_false);
@@ -1516,13 +1575,16 @@ PL_unify_bool_ex(term_t t, int val)
 }
 
 
-bool
-PL_get_arg_ex(size_t n, term_t term, term_t arg)
-{ GET_LD
-  valid_term_t(term);
-  valid_term_t(arg);
+API_STUB(bool)
+(PL_unify_bool_ex)(term_t t, int val)
+( valid_term_t(t);
+  return PL_unify_bool_ex(t, val);
+)
 
-  if ( PL_get_arg(n, term, arg) )
+
+bool
+PL_get_arg_ex(DECL_LD size_t n, term_t term, term_t arg)
+{ if ( PL_get_arg(n, term, arg) )
   { return true;
   } else
   { term_t a;
@@ -1532,6 +1594,7 @@ PL_get_arg_ex(size_t n, term_t term, term_t arg)
 	     PL_error(NULL, 0, NULL, ERR_DOMAIN, ATOM_natural, a) );
   }
 }
+
 
 
 bool

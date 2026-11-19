@@ -2361,7 +2361,8 @@ PRED_IMPL("noprotocol", 0, noprotocol, 0)
 
 static bool
 setCloseOnExec(IOSTREAM *s, term_t stream, bool val)
-{ int fd;
+{ GET_LD
+  int fd;
 
   if ( (fd = Sfileno(s)) < 0)
     return PL_permission_error("close_on_exec", "stream", stream);
@@ -6392,7 +6393,8 @@ static IOFUNCTIONS Sstderrfunctions =
 static bool
 getIOStreams(term_t tin, term_t tout, term_t terror,
 	     IOSTREAM **in, IOSTREAM **out, IOSTREAM **error)
-{ int rc;
+{ GET_LD
+  int rc;
 
   if ( !PL_get_stream(tin, in, SIO_INPUT) )
     return false;
@@ -6471,7 +6473,8 @@ out:
 
 static int
 sys_io_stream(IOSTREAM *s, IOSTREAM *ref, term_t t)
-{ int fd = Sfileno(s);
+{ GET_LD
+  int fd = Sfileno(s);
 
   if ( s != ref && fd < 0 )
     return PL_domain_error("file_stream", t),-1;

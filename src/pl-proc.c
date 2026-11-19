@@ -1393,7 +1393,8 @@ various possible format or representation errors.  ISO compliant.
 
 static bool
 get_arity(term_t t, int extra, int maxarity, int *arity)
-{ int a;
+{ GET_LD
+  int a;
 
   if ( !PL_get_integer_ex(t, &a) )
     fail;

@@ -127,6 +127,12 @@
 #define PL_get_nil(l)				LDFUNC(PL_get_nil, l)
 #define PL_is_list(l)				LDFUNC(PL_is_list, l)
 #define PL_unify_float(t, f)			LDFUNC(PL_unify_float, t, f)
+#define PL_cons_functor_v(h, fd, a0)		LDFUNC(PL_cons_functor_v, h, fd, a0)
+#define PL_cons_list_v(l, c, e)			LDFUNC(PL_cons_list_v, l, c, e)
+#define PL_put_nil(l)				LDFUNC(PL_put_nil, l)
+#define PL_is_integer(t)			LDFUNC(PL_is_integer, t)
+#define PL_compare(t1, t2)			LDFUNC(PL_compare, t1, t2)
+#define PL_skip_list(l, t, len)			LDFUNC(PL_skip_list, l, t, len)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -242,6 +248,11 @@ FLI_INLINE bool	PL_is_atom(term_t t);
 bool		PL_unify_list(term_t l, term_t h, term_t t);
 bool		PL_cons_list(term_t l, term_t head, term_t tail);
 bool		PL_cons_list_v(term_t list, size_t count, term_t elems);
+bool		PL_cons_functor_v(term_t h, functor_t fd, term_t a0);
+bool		PL_put_nil(term_t l);
+bool		PL_is_integer(term_t t);
+int		PL_compare(term_t t1, term_t t2);
+int		PL_skip_list(term_t list, term_t tail, size_t *len);
 bool		PL_is_inf(term_t t);
 bool		PL_get_nil(term_t t);
 bool		PL_is_list(term_t t);

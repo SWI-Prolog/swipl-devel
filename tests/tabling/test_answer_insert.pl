@@ -69,7 +69,8 @@ in_table(M:Variant, Answer) :-
     indirect/1,
     mixed/1,
     zero/0,
-    wide/40.
+    wide/40,
+    cyclic/1.
 
 ground_dups(X) :- member(X, [a,1,b,a,1,c,b]).
 
@@ -92,6 +93,8 @@ wide(A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,A16,A17,A18,A19,A20,
     maplist(=(_), [A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15,A16,A17,A18,
                    A19,A20,A21,A22,A23,A24,A25,A26,A27,A28,A29,A30,A31,A32,
                    A33,A34,A35,A36,A37,A38,A39]).
+
+cyclic(X) :- X = f(X).
 
 :- begin_tests(answer_insert).
 
@@ -153,5 +156,12 @@ test(wide, Len == 1) :-                 % 38 variables: generic path
     arg(1, W, A1), arg(40, W, A40), arg(2, W, A2),
     assertion(A1 == A40),
     assertion(A2 == x).
+test(cyclic, error(type_error(acyclic_term, _))) :-
+    abolish_all_tables,
+    current_prolog_flag(validate_api, Old),
+    setup_call_cleanup(
+        catch(set_prolog_flag(validate_api, true), _, true),
+        cyclic(_),
+        catch(set_prolog_flag(validate_api, Old), _, true)).
 
 :- end_tests(answer_insert).

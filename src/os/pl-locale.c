@@ -705,7 +705,8 @@ set_chars(term_t t, wchar_t **valp)
 
 static bool
 get_group_size_ex(term_t t, int *s)
-{ int i;
+{ GET_LD
+  int i;
 
   if ( PL_get_integer_ex(t, &i) )
   { if ( i > 0 && i < CHAR_MAX )

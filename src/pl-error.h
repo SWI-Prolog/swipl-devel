@@ -117,6 +117,20 @@ typedef enum
 #define PL_get_long_ex(t, i)		LDFUNC(PL_get_long_ex, t, i)
 #define PL_get_intptr_ex(t, i)		LDFUNC(PL_get_intptr_ex, t, i)
 #define PL_get_pointer_ex(t, p)		LDFUNC(PL_get_pointer_ex, t, p)
+#define PL_get_list_ex(l, h, t)		LDFUNC(PL_get_list_ex, l, h, t)
+#define PL_get_nil_ex(l)		LDFUNC(PL_get_nil_ex, l)
+#define PL_unify_list_ex(l, h, t)	LDFUNC(PL_unify_list_ex, l, h, t)
+#define PL_unify_nil_ex(l)		LDFUNC(PL_unify_nil_ex, l)
+#define PL_get_integer_ex(t, i)		LDFUNC(PL_get_integer_ex, t, i)
+#define PL_get_bool_ex(t, i)		LDFUNC(PL_get_bool_ex, t, i)
+#define PL_get_char_ex(t, p, eof)	LDFUNC(PL_get_char_ex, t, p, eof)
+#define PL_unify_bool_ex(t, v)		LDFUNC(PL_unify_bool_ex, t, v)
+#define PL_get_arg_ex(n, t, a)		LDFUNC(PL_get_arg_ex, n, t, a)
+#define PL_uninstantiation_error(t)	LDFUNC(PL_uninstantiation_error, t)
+#define PL_type_error(e, t)		LDFUNC(PL_type_error, e, t)
+#define PL_domain_error(e, t)		LDFUNC(PL_domain_error, e, t)
+#define PL_existence_error(e, t)	LDFUNC(PL_existence_error, e, t)
+#define PL_permission_error(o, e, t)	LDFUNC(PL_permission_error, o, e, t)
 #endif /*USE_LD_MACROS*/
 
 #define LDFUNC_DECLARATIONS
@@ -137,6 +151,19 @@ bool		PL_get_int64_ex(term_t t, int64_t *i) WUNUSED;
 bool		PL_get_uint64_ex(term_t t, uint64_t *i) WUNUSED;
 bool		PL_get_module_ex(term_t name, module_t *m) WUNUSED;
 bool		PL_get_arg_ex(size_t n, term_t term, term_t arg) WUNUSED;
+bool		PL_uninstantiation_error(term_t actual);
+bool		PL_type_error(const char *expected, term_t actual);
+bool		PL_domain_error(const char *expected, term_t actual);
+bool		PL_existence_error(const char *type, term_t actual);
+bool		PL_permission_error(const char *op, const char *type, term_t obj);
+bool		PL_get_list_ex(term_t l, term_t h, term_t t);
+bool		PL_get_nil_ex(term_t l);
+bool		PL_unify_list_ex(term_t l, term_t h, term_t t);
+bool		PL_unify_nil_ex(term_t l);
+bool		PL_get_integer_ex(term_t t, int *i);
+bool		PL_get_bool_ex(term_t t, int *i);
+bool		PL_get_char_ex(term_t t, int *p, int eof);
+bool		PL_unify_bool_ex(term_t t, int val);
 bool		PL_get_long_ex(term_t t, long *i) WUNUSED;
 bool		PL_get_intptr_ex(term_t t, intptr_t *i) WUNUSED;
 
