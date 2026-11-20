@@ -67,6 +67,7 @@ option  parsing,  initialisation  and  handling  of errors and warnings.
 #include "pl-srcfile.h"
 #include "pl-load.h"
 #include "pl-nt.h"
+#include "pl-op.h"
 #include "os/pl-prologflag.h"
 #include "os/pl-ctype.h"
 #include "os/pl-utf8.h"
@@ -2029,6 +2030,7 @@ emergency:
     cleanupLocalDefinitions(LD);
 #endif
     cleanupModules();
+    cleanupOperators();
     cleanupProcedures();
     cleanupPrologFlags();
     cleanupFlags();

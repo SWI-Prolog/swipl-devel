@@ -47,6 +47,7 @@ bool		currentOperator(Module m, atom_t name, int kind,
 				unsigned char *type, short *priority);
 int		priorityOperator(Module m, atom_t atom);
 void		initOperators(void);
+void		cleanupOperators(void);
 void		clearOperatorsModule(Module m);
 bool		hasOperatorsModule(Module m);
 
