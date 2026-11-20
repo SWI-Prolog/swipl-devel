@@ -316,6 +316,80 @@ retry:
 }
 
 
+/** '$btree_avl_get'(+Key, +Tree, -Value) is semidet.
+
+Lookup for get_assoc/3 from library(assoc).  This does in one call what
+
+    Tree \== t,
+    '$btree_find_node'(Key, Tree, 0x010405, Node, =),
+    arg(2, Node, Value)
+
+does.  So, it fails if Tree is the atom `t` and raises a type error if
+Tree is not a compound with at least five arguments.  Below Tree, a node
+is a term with the same functor as Tree.  Anything else is the end of
+the path.
+
+If Key is a small integer we compare it to small integer keys ourselves,
+which is a lot cheaper than calling compareStandard().
+*/
+
+static
+PRED_IMPL("$btree_avl_get", 3, btree_avl_get, 0)
+{ PRED_LD
+  Word k = valTermRef(A1);
+  Word t = valTermRef(A2);
+  Functor f;
+  word fd;
+  bool kint;
+
+  deRef(k);
+  deRef(t);
+
+  if ( *t == atom2word(ATOM_t) )
+    return false;
+  if ( !isTerm(*t) )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_btree, A2);
+  f  = valueTerm(*t);
+  fd = f->definition;
+  if ( arityFunctor(word2functor(fd)) < AVL_RIGHT )
+    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_btree, A2);
+
+  kint = isTaggedInt(*k);
+
+  for(;;)
+  { Word a = &f->arguments[AVL_KEY-1];
+    Word n;
+    cmpex_t d;
+
+    if ( kint )
+    { deRef(a);
+      /* Two small integers with the same value that are not the same
+	 word: one is a pointer.  We leave that to compareStandard(). */
+      if ( isTaggedInt(*a) && (*a == *k || valInt(*a) != valInt(*k)) )
+	d = SCALAR_TO_CMP(valInt(*k), valInt(*a));
+      else
+	d = compareStandard(k, a, false);
+    } else
+    { d = compareStandard(k, a, false);
+    }
+
+    if ( d == CMP_ERROR )
+      return false;
+    if ( d == CMPEX_EQUAL )
+      return unify_ptrs(&f->arguments[AVL_VALUE-1], valTermRef(A3),
+			ALLOW_GC|ALLOW_SHIFT);
+
+    n = &f->arguments[(d < 0 ? AVL_LEFT : AVL_RIGHT)-1];
+    deRef(n);
+    if ( !isTerm(*n) )
+      return false;
+    f = valueTerm(*n);
+    if ( f->definition != fd )
+      return false;
+  }
+}
+
+
 		 /*******************************
 		 *      PUBLISH PREDICATES	*
 		 *******************************/
@@ -323,4 +397,5 @@ retry:
 BeginPredDefs(btree)
   PRED_DEF("$btree_find_node", 5, btree_find_node, 0)
   PRED_DEF("$btree_avl_put",   4, btree_avl_put,   0)
+  PRED_DEF("$btree_avl_get",   3, btree_avl_get,   0)
 EndPredDefs

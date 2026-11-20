@@ -197,11 +197,9 @@ gen_assoc_(Key, _,_,_,R, Val) :-
 %
 %   True if Key-Value is an association in Assoc.
 
-:- if(current_predicate('$btree_find_node'/5)).
+:- if(current_predicate('$btree_avl_get'/3)).
 get_assoc(Key, Tree, Val) :-
-    Tree \== t,
-    '$btree_find_node'(Key, Tree, 0x010405, Node, =),
-    arg(2, Node, Val).
+    '$btree_avl_get'(Key, Tree, Val).
 :- else.
 get_assoc(Key, t(K,V,_,L,R), Val) =>
     compare(Rel, Key, K),
