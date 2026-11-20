@@ -5283,34 +5283,58 @@ name_token(Token token, op_entry *e, ReadData _PL_rd)
 }
 
 
+/* new_position() binds the variable `positions` to a new term with
+   functor `f` and returns a pointer to its arguments, which are all
+   unbound, or NULL if there is not enough memory.  Filling the
+   arguments directly is a lot cheaper than using PL_unify_term().
+   This is safe because `positions` is always a fresh variable:
+   complex_term() creates a new term reference for each token and
+   unifies it with the caller's position term when the level is done.
+   The caller must fill the arguments before anything else can
+   allocate on the global stack.
+*/
+
+#define new_position(positions, f) LDFUNC(new_position, positions, f)
+static Word
+new_position(DECL_LD term_t positions, functor_t f)
+{ Word p;
+
+  if ( !PL_unify_functor(positions, f) )
+    return NULL;
+
+  p = valTermRef(positions);
+  deRef(p);
+
+  return argTermP(*p, 0);
+}
+
+
+/* If `positions` is not 0, bind it to f(Start, End) */
+
+#define unify_range_position(positions, f, start, end) \
+	LDFUNC(unify_range_position, positions, f, start, end)
+
+static bool
+unify_range_position(DECL_LD term_t positions, functor_t f,
+		     int64_t start, int64_t end)
+{ Word argp;
+
+  if ( !positions )
+    return true;
+  if ( !(argp=new_position(positions, f)) )
+    return false;
+  argp[0] = consInt(start);
+  argp[1] = consInt(end);
+
+  return true;
+}
+
 #define unify_atomic_position(positions, token) \
-	LDFUNC(unify_atomic_position, positions, token)
-
-static int
-unify_atomic_position(DECL_LD term_t positions, Token token)
-{ if ( positions )
-  { return PL_unify_term(positions,
-			 PL_FUNCTOR, FUNCTOR_minus2,
-			   PL_INT64, token->start,
-			   PL_INT64, token->end);
-  } else
-    return true;
-}
-
-
+	unify_range_position(positions, FUNCTOR_minus2, \
+			     (token)->start, (token)->end)
 #define unify_string_position(positions, token) \
-	LDFUNC(unify_string_position, positions, token)
-
-static int
-unify_string_position(DECL_LD term_t positions, Token token)
-{ if ( positions )
-  { return PL_unify_term(positions,
-			 PL_FUNCTOR, FUNCTOR_string_position2,
-			   PL_INT64, token->start,
-			   PL_INT64, token->end);
-  } else
-    return true;
-}
+	unify_range_position(positions, FUNCTOR_string_position2, \
+			     (token)->start, (token)->end)
 
 
 /* prepare_op() handles the operator name.  If the operator is a block
@@ -5750,14 +5774,14 @@ read_list_start(DECL_LD pframe *f, Token token, ct_request *req,
     return false;
 
   if ( f->pin )
-  { if ( !(pv = PL_new_term_refs(3)) ||
-	 !PL_unify_term(f->pin,
-			PL_FUNCTOR, FUNCTOR_list_position4,
-			PL_INT64, token->start,
-			PL_VARIABLE,
-			PL_TERM, P_LIST,
-			PL_TERM, P_TAIL) )
+  { Word argp;				/* list_position(S,_E,Elems,Tail) */
+
+    if ( !(pv = PL_new_term_refs(3)) ||
+	 !(argp = new_position(f->pin, FUNCTOR_list_position4)) )
       return false;
+    argp[0] = consInt(token->start);
+    setHandle(P_LIST, makeRefG(&argp[2]));
+    setHandle(P_TAIL, makeRefG(&argp[3]));
   } else
     pv = 0;
 
@@ -5913,13 +5937,13 @@ read_bracket_start(DECL_LD pframe *f, Token token, ct_request *req,
   }
 
   if ( f->pin )
-  { if ( !(pa = PL_new_term_ref()) ||
-	 !PL_unify_term(f->pin,
-			PL_FUNCTOR, fpos,
-			PL_INT64, token->start,
-			PL_VARIABLE,
-			PL_TERM, pa) )
+  { Word argp;				/* fpos(S,_E,Arg) */
+
+    if ( !(pa = PL_new_term_ref()) ||
+	 !(argp = new_position(f->pin, fpos)) )
       return false;
+    argp[0] = consInt(token->start);
+    setHandle(pa, makeRefG(&argp[2]));
   } else
     pa = 0;
 
@@ -6024,15 +6048,15 @@ read_compound_start(DECL_LD pframe *f, Token token, ct_request *req,
 { term_t pv;
 
   if ( f->pin )
-  { if ( !(pv = PL_new_term_refs(2)) ||
-	 !PL_unify_term(f->pin,
-			PL_FUNCTOR, FUNCTOR_term_position5,
-			PL_INT64, token->start,
-			PL_VARIABLE,
-			PL_INT64, token->start,
-			PL_INT64, token->end,
-			PL_TERM, P_ARG) )
+  { Word argp;				/* term_position(S,_E,FS,FE,Args) */
+
+    if ( !(pv = PL_new_term_refs(2)) ||
+	 !(argp = new_position(f->pin, FUNCTOR_term_position5)) )
       return false;
+    argp[0] = consInt(token->start);
+    argp[2] = consInt(token->start);
+    argp[3] = consInt(token->end);
+    setHandle(P_ARG, makeRefG(&argp[4]));
   } else
     pv = 0;
 
@@ -6110,13 +6134,8 @@ read_blob_end(DECL_LD pframe *f, Token token, ReadData _PL_rd)
     PL_unregister_atom(name);
   }
 
-  if ( f->pin )
-    return PL_unify_term(f->pin,
-			 PL_FUNCTOR, FUNCTOR_minus2,
-			   PL_INT64, f->u.blob.pos_start,
-			   PL_INT64, token->end);
-
-  return true;
+  return unify_range_position(f->pin, FUNCTOR_minus2,
+			      f->u.blob.pos_start, token->end);
 }
 
 
@@ -6305,15 +6324,15 @@ read_dict_start(DECL_LD pframe *f, Token token, ct_request *req,
   Token tstart;
 
   if ( f->pin )
-  { if ( !(pv = PL_new_term_refs(3)) ||
-	 !PL_unify_term(f->pin,
-			PL_FUNCTOR, FUNCTOR_dict_position5,
-			PL_INT64, token->start, /* whole term */
-			PL_VARIABLE,
-			PL_INT64, token->start, /* class position */
-			PL_INT64, token->end,   /* key-value pairs */
-			PL_TERM, P_ARG) )
+  { Word argp;				/* dict_position(S,_E,TS,TE,KVs) */
+
+    if ( !(pv = PL_new_term_refs(3)) ||
+	 !(argp = new_position(f->pin, FUNCTOR_dict_position5)) )
       return false;
+    argp[0] = consInt(token->start);
+    argp[2] = consInt(token->start);
+    argp[3] = consInt(token->end);
+    setHandle(P_ARG, makeRefG(&argp[4]));
   } else
     pv = 0;
 
@@ -6412,15 +6431,15 @@ read_qq_start(DECL_LD pframe *f, Token token, ct_request *req,
     return false;
 
   if ( f->pin )
-  { if ( !(pv = PL_new_term_refs(3)) ||
-	 !PL_unify_term(f->pin,
-			PL_FUNCTOR, FUNCTOR_quasi_quotation_position5,
-			  PL_INT64, token->start,
-			  PL_VARIABLE,
-			  PL_TERM, pv+0,
-			  PL_TERM, pv+1,
-			  PL_TERM, pv+2) )
+  { Word argp;	/* quasi_quotation_position(S,_E,Type,TypePos,CPos) */
+
+    if ( !(pv = PL_new_term_refs(3)) ||
+	 !(argp = new_position(f->pin, FUNCTOR_quasi_quotation_position5)) )
       return false;
+    argp[0] = consInt(token->start);
+    setHandle(pv+0, makeRefG(&argp[2]));
+    setHandle(pv+1, makeRefG(&argp[3]));
+    setHandle(pv+2, makeRefG(&argp[4]));
   } else
     pv = 0;
 
@@ -6464,10 +6483,9 @@ read_qq_resume(DECL_LD pframe *f, ReadData _PL_rd)
     if ( !PL_unify(pv+0, av+0) )
       return false;
     set_range_position(f->pin, -1, qqend);
-    if ( !PL_unify_term(pv+2,
-			PL_FUNCTOR, FUNCTOR_minus2,
-			  PL_INT64, token->end,	/* end of | token */
-			  PL_INT64, qqend-2) )	/* end minus "|}" */
+    if ( !unify_range_position(pv+2, FUNCTOR_minus2,
+			       token->end,	/* end of | token */
+			       qqend-2) )	/* end minus "|}" */
       return false;
   }
 
