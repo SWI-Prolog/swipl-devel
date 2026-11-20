@@ -56,9 +56,9 @@
 \pagestyle{fancyplain}
 #endif
 
-\newcommand{\vmajor}{10}
+\newcommand{\vmajor}{11}
 \newcommand{\vminor}{1}
-\newcommand{\vpatch}{21}
+\newcommand{\vpatch}{0}
 \newcommand{\vtag}{}
 \newcommand{\vmonth}{November}
 \newcommand{\vyear}{2026}
