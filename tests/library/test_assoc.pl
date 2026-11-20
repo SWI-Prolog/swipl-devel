@@ -46,7 +46,8 @@
 
 test_assoc :-
 	run_tests([ assoc,
-		    assoc_put
+		    assoc_put,
+		    assoc_get
 		  ]).
 
 :- begin_tests(assoc).
@@ -347,3 +348,186 @@ var_assoc(N, Assoc) :-
 	list_to_assoc(Pairs, Assoc).
 
 :- end_tests(assoc_put).
+
+:- begin_tests(assoc_get).
+
+% get_assoc/3 is implemented in C.  It must do what its Prolog
+% definition does.
+
+pl_get(Key, t(K,V,_,L,R), Val) :-
+	compare(Order, Key, K),
+	pl_get(Order, Key, V, L, R, Val).
+
+pl_get(=, _, V, _, _, V).
+pl_get(<, Key, _, L, _, V) :-
+	pl_get(Key, L, V).
+pl_get(>, Key, _, _, R, V) :-
+	pl_get(Key, R, V).
+
+% True if get_assoc/3 and its Prolog definition do the same to a copy
+% of the arguments, with the occurs_check flag set to Flag.
+same(Flag, K, A, V) :-
+	outcome(Flag, get_assoc, get(K,A,V), O1),
+	outcome(Flag, pl_get, get(K,A,V), O2),
+	O1 =@= O2.
+
+outcome(Flag, Get, Args, Result-Copy) :-
+	copy_term(Args, Copy),
+	Copy = get(K,A,V),
+	current_prolog_flag(occurs_check, Old),
+	setup_call_cleanup(
+	    set_prolog_flag(occurs_check, Flag),
+	    (   catch(call(Get, K, A, V), error(Result, _), true)
+	    ->  true
+	    ;   Result = failed
+	    ),
+	    set_prolog_flag(occurs_check, Old)).
+
+key(int, I, I).
+key(negative, I, K) :- K is -I.
+key(big, I, K) :- K is I + (1<<70).
+key(tagged_limit, I, K) :-
+	current_prolog_flag(max_tagged_integer, Max),
+	K is Max - 5 + I.
+key(float, I, K) :- K is I*1.0.
+key(atom, I, K) :- atom_concat(k, I, K).
+key(string, I, K) :- format(string(K), "k~d", [I]).
+key(compound, I, k(J,I)) :- J is I mod 7.
+key(mixed, I, K) :-
+	J is I mod 5,
+	nth0(J, [int, float, atom, string, compound], Type),
+	key(Type, I, K).
+
+%   assoc(+Type, +N, -Assoc): Assoc holds the even numbers of 1..N as
+%   keys of Type.
+
+assoc(Type, N, Assoc) :-
+	findall(K-v(K), (between(1, N, I), I mod 2 =:= 0, key(Type, I, K)),
+		Pairs),
+	list_to_assoc(Pairs, Assoc).
+
+chain(I, N, t) :-
+	I > N,
+	!.
+chain(I, N, t(I,I,-,t,R)) :-
+	I1 is I+1,
+	chain(I1, N, R).
+
+test(empty, fail) :-
+	get_assoc(a, t, _).
+test(keys,
+     [ forall(( member(Type, [ int, negative, big, tagged_limit, float,
+			       atom, string, compound, mixed
+			     ]),
+		member(N, [1, 2, 3, 10, 100])
+	      ))
+     ]) :-
+	assoc(Type, N, A),
+	Max is N+1,
+	forall(( between(0, Max, I),
+		 key(Type, I, K)
+	       ),
+	       ( same(false, K, A, _),
+		 same(false, K, A, v(K)),
+		 same(false, K, A, other)
+	       )).
+test(large,
+     [ forall(member(Type, [int, atom, mixed]))
+     ]) :-
+	assoc(Type, 20000, A),
+	forall(( between(0, 20001, I),
+		 key(Type, I, K)
+	       ),
+	       (   pl_get(K, A, V0)
+	       ->  get_assoc(K, A, V),
+		   V == V0
+	       ;   \+ get_assoc(K, A, _)
+	       )).
+test(other_type,
+     [ forall(member(Type, [int, float, atom, mixed]))
+     ]) :-
+	assoc(Type, 100, A),
+	forall(( member(Type2, [int, big, float, atom, string]),
+		 between(0, 101, I),
+		 key(Type2, I, K)
+	       ),
+	       same(false, K, A, _)).
+test(int_float, V1-V2 == int-float) :-
+	list_to_assoc([1-int, 1.0-float, 2-two], A),
+	get_assoc(1, A, V1),
+	get_assoc(1.0, A, V2).
+test(variable_key) :-
+	put_assoc(K, t, v, A0),
+	put_assoc(f(X), A0, w, A),
+	same(false, K, A, _),
+	same(false, f(X), A, _),
+	same(false, _, A, _),
+	same(false, f(_), A, _),
+	same(false, a, A, _).
+test(variable_value, X == V) :-
+	list_to_assoc([a-1, b-V, c-3], A),
+	get_assoc(b, A, X).
+test(attributed_value, V-X == 2-woken) :-
+	list_to_assoc([a-1, b-2, c-3], A),
+	freeze(V, X = woken),
+	get_assoc(b, A, V).
+test(attributed_value_fails, fail) :-
+	list_to_assoc([a-1, b-2, c-3], A),
+	freeze(V, fail),
+	get_assoc(b, A, V).
+test(deterministic) :-
+	assoc(int, 100, A),
+	forall(between(0, 101, K),
+	       (   call_cleanup(get_assoc(K, A, _), Det = true)
+	       ->  Det == true
+	       ;   true
+	       )).
+test(backtrack, true(var(V))) :-
+	list_to_assoc([a-1, b-2, c-3], A),
+	(   get_assoc(b, A, V),
+	    fail
+	;   true
+	).
+test(gen_assoc, all(V == [2])) :-
+	list_to_assoc([a-1, b-2, c-3], A),
+	gen_assoc(b, A, V).
+test(not_an_assoc,
+     [ forall(member(Bad, [ foo, 42, "t", f(x), t(a,1,-,t) ])),
+       error(type_error(btree, _))
+     ]) :-
+	get_assoc(a, Bad, _).
+test(unbound_assoc, error(instantiation_error)) :-
+	get_assoc(a, _, _).
+test(not_a_node,
+     [ forall(member(Bad, [ t(m,1,-,x,y), t(m,1,-,_,_), t(m,1,-,1,2),
+			    t(m,1,-,f(a,1,-,t,t),f(z,1,-,t,t)),
+			    t(m,1,-,t(a,1),t(z,1))
+			  ])),
+       fail
+     ]) :-
+	(   get_assoc(a, Bad, _)
+	;   get_assoc(z, Bad, _)
+	).
+test(deep, V == 300) :-			% deeper than any AVL tree
+	chain(1, 300, Chain),
+	get_assoc(300, Chain, V).
+test(occurs_check, [forall(member(Flag, [false, true, error]))]) :-
+	A = t(a,X,-,t,t),
+	same(Flag, a, A, f(X)),
+	same(Flag, a, A, _),
+	same(Flag, a, t(a,f(Y),-,t,t), Y),
+	same(Flag, a, t(a,1,-,t,t), _).
+test(gc, L == Vs) :-
+	numlist(1, 500, L),
+	findall(K-K, member(K, L), Pairs),
+	list_to_assoc(Pairs, A),
+	findall(V,
+		( member(K, L),
+		  garbage_collect,
+		  get_assoc(K, A, V)
+		),
+		Vs).
+test(sandbox) :-
+	safe_goal(get_assoc(a, t, _)).
+
+:- end_tests(assoc_get).
