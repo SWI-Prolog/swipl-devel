@@ -44,6 +44,7 @@
 :- use_module(library(option)).
 :- use_module(library(lists)).
 :- use_module(library(error)).
+:- use_module(library(solution_sequences)).
 
 :- initialization(main, main).
 :- initialization(clean_pldoc, prepare_state).
@@ -82,12 +83,36 @@ preload(Options) :-
     ensure_doc_loaded(Library).
 preload(_).
 
-%!  ensure_doc_loaded(+File)
+%!  ensure_doc_loaded(+Spec)
 %
-%   Make sure PlDoc comments for File are loaded. If they are now loaded
+%   Make sure PlDoc comments for Spec are loaded,   as well as for the
+%   files that define the predicates it   re-exports.  If they are not
+%   loaded, e.g., because the files  were   loaded  from  .qlf files,
 %   use the cross-referencer to force loading the documentation.
 
-ensure_doc_loaded(File) :-
+ensure_doc_loaded(Spec) :-
+    absolute_file_name(Spec, File,
+                       [ access(read),
+                         file_type(prolog)
+                       ]),
+    ensure_file_doc_loaded(File),
+    forall(distinct(Src, reexported_from(File, Src)),
+           ensure_file_doc_loaded(Src)).
+
+%!  reexported_from(+File, -Src) is nondet.
+%
+%   True when the module in File exports a predicate imported from the
+%   module defined in Src.
+
+reexported_from(File, Src) :-
+    source_file_property(File, module(M)),
+    module_property(M, exports(PIs)),
+    member(Name/Arity, PIs),
+    functor(Head, Name, Arity),
+    predicate_property(M:Head, imported_from(From)),
+    module_property(From, file(Src)).
+
+ensure_file_doc_loaded(File) :-
     (   doc_file_has_comments(File)
     ->  true
     ;   xref_source(File, [comments(store)]),
