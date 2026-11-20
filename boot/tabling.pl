@@ -917,7 +917,7 @@ completion_(SCC) :-
 %   @arg Goal to Delays are extracted from the dependency/5 term in
 %   the same order.
 
-%!  completion_step(+Worklist) is fail.
+%!  completion_step(+Worklist) is failure.
 
 :- if(current_prolog_flag(prolog_debug, true)).
 completion_step(SourceWL) :-

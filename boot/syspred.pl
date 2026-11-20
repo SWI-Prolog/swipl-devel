@@ -101,6 +101,7 @@
     snapshot(0),
     rule(:, -),
     rule(:, -, ?),
+    predicate_property(:, ?),
     sig_block(:),
     sig_unblock(:).
 
@@ -722,9 +723,6 @@ generate_current_predicate(Name, Module, Head) :-
 %!  predicate_property(?Predicate, ?Property) is nondet.
 %
 %   True when Property is a property of Predicate.
-
-:- meta_predicate
-    predicate_property(:, ?).
 
 :- multifile
     '$predicate_property'/2.
