@@ -1997,12 +1997,19 @@ cannot be store-forwarded from the narrower stores that wrote the data
 and stall until these have retired.  The empty asm keeps GCC from
 merging the moves into vector moves.  copyWordsScalarUp() allows `to` <
 `from` to overlap and copyWordsScalarDown() `to` > `from`.
+
+The copies access the data as `alias_word` because the structures copied
+contain pointers.  Without MAY_ALIAS, clang considers the stores through
+`word*` not to initialise the pointer fields and, at -Os, removes code that
+reads them as reading uninitialised memory.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+typedef word MAY_ALIAS alias_word;
 
 static inline void
 copyWordsScalarUp(void *to, const void *from, size_t n)
-{ word *t = to;
-  const word *f = from;
+{ alias_word *t = to;
+  const alias_word *f = from;
 
   for(size_t i=0; i<n; i++)
   { word w = f[i];
@@ -2013,8 +2020,8 @@ copyWordsScalarUp(void *to, const void *from, size_t n)
 
 static inline void
 copyWordsScalarDown(void *to, const void *from, size_t n)
-{ word *t = to;
-  const word *f = from;
+{ alias_word *t = to;
+  const alias_word *f = from;
 
   for(size_t i=n; i-- > 0; )
   { word w = f[i];
