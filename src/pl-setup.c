@@ -626,8 +626,11 @@ dispatch_signal(int sig, int sync)
   { if ( exception_term )
     {
 #if O_THROW
+#ifdef __APPLE__
+      /* siglongjmp() does not restore the mask the handler blocked */
       if ( !sync )
 	unblockSignal(sig);
+#endif
       PL_rethrow();
 #endif
       sigCrashHandler(sig);

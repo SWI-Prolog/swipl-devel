@@ -400,7 +400,11 @@ typedef _sigset_t sigset_t;
 #endif
 #include <setjmp.h>
 
-#ifdef HAVE_SIGSETJMP
+/* Apple's setjmp()/longjmp() save and restore the signal mask, and each
+ * takes a process-wide lock.  sigsetjmp(env, 0) leaves the mask alone.
+ * Keep setjmp()/longjmp() on every other system.
+ */
+#ifdef __APPLE__
 typedef sigjmp_buf pl_jmp_buf;
 #define PL_SETJMP(env)		sigsetjmp(env, 0)
 #define PL_LONGJMP(env, val)	siglongjmp(env, val)
