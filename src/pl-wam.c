@@ -3043,8 +3043,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
   def = getProcDefinedDefinition(proc->definition);
   arity = def->functor->arity;
 
-#ifdef JMPBUF_ALIGNMENT
-  lneeded = JMPBUF_ALIGNMENT + sizeof(struct queryFrame)+MAXARITY*sizeof(word);
+#ifdef QUERY_FRAME_ALIGNMENT
+  lneeded = QUERY_FRAME_ALIGNMENT + sizeof(struct queryFrame)+MAXARITY*sizeof(word);
 #else
   lneeded = sizeof(struct queryFrame)+MAXARITY*sizeof(word);
 #endif
@@ -3059,8 +3059,8 @@ PL_open_query(Module ctx, int flags, Procedure proc, term_t args)
 					/* but for now, I think this */
 					/* is always the same */
   qf = (QueryFrame)lTop;
-#ifdef JMPBUF_ALIGNMENT
-  while ( (uintptr_t)qf % JMPBUF_ALIGNMENT )
+#ifdef QUERY_FRAME_ALIGNMENT
+  while ( (uintptr_t)qf % QUERY_FRAME_ALIGNMENT )
     qf = addPointer(qf, sizeof(word));
 #endif
   IS_WORD_ALIGNED(qf);

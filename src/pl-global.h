@@ -583,11 +583,6 @@ struct PL_local_data
   } signal;
 
   struct
-  { int		active;			/* doing pipe I/O */
-    jmp_buf	context;		/* context of longjmp() */
-  } pipe;
-
-  struct
   { char       *getstr_buffer;		/* getString() buffer */
     size_t	getstr_buffer_size;	/* size of getstr_buffer */
     struct wic_state *write_state;	/* qlf-write state */

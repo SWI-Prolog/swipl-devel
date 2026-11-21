@@ -302,16 +302,14 @@ handy for it someone wants to add a data type to the system.
 #endif
 
 /* - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-The ia64 says setjmp()/longjmp() buffer must be aligned at 128 bits
+PL_open_query() allocates the queryFrame on the local stack, which is
+only word aligned.  The queryFrame has 64-bit members, so align it if
+these need more than word alignment.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
-#ifndef JMPBUF_ALIGNMENT
-#ifdef __ia64__
-#define JMPBUF_ALIGNMENT 128
-#else
+#ifndef QUERY_FRAME_ALIGNMENT
 #if ALIGNOF_DOUBLE != ALIGNOF_VOIDP
-#define JMPBUF_ALIGNMENT ALIGNOF_DOUBLE
-#endif
+#define QUERY_FRAME_ALIGNMENT ALIGNOF_DOUBLE
 #endif
 #endif
 
