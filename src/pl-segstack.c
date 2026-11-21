@@ -50,9 +50,11 @@ implementations.
 
 Note  that  atom-gc  requires   completely    asynchronous   calling  of
 scanSegStack() and therefore pushSegStack()/popSegStack()  must push the
-data before updating the pointers.
-
-TBD: Avoid instruction/cache write reordering in push/pop.
+data before updating the pointers.  On   weakly  ordered  hardware this
+requires a release barrier before updating `top`, which pairs with the
+acquire barrier in scanSegStack().  Only the findall/3 bags are scanned
+asynchronously.  They push using pushRecordSegStack(), so the fast path
+of pushSegStack_() has no barrier.
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 static size_t
@@ -89,10 +91,12 @@ pushSegStack_(segstack *stack, void *data)
     chunk->next = NULL;
     chunk->previous = stack->last;
     chunk->top = CHUNK_DATA(chunk);	/* async scanning */
+    MEMORY_RELEASE();			/* Sync with scanSegStack() */
     if ( stack->last )
     { stack->last->next = chunk;
       stack->last->top = stack->top;
       stack->top = chunk->top;		/* async scanning */
+      MEMORY_RELEASE();
       stack->last = chunk;
     } else
     { stack->top = chunk->top;		/* async scanning */
@@ -103,6 +107,7 @@ pushSegStack_(segstack *stack, void *data)
     stack->max  = addPointer(chunk, chunk->size);
     if ( data )
       memcpy(CHUNK_DATA(chunk), data, stack->unit_size);
+    MEMORY_RELEASE();			/* Sync with scanSegStack() */
     stack->top  = CHUNK_DATA(chunk) + stack->unit_size;
 
     return CHUNK_DATA(chunk);
@@ -116,6 +121,7 @@ pushRecordSegStack(segstack *stack, Record r)
   { Record *rp = (Record*)stack->top;
 
     *rp++ = r;
+    MEMORY_RELEASE();			/* Sync with scanSegStack() */
     stack->top = (char*)rp;
 
     return true;
@@ -247,8 +253,11 @@ scanSegStack(segstack *stack, void (*func)(void *cell))
 { segchunk *chunk;
 
   if ( (chunk=stack->last) )		/* something there */
-  { if ( stack->base == CHUNK_DATA(chunk) )
+  { MEMORY_ACQUIRE();			/* Sync with push */
+    if ( stack->base == CHUNK_DATA(chunk) )
     { char *top = stack->top;
+
+      MEMORY_ACQUIRE();			/* Sync with push */
 
       if ( !(top >  (char*)chunk &&
 	     top <= (char*)((intptr_t)chunk + chunk->size)) )
