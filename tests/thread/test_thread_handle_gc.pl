@@ -68,9 +68,12 @@ test(concurrent, Status == [true,true,true,true,true]) :-
 
 :- end_tests(thread_handle_gc).
 
+% The threads are never joined, so their C stacks remain allocated
+% until atom-GC reclaims the handles.  Use small stacks to avoid running
+% out of address space on 32-bit systems.
 spawn(N) :-
     forall(between(1, N, _),
-           thread_create(true, _, [])).
+           thread_create(true, _, [c_stack(256 000)])).
 
 enumerate(N) :-
     forall(between(1, N, _),
