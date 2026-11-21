@@ -5188,6 +5188,7 @@ foreign_t
 pl_garbage_collect(term_t d)
 {
 #if O_DEBUG
+  GET_LD
   int ol = GD->debug_level;
   int nl;
 
