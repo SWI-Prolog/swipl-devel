@@ -407,8 +407,18 @@ same_length([_|T1], [_|T2]) :-
 %   list. If both  lists  are   _partial  lists_  backtracking generates
 %   increasingly long lists.
 
+% '$list_reverse'/2 does the common case in C. It leaves Ys unbound if
+% it finds anything it does not handle, which we leave to the Prolog
+% definition.
 reverse(Xs, Ys) :-
-    reverse(Xs, Ys, [], Ys).
+    (   var(Ys)
+    ->  '$list_reverse'(Xs, Ys),
+        (   nonvar(Ys)
+        ->  true
+        ;   reverse(Xs, Ys, [], Ys)
+        )
+    ;   reverse(Xs, Ys, [], Ys)
+    ).
 
 reverse([], [], Ys, Ys).
 reverse([X|Xs], [_|Bound], Rs, Ys) :-

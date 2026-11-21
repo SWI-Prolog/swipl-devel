@@ -552,6 +552,7 @@ safe_primitive(keysort(_,_)).
 safe_primitive(system: =@=(_,_)).
 safe_primitive(system:'$btree_avl_put'(_,_,_,_)).
 safe_primitive(system:'$btree_avl_get'(_,_,_)).
+safe_primitive(system:'$list_reverse'(_,_)).
 
                                         % unification and equivalence
 safe_primitive(=(_,_)).

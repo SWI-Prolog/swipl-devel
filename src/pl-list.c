@@ -41,6 +41,7 @@
 #include "pl-gc.h"
 #include "pl-wam.h"
 #include "pl-fli.h"
+#include "pl-attvar.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -151,6 +152,107 @@ PRED_IMPL("$memberchk", 3, memberchk, 0)
     { PL_rewind_foreign_frame(fid);
     }
   }
+}
+
+
+		 /*******************************
+		 *	      REVERSE		*
+		 *******************************/
+
+/** '$list_reverse'(+List, -Reversed) is det.
+
+Fast path for reverse/2 from library(lists).  It handles the common
+mode: List is a proper list and Reversed is unbound.  In that case there
+is one result, which we build in one pass.
+
+This binds Reversed only if that is exactly what the Prolog definition
+does.  Otherwise it succeeds without binding Reversed and the caller
+must run the Prolog definition.  This is the case if
+
+  - List is not a proper list (partial, cyclic or not a list),
+  - Reversed is not an unbound variable (bound or attributed), or
+  - the `occurs_check` flag is not `false`.
+
+The caller tells the two apart using nonvar/1 on Reversed.  Succeeding
+rather than failing saves the caller a choice point.
+
+It may raise a resource error if we run out of stack.
+
+We write the new list above gTop while we walk List.  If we run out of
+room we find out how long List is, ask for that much and start again.
+That is also where we find out about a cyclic list.
+*/
+
+/* Number of list cells we may write above gTop */
+
+#define list_room(_) LDFUNC(list_room, _)
+
+static inline size_t
+list_room(DECL_LD)
+{ size_t cells = gMax - gTop;
+
+  if ( cells <= BIND_GLOBAL_SPACE ||
+       !hasTrailSpace(1+BIND_TRAIL_SPACE) )
+    return 0;
+
+  return (cells-BIND_GLOBAL_SPACE)/3;
+}
+
+static
+PRED_IMPL("$list_reverse", 2, list_reverse, 0)
+{ PRED_LD
+  Word l, p, out;
+  word list;
+  size_t room;
+
+  out = valTermRef(A2);
+  deRef(out);
+  if ( !isVar(*out) ||
+       LD->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
+    return true;
+
+retry:
+  l = valTermRef(A1);
+  deRef(l);
+  p = gTop;
+  list = ATOM_nil;
+  room = list_room();
+
+  while( isTerm(*l) )
+  { Functor f = valueTerm(*l);
+
+    if ( f->definition != FUNCTOR_dot2 )
+      break;
+
+    if ( room-- == 0 )
+    { Word tail;
+      intptr_t len = skip_list(valTermRef(A1), &tail);
+
+      if ( !isNil(*tail) )
+	return true;
+      if ( !ensureStackSpace((size_t)len*3, 1) )
+	return false;
+      goto retry;			/* the stacks may have moved */
+    }
+
+    p[0] = FUNCTOR_dot2;		/* put in front of what we have */
+    p[1] = linkValI(&f->arguments[0]);
+    p[2] = list;
+    list = consCompound(p);
+    p += 3;
+    l = &f->arguments[1];
+    deRef(l);
+  }
+
+  if ( !isNil(*l) )
+    return true;
+  if ( p == gTop )			/* List is [] */
+    return PL_unify_nil(A2);
+
+  gTop = p;
+  out = valTermRef(A2);
+  deRef(out);
+  return varBindConst(out, list);
 }
 
 
@@ -758,6 +860,7 @@ BeginPredDefs(list)
   PRED_DEF("is_list",	 1, is_list,   0)
   PRED_DEF("$length",	 2, dlength,   0)
   PRED_DEF("$memberchk", 3, memberchk, 0)
+  PRED_DEF("$list_reverse", 2, list_reverse, 0)
   PRED_DEF("sort",	 2, sort,      PL_FA_ISO)
   PRED_DEF("msort",	 2, msort,     0)
   PRED_DEF("keysort",	 2, keysort,   PL_FA_ISO)
