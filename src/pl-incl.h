@@ -404,6 +404,24 @@ typedef _sigset_t sigset_t;
 #define __USE_MINGW_SETJMP_NON_SEH 1
 #endif
 #include <setjmp.h>
+
+/* Non-local exits for PL_throw() and PL_next_solution().  Some systems
+ * (BSD, macOS) save and restore the signal mask in setjmp()/longjmp().
+ * These are system calls, which take a process-wide lock on macOS.  We
+ * never need this, so use sigsetjmp(env, 0) if available.  Code that
+ * jumps out of a signal handler must unblock the signal.  The buffers
+ * are C locals, so the compiler takes care of their alignment.
+ */
+#ifdef HAVE_SIGSETJMP
+typedef sigjmp_buf pl_jmp_buf;
+#define PL_SETJMP(env)		sigsetjmp(env, 0)
+#define PL_LONGJMP(env, val)	siglongjmp(env, val)
+#else
+typedef jmp_buf pl_jmp_buf;
+#define PL_SETJMP(env)		setjmp(env)
+#define PL_LONGJMP(env, val)	longjmp(env, val)
+#endif
+
 #ifdef ASSERT_H_REQUIRES_STDIO_H
 #include <stdio.h>
 #endif /*ASSERT_H_REQUIRES_STDIO_H*/
@@ -2058,7 +2076,7 @@ stack overflow.
 #define EXCEPTION_GUARDED(code, cleanup) \
 	{ exception_frame __throw_env; \
 	  __throw_env.parent = LD->exception.throw_environment; \
-	  if ( setjmp(__throw_env.exception_jmp_env) != 0 ) \
+	  if ( PL_SETJMP(__throw_env.exception_jmp_env) != 0 ) \
 	  { LD->exception.throw_environment = __throw_env.parent; \
 	    cleanup; \
 	  } else \
@@ -2076,7 +2094,7 @@ stack overflow.
 typedef struct exception_frame		/* PL_throw exception environments */
 { struct exception_frame * volatile parent;	/* parent frame */
   volatile int	  magic;			/* THROW_MAGIC */
-  jmp_buf	exception_jmp_env;	/* longjmp environment */
+  pl_jmp_buf	exception_jmp_env;	/* longjmp environment */
 } exception_frame;
 
 

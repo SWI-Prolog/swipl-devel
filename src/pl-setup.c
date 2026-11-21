@@ -627,6 +627,8 @@ dispatch_signal(int sig, int sync)
   { if ( exception_term )
     {
 #if O_THROW
+      if ( !sync )		/* we leave the handler using longjmp(), */
+	unblockSignal(sig);	/* which does not restore the mask */
       PL_rethrow();
 #endif
       sigCrashHandler(sig);

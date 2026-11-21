@@ -5237,7 +5237,7 @@ PL_throw(term_t exception)
 
   PL_raise_exception(exception);
   if ( LD->exception.throw_environment )
-    longjmp(LD->exception.throw_environment->exception_jmp_env, 1);
+    PL_LONGJMP(LD->exception.throw_environment->exception_jmp_env, 1);
 
   return false;
 }
@@ -5248,7 +5248,7 @@ PL_rethrow(void)
 { GET_LD
 
   if ( LD->exception.throw_environment )
-    longjmp(LD->exception.throw_environment->exception_jmp_env, 1);
+    PL_LONGJMP(LD->exception.throw_environment->exception_jmp_env, 1);
 
   return false;
 }
