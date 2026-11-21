@@ -41,6 +41,7 @@
 #include "pl-gc.h"
 #include "pl-wam.h"
 #include "pl-fli.h"
+#include "pl-attvar.h"
 
 #undef LD
 #define LD LOCAL_LD
@@ -151,6 +152,99 @@ PRED_IMPL("$memberchk", 3, memberchk, 0)
     { PL_rewind_foreign_frame(fid);
     }
   }
+}
+
+
+		 /*******************************
+		 *	      APPEND		*
+		 *******************************/
+
+/** '$list_append'(+List, ?Tail, -Appended) is det.
+
+Fast path for append/3 from library(lists).  The caller has already
+taken the first element.  List is the remainder.  When List is a
+proper non-empty list and Appended is unbound, and occurs_check is
+false, there is one result, which we build in one pass.
+
+This binds Appended only if that is exactly what the Prolog definition
+does.  Otherwise it succeeds without binding Appended and the caller
+must run the Prolog definition.  This is the case if
+
+  - List is [] (the caller handles that itself),
+  - List is not a proper list (partial, cyclic or not a list),
+  - Appended is not an unbound variable (bound or attributed), or
+  - the `occurs_check` flag is not `false`.
+
+The caller tells the two apart using nonvar/1 on Appended.  Succeeding
+rather than failing saves the caller a choice point.
+
+It may raise a resource error if we run out of stack.
+
+We write the new list above gTop while we walk List.  If we run out of
+room we find out how long List is, ask for that much and start again.
+That is also where we find out about a cyclic list.  The tail of the
+last cell is Tail.
+*/
+
+static
+PRED_IMPL("$list_append", 3, list_append, 0)
+{ PRED_LD
+  Word l, p, out, list;
+  size_t room;
+
+  out = valTermRef(A3);
+  deRef(out);
+  if ( !isVar(*out) ||
+       LD->prolog_flag.occurs_check != OCCURS_CHECK_FALSE )
+    return true;
+
+retry:
+  l = valTermRef(A1);
+  deRef(l);
+  p = gTop;
+  list = p;
+  { size_t cells = gMax - gTop;
+
+    if ( cells <= BIND_GLOBAL_SPACE ||
+	 !hasTrailSpace(2+BIND_TRAIL_SPACE) )
+      room = 0;
+    else
+      room = (cells-BIND_GLOBAL_SPACE)/3;
+  }
+
+  while( isTerm(*l) )
+  { Functor f = valueTerm(*l);
+
+    if ( f->definition != FUNCTOR_dot2 )
+      break;
+
+    if ( room-- == 0 )
+    { Word tail;
+      intptr_t len = skip_list(valTermRef(A1), &tail);
+
+      if ( !isNil(*tail) )
+	return true;
+      if ( !ensureStackSpace((size_t)len*3, 2) )
+	return false;
+      goto retry;			/* the stacks may have moved */
+    }
+
+    p[0] = FUNCTOR_dot2;
+    p[1] = linkValI(&f->arguments[0]);
+    p[2] = consCompound(&p[3]);
+    p += 3;
+    l = &f->arguments[1];
+    deRef(l);
+  }
+
+  if ( !isNil(*l) || p == list )	/* not a list or [] */
+    return true;
+
+  bArgVar(&p[-1], valTermRef(A2));
+  gTop = p;
+  out = valTermRef(A3);
+  deRef(out);
+  return varBindConst(out, consCompound(list));
 }
 
 
@@ -758,6 +852,7 @@ BeginPredDefs(list)
   PRED_DEF("is_list",	 1, is_list,   0)
   PRED_DEF("$length",	 2, dlength,   0)
   PRED_DEF("$memberchk", 3, memberchk, 0)
+  PRED_DEF("$list_append",  3, list_append,  0)
   PRED_DEF("sort",	 2, sort,      PL_FA_ISO)
   PRED_DEF("msort",	 2, msort,     0)
   PRED_DEF("keysort",	 2, keysort,   PL_FA_ISO)

@@ -131,7 +131,26 @@ member_([H|T], El, _) :-
 
 append([], L, L).
 append([H|T], L, [H|R]) :-
-    append(T, L, R).
+    (   T == []
+    ->  L = R
+    ;   nonvar(T),
+        var(R)
+    ->  '$list_append'(T, L, R),
+        (   nonvar(R)
+        ->  true
+        ;   append_(T, L, R)
+        )
+    ;   append_(T, L, R)
+    ).
+
+% '$list_append'/3 appends a proper list to L in C. It leaves R unbound
+% if it finds anything it does not handle, which we leave to the Prolog
+% definition below. We only call it if that may win: there is more than
+% one element and we are not checking or enumerating.
+
+append_([], L, L).
+append_([H|T], L, [H|R]) :-
+    append_(T, L, R).
 
 %!  append(+ListOfLists, ?List)
 %
