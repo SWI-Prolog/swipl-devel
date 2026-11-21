@@ -3,7 +3,8 @@
     Author:        Jan Wielemaker
     E-mail:        J.Wielemaker@vu.nl
     WWW:           http://www.swi-prolog.org
-    Copyright (c)  2004-2018, University of Amsterdam
+    Copyright (c)  2004-2026, University of Amsterdam
+			      SWI-Prolog Solutions b.v.
     All rights reserved.
 
     Redistribution and use in source and binary forms, with or without
@@ -41,84 +42,6 @@
 
 #undef LD
 #define LD LOCAL_LD
-
-
-/** '$btree_find_node'(+Key, +Tree, +Pos, -Node, -Arg)
-
-Assuming Tree is a term x(...)  with   Value,  Left and Right defined by
-Pos, find a (sub) node for operating  on   Value.  If a node with Key ==
-Value is found Arg is unified with =. If such a node is not found Arg
-is < if the tree must get a new left-node and > if it must get a new
-right-node.
-
-@arg Pos is 256*256*KeyPos + 256*LeftPos + RightPos
-*/
-
-
-static
-PRED_IMPL("$btree_find_node", 5, btree_find_node, 0)
-{ PRED_LD
-  Word t, k;
-  Functor f;
-  functor_t fd;
-  size_t arity;
-  unsigned int p, kp, lp, rp;
-
-  if ( !PL_cvt_i_uint(A3, &p) )
-    return false;
-  rp = (p       & 0xff)-1;
-  lp = ((p>>8)  & 0xff)-1;
-  kp = ((p>>16) & 0xff)-1;
-
-  k = valTermRef(A1);
-  t = valTermRef(A2);
-
-  deRef(k);
-  deRef(t);
-
-  if ( !isTerm(*t) )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_btree, A2);
-  f = valueTerm(*t);
-  fd = word2functor(f->definition);
-  arity = arityFunctor(fd);
-  if ( arity < kp || arity < lp || arity < rp )
-    return PL_error(NULL, 0, NULL, ERR_TYPE, ATOM_btree, A2);
-
-  for(;;)
-  { Word a = &f->arguments[kp];
-    Word n;
-    int d = compareStandard(k, a, false);
-    int arg;
-
-    if ( d == CMP_ERROR )
-      return false;
-    if ( d == CMP_EQUAL )
-    { if ( unify_ptrs(t, valTermRef(A4), ALLOW_GC|ALLOW_SHIFT) &&
-	   PL_unify_atom(A5, ATOM_equals) )
-	return true;
-      return false;
-    }
-
-    arg = (d == CMP_LESS ? lp : rp);
-    n = &f->arguments[arg];
-    deRef(n);
-    DEBUG(1, Sdprintf("Taking %s\n", arg == lp ? "left" : "right"));
-
-    if ( !isTerm(*n) )
-    { nomatch:
-
-      if ( unify_ptrs(t, valTermRef(A4), ALLOW_GC|ALLOW_SHIFT) &&
-	   PL_unify_atom(A5, arg == lp ? ATOM_smaller : ATOM_larger ) )
-	return true;
-      return false;
-    }
-    f = valueTerm(*n);
-    if ( f->definition != fd )
-      goto nomatch;
-
-    t = n;
-  }
-}
 
 
 /** '$btree_avl_put'(+Key, +Tree0, +Value, -Tree) is semidet.
@@ -318,16 +241,13 @@ retry:
 
 /** '$btree_avl_get'(+Key, +Tree, -Value) is semidet.
 
-Lookup for get_assoc/3 from library(assoc).  This does in one call what
-
-    Tree \== t,
-    '$btree_find_node'(Key, Tree, 0x010405, Node, =),
-    arg(2, Node, Value)
-
-does.  So, it fails if Tree is the atom `t` and raises a type error if
-Tree is not a compound with at least five arguments.  Below Tree, a node
-is a term with the same functor as Tree.  Anything else is the end of
-the path.
+Lookup for get_assoc/3 from library(assoc).  Fails if Tree is the atom
+`t` and raises a type error if Tree is not a compound with at least five
+arguments.  Otherwise, walk down from Tree, comparing Key to the first
+argument of a node and taking the fourth (left) or fifth (right) argument
+if it is smaller or larger.  Below Tree, a node is a term with the same
+functor as Tree.  Anything else is the end of the path and we fail.  If
+Key is equal to the key of a node, unify Value with its second argument.
 
 If Key is a small integer we compare it to small integer keys ourselves,
 which is a lot cheaper than calling compareStandard().
@@ -364,7 +284,8 @@ PRED_IMPL("$btree_avl_get", 3, btree_avl_get, 0)
     if ( kint )
     { deRef(a);
       /* Two small integers with the same value that are not the same
-	 word: one is a pointer.  We leave that to compareStandard(). */
+	 word: one is a pointer integer (isPtrInt()).  We leave that to
+	 compareStandard(). */
       if ( isTaggedInt(*a) && (*a == *k || valInt(*a) != valInt(*k)) )
 	d = SCALAR_TO_CMP(valInt(*k), valInt(*a));
       else
@@ -395,7 +316,6 @@ PRED_IMPL("$btree_avl_get", 3, btree_avl_get, 0)
 		 *******************************/
 
 BeginPredDefs(btree)
-  PRED_DEF("$btree_find_node", 5, btree_find_node, 0)
   PRED_DEF("$btree_avl_put",   4, btree_avl_put,   0)
   PRED_DEF("$btree_avl_get",   3, btree_avl_get,   0)
 EndPredDefs
