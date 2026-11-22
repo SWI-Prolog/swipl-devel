@@ -285,12 +285,16 @@ missing_autoload(_Src, _, Head, _) :-
 
 :- if(exists_source(library(pce))).
 :- autoload(library(pce), [get/3,object/1]).
-src_file(Ref, File) =>
-    object(Ref),
+src_file(Ref, File),
+    \+ text(Ref),
+    object(Ref) =>
     get(?(Ref, file), absolute_path, File).
 :- endif.
 src_file(File0, File) =>
     File = File0.
+
+text(X) :- atom(X), !.
+text(X) :- string(X).
 
 %!  directives(+File, +FileAndHeads, -Directives, +Options) is det.
 %
