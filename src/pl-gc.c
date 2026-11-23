@@ -1530,6 +1530,8 @@ mergeTrailedAssignments(DECL_LD TrailEntry top, TrailEntry mark,
 
     if ( ttag(te[1].as_word) == TAG_TRAILVAL )
     { assignments--;
+      if ( p == gBase )			/* undo/1 list: see (***) */
+	continue;
       if ( is_first(p) )
       {	DEBUG(MSG_GC_ASSIGNMENTS_MERGE,
 	      { char vname[32];
@@ -1592,7 +1594,12 @@ attvar is not reset to a normal var.   Normally  that is not an issue as
 the global stack is truncated to before   the mark (gKeep), but this may
 not be the case if a later stack  freeze   is  in  effect at the time of
 backtracking.
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
+
+(***) The first cell of the global stack holds the undo/1 goal list.
+Undoing each trailed assignment to it schedules the goal at its head (see
+__do_undo() in pl-wam.c), so mergeTrailedAssignments() must keep every
+assignment to this cell, not only the oldest.
+- - -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 #define early_reset_vars(m, top, te) \
 	LDFUNC(early_reset_vars, m, top, te)
