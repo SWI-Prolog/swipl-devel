@@ -932,6 +932,9 @@ safe_meta(system:setup_call_catcher_cleanup(S, G, Catcher, Cleanup),
           [S, G, Cleanup1]) :-
     caught(Catcher, Cleanup, Cleanup1).
 safe_meta('$tabling':not_exists(G), [G]).
+safe_meta(wfs:answer_residual(G, _), []) :-
+    \+ qualified(G).
+safe_meta(wfs:delays_residual_program(_Delays, _Clauses), []).
 
 qualified(V) :-
     nonvar(V),
@@ -1113,6 +1116,7 @@ safe_meta(call(6,*,*,*,*,*,*)).
 safe_meta('$tabling':start_tabling(*,0)).
 safe_meta('$tabling':start_tabling(*,0,*,*)).
 safe_meta(wfs:call_delays(0,*)).
+safe_meta(wfs:call_residual_program(0,*)).
 
 %!  safe_output(+Output)
 %

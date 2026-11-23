@@ -53,6 +53,7 @@ test_sandbox :-
 :- use_module(library(sandbox)).
 :- use_module(library(aggregate)).
 :- use_module(library(settings)).
+:- use_module(library(wfs)).
 
 my_call(G) :-
 	phrase({G},_).
@@ -144,5 +145,27 @@ test(setting, error(permission_error(call, sandboxed, _))) :-
 test(setting) :-
 	safe_goal(setting(my_setting, _)),
 	safe_goal(setting(_, _)).
+
+% Well founded semantics: inspecting the thread's own tables is safe
+:- table wp/0, wq/0.
+wp :- tnot(wq).
+wq :- tnot(wp).
+
+test(wfs) :-
+	safe_goal(call_delays(wq, _)).
+test(wfs, Clauses == [(wq:-tnot(wp)), (wp:-tnot(wq))]) :-
+	G = call_residual_program(wq, Clauses),
+	safe_goal(G),
+	call(G).
+test(wfs, R == tnot(wp)) :-
+	G = answer_residual(wq, R),
+	safe_goal(G),
+	call(G).
+test(wfs, Clauses == [(wq:-tnot(wp)), (wp:-tnot(wq))]) :-
+	G = (call_delays(wq, D), delays_residual_program(D, Clauses)),
+	safe_goal(G),
+	call(G).
+test(wfs, error(permission_error(call, sandboxed, _))) :-
+	safe_goal(call_residual_program(shell(ls), _)).
 
 :- end_tests(sandbox).
