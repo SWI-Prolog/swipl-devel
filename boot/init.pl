@@ -4258,8 +4258,22 @@ compile_aux_clauses(Clauses) :-
 '$stage_file'(Target, Stage) :-
     file_directory_name(Target, Dir),
     file_base_name(Target, File),
-    current_prolog_flag(pid, Pid),
-    format(atom(Stage), '~w/.~w.~d', [Dir,File,Pid]).
+    '$stage_id'(Id),
+    format(atom(Stage), '~w/.~w.~w', [Dir,File,Id]).
+
+%   '$stage_id'(-Id)
+%
+%   Id distinguishes the staging files of concurrent processes.  Under
+%   Emscripten all processes have the same pid, so we use a random
+%   number.
+
+:- if(current_prolog_flag(emscripten, true)).
+'$stage_id'(Id) :-
+    Id is random(1<<30).
+:- else.
+'$stage_id'(Pid) :-
+    current_prolog_flag(pid, Pid).
+:- endif.
 
 '$install_staged_file'(exit, Staged, Target, error) :-
     !,
