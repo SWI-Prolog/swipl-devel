@@ -118,7 +118,7 @@ esac
 
 case $TARGET_DISTRO in
   jammy|noble)
-    debbranch=nox-$branch
+    debbranch=nox
     shift
 esac
 
