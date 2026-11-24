@@ -6,6 +6,7 @@
 # Author: Yves Raimond and Jan Wielemaker
 
 PL_VERSION=`cat VERSION`
+series=$(scripts/get-series)
 VTAG=HEAD
 TARGET_DISTRO=none
 distros="jammy noble resolute stonking"
@@ -15,7 +16,8 @@ buildbin=false
 push=false
 pgpkey=266FF04C52056213BECDDDA04EF5383C7C11B85B
 program="$0"
-branch=devel
+branch=$series
+debbranch=$branch
 
 usage()
 { cat << EOM
@@ -116,7 +118,7 @@ esac
 
 case $TARGET_DISTRO in
   jammy|noble)
-    branch=nox
+    debbranch=nox-$branch
     shift
 esac
 
@@ -130,8 +132,8 @@ VERSION=$PL_VERSION-$GIT_SHORT_HASH-${TARGET_DISTRO}ppa2
 
 echo "Building package $VERSION for $TARGET_DISTRO"
 
-echo "Checking out branch $branch"
-git -C debian checkout $branch
+echo "Checking out debian branch $debbranch"
+git -C debian checkout $debbranch
 
 echo " - Adding entry to changelog"
 
@@ -189,7 +191,7 @@ if [ $push = true ]; then
   echo " - Pushing source package to PPA"
 
   ( cd build-ppa-tmp &&
-    dput ppa:swi-prolog/devel swi-prolog_${VERSION}_source.changes
+    dput ppa:swi-prolog/$branch swi-prolog_${VERSION}_source.changes
   )
 fi
 

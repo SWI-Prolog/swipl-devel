@@ -1,7 +1,24 @@
 #!/bin/bash
 
-series=devel
-port=swi-prolog-devel
+if [ ! -f scripts/get-series ]; then
+   echo "ERROR: Not in project root"
+   exit 1
+fi
+
+series=$(scripts/get-series)
+case "$series" in
+  stable)
+    port=swi-prolog
+    ;;
+  devel)
+    port=swi-prolog-devel
+    ;;
+  *)
+    echo "ERROR: $0: unknown series: $series"
+    exit 1
+    ;;
+esac
+
 portprefix=/opt/local
 branch=master
 
@@ -35,7 +52,7 @@ if [ -r $file ]; then
     sha256=$(openssl sha256 < $file | cut -d ' ' -f 2)
     rmd160=$(openssl rmd160 -provider legacy < $file | cut -d ' ' -f 2)
 
-    if [ ! -d $portprefix/var/macports/distfiles ]; then 
+    if [ ! -d $portprefix/var/macports/distfiles ]; then
 	url="https://www.swi-prolog.org/download/$series/src/$distfile"
 	sizew=$(curl -s --head "$url" | sed 's/\r$//' | grep ^content-length | cut -d ' ' -f 2)
 	if [ ! "$size" = "$sizew" ]; then

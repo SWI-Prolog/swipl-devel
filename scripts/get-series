@@ -1,0 +1,14 @@
+#!/bin/bash
+
+case "$(git remote get-url origin)" in
+  */swipl.git)
+    echo stable
+    ;;
+  */swipl-devel.git)
+    echo devel
+    ;;
+  *)
+    "ERROR: get-series: unknown origin"
+    exit 1
+    ;;
+esac

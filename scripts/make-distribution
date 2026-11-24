@@ -6,10 +6,11 @@ if [ ! -f VERSION ]; then
 fi
 
 version=`cat VERSION`
+series=$(scripts/get-series)
 pdf_build_dir=build.pdf
 macos_builddir=build.pkg
-PUBLIC1="plweb@oehoe:srv/plweb/data/download/devel"
-PUBLIC2="plweb@us:srv/plweb/data/download/devel"
+PUBLIC1="plweb@oehoe:srv/plweb/data/download/$series"
+PUBLIC2="plweb@us:srv/plweb/data/download/$series"
 export MACOSX_DEPLOYMENT_TARGET=10.15
 
 # SDK holding the system libraries we link against (curses, form, ...).
@@ -200,7 +201,7 @@ ubuntu()
 
 reset_nox()
 { git -C debian checkout nox
-  git -C debian reset --hard origin/nox-devel
+  git -C debian reset --hard origin/nox-$series
   git submodule update debian
 }
 
