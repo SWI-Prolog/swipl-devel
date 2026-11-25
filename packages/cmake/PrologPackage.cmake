@@ -8,12 +8,46 @@
 string(REGEX REPLACE "^.*-" "" SWIPL_PKG ${PROJECT_NAME})
 set(PKG_BUILD_LIBRARY ${SWIPL_BUILD_HOME}/library/ext/${SWIPL_PKG})
 
+function(prepend_dir_cmake)
+  # For all the arguments, prepend its "cmake" directory to the
+  # include paths, if the "cmake" directory exists.
+  foreach(dir IN LISTS ARGN)
+    cmake_path(APPEND dir_cmake "${dir}" "cmake")
+    if(IS_DIRECTORY ${dir_cmake})
+      list(PREPEND CMAKE_MODULE_PATH ${dir_cmake})
+    endif()
+  endforeach()
+  set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
+endfunction()
+
 # Get cmake files from this package, the package infrastructure and
 # SWI-Prolog overall
-set(CMAKE_MODULE_PATH
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake")
+
+cmake_path(ABSOLUTE_PATH CMAKE_SOURCE_DIR NORMALIZE OUTPUT_VARIABLE project_root)
+
+prepend_dir_cmake("${project_root}"
+                  "${project_root}/packages")
+
+# Walk up the directory tree to project root, adding "cmake" directories
+block()
+  cmake_path(ABSOLUTE_PATH CMAKE_CURRENT_SOURCE_DIR NORMALIZE OUTPUT_VARIABLE dir)
+  while(TRUE)
+    cmake_path(IS_PREFIX project_root "${dir}" NORMALIZE inside)
+    if(NOT inside)
+      break()
+    endif()
+    prepend_dir_cmake(${dir})
+    cmake_path(GET dir PARENT_PATH next_dir)
+    cmake_path(ABSOLUTE_PATH next_dir NORMALIZE OUTPUT_VARIABLE next_dir)
+    if(dir STREQUAL next_dir) # ensure not at filesystem root
+      break()
+    endif()
+    set(dir "${next_dir}")
+  endwhile()
+  set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" PARENT_SCOPE)
+endblock()
+
+list(REMOVE_DUPLICATES CMAKE_MODULE_PATH)
 
 # CMake modules we always need
 include(CheckIncludeFile)
