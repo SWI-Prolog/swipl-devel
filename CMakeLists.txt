@@ -4,7 +4,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0079 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0091 NEW)
 set(CMAKE_POLICY_DEFAULT_CMP0177 NEW)
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 project(SWI-Prolog)
 
 if(CMAKE_BINARY_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
@@ -16,7 +16,7 @@ if(CMAKE_BINARY_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
 	  "     cmake [option ...] ..")
 endif()
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # While GCC is good at optimization large   functions, MSVC is bad at it
 # and using VMI functions more then   doubles the performance. For Clang
@@ -433,11 +433,7 @@ endif(INSTALL_TESTS)
 if(STATIC_EXTENSIONS)
   set_property(GLOBAL PROPERTY static_extension_libs)
 endif()
-foreach(package ${SWIPL_PACKAGE_LIST})
-  swipl_package_component(${package}
-			  CMAKE_INSTALL_DEFAULT_COMPONENT_NAME)
-  add_subdirectory(packages/${package})
-endforeach(package)
+add_subdirectory(packages)
 if(STATIC_EXTENSIONS)
   get_property(extlibs GLOBAL PROPERTY static_extension_libs)
   include(StaticPackages)

@@ -10,10 +10,7 @@ set(PKG_BUILD_LIBRARY ${SWIPL_BUILD_HOME}/library/ext/${SWIPL_PKG})
 
 # Get cmake files from this package, the package infrastructure and
 # SWI-Prolog overall
-set(CMAKE_MODULE_PATH
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../cmake"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake")
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # CMake modules we always need
 include(CheckIncludeFile)
