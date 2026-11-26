@@ -60,6 +60,10 @@ ts_data(2).
 ts_inc(X) :- ts_data(X).
 ts_plain(X) :- between(1, 3, X).
 
+:- table ts_dup/2.
+ts_dup(_, X) :- between(1, 3, X).
+ts_dup(_, X) :- between(1, 3, X).
+
 fill :-
     abolish_all_tables,
     forall(ts_inc(_), true),
@@ -89,6 +93,20 @@ test(answer_tables, [ Tables-Answers == 4-4,
 test(plain_answers, Answers == 3) :-
     fill,
     table_statistics(test_table_statistics:ts_plain(_), answers, Answers).
+test(ratios_are_floats, [ Dup =:= 1.0,
+                          true(float(Space)) ]) :-
+    current_prolog_flag(prefer_rationals, Old),
+    setup_call_cleanup(
+        set_prolog_flag(prefer_rationals, true),
+        ( abolish_all_tables,
+          forall(between(1, 7, I), forall(ts_dup(I, _), true)),
+          table_statistics(test_table_statistics:ts_dup(_,_),
+                           duplicate_ratio, Dup),
+          table_statistics(test_table_statistics:ts_dup(_,_),
+                           space_ratio, Space)
+        ),
+        set_prolog_flag(prefer_rationals, Old)),
+    assertion(float(Dup)).
 test(no_tables, Tables == 0) :-
     abolish_all_tables,
     table_statistics(test_table_statistics:ts_plain(_), tables, Tables).
