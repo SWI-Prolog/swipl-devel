@@ -388,6 +388,25 @@ foreach(test ${SWIPL_TEST_DIRS})
 	   -q ${CMAKE_CURRENT_SOURCE_DIR}/tests/test.pl --no-core ${test})
 endforeach()
 
+# Some source files are copied between packages because the packages
+# cannot share code otherwise.  The copies must be identical.  Each
+# element is <name>:<file>:<file>, relative to packages/.
+
+set(SWIPL_SHARED_SOURCES
+    win_cmdline:clib/win_cmdline.c:xpce/src/msw/win_cmdline.c)
+foreach(shared ${SWIPL_SHARED_SOURCES})
+  string(REPLACE ":" ";" shared "${shared}")
+  list(GET shared 0 name)
+  list(GET shared 1 file1)
+  list(GET shared 2 file2)
+  set(file1 ${CMAKE_CURRENT_SOURCE_DIR}/packages/${file1})
+  set(file2 ${CMAKE_CURRENT_SOURCE_DIR}/packages/${file2})
+  if(EXISTS ${file1} AND EXISTS ${file2})
+    add_test(NAME swipl:shared:${name}
+	     COMMAND ${CMAKE_COMMAND} -E compare_files ${file1} ${file2})
+  endif()
+endforeach()
+
 # Install a prolog script to run tests on target device
 # in which ctest is not available
 if(INSTALL_TESTS)
