@@ -1238,7 +1238,8 @@ The goal \verb$Select :< From$ is equivalent to
     \predicate[semidet]{select_dict}{3}{+Select, +From, -Rest}
 True when the tags of \arg{Select} and \arg{From} match,
 all keys in \arg{Select} appear in \arg{From} and the corresponding
-values have been unified. The key-value pairs of \arg{From} that do not
+values have been unified. \arg{Select} can be either a dict
+or a list of key-value  pairs. The key-value pairs of \arg{From} that do not
 appear in \arg{Select} are used to form an anonymous dict, which is
 unified with \arg{Rest}.  For example:
 
@@ -1246,6 +1247,9 @@ unified with \arg{Rest}.  For example:
 ?- select_dict(#{x:0, y:Y}, point{x:0, y:1, z:2}, R).
 Y = 1,
 R = #{z:2}.
+?- select_dict([z-Z], point{x:0, y:1, z:2}, R).
+Z = 2,
+R = #{x:0,y:1}.
 \end{code}
 
 See also \predref{:<}{2} to ignore \arg{Rest} and \predref{>:<}{2} for
