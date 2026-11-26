@@ -489,7 +489,11 @@ trie_ensure_nodes(trie *trie)
 void
 trie_clean(trie *trie)
 { if ( trie->magic == TRIE_CMAGIC )
-    trie_empty(trie);
+  { trie_empty(trie);
+  } else if ( ison(trie, TRIE_NEEDS_PRUNE) )
+  { clear(trie, TRIE_NEEDS_PRUNE);
+    prune_trie(trie, &trie->root, NULL, NULL);
+  }
 }
 
 
@@ -2756,9 +2760,16 @@ Delete a node from the trie. There are   two options: (1) simply set the
 value to 0 or (2), prune the branch   leading to this cell upwards until
 we find another existing node.
 
+If pruning a private variant table is requested while it is in use
+(references > 0, e.g., while abolishing tables from trie_gen/3 on the
+variant trie), we set TRIE_NEEDS_PRUNE and trie_clean() prunes the trie
+on the last release_trie().  Removing the value has already released
+the answer table (see release_variant_table_node()), so no references
+to the deleted nodes remain.  This is not done for answer tries, whose
+deleted nodes may still be in worklist delay lists.
+
 TBD: create some sort of  lingering   mechanism  to allow for concurrent
-delete and gen_trie(). More modest: link up the deleted nodes and remove
-them after the references drop to 0.
+delete and gen_trie().
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - */
 
 void
@@ -2772,6 +2783,10 @@ trie_delete(trie *trie, trie_node *node, int prune)
     { prune_node(trie, node);
     } else
     { word v;
+
+      if ( prune && ison(trie, TRIE_ISVARIANT) &&
+	   isoff(trie, TRIE_CONCURRENT) )
+	set(trie, TRIE_NEEDS_PRUNE);	/* prune on last release_trie() */
 
       release_node(trie, node);
 
