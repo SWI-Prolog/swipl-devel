@@ -100,8 +100,8 @@ summary_table_width(55).
 %       Total number of answers in the combined tries
 %     - duplicate_ratio
 %       Ratio of generated (and thus ignored) duplicate answers.
-%       `1` means no duplicates.  `2` means for every answer there
-%       was (on everage) a duplicate generated.
+%       `0.0` means no duplicates.  `1.0` means for every answer there
+%       was (on average) a duplicate generated.
 %     - space_ratio
 %       Number of nodes with a value divided by the total number
 %       of nodes in a trie.  The maximum is `1`.  A low number
@@ -403,18 +403,19 @@ atrie_prop(T, compiled_size(Bytes)) :-
     '$trie_property'(T, compiled_size(Bytes)).
 atrie_prop(T, value_count(Count)) :-
     '$trie_property'(T, value_count(Count)).
-atrie_prop(T, space_ratio(Values/Nodes)) :-
+atrie_prop(T, space_ratio(Ratio)) :-
     '$trie_property'(T, value_count(Values)),
     Values > 0,
     \+ '$trie_property'(T, discarded(true)),  % only the clause is left
-    '$trie_property'(T, node_count(Nodes)).
+    '$trie_property'(T, node_count(Nodes)),
+    Ratio is float(Values/Nodes).
 atrie_prop(T, lookup_count(Count)) :-
     '$trie_property'(T, lookup_count(Count)).
 atrie_prop(T, duplicate_ratio(Ratio)) :-
     '$trie_property'(T, value_count(Values)),
     Values > 0,
     '$trie_property'(T, lookup_count(Lookup)),
-    Ratio is (Lookup - Values)/Values.
+    Ratio is float((Lookup - Values)/Values).
 atrie_prop(T, gen_call_count(Count)) :-
     '$trie_property'(T, gen_call_count(Count)).
 atrie_prop(T, invalidated(Count)) :-
