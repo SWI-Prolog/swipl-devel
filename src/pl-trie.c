@@ -247,6 +247,30 @@ release_key(word key)
 }
 
 
+/* Account the memory of a non-concurrent trie.  If the trie is orphaned,
+ * its memory is reclaimable garbage of the pool (see release_local_trie()).
+ */
+
+static inline void
+trie_alloc_bytes(trie *t, size_t bytes)
+{ if ( isoff(t, TRIE_CONCURRENT) )
+  { t->bytes += bytes;
+    if ( ison(t, TRIE_ORPHANED) && t->alloc_pool )
+      pool_add_reclaimable(t->alloc_pool, bytes);
+  }
+}
+
+static inline void
+trie_free_bytes(trie *t, size_t bytes)
+{ if ( isoff(t, TRIE_CONCURRENT) )
+  { assert(bytes <= t->bytes);
+    t->bytes -= bytes;
+    if ( ison(t, TRIE_ORPHANED) && t->alloc_pool )
+      pool_sub_reclaimable(t->alloc_pool, bytes);
+  }
+}
+
+
 trie *
 trie_create(alloc_pool *pool)
 { trie *trie;
@@ -279,6 +303,9 @@ trie_destroy(trie *trie)
   trie->magic = TRIE_CMAGIC;
   trie_empty(trie);
   free_lingering_blocks(trie);
+  if ( ison(trie, TRIE_ORPHANED) && trie->alloc_pool )
+    pool_sub_reclaimable(trie->alloc_pool,	/* see release_local_trie() */
+			 trie->bytes + sizeof(*trie));
   if ( ison(trie, TRIE_ISTABLE) )
     idg_free_or_defer(free_trie_struct, trie, trie->alloc_pool);
   else
@@ -745,7 +772,8 @@ typedef void simpleMutex;
 
 static void
 free_block(trie *trie, trie_children_block *b)
-{ free_to_pool(trie->alloc_pool, b, sizeof_block(b));
+{ trie_free_bytes(trie, sizeof_block(b));
+  free_to_pool(trie->alloc_pool, b, sizeof_block(b));
 }
 
 /* A block was replaced in its node */
@@ -789,7 +817,8 @@ new_block(trie *trie, unsigned capacity)
   trie_children_block *b;
 
   if ( (b = alloc_from_pool(trie->alloc_pool, size)) )
-  { memset(b, 0, sizeof(*b));
+  { trie_alloc_bytes(trie, size);
+    memset(b, 0, sizeof(*b));
     b->capacity   = capacity;
     b->index_bits = bits;
     if ( bits )
@@ -1121,7 +1150,9 @@ alloc_trie_node(trie *trie, trie_node_chunk **cp, bool *bump)
       return &c->nodes[c->used];
     }
   } else if ( trie->node_count <= TRIE_SINGLE_NODES )
-  { return alloc_from_pool(trie->alloc_pool, sizeof(trie_node));
+  { if ( (n=alloc_from_pool(trie->alloc_pool, sizeof(trie_node))) )
+      trie_alloc_bytes(trie, sizeof(trie_node));
+    return n;
   }
 
   unsigned bytes = c ? c->bytes*2 : TRIE_CHUNK_MIN;
@@ -1131,6 +1162,7 @@ alloc_trie_node(trie *trie, trie_node_chunk **cp, bool *bump)
     bytes = TRIE_CHUNK_MAX;
   if ( !(nc=alloc_from_pool(trie->alloc_pool, bytes)) )
     return NULL;
+  trie_alloc_bytes(trie, bytes);
   nc->next   = c;
   nc->free   = NULL;
   nc->pool   = trie->alloc_pool;
@@ -1226,7 +1258,8 @@ free_trie_node(trie *trie, trie_node *n)
     if ( ++head->nfree >= head->sweep_at && head->nfree > trie->node_count )
       sweep_node_chunks(trie);
   } else
-  { free_to_pool(trie->alloc_pool, n, sizeof(trie_node));
+  { trie_free_bytes(trie, sizeof(trie_node));
+    free_to_pool(trie->alloc_pool, n, sizeof(trie_node));
   }
 }
 
@@ -1249,6 +1282,8 @@ free_node_chunks(trie *trie)
     return;
 
   trie->mem.chunks = NULL;
+  for(trie_node_chunk *c = all; c; c = c->next)
+    trie_free_bytes(trie, c->bytes);
   free_chunk_list(all);
 }
 
@@ -1330,6 +1365,7 @@ sweep_node_chunks(trie *trie)
     { prev->next = next;
       c->next = empty;
       empty = c;
+      trie_free_bytes(trie, c->bytes);
     } else
     { prev = c;
     }
@@ -2476,6 +2512,8 @@ release_trie_value(trie *t)
 static void
 release_local_trie(trie *t)
 { set(t, TRIE_ORPHANED);
+  if ( t->alloc_pool )			/* see pool_add_reclaimable() */
+    pool_add_reclaimable(t->alloc_pool, t->bytes + sizeof(*t));
 
   for(;;)
   { atom_t symbol = t->symbol;

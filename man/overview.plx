@@ -2541,7 +2541,12 @@ Initially set to \const{false}.  See table/1.
 Space reserved for storing answer tables for \jargon{tabled predicates}
 (see table/1).\bug{Currently only counts the space occupied by the
 nodes in the answer tries.} When exceeded a
-\term{resource_error}{table_space} exception is raised.
+\term{resource_error}{private_table_space} exception is raised.
+Abolished answer tables that are still referenced by a Prolog handle
+are reclaimed by (thread-local) atom garbage collection.  Their space
+(see the statistics key \const{table_space_reclaimable}) does not count
+for this limit.  Exceeding the limit using this space schedules atom
+garbage collection for the thread.
 
     \prologflagitem{table_subsumptive}{bool}{rw}
 Set the default choice between \jargon{variant} tabling and

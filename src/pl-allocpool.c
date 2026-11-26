@@ -67,6 +67,9 @@ alloc_from_pool(alloc_pool *pool, size_t bytes)
   if ( pool )
   { if ( pool->size+bytes <= pool->limit )
     { ATOMIC_ADD(&pool->size, bytes);
+    } else if ( pool->size+bytes <= pool->limit + pool->reclaimable )
+    { ATOMIC_ADD(&pool->size, bytes);	/* see pool_add_reclaimable() */
+      requestLocalSweep();
     } else
     { PL_resource_error(pool->name);
       return NULL;
@@ -78,6 +81,25 @@ alloc_from_pool(alloc_pool *pool, size_t bytes)
 
   PL_resource_error("memory");
   return NULL;
+}
+
+/* Memory of the pool that is garbage, but is only released by atom-GC.
+ * This is the case for abolished private answer tries that are owned by
+ * their symbol (see release_local_trie()).  Such memory does not count
+ * for the limit.  If we exceed the limit using this memory, we ask for
+ * a local sweep, which reclaims the tries whose symbols are no longer
+ * referenced.
+ */
+
+void
+pool_add_reclaimable(alloc_pool *pool, size_t bytes)
+{ ATOMIC_ADD(&pool->reclaimable, bytes);
+}
+
+void
+pool_sub_reclaimable(alloc_pool *pool, size_t bytes)
+{ assert(bytes <= pool->reclaimable);
+  ATOMIC_SUB(&pool->reclaimable, bytes);
 }
 
 void

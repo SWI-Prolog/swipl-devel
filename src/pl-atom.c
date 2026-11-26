@@ -2531,6 +2531,22 @@ considerLocalSweep(void)
 }
 
 
+/* Ask for a local sweep at the next safe point because blobs of this
+ * thread hold resources that are needed now, e.g., memory of abolished
+ * answer tries that counts for the table_space (see alloc_from_pool()).
+ */
+
+void
+requestLocalSweep(void)
+{ GET_LD
+
+  if ( LD && GD->atoms.margin != 0 && !LD->atoms.local.units_due )
+  { LD->atoms.local.units_due = true;
+    raiseSignal(LD, SIG_ATOM_GC);	/* handled by agc_handler() */
+  }
+}
+
+
 /* The thread or engine is going to idle: it calls thread_idle/2 or it
  * is detached without open queries.  Only its own sweep releases its
  * local atoms, so it sweeps now if it created local atoms since the last

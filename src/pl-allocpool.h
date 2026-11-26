@@ -40,6 +40,7 @@
 typedef struct alloc_pool
 { size_t	size;				/* Current allocation */
   size_t	limit;				/* Limit */
+  size_t	reclaimable;			/* Garbage awaiting atom-GC */
   const char   *name;				/* for appropriate error */
   int		freed;				/* Pool is freed */
 } alloc_pool;
@@ -48,5 +49,7 @@ COMMON(alloc_pool*)	new_alloc_pool(const char *name, size_t limit);
 COMMON(void)		free_alloc_pool(alloc_pool *pool);
 COMMON(void *)		alloc_from_pool(alloc_pool *pool, size_t bytes);
 COMMON(void)		free_to_pool(alloc_pool *pool, void *mem, size_t bytes);
+COMMON(void)		pool_add_reclaimable(alloc_pool *pool, size_t bytes);
+COMMON(void)		pool_sub_reclaimable(alloc_pool *pool, size_t bytes);
 
 #endif /*_PL_ALLOCPOOL_H*/

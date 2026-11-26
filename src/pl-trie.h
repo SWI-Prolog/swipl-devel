@@ -166,6 +166,7 @@ typedef struct trie
   trie_node		root;		/* the root node */
   indirect_table       *indirects;	/* indirect values */
   alloc_pool	       *alloc_pool;	/* Node allocation pool */
+  size_t		bytes;		/* Allocated from alloc_pool */
   atom_t		clause;		/* Compiled representation */
   union
   { trie_children_block *lingering;	/* Replaced blocks (TRIE_CONCURRENT) */

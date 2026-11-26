@@ -12634,6 +12634,10 @@ local           & Allocated size of the local stack in bytes \\
 local_shifts	& Number of local stack expansions \\
 localused       & Number of bytes in use on the local stack \\
 table_space_used& Amount of bytes in use by the thread's answer tables \\
+table_space_reclaimable& Part of \const{table_space_used} that is used
+		  by abolished answer tables that are reclaimed by the
+		  next atom garbage collection.  This part does not count
+		  for the flag \prologflag{table_space} \\
 shared_table_space_used& Amount of bytes in use by the shared answer
 		  tables.  See also the flag \prologflag{shared_table_space} \\
 trail           & Allocated size of the trail stack in bytes \\

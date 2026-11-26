@@ -6374,6 +6374,12 @@ swi_statistics(DECL_LD atom_t key, Number v)
       v->value.i = pool->size;
     else
       v->value.i = 0;
+  } else if (key == ATOM_table_space_reclaimable)
+  { alloc_pool *pool;
+    if ( (pool=LD->tabling.node_pool) )
+      v->value.i = pool->reclaimable;
+    else
+      v->value.i = 0;
   } else if (key == ATOM_shared_table_space_used)
   {
 #ifdef O_PLMT
