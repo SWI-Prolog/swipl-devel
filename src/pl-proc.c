@@ -2509,7 +2509,12 @@ abolishProcedure(Procedure proc, Module module)
 
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
-  { Definition ndef	     = newDefinition(def->functor, module, true);
+  { /* A pinned procedure outlives this call, so its functor is
+       permanent.  An unpinned one (module abolish of a temporary
+       module) must stay collectable by procedure GC, including its
+       functor. */
+    bool permanent = !!(LOAD_SEQ_CST(proc->flags)&PROC_PINNED);
+    Definition ndef	     = newDefinition(def->functor, module, permanent);
     Definition odef          = def;
 
     ndef->codes		     = SUPERVISOR(virgin);
@@ -2543,6 +2548,40 @@ abolishProcedure(Procedure proc, Module module)
   }
 
   return true;
+}
+
+
+/* Abolish a thread-local predicate while abolishing its module.
+   abolish/1 refuses these: a thread-local predicate is private to the
+   engines that filled it.  Module abolition is the module going away,
+   so every engine's clauses are erased and the definition is left as
+   an undefined stub.  An unpinned stub is reclaimed by procedure GC,
+   which is what lets module GC see an empty module.
+*/
+
+void
+abolishThreadLocalProcedure(Procedure proc)
+{ Definition def = proc->definition;
+
+#ifdef O_PLMT
+  if ( def->impl.local.local )
+    destroyLocalDefinitions(def);	/* flag still set: thread exit */
+#endif
+
+  LOCKDEF(def);
+  if ( ison(def, P_DIRTYREG) )
+    unregisterDirtyDefinition(def);
+  clear(def, P_THREAD_LOCAL|P_DYNAMIC|P_TRANSACT|P_VOLATILE|SPY_ME);
+#ifndef O_PLMT
+  removeClausesPredicate(def, 0, false);
+#endif
+  resetProcedure(proc, true);
+  bool candidate = abolishedProcedure(proc); /* needs LOCKDEF */
+  UNLOCKDEF(def);
+  if ( candidate )
+  { GET_LD
+    considerProcedureGC();
+  }
 }
 
 

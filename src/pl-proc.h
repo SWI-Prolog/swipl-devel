@@ -103,6 +103,7 @@ ClauseRef	assertProcedure(Procedure proc, Clause clause,
 ClauseRef	assertDynamicProcedure(Procedure proc, Clause clause,
 				ClauseRef where);
 bool		abolishProcedure(Procedure proc, Module module);
+void		abolishThreadLocalProcedure(Procedure proc);
 void		unpinProcedure(Procedure proc, Module m);
 Procedure	allocProcedure(void);
 void		initProcedureGC(void);

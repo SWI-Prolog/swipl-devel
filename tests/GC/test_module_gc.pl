@@ -87,6 +87,13 @@ test(clause) :-
                         abolish_module(M))).
 test(dynamic) :-
     loop(mgc_dy_, [M]>>(dynamic(M:p/1), abolish_module(M))).
+test(thread_local) :-
+    loop(mgc_tl_, [M]>>( thread_local(M:p/1),
+                         assertz(M:p(1)),
+                         call(M:import(lists:member/2)),
+                         once(call(M:member(a, [a]))),
+                         abolish_module(M)
+                       )).
 test(predicate_property) :-
     loop(mgc_pp_, [M]>>(assertz(M:p(1)), predicate_property(M:p(_), dynamic),
                         abolish_module(M))).

@@ -84,6 +84,12 @@ test(source_files, true(Files < 100)) :-
 test(assert) :-
     loop(2000, [M]>>(assertz(M:a(1)), assertz(M:(b(X) :- a(X)))),
          [M]>>call(M:b(_))).
+test(thread_local) :-
+    loop(200, [M]>>( thread_local(M:p/1),
+                     assertz(M:p(1)),
+                     call(M:import(lists:member/2))
+                   ),
+         [M]>>once(call(M:member(a, [a])))).
 test(reuse_name, X-Y == 1-2) :-
     fresh(tmg_reuse, M),
     in_temporary_module(M, assertz(M:p(1)), M:p(X)),

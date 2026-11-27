@@ -110,6 +110,36 @@ test(running, X == done) :-
 test(nonexisting, fail) :-
     abolish_module(am_none),
     current_module(am_none).
+test(thread_local_abolish,
+     error(permission_error(modify, thread_local_procedure, _), _)) :-
+    thread_local(am_tla:p/1),
+    abolish(am_tla:p/1).
+%   The module name is written in this file, so the module is pinned.
+%   Abolishing it drops the thread-local predicate and the import, and
+%   keeps the module.
+test(thread_local) :-
+    set_prolog_flag(am_tl:unknown, fail),
+    thread_local(am_tl:p/1),
+    assertz(am_tl:p(from_here)),
+    am_tl:import(lists:reverse/2),
+    assertion(am_tl:reverse([a], [a])),
+    assertion(am_tl:p(from_here)),
+    abolish_module(am_tl),
+    assertion(\+ current_predicate(am_tl:p/1)),
+    assertion(\+ predicate_property(am_tl:p(_), thread_local)),
+    assertion(\+ current_predicate(am_tl:reverse/2)),
+    assertion(catch(am_tl:reverse([a], _),
+                    error(existence_error(procedure, _), _),
+                    true)),
+    assertion(current_module(am_tl)),
+    assertion(lists:reverse([a], [a])).
+test(thread_local_remote,
+     condition(current_prolog_flag(threads, true))) :-
+    thread_local(am_tlr:p/1),
+    thread_create(assertz(am_tlr:p(remote)), Id),
+    thread_join(Id, true),
+    abolish_module(am_tlr),
+    assertion(\+ current_predicate(am_tlr:p/1)).
 test(user, error(permission_error(abolish, module, user), _)) :-
     abolish_module(user).
 test(system, error(permission_error(abolish, module, system), _)) :-

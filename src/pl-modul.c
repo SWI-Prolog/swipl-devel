@@ -1210,9 +1210,11 @@ unlinkSourceFilesModule(Module m)
 abolishModule() implements abolish_module/1.  It resets the module to
 the state of a new module:
 
-  - All predicates are abolished.  Their clauses are reclaimed by clause
-    GC, and unpinned procedures by procedure GC.  Predicates imported
-    into other modules become undefined.
+  - All predicates are abolished, including thread-local predicates.
+    Their clauses are reclaimed by clause GC, and unpinned procedures
+    by procedure GC.  Import links are unpinned and replaced by
+    undefined stubs, so procedure GC reclaims them and their functors.
+    Predicates imported into other modules become undefined.
   - Exports and local operators are removed.
   - The import modules are reset to `user`.
   - Links from source files are removed.
@@ -1239,12 +1241,19 @@ abolishProceduresModule(DECL_LD Module m, bool unpin)
     if ( isVolatileProcedure(proc) ||
 	 !acquireTableProcedure(m, (functor_t)name, proc) )
       continue;
-    if ( !(proc->definition->module == m &&
-	   ison(proc->definition, P_THREAD_LOCAL)) )
-    { if ( unpin )
-	unpinProcedure(proc, m);
+    /* Import links are created pinned.  abolish/1 leaves that pin, so
+       the undefined predicate stays.  Abolishing the module drops it:
+       an unpinned module can then become empty and be collected. */
+    if ( unpin || proc->definition->module != m )
+      unpinProcedure(proc, m);
+    /* Thread-local predicates are skipped by abolish/1.  A module
+       that is going away takes their clauses with it, in every engine,
+       and leaves a stub procedure GC can collect once unpinned. */
+    if ( proc->definition->module == m &&
+	 ison(proc->definition, P_THREAD_LOCAL) )
+      abolishThreadLocalProcedure(proc);
+    else
       abolishProcedure(proc, m);
-    }
     releaseProcedureRef(proc);
   }
   freeTableEnum(e);
