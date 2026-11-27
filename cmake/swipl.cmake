@@ -57,7 +57,7 @@ endif()
 math(EXPR swipl_version_major "${swipl_version} / 10000")
 
 if(${swipl_home_dir} MATCHES "/home$")
-  cmake_path(GET swipl_home_dir PARENT_PATH swipl_build_dir)
+  get_filename_component(swipl_build_dir "${swipl_home_dir}" DIRECTORY)
   message("Using swipl from build directory ${swipl_build_dir}.")
 
   find_library(swipl_libs
@@ -70,7 +70,7 @@ if(${swipl_home_dir} MATCHES "/home$")
     NO_DEFAULT_PATH
     NO_PACKAGE_ROOT_PATH
     NO_SYSTEM_ENVIRONMENT_PATH)
-  cmake_path(GET swipl_libs FILENAME swipl_soname)
+  get_filename_component(swipl_soname "${swipl_libs}" NAME)
   set(swipl_soname "${swipl_soname}.${swipl_version_major}")
 
   add_library(swipl::libswipl SHARED IMPORTED)
@@ -79,7 +79,7 @@ if(${swipl_home_dir} MATCHES "/home$")
     IMPORTED_LOCATION ${swipl_libs}
     IMPORTED_SONAME ${swipl_soname})
 else()
-  cmake_path(GET swipl_home_dir PARENT_PATH libdir)
+  get_filename_component(libdir "${swipl_home_dir}" DIRECTORY)
   if(EXISTS "${libdir}/cmake/swipl/SWIPLTargets.cmake")
     message("Using CMake exports from ${libdir}/cmake/swipl")
     set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${libdir}/cmake/swipl")
