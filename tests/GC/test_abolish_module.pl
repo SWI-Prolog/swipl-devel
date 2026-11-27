@@ -116,30 +116,34 @@ test(thread_local_abolish,
     abolish(am_tla:p/1).
 %   The module name is written in this file, so the module is pinned.
 %   Abolishing it drops the thread-local predicate and the import, and
-%   keeps the module.
+%   keeps the module.  The names are not predicates of user: this file
+%   is loaded by tests/test.pl, which defines user:p/1 and imports
+%   library(lists), and current_predicate/1 walks the super chain.
 test(thread_local) :-
     set_prolog_flag(am_tl:unknown, fail),
-    thread_local(am_tl:p/1),
-    assertz(am_tl:p(from_here)),
-    am_tl:import(lists:reverse/2),
-    assertion(am_tl:reverse([a], [a])),
-    assertion(am_tl:p(from_here)),
+    assertz(am_src:am_only_here(ok)),
+    am_src:export(am_src:am_only_here/1),
+    thread_local(am_tl:am_tl_p/1),
+    assertz(am_tl:am_tl_p(from_here)),
+    am_tl:import(am_src:am_only_here/1),
+    assertion(am_tl:am_only_here(ok)),
+    assertion(am_tl:am_tl_p(from_here)),
     abolish_module(am_tl),
-    assertion(\+ current_predicate(am_tl:p/1)),
-    assertion(\+ predicate_property(am_tl:p(_), thread_local)),
-    assertion(\+ current_predicate(am_tl:reverse/2)),
-    assertion(catch(am_tl:reverse([a], _),
+    assertion(\+ current_predicate(am_tl:am_tl_p/1)),
+    assertion(\+ predicate_property(am_tl:am_tl_p(_), thread_local)),
+    assertion(\+ current_predicate(am_tl:am_only_here/1)),
+    assertion(catch(am_tl:am_only_here(_),
                     error(existence_error(procedure, _), _),
                     true)),
     assertion(current_module(am_tl)),
-    assertion(lists:reverse([a], [a])).
+    assertion(am_src:am_only_here(ok)).
 test(thread_local_remote,
      condition(current_prolog_flag(threads, true))) :-
-    thread_local(am_tlr:p/1),
-    thread_create(assertz(am_tlr:p(remote)), Id),
+    thread_local(am_tlr:am_tlr_p/1),
+    thread_create(assertz(am_tlr:am_tlr_p(remote)), Id),
     thread_join(Id, true),
     abolish_module(am_tlr),
-    assertion(\+ current_predicate(am_tlr:p/1)).
+    assertion(\+ current_predicate(am_tlr:am_tlr_p/1)).
 test(user, error(permission_error(abolish, module, user), _)) :-
     abolish_module(user).
 test(system, error(permission_error(abolish, module, system), _)) :-
