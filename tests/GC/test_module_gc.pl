@@ -87,6 +87,14 @@ test(clause) :-
                         abolish_module(M))).
 test(dynamic) :-
     loop(mgc_dy_, [M]>>(dynamic(M:p/1), abolish_module(M))).
+%   import/1 creates the link unpinned.  The meta-call does not pin it,
+%   so abolish_module/1 leaves a stub procedure GC reclaims with the
+%   module.  A pin from PL_predicate/3 would keep the procedure.
+test(import) :-
+    loop(mgc_im_, [M]>>( call(M:import(lists:member/2)),
+                         once(call(M:member(a, [a]))),
+                         abolish_module(M)
+                       )).
 test(predicate_property) :-
     loop(mgc_pp_, [M]>>(assertz(M:p(1)), predicate_property(M:p(_), dynamic),
                         abolish_module(M))).

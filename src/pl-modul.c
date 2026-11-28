@@ -2733,7 +2733,13 @@ retry:
   { Procedure nproc = allocProcedure();	/* see procedure GC */
     Procedure old;
 
-    nproc->flags = pflags|PROC_PINNED;
+    /* Unpinned, as dynamic/1 creates a predicate.  PL_predicate() and
+       the other lookups that keep a bare procedure pointer pin it, and
+       only '$destroy_module'/1 may drop such a pin.  abolish_module/1
+       collects the link when nobody has pinned it.  The procedure's
+       share of code_size is added here; abolishProcedure() adds the
+       stub definition, and procedure GC subtracts both. */
+    nproc->flags = pflags;
     nproc->references = 0;
     nproc->source_no = 0;
     shareDefinition(proc->definition);
@@ -2749,6 +2755,7 @@ retry:
       freeHeap(nproc, sizeof(*nproc));
       goto retry;
     }
+    ATOMIC_ADD(&destination->code_size, sizeof(*nproc));
     DEBUG(MSG_PROC_COUNT, Sdprintf("Created %s at %p\n",
 				   procedureName(nproc), nproc));
   }

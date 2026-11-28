@@ -174,7 +174,12 @@ definitions and functors.  This is modelled after atom and functor GC
     LD->atoms.volatile_procedure until it has pushed a frame for it.
     The hazard remains until the thread resolves the next procedure.
   - '$destroy_module'/1 drops the pins of the procedures of a temporary
-    module before abolishing them (unpinProcedure()).
+    module before abolishing them (unpinProcedure()).  abolish_module/1
+    does not: a pin stands for an uncounted reference.
+  - import/1 creates its link unpinned.  A lookup that does not count
+    its reference, such as PL_predicate(), pins the link, and it is then
+    kept.  Abolishing an unpinned link leaves a stub procedure GC can
+    collect, including its functor.
   - Unpinned procedures that are undefined are volatile
     (PROC_VOLATILE): new stubs and unpinned procedures that are
     abolished (abolishedProcedure()).  Lookups act as if volatile
@@ -2509,7 +2514,10 @@ abolishProcedure(Procedure proc, Module module)
 
   LOCKDEF(def);
   if ( def->module != module )		/* imported predicate; remove link */
-  { Definition ndef	     = newDefinition(def->functor, module, true);
+  { /* A pinned link outlives this call, so its functor is permanent.
+       An unpinned one must stay collectable, functor included. */
+    bool permanent = !!(LOAD_SEQ_CST(proc->flags)&PROC_PINNED);
+    Definition ndef	     = newDefinition(def->functor, module, permanent);
     Definition odef          = def;
 
     ndef->codes		     = SUPERVISOR(virgin);
