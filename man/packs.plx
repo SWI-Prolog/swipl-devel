@@ -647,11 +647,11 @@ ships with a \program{cmake} \jargon{include} file named
 Comments in the file below explain the various steps of the process.
 
 \begin{code}
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.15)
 project(swipl-pack-environ)
 
 # Include swipl.cmake from the running SWI-Prolog's home
-list(INSERT CMAKE_MODULE_PATH 0 $ENV{SWIPL_HOME_DIR}/cmake)
+list(PREPEND CMAKE_MODULE_PATH $ENV{SWIPL_HOME_DIR}/cmake)
 include(swipl)
 
 # Create the library as a CMake module
